@@ -9,6 +9,7 @@
   const detailMeta = document.querySelector("#detail-meta");
   const detailKind = document.querySelector("#detail-kind");
   const detailContent = document.querySelector("#report-content");
+  const downloadLink = document.querySelector("#download-link");
 
   function escapeHtml(value) {
     return String(value)
@@ -188,6 +189,10 @@
     detailKind.textContent = kindLabel;
     detailTitle.textContent = listTitle(report);
     detailMeta.textContent = report.updated_at ? `最后整理：${report.updated_at}` : "";
+    if (downloadLink) {
+      downloadLink.href = report.download || `reports/${report.date}.md`;
+      downloadLink.setAttribute("download", `${report.date}.md`);
+    }
     detailContent.innerHTML = renderMarkdown(report.content || "");
   }
 

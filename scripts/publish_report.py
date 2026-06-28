@@ -12,6 +12,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 REPORTS_DIR = ROOT / "reports"
 DATA_FILE = ROOT / "data" / "reports.js"
+DOWNLOADS_DIR = ROOT / "downloads"
 REPORT_RE = re.compile(r"^(?P<date>\d{4}-\d{2}-\d{2})(?P<suffix>-weekend)?$")
 
 
@@ -32,6 +33,7 @@ def extract_summary(content: str) -> str:
 
 def main() -> None:
     reports = []
+    DOWNLOADS_DIR.mkdir(parents=True, exist_ok=True)
     for path in sorted(REPORTS_DIR.glob("*.md"), reverse=True):
         if path.name == "README.md":
             continue
@@ -43,12 +45,16 @@ def main() -> None:
         content = path.read_text(encoding="utf-8").strip()
         if not content:
             continue
+        report_id = f"{date}{suffix}"
+        download_name = f"{report_id}.md"
+        (DOWNLOADS_DIR / download_name).write_text(content + "\n", encoding="utf-8")
         reports.append(
             {
-                "date": f"{date}{suffix}",
+                "date": report_id,
                 "title": extract_title(content, date),
                 "summary": extract_summary(content),
                 "kind": "weekend" if suffix else "daily",
+                "download": f"downloads/{download_name}",
                 "updated_at": datetime.fromtimestamp(path.stat().st_mtime).strftime(
                     "%Y-%m-%d %H:%M"
                 ),
