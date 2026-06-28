@@ -131,8 +131,10 @@
       .replace(/[，。；：、,.!！?？“”"']/g, "")
       .replace(/^本周(棕榈油|油脂)?(维持|延续)?/, "")
       .replace(/^今日(棕榈油|油脂)?(维持|延续)?/, "")
+      .replace(/^是/, "")
       .replace(/^P主力/, "P")
       .replace(/^棕榈油/, "")
+      .replace(/P\s*主力.*$/, "")
       .replace(/\s+/g, "")
       .slice(0, Math.max(0, maxLength));
   }
@@ -140,7 +142,7 @@
   function listTitle(report) {
     const kind = getKind(report) === "weekly" ? "周报" : "晨报";
     const dateText = formatShortDate(baseDate(report));
-    const maxTopicLength = 15 - dateText.length - kind.length - 1;
+    const maxTopicLength = 15;
     let topic = displayHeadline(report) || cleanReportTitle(report);
     if (kind === "晨报" && (!topic || /^日报/.test(topic))) {
       topic = report.summary || "发生了什么事";
