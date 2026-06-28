@@ -65,7 +65,9 @@
       </div>
     </footer>
 
-    <script src="data/reports.js"></script>
+    <script>
+      document.write('<script src="data/reports.js?v=' + Date.now() + '"><\/script>');
+    </script>
     <script src="assets/app.js"></script>
   </body>
 </html>
