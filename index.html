@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>棕榈油行情日报 | vinsontesla.com</title>
+    <meta
+      name="description"
+      content="每日棕榈油期货、现货、库存、外盘与宏观要点汇总。"
+    />
+    <link rel="stylesheet" href="assets/styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="shell header-grid">
+        <div>
+          <p class="eyebrow">Palm Oil Daily</p>
+          <h1>棕榈油行情日报</h1>
+          <p class="subtitle">每天 08:45 更新当天交易前观察，聚焦价格、库存、外盘与风险事件。</p>
+        </div>
+        <div class="status-panel" aria-live="polite">
+          <span class="label">最新日期</span>
+          <strong id="latest-date">等待生成</strong>
+          <span id="latest-updated">自动发布准备中</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="shell layout">
+      <section class="report-view" aria-labelledby="report-title">
+        <div class="report-toolbar">
+          <div>
+            <p class="section-label">今日简报</p>
+            <h2 id="report-title">暂无日报</h2>
+          </div>
+          <select id="report-select" aria-label="选择日报日期"></select>
+        </div>
+        <article id="report-content" class="report-content">
+          <p>自动任务启动后，这里会展示最新棕榈油行情日报。</p>
+        </article>
+      </section>
+
+      <aside class="archive" aria-labelledby="archive-title">
+        <h2 id="archive-title">历史日报</h2>
+        <div id="archive-list" class="archive-list"></div>
+      </aside>
+    </main>
+
+    <footer class="site-footer">
+      <div class="shell">
+        <p>仅作研究和信息整理，不构成投资建议。</p>
+      </div>
+    </footer>
+
+    <script src="data/reports.js"></script>
+    <script src="assets/app.js"></script>
+  </body>
+</html>
