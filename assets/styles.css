@@ -166,8 +166,18 @@ h3 {
   min-height: 320px;
 }
 
-.archive-divider {
+.archive-area {
   grid-column: 1 / -1;
+}
+
+.archive-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 36px;
+  align-items: start;
+}
+
+.archive-divider {
   display: flex;
   align-items: center;
   gap: 16px;
@@ -176,6 +186,7 @@ h3 {
   font-size: 0.78rem;
   font-weight: 900;
   text-transform: uppercase;
+  margin-bottom: 24px;
 }
 
 .archive-divider::before,
@@ -424,7 +435,8 @@ select {
 }
 
 @media (max-width: 820px) {
-  .newspaper-layout {
+  .newspaper-layout,
+  .archive-grid {
     grid-template-columns: 1fr;
   }
 
