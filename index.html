@@ -11,36 +11,36 @@
     <link rel="stylesheet" href="assets/styles.css" />
   </head>
   <body>
-    <header class="site-header">
-      <div class="shell header-grid">
-        <div>
-          <p class="eyebrow">Palm Oil Reports</p>
-          <h1>棕榈油行情报告</h1>
-          <p class="subtitle">交易日晨报与周末复盘分组归档，点击标题查看完整分析。</p>
-        </div>
-        <div class="status-panel" aria-live="polite">
-          <span class="label">最新日期</span>
-          <strong id="latest-date">等待生成</strong>
+    <header class="masthead">
+      <div class="shell">
+        <div class="masthead-top">
+          <span>VinsonTesla Markets</span>
           <span id="latest-updated">自动发布准备中</span>
+        </div>
+        <h1>棕榈油行情报告</h1>
+        <div class="masthead-bottom">
+          <span>日报与周报归档</span>
+          <span id="latest-date">等待生成</span>
         </div>
       </div>
     </header>
 
-    <main class="shell layout">
-      <section class="report-view report-index" aria-labelledby="daily-title">
-        <div class="report-toolbar">
-          <div>
-            <p class="section-label">Daily</p>
-            <h2 id="daily-title">日报</h2>
-          </div>
-        </div>
+    <main class="shell newspaper-layout">
+      <section class="newspaper-section" aria-labelledby="daily-title">
+        <header class="section-heading">
+          <span>Daily</span>
+          <h2 id="daily-title">日报</h2>
+        </header>
         <div id="daily-list" class="report-link-list"></div>
       </section>
 
-      <aside class="archive" aria-labelledby="weekly-title">
-        <h2 id="weekly-title">周报</h2>
+      <section class="newspaper-section" aria-labelledby="weekly-title">
+        <header class="section-heading">
+          <span>Weekly</span>
+          <h2 id="weekly-title">周报</h2>
+        </header>
         <div id="weekly-list" class="report-link-list compact"></div>
-      </aside>
+      </section>
     </main>
 
     <footer class="site-footer">
