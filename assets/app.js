@@ -2,10 +2,12 @@
   const reports = Array.isArray(window.PALM_OIL_REPORTS) ? window.PALM_OIL_REPORTS : [];
   const latestDate = document.querySelector("#latest-date");
   const latestUpdated = document.querySelector("#latest-updated");
-  const title = document.querySelector("#report-title");
-  const content = document.querySelector("#report-content");
-  const select = document.querySelector("#report-select");
-  const archive = document.querySelector("#archive-list");
+  const dailyList = document.querySelector("#daily-list");
+  const weeklyList = document.querySelector("#weekly-list");
+  const detailTitle = document.querySelector("#detail-title");
+  const detailMeta = document.querySelector("#detail-meta");
+  const detailKind = document.querySelector("#detail-kind");
+  const detailContent = document.querySelector("#report-content");
 
   function escapeHtml(value) {
     return String(value)
@@ -84,44 +86,100 @@
     return html.join("");
   }
 
-  function setActive(date) {
-    const report = reports.find((item) => item.date === date) || reports[0];
-    if (!report) return;
-    latestDate.textContent = reports[0].date;
-    latestUpdated.textContent = reports[0].updated_at
-      ? `最后整理：${reports[0].updated_at}`
-      : "已生成";
-    title.textContent = report.title || `${report.date} 棕榈油行情日报`;
-    content.innerHTML = renderMarkdown(report.content || "");
-    select.value = report.date;
-    document.querySelectorAll(".archive-item").forEach((button) => {
-      button.classList.toggle("active", button.dataset.date === report.date);
-    });
+  function getKind(report) {
+    return report.kind === "weekend" || /-weekend$/.test(report.date) ? "weekly" : "daily";
   }
 
-  if (!reports.length) {
-    select.hidden = true;
-    archive.innerHTML = '<p class="empty">暂无历史日报。</p>';
+  function baseDate(report) {
+    return String(report.date || "").replace(/-weekend$/, "");
+  }
+
+  function formatDate(date) {
+    const parts = String(date).split("-");
+    if (parts.length !== 3) return date;
+    return `${parts[0]}年${parts[1]}月${parts[2]}日`;
+  }
+
+  function cleanReportTitle(report) {
+    const raw = report.title || "";
+    return raw
+      .replace(/^\d{4}-\d{2}-\d{2}\s*/, "")
+      .replace(/^棕榈油/, "")
+      .replace(/^行情/, "")
+      .trim();
+  }
+
+  function listTitle(report) {
+    const kind = getKind(report) === "weekly" ? "周报" : "晨报";
+    let topic = cleanReportTitle(report);
+    if (kind === "晨报" && (!topic || /^日报/.test(topic))) {
+      topic = report.summary || "发生了什么事";
+    }
+    if (!topic) {
+      topic = kind === "周报" ? "周末总结与开盘预测" : "发生了什么事";
+    }
+    return `${formatDate(baseDate(report))}${kind}——${topic}`;
+  }
+
+  function reportHref(report) {
+    return `report.html?id=${encodeURIComponent(report.date)}`;
+  }
+
+  function renderIndex() {
+    if (!dailyList || !weeklyList) return;
+    const latest = reports[0];
+    if (latestDate) latestDate.textContent = latest ? baseDate(latest) : "等待生成";
+    if (latestUpdated) latestUpdated.textContent = latest?.updated_at ? `最后整理：${latest.updated_at}` : "自动发布准备中";
+
+    const groups = {
+      daily: reports.filter((report) => getKind(report) === "daily"),
+      weekly: reports.filter((report) => getKind(report) === "weekly"),
+    };
+
+    function renderGroup(target, items, emptyText) {
+      if (!items.length) {
+        target.innerHTML = `<p class="empty">${escapeHtml(emptyText)}</p>`;
+        return;
+      }
+      target.innerHTML = items
+        .map(
+          (report) => `
+            <a class="report-link" href="${reportHref(report)}">
+              <span>${escapeHtml(listTitle(report))}</span>
+            </a>
+          `,
+        )
+        .join("");
+    }
+
+    renderGroup(dailyList, groups.daily, "暂无日报。");
+    renderGroup(weeklyList, groups.weekly, "暂无周报。");
+  }
+
+  function renderDetail() {
+    if (!detailTitle || !detailContent) return;
+    const id = new URLSearchParams(window.location.search).get("id");
+    const report = reports.find((item) => item.date === id) || reports[0];
+    if (!report) {
+      detailTitle.textContent = "未找到报告";
+      detailContent.innerHTML = "<p>暂无可展示的报告。</p>";
+      return;
+    }
+
+    const kindLabel = getKind(report) === "weekly" ? "周报" : "日报";
+    document.title = `${listTitle(report)} | vinsontesla.com`;
+    detailKind.textContent = kindLabel;
+    detailTitle.textContent = listTitle(report);
+    detailMeta.textContent = report.updated_at ? `最后整理：${report.updated_at}` : "";
+    detailContent.innerHTML = renderMarkdown(report.content || "");
+  }
+
+  if (!reports.length && dailyList && weeklyList) {
+    dailyList.innerHTML = '<p class="empty">暂无日报。</p>';
+    weeklyList.innerHTML = '<p class="empty">暂无周报。</p>';
     return;
   }
 
-  reports.forEach((report) => {
-    const option = document.createElement("option");
-    option.value = report.date;
-    option.textContent = report.date;
-    select.appendChild(option);
-
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "archive-item";
-    button.dataset.date = report.date;
-    button.innerHTML = `<strong>${escapeHtml(report.date)}</strong><span>${escapeHtml(
-      report.summary || report.title || "棕榈油行情日报",
-    )}</span>`;
-    button.addEventListener("click", () => setActive(report.date));
-    archive.appendChild(button);
-  });
-
-  select.addEventListener("change", () => setActive(select.value));
-  setActive(reports[0].date);
+  renderIndex();
+  renderDetail();
 })();
