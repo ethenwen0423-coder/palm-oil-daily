@@ -5,8 +5,8 @@
 ## 日常更新
 
 1. 在 `reports/` 下新增当天 Markdown 日报，例如 `reports/2026-06-29.md`。
-2. 运行 `python3 scripts/publish_report.py`。
-3. 提交并推送到 GitHub，GitHub Pages 会自动更新公网网站。
+2. 运行 `bash scripts/deploy_report.sh`。
+3. GitHub Pages 会自动更新公网网站。
 
 ## 域名发布
 
