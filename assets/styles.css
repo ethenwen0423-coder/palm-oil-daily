@@ -172,8 +172,8 @@ h3 {
 .section-heading {
   display: flex;
   align-items: baseline;
-  justify-content: space-between;
-  gap: 20px;
+  justify-content: flex-start;
+  gap: 10px;
   padding: 16px 0 14px;
   border-bottom: 1px solid var(--ink);
 }
@@ -184,6 +184,12 @@ h3 {
   font-size: 0.75rem;
   font-weight: 900;
   text-transform: uppercase;
+}
+
+.section-heading span::before {
+  content: "·";
+  margin-right: 10px;
+  color: var(--ink);
 }
 
 .section-heading h2 {
