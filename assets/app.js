@@ -2,6 +2,7 @@
   const reports = Array.isArray(window.PALM_OIL_REPORTS) ? window.PALM_OIL_REPORTS : [];
   const latestDate = document.querySelector("#latest-date");
   const latestUpdated = document.querySelector("#latest-updated");
+  const recentList = document.querySelector("#recent-list");
   const dailyList = document.querySelector("#daily-list");
   const weeklyList = document.querySelector("#weekly-list");
   const detailTitle = document.querySelector("#detail-title");
@@ -125,6 +126,19 @@
     return `report.html?id=${encodeURIComponent(report.date)}`;
   }
 
+  function reportTime(report) {
+    const timestamp = Date.parse(`${baseDate(report)}T00:00:00`);
+    return Number.isNaN(timestamp) ? 0 : timestamp;
+  }
+
+  function recentReports() {
+    const datedReports = reports.filter((report) => reportTime(report));
+    if (!datedReports.length) return [];
+    const newest = Math.max(...datedReports.map(reportTime));
+    const weekMs = 7 * 24 * 60 * 60 * 1000;
+    return datedReports.filter((report) => newest - reportTime(report) < weekMs);
+  }
+
   function renderIndex() {
     if (!dailyList || !weeklyList) return;
     const latest = reports[0];
@@ -136,7 +150,7 @@
       weekly: reports.filter((report) => getKind(report) === "weekly"),
     };
 
-    function renderGroup(target, items, emptyText) {
+    function renderGroup(target, items, emptyText, className = "report-link") {
       if (!items.length) {
         target.innerHTML = `<p class="empty">${escapeHtml(emptyText)}</p>`;
         return;
@@ -144,7 +158,7 @@
       target.innerHTML = items
         .map(
           (report) => `
-            <a class="report-link" href="${reportHref(report)}">
+            <a class="${className}" href="${reportHref(report)}">
               <span>${escapeHtml(listTitle(report))}</span>
             </a>
           `,
@@ -152,6 +166,9 @@
         .join("");
     }
 
+    if (recentList) {
+      renderGroup(recentList, recentReports(), "暂无最近一周报告。", "report-link recent-link");
+    }
     renderGroup(dailyList, groups.daily, "暂无日报。");
     renderGroup(weeklyList, groups.weekly, "暂无周报。");
   }
@@ -175,6 +192,7 @@
   }
 
   if (!reports.length && dailyList && weeklyList) {
+    if (recentList) recentList.innerHTML = '<p class="empty">暂无最近一周报告。</p>';
     dailyList.innerHTML = '<p class="empty">暂无日报。</p>';
     weeklyList.innerHTML = '<p class="empty">暂无周报。</p>';
     return;

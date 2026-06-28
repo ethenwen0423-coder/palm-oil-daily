@@ -26,7 +26,15 @@
     </header>
 
     <main class="shell newspaper-layout">
-      <section class="newspaper-section" aria-labelledby="daily-title">
+      <section class="newspaper-section recent-section" aria-labelledby="recent-title">
+        <header class="section-heading">
+          <span>Latest Week</span>
+          <h2 id="recent-title">最近一周</h2>
+        </header>
+        <div id="recent-list" class="report-link-list recent-list"></div>
+      </section>
+
+      <section class="newspaper-section archive-section" aria-labelledby="daily-title">
         <header class="section-heading">
           <span>Daily</span>
           <h2 id="daily-title">日报</h2>
@@ -34,7 +42,7 @@
         <div id="daily-list" class="report-link-list"></div>
       </section>
 
-      <section class="newspaper-section" aria-labelledby="weekly-title">
+      <section class="newspaper-section archive-section" aria-labelledby="weekly-title">
         <header class="section-heading">
           <span>Weekly</span>
           <h2 id="weekly-title">周报</h2>
