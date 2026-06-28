@@ -35,20 +35,20 @@ def extract_summary(content: str) -> str:
 def extract_headline(content: str, fallback: str) -> str:
     lines = [line.strip() for line in content.splitlines()]
     for index, line in enumerate(lines):
-      if line.startswith("##") and "一句话核心观点" in line:
-          for row in lines[index + 1 :]:
-              if row.startswith("##"):
-                  break
-              if row and not row.startswith("【结论】"):
-                  return row
+        if line.startswith("##") and ("一句话核心观点" in line or "今日观点" in line):
+            for row in lines[index + 1 :]:
+                if row.startswith("##"):
+                    break
+                if row and not row.startswith("【结论】"):
+                    return row
     for index, line in enumerate(lines):
-      if line.startswith("|") and "结论" in line and "驱动" in line:
-          for row in lines[index + 2 :]:
-              if not row.startswith("|"):
-                  break
-              cells = [cell.strip() for cell in row.strip("|").split("|")]
-              if len(cells) >= 2 and cells[1] and "---" not in cells[1]:
-                  return cells[1]
+        if line.startswith("|") and "结论" in line and "驱动" in line:
+            for row in lines[index + 2 :]:
+                if not row.startswith("|"):
+                    break
+                cells = [cell.strip() for cell in row.strip("|").split("|")]
+                if len(cells) >= 2 and cells[1] and "---" not in cells[1]:
+                    return cells[1]
     summary = extract_summary(content)
     return summary if summary != "棕榈油行情日报" else fallback
 

@@ -109,17 +109,17 @@ def build_commands(report_date: str, kind: str, output_dir: Path) -> list[tuple[
     news_query = (
         "棕榈油 周报 MPOB MPOA ITS GAPKI USDA CME ICE DCE 印尼B50 马来出口 库存 原油"
         if kind == "weekend"
-        else "棕榈油 期货 油脂油料 今日 资讯 马来西亚 出口 库存"
+        else "棕榈油 晨报 FCPO 原油 美豆油 美元 人民币 马来出口 库存 今日交易"
     )
     market_query = (
         "棕榈油期货主力合约 豆油 菜油 最新价 涨跌幅 成交量 持仓量 周涨跌"
         if kind == "weekend"
-        else "棕榈油期货主力合约 最新价 涨跌幅 成交量 持仓量"
+        else "棕榈油期货主力合约 豆油 菜油 夜盘 最新价 涨跌幅 成交量 持仓量"
     )
     research_query = (
         "棕榈油 油脂油料 周报 研报 永安期货 中信期货 国泰君安期货 银河期货"
         if kind == "weekend"
-        else "棕榈油 油脂油料 期货 研报 永安期货 银河期货 华泰期货"
+        else "棕榈油 油脂油料 晨报 永安期货 中信期货 国泰君安期货 银河期货"
     )
 
     commands: list[tuple[str, list[str]]] = [
