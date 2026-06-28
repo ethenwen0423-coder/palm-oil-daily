@@ -164,6 +164,7 @@ h3 {
 
 .archive-section {
   min-height: 320px;
+  min-width: 0;
 }
 
 .archive-area {
@@ -172,7 +173,7 @@ h3 {
 
 .archive-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 36px;
   align-items: start;
 }
@@ -372,6 +373,7 @@ select {
   font-size: clamp(1.08rem, 2vw, 1.42rem);
   font-weight: 800;
   line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
 .recent-list {
@@ -435,8 +437,7 @@ select {
 }
 
 @media (max-width: 820px) {
-  .newspaper-layout,
-  .archive-grid {
+  .newspaper-layout {
     grid-template-columns: 1fr;
   }
 
@@ -446,6 +447,12 @@ select {
 
   .report-toolbar {
     display: grid;
+  }
+}
+
+@media (max-width: 620px) {
+  .archive-grid {
+    grid-template-columns: 1fr;
   }
 }
 
