@@ -107,9 +107,9 @@ def build_commands(report_date: str, kind: str, output_dir: Path) -> list[tuple[
         else futures / "scripts" / "generate_daily_report.py"
     )
     news_query = (
-        "棕榈油 周报 MPOB MPOA ITS GAPKI USDA CME ICE DCE 印尼B50 马来出口 库存 原油"
+        "棕榈油 豆油 菜油 油脂油料 周报 MPOB MPOA ITS GAPKI USDA CME ICE DCE 印尼B50 马来出口 库存 原油 豆棕价差 菜豆价差"
         if kind == "weekend"
-        else "棕榈油 晨报 FCPO 原油 美豆油 美元 人民币 马来出口 库存 今日交易"
+        else "棕榈油 豆油 菜油 油脂油料 晨报 FCPO 原油 美豆油 美元 人民币 马来出口 库存 今日交易 豆棕价差"
     )
     market_query = (
         "棕榈油期货主力合约 豆油 菜油 最新价 涨跌幅 成交量 持仓量 周涨跌"
@@ -117,9 +117,9 @@ def build_commands(report_date: str, kind: str, output_dir: Path) -> list[tuple[
         else "棕榈油期货主力合约 豆油 菜油 夜盘 最新价 涨跌幅 成交量 持仓量"
     )
     research_query = (
-        "棕榈油 油脂油料 周报 研报 永安期货 中信期货 国泰君安期货 银河期货"
+        "棕榈油 豆油 菜油 油脂油料 周报 研报 行情预测 豆棕价差 菜豆价差 永安期货 中信期货 国泰君安期货 银河期货"
         if kind == "weekend"
-        else "棕榈油 油脂油料 晨报 永安期货 中信期货 国泰君安期货 银河期货"
+        else "棕榈油 豆油 菜油 油脂油料 晨报 交易策略 行情预测 永安期货 中信期货 国泰君安期货 银河期货"
     )
 
     commands: list[tuple[str, list[str]]] = [
