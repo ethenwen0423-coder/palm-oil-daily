@@ -106,6 +106,21 @@ def build_commands(report_date: str, kind: str, output_dir: Path) -> list[tuple[
         if kind == "weekend"
         else futures / "scripts" / "generate_daily_report.py"
     )
+    news_query = (
+        "棕榈油 周报 MPOB MPOA ITS GAPKI USDA CME ICE DCE 印尼B50 马来出口 库存 原油"
+        if kind == "weekend"
+        else "棕榈油 期货 油脂油料 今日 资讯 马来西亚 出口 库存"
+    )
+    market_query = (
+        "棕榈油期货主力合约 豆油 菜油 最新价 涨跌幅 成交量 持仓量 周涨跌"
+        if kind == "weekend"
+        else "棕榈油期货主力合约 最新价 涨跌幅 成交量 持仓量"
+    )
+    research_query = (
+        "棕榈油 油脂油料 周报 研报 永安期货 中信期货 国泰君安期货 银河期货"
+        if kind == "weekend"
+        else "棕榈油 油脂油料 期货 研报 永安期货 银河期货 华泰期货"
+    )
 
     commands: list[tuple[str, list[str]]] = [
         (
@@ -148,7 +163,7 @@ def build_commands(report_date: str, kind: str, output_dir: Path) -> list[tuple[
                 sys.executable,
                 str(mx_search / "scripts" / "search_mx.py"),
                 "--query",
-                "棕榈油 期货 油脂油料 今日 资讯 马来西亚 出口 库存",
+                news_query,
                 "--output",
                 "json",
                 "--save",
@@ -161,7 +176,7 @@ def build_commands(report_date: str, kind: str, output_dir: Path) -> list[tuple[
                 sys.executable,
                 str(mx_data / "scripts" / "query_mx_data.py"),
                 "--query",
-                "棕榈油期货主力合约 最新价 涨跌幅 成交量 持仓量",
+                market_query,
                 "--output",
                 "json",
                 "--save",
@@ -174,7 +189,7 @@ def build_commands(report_date: str, kind: str, output_dir: Path) -> list[tuple[
                 sys.executable,
                 str(hithink / "scripts" / "cli.py"),
                 "--query",
-                "棕榈油期货主力合约 最新价 涨跌幅 成交量 持仓量",
+                market_query,
                 "--limit",
                 "10",
             ],
@@ -185,7 +200,7 @@ def build_commands(report_date: str, kind: str, output_dir: Path) -> list[tuple[
                 sys.executable,
                 str(report_search / "scripts" / "research_report_search.py"),
                 "-q",
-                "棕榈油 油脂油料 期货 研报 永安期货 银河期货 华泰期货",
+                research_query,
                 "-l",
                 "10",
                 "-f",
