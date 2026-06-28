@@ -32,8 +32,9 @@
       </div>
     </footer>
 
+    <script src="data/version.js"></script>
     <script>
-      document.write('<script src="data/reports.js?v=' + Date.now() + '"><\/script>');
+      document.write('<script src="data/reports.js?v=' + (window.PALM_OIL_DATA_VERSION || Date.now()) + '"><\/script>');
     </script>
     <script src="assets/app.js"></script>
   </body>

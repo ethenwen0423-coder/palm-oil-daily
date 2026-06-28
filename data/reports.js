@@ -2,6 +2,7 @@ window.PALM_OIL_REPORTS = [
   {
     "date": "2026-06-28-weekend",
     "title": "2026-06-28 棕榈油周末总结与开盘预测",
+    "headline": "预计偏强震荡开盘，但不建议追高",
     "summary": "原油下跌会削弱生物柴油估值，拖累棕榈油上方空间。",
     "kind": "weekend",
     "download": "downloads/2026-06-28-weekend.md",

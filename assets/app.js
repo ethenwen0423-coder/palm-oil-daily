@@ -111,14 +111,23 @@
       .trim();
   }
 
+  function displayHeadline(report) {
+    const raw = report.headline || "";
+    return raw
+      .replace(/^预计/, "")
+      .replace(/^周一开盘/, "")
+      .replace(/^[:：，, ]+/, "")
+      .trim();
+  }
+
   function listTitle(report) {
     const kind = getKind(report) === "weekly" ? "周报" : "晨报";
-    let topic = cleanReportTitle(report);
+    let topic = displayHeadline(report) || cleanReportTitle(report);
     if (kind === "晨报" && (!topic || /^日报/.test(topic))) {
       topic = report.summary || "发生了什么事";
     }
     if (!topic) {
-      topic = kind === "周报" ? "周末总结与开盘预测" : "发生了什么事";
+      topic = kind === "周报" ? "油脂市场关键变化与开盘观察" : "发生了什么事";
     }
     return `${formatDate(baseDate(report))}${kind}——${topic}`;
   }
