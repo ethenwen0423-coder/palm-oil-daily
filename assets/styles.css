@@ -18,7 +18,10 @@
 
 body {
   margin: 0;
-  background: var(--bg);
+  background:
+    linear-gradient(rgba(247, 244, 238, 0.9), rgba(247, 244, 238, 0.94)),
+    url("paper-pattern.webp") center top / 760px auto repeat,
+    var(--bg);
   color: var(--ink);
   font-family:
     Georgia, "Times New Roman", "Songti SC", "SimSun", serif;
@@ -31,10 +34,28 @@ body {
 }
 
 .masthead {
-  background: #fbfaf7;
+  background:
+    linear-gradient(rgba(251, 250, 247, 0.9), rgba(251, 250, 247, 0.86)),
+    url("market-masthead.webp") center / cover;
   border-bottom: 2px solid var(--ink);
   color: var(--ink);
-  padding: 22px 0 18px;
+  padding: 24px 0 20px;
+  position: relative;
+}
+
+.masthead::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 7px;
+  background: repeating-linear-gradient(
+    90deg,
+    rgba(27, 27, 27, 0.95) 0 42px,
+    rgba(138, 90, 32, 0.85) 42px 58px,
+    rgba(27, 27, 27, 0.95) 58px 100px
+  );
+  opacity: 0.22;
+  pointer-events: none;
 }
 
 .masthead-top,
@@ -63,6 +84,7 @@ body {
   font-size: clamp(2.6rem, 6vw, 5.3rem);
   font-weight: 900;
   letter-spacing: 0;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.65);
 }
 
 .detail-masthead {
@@ -142,6 +164,9 @@ h3 {
 .newspaper-section {
   min-height: 360px;
   padding: 0;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0.96)),
+    url("paper-pattern.webp") center / 620px auto repeat;
 }
 
 .section-heading {
