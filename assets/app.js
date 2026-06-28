@@ -102,6 +102,12 @@
     return `${parts[0]}年${parts[1]}月${parts[2]}日`;
   }
 
+  function formatShortDate(date) {
+    const parts = String(date).split("-");
+    if (parts.length !== 3) return date;
+    return `${parts[1]}月${parts[2]}日`;
+  }
+
   function cleanReportTitle(report) {
     const raw = report.title || "";
     return raw
@@ -120,16 +126,26 @@
       .trim();
   }
 
+  function compactTopic(value, maxLength) {
+    return String(value || "")
+      .replace(/[，。；：、,.!！?？“”"']/g, "")
+      .replace(/\s+/g, "")
+      .slice(0, Math.max(0, maxLength));
+  }
+
   function listTitle(report) {
     const kind = getKind(report) === "weekly" ? "周报" : "晨报";
+    const dateText = formatShortDate(baseDate(report));
+    const maxTopicLength = 15 - dateText.length - kind.length - 1;
     let topic = displayHeadline(report) || cleanReportTitle(report);
     if (kind === "晨报" && (!topic || /^日报/.test(topic))) {
       topic = report.summary || "发生了什么事";
     }
     if (!topic) {
-      topic = kind === "周报" ? "油脂市场关键变化与开盘观察" : "发生了什么事";
+      topic = kind === "周报" ? "油脂强弱" : "盘前策略";
     }
-    return `${formatDate(baseDate(report))}${kind}——${topic}`;
+    const compact = compactTopic(topic, maxTopicLength);
+    return `${dateText}${kind}${compact ? ` ${compact}` : ""}`;
   }
 
   function reportHref(report) {
