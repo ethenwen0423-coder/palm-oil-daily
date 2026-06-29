@@ -5,6 +5,8 @@
   const recentList = document.querySelector("#recent-list");
   const dailyList = document.querySelector("#daily-list");
   const weeklyList = document.querySelector("#weekly-list");
+  const dailyReportLink = document.querySelector("#daily-report-link");
+  const weeklyReportLink = document.querySelector("#weekly-report-link");
   const detailTitle = document.querySelector("#detail-title");
   const detailMeta = document.querySelector("#detail-meta");
   const detailKind = document.querySelector("#detail-kind");
@@ -168,19 +170,28 @@
     if (!datedReports.length) return [];
     const newest = Math.max(...datedReports.map(reportTime));
     const weekMs = 7 * 24 * 60 * 60 * 1000;
-    return datedReports.filter((report) => newest - reportTime(report) < weekMs);
+    return datedReports
+      .filter((report) => newest - reportTime(report) < weekMs)
+      .sort((left, right) => reportTime(right) - reportTime(left));
   }
 
   function renderIndex() {
     if (!dailyList || !weeklyList) return;
     const latest = reports[0];
-    if (latestDate) latestDate.textContent = latest ? baseDate(latest) : "等待生成";
-    if (latestUpdated) latestUpdated.textContent = latest?.updated_at ? `最后整理：${latest.updated_at}` : "自动发布准备中";
-
     const groups = {
-      daily: reports.filter((report) => getKind(report) === "daily"),
-      weekly: reports.filter((report) => getKind(report) === "weekly"),
+      daily: reports.filter((report) => getKind(report) === "daily").sort((left, right) => reportTime(right) - reportTime(left)),
+      weekly: reports.filter((report) => getKind(report) === "weekly").sort((left, right) => reportTime(right) - reportTime(left)),
     };
+    const latestDaily = groups.daily[0] || latest;
+    const latestWeekly = groups.weekly[0];
+    if (latestDate) latestDate.textContent = latestDaily ? baseDate(latestDaily) : "等待生成";
+    if (latestUpdated) {
+      const updated = latestDaily?.updated_at || "";
+      const time = updated.split(/\s+/)[1];
+      latestUpdated.textContent = time ? `${time} 北京时间` : "自动发布准备中";
+    }
+    if (dailyReportLink && latestDaily) dailyReportLink.href = reportHref(latestDaily);
+    if (weeklyReportLink && latestWeekly) weeklyReportLink.href = reportHref(latestWeekly);
 
     function renderGroup(target, items, emptyText, className = "report-link") {
       if (!items.length) {
