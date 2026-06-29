@@ -9,6 +9,13 @@
 4. 网站首页标题必须控制在15个字以内；长观点只能写在【一句话核心观点】中，不要塞进标题。
 5. 第一条观点必须是总结性交易判断，不得写“周末总结与开盘预测”“今日周报”“发生了什么事”等泛标题。
 
+Writing Skill 规则：
+1. 正式写作前必须读取 skills/vinson-research-writing/SKILL.md。
+2. 涉及术语统一时读取 skills/vinson-research-writing/terminology.md。
+3. 涉及表达优化时读取 skills/vinson-research-writing/examples.md 和 skills/vinson-research-writing/anti_patterns.md。
+4. 发布前必须按 skills/vinson-research-writing/checklist.md 自检；不符合项必须先重写。
+5. Writing Skill 只用于提升结构、表达、可读性和机构研究风格，不得改变数据来源、业务逻辑或交易策略。
+
 
 
 补充参考来源规则：

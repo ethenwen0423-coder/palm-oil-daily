@@ -8,6 +8,13 @@
 3. 如果当天不是交易日，立即停止，不生成日报、不修改文件、不提交、不推送，并在完成记录中写明“今日非交易日，未发布”。
 4. 如果当天是交易日，继续执行以下晨报生成和发布流程。
 
+Writing Skill 规则：
+1. 正式写作前必须读取 skills/vinson-research-writing/SKILL.md。
+2. 涉及术语统一时读取 skills/vinson-research-writing/terminology.md。
+3. 涉及表达优化时读取 skills/vinson-research-writing/examples.md 和 skills/vinson-research-writing/anti_patterns.md。
+4. 发布前必须按 skills/vinson-research-writing/checklist.md 自检；不符合项必须先重写。
+5. Writing Skill 只用于提升结构、表达、可读性和机构研究风格，不得改变数据来源、业务逻辑或交易策略。
+
 
 
 补充参考来源规则：
