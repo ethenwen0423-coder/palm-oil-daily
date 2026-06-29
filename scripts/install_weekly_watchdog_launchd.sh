@@ -50,7 +50,7 @@ fi
 
 echo "[\$(TZ=Asia/Shanghai date '+%F %T')] missing or invalid, start codex backfill" >> "\$LOG"
 
-PROMPT='这是棕榈油周报的系统级兜底检查。现在是周日 21:40 后的补检窗口。请先检查 '"$RUNTIME_ROOT"'/reports/当前上海日期-weekend.md、data/reports.js、downloads/当前上海日期-weekend.md 是否都存在，且正文不含“未实际调用”“当前环境未暴露调用入口”“这是测试报告”“排版调试样稿”。如果已经合格，立即结束，不要改文件。如果缺失或不合格，请使用当前上海日期补跑周报：先 git pull --ff-only，然后运行 python3 scripts/run_financial_skills.py --date 当前上海日期 --kind weekend --timeout 90，读取 source_runs/当前日期-weekend/manifest.json 和 raw 文件，按既定周报规范生成 reports/当前日期-weekend.md，运行 bash scripts/deploy_report.sh 发布。报告必须覆盖棕榈油、豆油、菜油及原油、天气、政策等外部变量；标题日期后简介限制15字以内。最终简要说明是否补跑、是否已发布。'
+PROMPT='这是棕榈油周报的系统级兜底检查。现在是周日 21:40 后的补检窗口。请先检查 '"$RUNTIME_ROOT"'/reports/当前上海日期-weekend.md、data/reports.js、downloads/当前上海日期-weekend.md 是否都存在，且正文不含“未实际调用”“当前环境未暴露调用入口”“这是测试报告”“排版调试样稿”。如果已经合格，立即结束，不要改文件。如果缺失或不合格，请使用当前上海日期补跑周报：先 git pull --ff-only，然后运行 python3 scripts/run_financial_skills.py --date 当前上海日期 --kind weekend --timeout 90，读取 source_runs/当前日期-weekend/manifest.json 和 raw 文件，并读取 references/wechat_oil_sources.md 作为补充参考源；微信来源只用于产业观点、市场叙事和情绪交叉印证，核心数据仍以交易所、官方机构、金融 skills 和研报为准。按既定周报规范生成 reports/当前日期-weekend.md，运行 bash scripts/deploy_report.sh 发布。报告必须覆盖棕榈油、豆油、菜油及原油、天气、政策等外部变量；标题日期后简介限制15字以内。最终简要说明是否补跑、是否已发布。'
 
 printf '%s\n' "\$PROMPT" | "$CODEX_BIN" exec \\
   --cd "$ROOT" \\
