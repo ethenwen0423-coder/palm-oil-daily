@@ -82,12 +82,189 @@
         html.push(`<li>${escapeHtml(trimmed.slice(2))}</li>`);
       } else {
         closeList();
-        html.push(`<p>${escapeHtml(trimmed)}</p>`);
+        if (/^【结论】/.test(trimmed)) {
+          html.push(`<p class="research-conclusion">${escapeHtml(trimmed.replace(/^【结论】\s*/, ""))}</p>`);
+        } else {
+          html.push(`<p>${escapeHtml(trimmed)}</p>`);
+        }
       }
     });
     closeList();
     closeTable();
     return html.join("");
+  }
+
+  function normalizeHeading(value) {
+    return String(value || "")
+      .replace(/^#+\s*/, "")
+      .replace(/[【】\[\]]/g, "")
+      .trim();
+  }
+
+  function parseMarkdownSections(markdown) {
+    const sections = [];
+    let current = null;
+
+    String(markdown || "")
+      .split(/\r?\n/)
+      .forEach((line) => {
+        if (line.startsWith("# ")) return;
+        if (line.startsWith("## ")) {
+          current = { title: normalizeHeading(line), lines: [] };
+          sections.push(current);
+          return;
+        }
+        if (!current) {
+          current = { title: "摘要", lines: [] };
+          sections.push(current);
+        }
+        current.lines.push(line);
+      });
+
+    return sections
+      .map((section) => ({
+        ...section,
+        body: section.lines.join("\n").trim(),
+      }))
+      .filter((section) => section.body);
+  }
+
+  function sectionMatches(section, keywords) {
+    return keywords.some((keyword) => section.title.includes(keyword));
+  }
+
+  function renderSectionBody(markdown) {
+    const lines = String(markdown || "").split(/\r?\n/);
+    const html = [];
+    let listOpen = false;
+    let tableRows = [];
+
+    function closeList() {
+      if (listOpen) {
+        html.push("</ul>");
+        listOpen = false;
+      }
+    }
+
+    function closeTable() {
+      if (!tableRows.length) return;
+      const rows = tableRows.map((row, index) => {
+        const cells = row
+          .split("|")
+          .slice(1, -1)
+          .map((cell) => escapeHtml(cell.trim()));
+        const tag = index === 0 ? "th" : "td";
+        return `<tr>${cells.map((cell) => `<${tag}>${cell}</${tag}>`).join("")}</tr>`;
+      });
+      html.push(`<div class="research-table-wrap"><table>${rows.join("")}</table></div>`);
+      tableRows = [];
+    }
+
+    lines.forEach((line) => {
+      const trimmed = line.trim();
+      if (!trimmed) {
+        closeList();
+        closeTable();
+        return;
+      }
+      if (/^\|.+\|$/.test(trimmed) && !/^\|\s*-+/.test(trimmed)) {
+        closeList();
+        tableRows.push(trimmed);
+        return;
+      }
+      if (/^\|\s*:?-+/.test(trimmed)) {
+        return;
+      }
+      closeTable();
+      if (trimmed.startsWith("### ")) {
+        closeList();
+        html.push(`<h3>${escapeHtml(normalizeHeading(trimmed))}</h3>`);
+      } else if (/^[-*] /.test(trimmed)) {
+        if (!listOpen) {
+          html.push("<ul>");
+          listOpen = true;
+        }
+        html.push(`<li>${escapeHtml(trimmed.slice(2))}</li>`);
+      } else if (/^\d+\.\s+/.test(trimmed)) {
+        if (!listOpen) {
+          html.push("<ul>");
+          listOpen = true;
+        }
+        html.push(`<li>${escapeHtml(trimmed.replace(/^\d+\.\s+/, ""))}</li>`);
+      } else {
+        closeList();
+        if (/^【结论】/.test(trimmed)) {
+          html.push(`<p class="research-conclusion">${escapeHtml(trimmed.replace(/^【结论】\s*/, ""))}</p>`);
+        } else {
+          html.push(`<p>${escapeHtml(trimmed)}</p>`);
+        }
+      }
+    });
+
+    closeList();
+    closeTable();
+    return html.join("");
+  }
+
+  function renderResearchModules(report) {
+    const sections = parseMarkdownSections(report.content || "");
+    const used = new Set();
+    const modules = [
+      {
+        title: "今日观点",
+        label: "观点",
+        keywords: ["今日观点", "一句话核心观点"],
+        fallback: report.headline || report.summary || "",
+      },
+      {
+        title: "交易信号",
+        label: "信号",
+        keywords: ["今日交易信号", "交易信号", "市场一致预期"],
+      },
+      {
+        title: "核心逻辑",
+        label: "逻辑",
+        keywords: ["今日交易重点", "昨夜发生了什么", "市场复盘", "本周三大变化", "核心逻辑"],
+      },
+      {
+        title: "关键数据",
+        label: "数据",
+        keywords: ["今日关键数据", "关键价格", "观察指标", "核心数据变化", "下周重要事件"],
+      },
+      {
+        title: "交易计划",
+        label: "计划",
+        keywords: ["开盘推演", "交易计划", "周一开盘推演"],
+      },
+      {
+        title: "风险提示",
+        label: "风控",
+        keywords: ["风险提示"],
+      },
+    ];
+
+    const cards = modules
+      .map((module) => {
+        const matched = sections.filter((section, index) => !used.has(index) && sectionMatches(section, module.keywords));
+        matched.forEach((section) => used.add(sections.indexOf(section)));
+        const body = matched.map((section) => section.body).join("\n\n");
+        const content = body || module.fallback;
+        if (!content) return "";
+        return `
+          <section class="research-card" aria-labelledby="module-${escapeHtml(module.title)}">
+            <div class="research-card-heading">
+              <span>${escapeHtml(module.label)}</span>
+              <h2 id="module-${escapeHtml(module.title)}">${escapeHtml(module.title)}</h2>
+            </div>
+            <div class="research-card-body">
+              ${renderSectionBody(content)}
+            </div>
+          </section>
+        `;
+      })
+      .filter(Boolean);
+
+    return cards.join("");
   }
 
   function getKind(report) {
@@ -235,7 +412,7 @@
       downloadLink.href = report.download || `reports/${report.date}.md`;
       downloadLink.setAttribute("download", `${report.date}.md`);
     }
-    detailContent.innerHTML = renderMarkdown(report.content || "");
+    detailContent.innerHTML = renderResearchModules(report);
   }
 
   if (!reports.length && dailyList && weeklyList) {
