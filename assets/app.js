@@ -132,9 +132,9 @@
       .replace(/^本周(棕榈油|油脂)?(维持|延续)?/, "")
       .replace(/^今日(棕榈油|油脂)?(维持|延续)?/, "")
       .replace(/^是/, "")
-      .replace(/^P主力/, "P")
+      .replace(/^P\s*主力/, "P")
       .replace(/^棕榈油/, "")
-      .replace(/P\s*主力.*$/, "")
+      .replace(/(.+)P\s*主力.*$/, "$1")
       .replace(/\s+/g, "")
       .slice(0, Math.max(0, maxLength));
   }
