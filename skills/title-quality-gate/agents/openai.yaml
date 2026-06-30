@@ -1,0 +1,7 @@
+interface:
+  display_name: "Title Quality Gate"
+  short_description: "Headline Subheadline 研究标题质量门"
+  default_prompt: "Use $title-quality-gate to check and rewrite the Headline and Subheadline before publishing research content."
+
+policy:
+  allow_implicit_invocation: true
