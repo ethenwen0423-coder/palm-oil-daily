@@ -7,6 +7,8 @@
   const weeklyList = document.querySelector("#weekly-list");
   const dailyReportLink = document.querySelector("#daily-report-link");
   const weeklyReportLink = document.querySelector("#weekly-report-link");
+  const heroCall = document.querySelector("#hero-call");
+  const heroPoints = document.querySelector("#hero-points");
   const detailTitle = document.querySelector("#detail-title");
   const detailMeta = document.querySelector("#detail-meta");
   const detailKind = document.querySelector("#detail-kind");
@@ -305,6 +307,30 @@
       .trim();
   }
 
+  function getHeroView(report) {
+    const headline = displayHeadline(report) || cleanReportTitle(report) || "等待今日观点";
+    const parts = headline
+      .split(/[；;。]/)
+      .map((part) => part.trim())
+      .filter(Boolean);
+    const main = (parts[0] || headline)
+      .replace(/\s+/g, " ")
+      .replace(/^P\s*主力/, "P主力")
+      .trim();
+    const secondary = parts.slice(1);
+    if (!secondary.length && /，/.test(main)) {
+      const commaParts = main.split(/，/).map((part) => part.trim()).filter(Boolean);
+      return {
+        call: commaParts[0] || main,
+        points: commaParts.slice(1, 3),
+      };
+    }
+    return {
+      call: main,
+      points: secondary.slice(0, 2),
+    };
+  }
+
   function compactTopic(value, maxLength) {
     return String(value || "")
       .replace(/[，。；：、,.!！?？“”"']/g, "")
@@ -366,6 +392,17 @@
       const updated = latestDaily?.updated_at || "";
       const time = updated.split(/\s+/)[1];
       latestUpdated.textContent = time ? `${time} 北京时间` : "自动发布准备中";
+    }
+    if (latestDaily) {
+      const view = getHeroView(latestDaily);
+      if (heroCall) heroCall.textContent = view.call || "等待今日观点";
+      if (heroPoints) {
+        const points = view.points.length ? view.points : ["等待盘面确认", "控制追高风险"];
+        heroPoints.innerHTML = points
+          .slice(0, 2)
+          .map((point) => `<li>${escapeHtml(point)}</li>`)
+          .join("");
+      }
     }
     if (dailyReportLink && latestDaily) dailyReportLink.href = reportHref(latestDaily);
     if (weeklyReportLink && latestWeekly) weeklyReportLink.href = reportHref(latestWeekly);
