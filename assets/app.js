@@ -252,12 +252,6 @@
         match: (title) => title === "风险提示",
       },
       {
-        title: "信息来源与核验说明",
-        label: "核验",
-        keywords: ["信息来源与核验说明"],
-        match: (title) => title === "信息来源与核验说明",
-      },
-      {
         title: "消息来源链接",
         label: "来源",
         keywords: ["消息来源链接"],
@@ -268,6 +262,12 @@
         label: "声明",
         keywords: ["AI观点风险提示"],
         match: (title) => title === "AI观点风险提示",
+      },
+      {
+        title: "信息来源与核验说明",
+        label: "核验",
+        keywords: ["信息来源与核验说明"],
+        match: (title) => title === "信息来源与核验说明",
       },
     ];
 
