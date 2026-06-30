@@ -976,6 +976,14 @@ select {
   font-weight: 850;
 }
 
+.research-card-body a {
+  color: #0b6b4b;
+  font-weight: 760;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  word-break: break-word;
+}
+
 .detail-page .report-content h1,
 .detail-page .report-content h2,
 .detail-page .report-content h3 {

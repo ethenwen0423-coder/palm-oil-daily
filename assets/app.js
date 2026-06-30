@@ -24,6 +24,12 @@
       .replaceAll("'", "&#039;");
   }
 
+  function renderInline(value) {
+    return escapeHtml(value).replace(/https?:\/\/[^\s<]+/g, (url) => {
+      return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+    });
+  }
+
   function renderMarkdown(markdown) {
     const lines = markdown.split(/\r?\n/);
     const html = [];
@@ -131,8 +137,9 @@
       .filter((section) => section.body);
   }
 
-  function sectionMatches(section, keywords) {
-    return keywords.some((keyword) => section.title.includes(keyword));
+  function sectionMatches(section, module) {
+    if (module.match) return module.match(section.title);
+    return module.keywords.some((keyword) => section.title.includes(keyword));
   }
 
   function renderSectionBody(markdown) {
@@ -154,7 +161,7 @@
         const cells = row
           .split("|")
           .slice(1, -1)
-          .map((cell) => escapeHtml(cell.trim()));
+          .map((cell) => renderInline(cell.trim()));
         const tag = index === 0 ? "th" : "td";
         return `<tr>${cells.map((cell) => `<${tag}>${cell}</${tag}>`).join("")}</tr>`;
       });
@@ -186,19 +193,19 @@
           html.push("<ul>");
           listOpen = true;
         }
-        html.push(`<li>${escapeHtml(trimmed.slice(2))}</li>`);
+        html.push(`<li>${renderInline(trimmed.slice(2))}</li>`);
       } else if (/^\d+\.\s+/.test(trimmed)) {
         if (!listOpen) {
           html.push("<ul>");
           listOpen = true;
         }
-        html.push(`<li>${escapeHtml(trimmed.replace(/^\d+\.\s+/, ""))}</li>`);
+        html.push(`<li>${renderInline(trimmed.replace(/^\d+\.\s+/, ""))}</li>`);
       } else {
         closeList();
         if (/^【结论】/.test(trimmed)) {
-          html.push(`<p class="research-conclusion">${escapeHtml(trimmed.replace(/^【结论】\s*/, ""))}</p>`);
+          html.push(`<p class="research-conclusion">${renderInline(trimmed.replace(/^【结论】\s*/, ""))}</p>`);
         } else {
-          html.push(`<p>${escapeHtml(trimmed)}</p>`);
+          html.push(`<p>${renderInline(trimmed)}</p>`);
         }
       }
     });
@@ -242,13 +249,37 @@
         title: "风险提示",
         label: "风控",
         keywords: ["风险提示"],
+        match: (title) => title === "风险提示",
+      },
+      {
+        title: "信息来源与核验说明",
+        label: "核验",
+        keywords: ["信息来源与核验说明"],
+        match: (title) => title === "信息来源与核验说明",
+      },
+      {
+        title: "消息来源链接",
+        label: "来源",
+        keywords: ["消息来源链接"],
+        match: (title) => title === "消息来源链接",
+      },
+      {
+        title: "AI观点风险提示",
+        label: "声明",
+        keywords: ["AI观点风险提示"],
+        match: (title) => title === "AI观点风险提示",
       },
     ];
 
     const cards = modules
       .map((module) => {
-        const matched = sections.filter((section, index) => !used.has(index) && sectionMatches(section, module.keywords));
-        matched.forEach((section) => used.add(sections.indexOf(section)));
+        const matched = [];
+        sections.forEach((section, index) => {
+          if (!used.has(index) && sectionMatches(section, module)) {
+            matched.push(section);
+            used.add(index);
+          }
+        });
         const body = matched.map((section) => section.body).join("\n\n");
         const content = body || module.fallback;
         if (!content) return "";
