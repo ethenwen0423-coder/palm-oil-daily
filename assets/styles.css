@@ -134,7 +134,8 @@ body.detail-page {
 
 .hero-view {
   order: 2;
-  max-width: 880px;
+  width: min(100%, 1120px);
+  max-width: 1120px;
   margin-top: auto;
   margin-bottom: auto;
 }
@@ -157,9 +158,11 @@ body.detail-page {
 .hero-call {
   margin-top: 14px;
   color: #ffffff;
-  font-size: clamp(3rem, 7vw, 6.4rem);
+  max-width: 100%;
+  font-size: clamp(3rem, 6.2vw, 5.6rem);
   font-weight: 850;
-  line-height: 0.98;
+  line-height: 1.04;
+  overflow-wrap: anywhere;
 }
 
 .hero-view ul {
@@ -230,12 +233,6 @@ body.detail-page {
 
 .hero-button:hover {
   transform: translateY(-1px);
-}
-
-@media (min-width: 760px) {
-  .hero-call {
-    white-space: nowrap;
-  }
 }
 
 .masthead {
