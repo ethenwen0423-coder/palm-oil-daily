@@ -24,6 +24,8 @@ Use this checklist before publishing any research-facing text.
 - [ ] 所有关键数据是否解释了行情影响？
 - [ ] 是否避免未经核验的数据包装成事实？
 - [ ] 三个以上数字是否优先表格化？
+- [ ] 结尾是否包含实际消息来源链接？
+- [ ] 是否说明 Reuters/Wind 等不可访问来源未包装成事实？
 
 ## Language
 
@@ -39,6 +41,6 @@ Use this checklist before publishing any research-facing text.
 - [ ] 标题是否简洁，不把长观点塞进标题？
 - [ ] 表格是否清楚，未过度复杂？
 - [ ] 是否没有连续大段文字？
+- [ ] 是否包含“AI观点风险提示”，且明确不构成投资建议？
 
 任何一项不符合，先改正文，再输出。
-

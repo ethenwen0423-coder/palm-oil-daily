@@ -123,6 +123,23 @@ If a data point cannot support a trading decision, remove it or move it to a com
 - Avoid continuous long paragraphs.
 - Keep enough whitespace for scanning.
 
+## Source Links And AI Risk Note
+
+Research reports must end with source transparency:
+
+1. Add a final or near-final H2 section named `【消息来源链接】`.
+2. Use a concise Markdown table with source name, purpose, and link.
+3. Include only sources actually used, checked, or attempted in that report.
+4. If a terminal source such as Reuters or Wind is unavailable, state that clearly and do not add a fake link.
+5. After source links, add `【AI观点风险提示】`.
+6. State that the report is AI-generated from public information, configured skills, and available data at generation time.
+7. State that it represents only AI model output and research judgment, not investment advice or trading instruction.
+8. Keep the note concise and restrained.
+
+Preferred wording:
+
+> 本报告由 AI 基于公开信息、已调用数据源和既定研究框架生成，仅代表模型在生成时点的研究判断，不构成投资建议或交易指令。期货价格波动较大，请结合自身风险承受能力独立决策。
+
 ## Web Copy Rules
 
 When writing HTML, CSS, React, or Next.js copy and layout text:
@@ -144,4 +161,3 @@ For Markdown outputs, do not output font CSS. Maintain hierarchy, tables, whites
 ## Final Pass
 
 Before finalizing, run the checklist in `checklist.md`. If any item fails, rewrite the failing section before publishing.
-
