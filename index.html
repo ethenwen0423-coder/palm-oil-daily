@@ -8,9 +8,9 @@
       name="description"
       content="每日棕榈油期货、现货、库存、外盘与宏观要点汇总。"
     />
-    <script src="data/version.js"></script>
     <script>
-      document.write('<link rel="stylesheet" href="assets/styles.css?v=' + (window.PALM_OIL_DATA_VERSION || Date.now()) + '" />');
+      window.PALM_OIL_CACHE_BUST = Date.now();
+      document.write('<link rel="stylesheet" href="assets/styles.css?v=' + window.PALM_OIL_CACHE_BUST + '" />');
     </script>
   </head>
   <body class="home-page">
@@ -88,10 +88,10 @@
     </footer>
 
     <script>
-      document.write('<script src="data/reports.js?v=' + (window.PALM_OIL_DATA_VERSION || Date.now()) + '"><\/script>');
+      document.write('<script src="data/reports.js?v=' + window.PALM_OIL_CACHE_BUST + '"><\/script>');
     </script>
     <script>
-      document.write('<script src="assets/app.js?v=' + (window.PALM_OIL_DATA_VERSION || Date.now()) + '"><\/script>');
+      document.write('<script src="assets/app.js?v=' + window.PALM_OIL_CACHE_BUST + '"><\/script>');
     </script>
   </body>
 </html>
