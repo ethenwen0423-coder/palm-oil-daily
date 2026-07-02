@@ -1,0 +1,4 @@
+interface:
+  display_name: "Title Generation"
+  short_description: "Generate research headlines and summaries"
+  default_prompt: "Use $title-generation to generate Headline, Subheadline, Report Title, and One Sentence Summary for financial research content."

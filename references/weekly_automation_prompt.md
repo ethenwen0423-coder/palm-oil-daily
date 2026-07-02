@@ -14,9 +14,10 @@ Writing Skill 规则：
 2. 涉及术语统一时读取 skills/vinson-research-writing/terminology.md。
 3. 涉及表达优化时读取 skills/vinson-research-writing/examples.md 和 skills/vinson-research-writing/anti_patterns.md。
 4. 发布前必须按 skills/vinson-research-writing/checklist.md 自检；不符合项必须先重写。
-5. 生成或修改【一句话核心观点】、网站首页标题、列表标题前后，必须读取 skills/title-quality-gate/SKILL.md，并按该 Skill 检查 Headline / Subheadline / Trading Plan 职责是否混用。
-6. Headline 只写市场观点，Subheadline 只写核心逻辑，具体价格、追高、低吸、止损、加减仓等交易动作只能放入【周一开盘推演】或【交易计划】，不得塞进标题或首页观点。
-7. Writing Skill 只用于提升结构、表达、可读性和机构研究风格，不得改变数据来源、业务逻辑或交易策略。
+5. 生成或修改【一句话核心观点】、网站首页标题、列表标题前，必须先读取并调用 skills/title-generation/SKILL.md，提炼本周市场主线并生成 Headline / Subheadline / Report Title / One Sentence Summary。
+6. 标题生成后必须读取并调用 skills/title-quality-gate/SKILL.md 做质量门检查；若未通过，必须回到 title-generation 按失败原因重写，直到通过后才允许发布。
+7. Headline 只写市场观点，Subheadline 只写核心逻辑，具体价格、追高、低吸、止损、加减仓等交易动作只能放入【周一开盘推演】或【交易计划】，不得塞进标题或首页观点。
+8. Writing Skill 只用于提升结构、表达、可读性和机构研究风格，不得改变数据来源、业务逻辑或交易策略。
 
 
 
