@@ -5,7 +5,10 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
+import subprocess
+import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -14,6 +17,9 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE_RUNS = ROOT / "source_runs"
 OUTPUT = ROOT / "data" / "oil_futures.js"
+HITHINK_CLI = Path.home() / ".codex" / "skills" / "hithink-market-query" / "scripts" / "cli.py"
+PRICE_TOLERANCE = 2.0
+PCT_TOLERANCE = 0.25
 
 DOMESTIC = [
     {
@@ -120,6 +126,15 @@ def fmt_lots(value: Any) -> str:
     return f"{number} 手"
 
 
+def raw_number(value: Any) -> str | None:
+    number = as_float(value)
+    if number is None:
+        return None
+    if abs(number - round(number)) < 1e-9:
+        return str(int(round(number)))
+    return f"{number:.2f}"
+
+
 def direction(change_pct: Any) -> str:
     number = as_float(change_pct)
     if number is None:
@@ -219,6 +234,82 @@ def ak_daily_contract(ak: Any, contract: str) -> dict[str, Any] | None:
         return None
 
 
+def hithink_contract(contract: str) -> dict[str, Any]:
+    if not HITHINK_CLI.exists():
+        return {"status": "missing", "message": "行情skill脚本不存在"}
+    if not os.environ.get("IWENCAI_API_KEY"):
+        return {"status": "missing", "message": "行情skill未配置 IWENCAI_API_KEY"}
+
+    query = f"{contract} 最新价 涨跌幅 成交量 持仓量"
+    try:
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(HITHINK_CLI),
+                "--query",
+                query,
+                "--limit",
+                "5",
+                "--timeout",
+                "20",
+            ],
+            cwd=str(ROOT),
+            text=True,
+            capture_output=True,
+            timeout=30,
+            check=False,
+        )
+    except Exception as exc:
+        return {"status": "missing", "message": f"行情skill调用失败：{exc}"}
+
+    try:
+        payload = json.loads(result.stdout or "{}")
+    except json.JSONDecodeError:
+        return {"status": "missing", "message": "行情skill返回非 JSON"}
+
+    if result.returncode != 0 or not payload.get("success"):
+        return {"status": "missing", "message": "行情skill未返回有效行情"}
+
+    rows = payload.get("datas") or []
+    if not rows:
+        return {"status": "missing", "message": "行情skill返回空数据"}
+
+    row = rows[0]
+    return {
+        "status": "ok",
+        "source": "同花顺问财行情skill",
+        "contract": row.get("合约代码") or contract,
+        "price": as_float(row.get("最新价") or row.get("收盘价")),
+        "change_pct": as_float(row.get("最新涨跌幅") if row.get("最新涨跌幅") is not None else row.get("涨跌幅")),
+        "volume": as_int(row.get("成交量")),
+        "open_interest": as_int(row.get("持仓量")),
+        "query": query,
+    }
+
+
+def verification_note(ak_source: dict[str, Any], hithink: dict[str, Any]) -> str:
+    ak_price = as_float(ak_source.get("price"))
+    ak_pct = as_float(ak_source.get("change_pct"))
+    if hithink.get("status") != "ok":
+        return f"行情skill核验：未完成（{hithink.get('message', '无有效返回')}）；当前以 AkShare 为准。"
+
+    hithink_price = as_float(hithink.get("price"))
+    hithink_pct = as_float(hithink.get("change_pct"))
+    notes: list[str] = []
+
+    if ak_price is None or hithink_price is None:
+        notes.append("价格缺少一侧数据，需进一步核验")
+    elif abs(ak_price - hithink_price) <= PRICE_TOLERANCE:
+        notes.append(f"价格一致：AkShare {raw_number(ak_price)} / 行情skill {raw_number(hithink_price)}")
+    else:
+        notes.append(f"价格不一致：AkShare {raw_number(ak_price)} / 行情skill {raw_number(hithink_price)}")
+
+    if ak_pct is not None and hithink_pct is not None and abs(ak_pct - hithink_pct) > PCT_TOLERANCE:
+        notes.append(f"涨跌幅口径不同：AkShare {fmt_pct(ak_pct)} / 行情skill {fmt_pct(hithink_pct)}")
+
+    return "；".join(notes)
+
+
 def merge_domestic(spec: dict[str, str], snapshot: dict[str, Any] | None, ak: Any) -> dict[str, Any]:
     skill_record = (snapshot or {}).get("domestic", {}).get(spec["key"], {})
     realtime = ak_realtime_contract(ak, spec["ak_realtime"])
@@ -234,6 +325,8 @@ def merge_domestic(spec: dict[str, str], snapshot: dict[str, Any] | None, ak: An
         source = {**daily, **{key: value for key, value in source.items() if value not in (None, "", "需进一步核验")}}
 
     contract = concrete_contract(source.get("contract")) or fallback_contract
+    hithink = hithink_contract(contract)
+    verification = verification_note(source, hithink)
     return {
         "symbol": spec["symbol"],
         "name": spec["name"],
@@ -250,8 +343,9 @@ def merge_domestic(spec: dict[str, str], snapshot: dict[str, Any] | None, ak: An
         "preclose": fmt_number(source.get("preclose") if source.get("preclose") is not None else source.get("close")),
         "settle": fmt_number(source.get("settle")),
         "trade_date": source.get("tradedate") or source.get("fetched_at", "")[:10],
-        "source": source.get("source") or "需进一步核验",
+        "source": "AkShare + 同花顺问财行情skill" if hithink.get("status") == "ok" else source.get("source") or "需进一步核验",
         "note": spec["note"],
+        "verification": verification,
     }
 
 
@@ -275,6 +369,7 @@ def merge_external(spec: dict[str, str], snapshot: dict[str, Any] | None) -> dic
         "trade_date": record.get("published_at", "")[:10] or record.get("fetched_at", "")[:10],
         "source": record.get("source") or "需进一步核验",
         "note": spec["note"],
+        "verification": "外盘合约暂不使用同花顺问财核验；以公开外盘数据源为准。",
     }
 
 
@@ -297,7 +392,7 @@ def main() -> int:
     source_note = "futures-oil-daily 最新快照"
     if snapshot_path:
         source_note += f"：{snapshot_path.relative_to(ROOT)}"
-    source_note += "；内盘具体合约与日线缺口由 AkShare 补充"
+    source_note += "；内盘具体合约与日线缺口由 AkShare 补充，并用同花顺问财行情skill交叉验证"
     payload = {
         "updated_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
         "source": source_note,

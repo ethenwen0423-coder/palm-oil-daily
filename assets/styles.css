@@ -921,6 +921,15 @@ select {
   line-height: 1.65;
 }
 
+.futures-card .futures-verification {
+  padding: 10px 12px;
+  border-left: 3px solid #f1c96b;
+  background: rgba(241, 201, 107, 0.08);
+  color: rgba(244, 248, 242, 0.82);
+  font-size: 0.84rem;
+  font-weight: 740;
+}
+
 .futures-source {
   color: rgba(244, 248, 242, 0.42);
   font-size: 0.76rem;

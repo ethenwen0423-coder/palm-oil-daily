@@ -1,16 +1,16 @@
 window.OIL_FUTURES_CONTRACTS = {
-  "updated_at": "2026-07-03 14:30",
-  "source": "futures-oil-daily 最新快照：source_runs/2026-07-03-daily/raw/futures_market_data.json；内盘具体合约与日线缺口由 AkShare 补充",
+  "updated_at": "2026-07-03 14:35",
+  "source": "futures-oil-daily 最新快照：source_runs/2026-07-03-daily/raw/futures_market_data.json；内盘具体合约与日线缺口由 AkShare 补充，并用同花顺问财行情skill交叉验证",
   "contracts": [
     {
       "symbol": "P",
       "name": "棕榈油",
       "market": "DCE",
       "contract": "P2609",
-      "price": "9113",
-      "change": "-0.56%",
-      "volume": "52.60 万手",
-      "open_interest": "53.44 万手",
+      "price": "9112",
+      "change": "-0.57%",
+      "volume": "53.11 万手",
+      "open_interest": "53.54 万手",
       "direction": "↓",
       "open": "9171",
       "high": "9211",
@@ -18,18 +18,19 @@ window.OIL_FUTURES_CONTRACTS = {
       "preclose": "9164",
       "settle": "9236",
       "trade_date": "2026-07-03",
-      "source": "akshare:futures_zh_realtime",
-      "note": "P 是棕榈油报告主线，重点看持仓与豆油、菜油共振。"
+      "source": "AkShare + 同花顺问财行情skill",
+      "note": "P 是棕榈油报告主线，重点看持仓与豆油、菜油共振。",
+      "verification": "价格一致：AkShare 9112 / 行情skill 9112；涨跌幅口径不同：AkShare -0.57% / 行情skill -1.34%"
     },
     {
       "symbol": "Y",
       "name": "豆油",
       "market": "DCE",
       "contract": "Y2609",
-      "price": "8413",
-      "change": "-0.14%",
-      "volume": "18.06 万手",
-      "open_interest": "54.56 万手",
+      "price": "8409",
+      "change": "-0.19%",
+      "volume": "18.38 万手",
+      "open_interest": "54.55 万手",
       "direction": "↓",
       "open": "8435",
       "high": "8455",
@@ -37,18 +38,19 @@ window.OIL_FUTURES_CONTRACTS = {
       "preclose": "8425",
       "settle": "8442",
       "trade_date": "2026-07-03",
-      "source": "akshare:futures_zh_realtime",
-      "note": "Y 用于观察豆系对棕榈油的共振或拖累。"
+      "source": "AkShare + 同花顺问财行情skill",
+      "note": "Y 用于观察豆系对棕榈油的共振或拖累。",
+      "verification": "价格一致：AkShare 8409 / 行情skill 8408"
     },
     {
       "symbol": "OI",
       "name": "菜油",
       "market": "CZCE",
       "contract": "OI2609",
-      "price": "9633",
-      "change": "+0.65%",
-      "volume": "20.91 万手",
-      "open_interest": "24.02 万手",
+      "price": "9635",
+      "change": "+0.67%",
+      "volume": "21.18 万手",
+      "open_interest": "24.03 万手",
       "direction": "↑",
       "open": "9593",
       "high": "9656",
@@ -56,8 +58,9 @@ window.OIL_FUTURES_CONTRACTS = {
       "preclose": "9571",
       "settle": "9601",
       "trade_date": "2026-07-03",
-      "source": "akshare:futures_zh_realtime",
-      "note": "OI 用于观察油脂内部轮动和相对强弱切换。"
+      "source": "AkShare + 同花顺问财行情skill",
+      "note": "OI 用于观察油脂内部轮动和相对强弱切换。",
+      "verification": "价格一致：AkShare 9635 / 行情skill 9634；涨跌幅口径不同：AkShare +0.67% / 行情skill +0.34%"
     },
     {
       "symbol": "FCPO",
@@ -76,7 +79,8 @@ window.OIL_FUTURES_CONTRACTS = {
       "settle": "需进一步核验",
       "trade_date": "2026-07-02",
       "source": "tradingview:MYX:FCPO1!",
-      "note": "产地盘面决定 P 的外盘弹性。"
+      "note": "产地盘面决定 P 的外盘弹性。",
+      "verification": "外盘合约暂不使用同花顺问财核验；以公开外盘数据源为准。"
     },
     {
       "symbol": "CBOT BO",
@@ -95,7 +99,8 @@ window.OIL_FUTURES_CONTRACTS = {
       "settle": "需进一步核验",
       "trade_date": "2026-07-03",
       "source": "yahoo:BO=F",
-      "note": "美豆油用于观察全球油脂链条共振。"
+      "note": "美豆油用于观察全球油脂链条共振。",
+      "verification": "外盘合约暂不使用同花顺问财核验；以公开外盘数据源为准。"
     }
   ]
 };

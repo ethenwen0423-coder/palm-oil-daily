@@ -488,6 +488,7 @@
               </div>
             </dl>
             <p>${escapeHtml(contract.note || "")}</p>
+            <p class="futures-verification">${escapeHtml(contract.verification || "核验状态：需进一步核验")}</p>
             <span class="futures-source">${escapeHtml(contract.source || "需进一步核验")}</span>
           </article>
         `,
