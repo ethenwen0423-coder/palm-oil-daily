@@ -396,6 +396,15 @@
     return `${dateText}${kind}${compact ? ` ${compact}` : ""}`;
   }
 
+  function detailPageTitle(report) {
+    const dateText = formatShortDate(baseDate(report));
+    const kind = getKind(report) === "weekly" ? "周报" : "晨报";
+    const title = cleanReportTitle(report);
+    const prefix = title && /^(晨报|周报)$/.test(title) ? `${dateText}${kind}` : title || `${dateText}${kind}`;
+    const headline = displayHeadline(report);
+    return headline ? `${prefix} ${headline}` : prefix;
+  }
+
   function reportHref(report) {
     return `report.html?id=${encodeURIComponent(report.date)}`;
   }
@@ -409,6 +418,28 @@
     const direction = String(value || "→");
     const className = direction === "↑" ? "up" : direction === "↓" ? "down" : "flat";
     return `<span class="futures-direction ${className}">${escapeHtml(direction)}</span>`;
+  }
+
+  function renderStrategies(strategies) {
+    if (!Array.isArray(strategies) || !strategies.length) {
+      return '<p class="futures-view">策略点位需进一步核验。</p>';
+    }
+    return `
+      <div class="futures-strategies">
+        ${strategies
+          .map(
+            (strategy) => `
+              <div>
+                <strong>${escapeHtml(strategy.name || "策略")}</strong>
+                <span>入场：${escapeHtml(strategy.entry || "需进一步核验")}</span>
+                <span>止盈：${escapeHtml(strategy.take_profit || "需进一步核验")}</span>
+                <span>止损：${escapeHtml(strategy.stop_loss || "需进一步核验")}</span>
+              </div>
+            `,
+          )
+          .join("")}
+      </div>
+    `;
   }
 
   function renderOilFutures() {
@@ -426,16 +457,18 @@
       return;
     }
     oilFuturesList.innerHTML = contracts
-      .map(
-        (contract) => `
+      .map((contract) => {
+        const score = contract.score || {};
+        const totalScore = score.total ?? contract.total_score ?? "需进一步核验";
+        const technicalScore = score.technical ?? contract.technical_score ?? "需进一步核验";
+        const fundamentalScore = score.fundamental ?? contract.basic_score ?? "需进一步核验";
+        const stance = score.stance || contract.strategy || "需进一步核验";
+        return `
           <article class="futures-card">
             <div class="futures-card-top">
               <div>
                 <span class="futures-market">${escapeHtml(contract.market || "")}</span>
-                <h3>
-                  ${escapeHtml(contract.name || "")}
-                  <small>${escapeHtml(contract.contract || "需进一步核验")}</small>
-                </h3>
+                <h3>${escapeHtml(contract.name || "")} <span>${escapeHtml(contract.contract || "主力")}</span></h3>
               </div>
               ${renderDirection(contract.direction)}
             </div>
@@ -443,54 +476,30 @@
               <strong>${escapeHtml(contract.price || "需进一步核验")}</strong>
               <span>${escapeHtml(contract.change || "需进一步核验")}</span>
             </div>
-            <section class="futures-score">
+            <dl class="futures-score">
               <div>
-                <span>综合评分</span>
-                <strong>${escapeHtml(contract.score?.total ?? "需进一步核验")}</strong>
-                <small>${escapeHtml(contract.score?.stance || "需进一步核验")}</small>
+                <dt>综合评分</dt>
+                <dd>${escapeHtml(totalScore)}</dd>
               </div>
-              <dl>
-                <div>
-                  <dt>技术面 70%</dt>
-                  <dd>${escapeHtml(contract.score?.technical ?? "需进一步核验")}</dd>
-                </div>
-                <div>
-                  <dt>基本面 30%</dt>
-                  <dd>${escapeHtml(contract.score?.fundamental ?? "需进一步核验")}</dd>
-                </div>
-              </dl>
-            </section>
-            <p class="futures-view">${escapeHtml(contract.view || contract.note || "走势观点需进一步核验")}</p>
-            <div class="futures-strategies">
-              ${(contract.strategies || [])
-                .map(
-                  (strategy) => `
-                    <section>
-                      <h4>${escapeHtml(strategy.name || "策略")}</h4>
-                      <dl>
-                        <div>
-                          <dt>触发</dt>
-                          <dd>${escapeHtml(strategy.entry || "需进一步核验")}</dd>
-                        </div>
-                        <div>
-                          <dt>止盈</dt>
-                          <dd>${escapeHtml(strategy.take_profit || "需进一步核验")}</dd>
-                        </div>
-                        <div>
-                          <dt>止损</dt>
-                          <dd>${escapeHtml(strategy.stop_loss || "需进一步核验")}</dd>
-                        </div>
-                      </dl>
-                    </section>
-                  `,
-                )
-                .join("")}
-            </div>
-            <p class="futures-verification">${escapeHtml(contract.verification || "核验状态：需进一步核验")}</p>
-            <span class="futures-source">${escapeHtml(contract.source || "需进一步核验")}</span>
+              <div>
+                <dt>行情观点</dt>
+                <dd>${escapeHtml(stance)}</dd>
+              </div>
+              <div>
+                <dt>技术面</dt>
+                <dd>${escapeHtml(technicalScore)}</dd>
+              </div>
+              <div>
+                <dt>基本面</dt>
+                <dd>${escapeHtml(fundamentalScore)}</dd>
+              </div>
+            </dl>
+            <p class="futures-view">${escapeHtml(contract.view || contract.note || "走势观点需进一步核验。")}</p>
+            ${renderStrategies(contract.strategies)}
+            <p class="futures-verification">${escapeHtml(contract.verification || contract.quality_note || "")}</p>
           </article>
-        `,
-      )
+        `;
+      })
       .join("");
   }
 
@@ -601,9 +610,10 @@
     }
 
     const kindLabel = getKind(report) === "weekly" ? "周报" : "日报";
-    document.title = `${listTitle(report)} | vinsontesla.com`;
+    const fullTitle = detailPageTitle(report);
+    document.title = `${fullTitle} | vinsontesla.com`;
     detailKind.textContent = kindLabel;
-    detailTitle.textContent = listTitle(report);
+    detailTitle.textContent = fullTitle;
     detailMeta.textContent = report.updated_at ? `最后整理：${report.updated_at}` : "";
     if (downloadLink) {
       downloadLink.href = report.download || `reports/${report.date}.md`;

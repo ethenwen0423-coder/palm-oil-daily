@@ -1,5 +1,5 @@
 window.OIL_FUTURES_CONTRACTS = {
-  "updated_at": "2026-07-03 14:40",
+  "updated_at": "2026-07-04 00:09",
   "source": "futures-oil-daily 最新快照：source_runs/2026-07-03-daily/raw/futures_market_data.json；内盘具体合约与日线缺口由 AkShare 补充，并用同花顺问财行情skill交叉验证",
   "contracts": [
     {
@@ -7,20 +7,20 @@ window.OIL_FUTURES_CONTRACTS = {
       "name": "棕榈油",
       "market": "DCE",
       "contract": "P2609",
-      "price": "9106",
-      "change": "-0.63%",
-      "volume": "53.69 万手",
-      "open_interest": "53.65 万手",
-      "direction": "↓",
-      "open": "9171",
-      "high": "9211",
-      "low": "9106",
-      "preclose": "9164",
-      "settle": "9236",
-      "trade_date": "2026-07-03",
+      "price": "9169",
+      "change": "+0.71%",
+      "volume": "17.38 万手",
+      "open_interest": "53.08 万手",
+      "direction": "↑",
+      "open": "9090",
+      "high": "9175",
+      "low": "9084",
+      "preclose": "9104",
+      "settle": "9148",
+      "trade_date": "2026-07-06",
       "source": "AkShare + 同花顺问财行情skill",
       "note": "P 是棕榈油报告主线，重点看持仓与豆油、菜油共振。",
-      "verification": "价格不一致：AkShare 9106 / 行情skill 9112；涨跌幅口径不同：AkShare -0.63% / 行情skill -1.34%",
+      "verification": "价格一致：AkShare 9169 / 行情skill 9169；涨跌幅口径不同：AkShare +0.71% / 行情skill +0.23%",
       "score": {
         "total": 28.3,
         "technical": 20.0,
@@ -28,41 +28,44 @@ window.OIL_FUTURES_CONTRACTS = {
         "stance": "偏空",
         "weights": "技术面70% / 基本面30%"
       },
-      "view": "棕榈油当前行情偏弱，反弹压力优先；技术面显示偏空（价格在20日均线下方、均线空头排列、跌破布林下轨）。基本面：FCPO联动；棕榈油库存偏高；豆棕价差仍支撑P相对强弱。",
+      "view": "棕榈油当前行情偏弱，反弹压力优先；技术面显示偏空（价格在20日均线下方、均线空头排列）。基本面：FCPO联动；棕榈油库存偏高；豆棕价差仍支撑P相对强弱。",
       "strategies": [
         {
           "name": "ATR趋势",
-          "entry": "现价附近 9106",
-          "take_profit": "8599",
-          "stop_loss": "9444"
+          "entry": "现价附近 9169",
+          "take_profit": "8670.14",
+          "stop_loss": "9501.57"
         },
         {
           "name": "海龟20日突破",
           "entry": "9028",
-          "take_profit": "8690",
-          "stop_loss": "9366"
+          "take_profit": "8695.43",
+          "stop_loss": "9360.57"
         }
-      ]
+      ],
+      "analysis_skill": "master_analytic_skill",
+      "child_skill": "technical_basic_analysis_skill",
+      "quality_note": "评分、观点与策略已通过skill质量检查"
     },
     {
       "symbol": "Y",
       "name": "豆油",
       "market": "DCE",
       "contract": "Y2609",
-      "price": "8412",
-      "change": "-0.15%",
-      "volume": "18.76 万手",
-      "open_interest": "54.53 万手",
-      "direction": "↓",
-      "open": "8435",
-      "high": "8455",
-      "low": "8405",
-      "preclose": "8425",
-      "settle": "8442",
-      "trade_date": "2026-07-03",
+      "price": "8428",
+      "change": "+0.26%",
+      "volume": "6.18 万手",
+      "open_interest": "54.23 万手",
+      "direction": "↑",
+      "open": "8403",
+      "high": "8430",
+      "low": "8393",
+      "preclose": "8406",
+      "settle": "8423",
+      "trade_date": "2026-07-06",
       "source": "AkShare + 同花顺问财行情skill",
       "note": "Y 用于观察豆系对棕榈油的共振或拖累。",
-      "verification": "价格一致：AkShare 8412 / 行情skill 8410",
+      "verification": "价格一致：AkShare 8428 / 行情skill 8428",
       "score": {
         "total": 61.6,
         "technical": 69.0,
@@ -76,35 +79,38 @@ window.OIL_FUTURES_CONTRACTS = {
           "name": "ATR区间",
           "entry": "8270 - 8630",
           "take_profit": "上沿 8630 / 下沿 8270",
-          "stop_loss": "上破 8709.43 或下破 8190.57"
+          "stop_loss": "上破 8709 或下破 8191"
         },
         {
           "name": "海龟20日突破",
           "entry": "上破 8630 或下破 8270",
-          "take_profit": "顺势 2ATR：8570.86 / 8253.14",
-          "stop_loss": "反向 1ATR：8332.57 / 8491.43"
+          "take_profit": "顺势 2ATR：8586 / 8270",
+          "stop_loss": "反向 1ATR：8349 / 8507"
         }
-      ]
+      ],
+      "analysis_skill": "master_analytic_skill",
+      "child_skill": "technical_basic_analysis_skill",
+      "quality_note": "评分、观点与策略已通过skill质量检查"
     },
     {
       "symbol": "OI",
       "name": "菜油",
       "market": "CZCE",
       "contract": "OI2609",
-      "price": "9640",
-      "change": "+0.72%",
-      "volume": "21.42 万手",
-      "open_interest": "24.05 万手",
-      "direction": "↑",
-      "open": "9593",
-      "high": "9656",
-      "low": "9550",
-      "preclose": "9571",
-      "settle": "9601",
+      "price": "9625",
+      "change": "-0.20%",
+      "volume": "7.33 万手",
+      "open_interest": "23.99 万手",
+      "direction": "↓",
+      "open": "9644",
+      "high": "9669",
+      "low": "9605",
+      "preclose": "9644",
+      "settle": "9604",
       "trade_date": "2026-07-03",
       "source": "AkShare + 同花顺问财行情skill",
       "note": "OI 用于观察油脂内部轮动和相对强弱切换。",
-      "verification": "价格一致：AkShare 9640 / 行情skill 9638；涨跌幅口径不同：AkShare +0.72% / 行情skill +0.39%",
+      "verification": "价格一致：AkShare 9625 / 行情skill 9625；涨跌幅口径不同：AkShare -0.20% / 行情skill +0.22%",
       "score": {
         "total": 28.1,
         "technical": 20.0,
@@ -116,17 +122,20 @@ window.OIL_FUTURES_CONTRACTS = {
       "strategies": [
         {
           "name": "ATR趋势",
-          "entry": "现价附近 9640",
-          "take_profit": "9213.14",
-          "stop_loss": "9924.57"
+          "entry": "现价附近 9625",
+          "take_profit": "9205.43",
+          "stop_loss": "9904.71"
         },
         {
           "name": "海龟20日突破",
           "entry": "9453",
-          "take_profit": "9168.43",
-          "stop_loss": "9737.57"
+          "take_profit": "9173.29",
+          "stop_loss": "9732.71"
         }
-      ]
+      ],
+      "analysis_skill": "master_analytic_skill",
+      "child_skill": "technical_basic_analysis_skill",
+      "quality_note": "评分、观点与策略已通过skill质量检查"
     },
     {
       "symbol": "FCPO",
@@ -150,7 +159,7 @@ window.OIL_FUTURES_CONTRACTS = {
       "score": {
         "total": 44.4,
         "technical": 42,
-        "fundamental": 50,
+        "fundamental": 50.0,
         "stance": "震荡",
         "weights": "技术面70% / 基本面30%"
       },
@@ -168,7 +177,10 @@ window.OIL_FUTURES_CONTRACTS = {
           "take_profit": "顺势 2ATR：4615 / 4479",
           "stop_loss": "反向 1ATR：4513 / 4581"
         }
-      ]
+      ],
+      "analysis_skill": "master_analytic_skill",
+      "child_skill": "technical_basic_analysis_skill",
+      "quality_note": "评分、观点与策略已通过skill质量检查"
     },
     {
       "symbol": "CBOT BO",
@@ -192,7 +204,7 @@ window.OIL_FUTURES_CONTRACTS = {
       "score": {
         "total": 55.6,
         "technical": 58,
-        "fundamental": 50,
+        "fundamental": 50.0,
         "stance": "震荡",
         "weights": "技术面70% / 基本面30%"
       },
@@ -210,7 +222,10 @@ window.OIL_FUTURES_CONTRACTS = {
           "take_profit": "顺势 2ATR：32.42 / 30.94",
           "stop_loss": "反向 1ATR：31.31 / 32.05"
         }
-      ]
+      ],
+      "analysis_skill": "master_analytic_skill",
+      "child_skill": "technical_basic_analysis_skill",
+      "quality_note": "评分、观点与策略已通过skill质量检查"
     }
   ]
 };

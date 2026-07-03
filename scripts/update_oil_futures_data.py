@@ -18,6 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SOURCE_RUNS = ROOT / "source_runs"
 OUTPUT = ROOT / "data" / "oil_futures.js"
 HITHINK_CLI = Path.home() / ".codex" / "skills" / "hithink-market-query" / "scripts" / "cli.py"
+MASTER_ANALYTIC_CLI = ROOT / "skills" / "master_analytic_skill" / "scripts" / "analyze_contracts.py"
 PRICE_TOLERANCE = 2.0
 PCT_TOLERANCE = 0.25
 
@@ -124,10 +125,6 @@ def fmt_lots(value: Any) -> str:
     if abs(number) >= 10000:
         return f"{number / 10000:.2f} 万手"
     return f"{number} 手"
-
-
-def clamp(value: float, low: float = 0.0, high: float = 100.0) -> float:
-    return max(low, min(high, value))
 
 
 def raw_number(value: Any) -> str | None:
@@ -253,244 +250,38 @@ def ak_daily_history(ak: Any, contract: str):
         return None
 
 
-def last_float(series: Any) -> float | None:
-    try:
-        value = series.iloc[-1]
-    except Exception:
-        return None
-    return as_float(value)
-
-
-def technical_analysis(price: float | None, history: Any) -> dict[str, Any]:
-    if price is None or history is None or len(history) < 80:
-        return {
-            "score": 50,
-            "trend": "数据不足，按中性处理",
-            "atr": None,
-            "levels": {},
-            "signals": ["技术数据不足"],
-        }
-
-    close = history["close"].copy()
-    high = history["high"].copy()
-    low = history["low"].copy()
-    close.iloc[-1] = price
-    high.iloc[-1] = max(as_float(high.iloc[-1]) or price, price)
-    low.iloc[-1] = min(as_float(low.iloc[-1]) or price, price)
-
-    ma5 = last_float(close.rolling(5).mean())
-    ma10 = last_float(close.rolling(10).mean())
-    ma20 = last_float(close.rolling(20).mean())
-    ma60 = last_float(close.rolling(60).mean())
-    ema12 = close.ewm(span=12, adjust=False).mean()
-    ema26 = close.ewm(span=26, adjust=False).mean()
-    dif = ema12 - ema26
-    dea = dif.ewm(span=9, adjust=False).mean()
-    macd_hist = last_float(dif - dea) or 0
-    delta = close.diff()
-    gain = delta.where(delta > 0, 0).rolling(14).mean()
-    loss = (-delta.where(delta < 0, 0)).rolling(14).mean()
-    rsi = last_float(100 - 100 / (1 + gain / loss))
-    boll_mid = ma20
-    boll_std = last_float(close.rolling(20).std())
-    boll_upper = boll_mid + 2 * boll_std if boll_mid is not None and boll_std is not None else None
-    boll_lower = boll_mid - 2 * boll_std if boll_mid is not None and boll_std is not None else None
-    tr = max(
-        as_float(high.iloc[-1] - low.iloc[-1]) or 0,
-        abs((as_float(high.iloc[-1]) or price) - (as_float(close.iloc[-2]) or price)),
-        abs((as_float(low.iloc[-1]) or price) - (as_float(close.iloc[-2]) or price)),
-    )
-    tr_series = (high - low).to_frame("hl")
-    tr_series["hc"] = (high - close.shift(1)).abs()
-    tr_series["lc"] = (low - close.shift(1)).abs()
-    atr = last_float(tr_series.max(axis=1).rolling(14).mean()) or tr
-    high20 = last_float(high.shift(1).rolling(20).max())
-    low20 = last_float(low.shift(1).rolling(20).min())
-    high55 = last_float(high.shift(1).rolling(55).max())
-    low55 = last_float(low.shift(1).rolling(55).min())
-
-    score = 50.0
-    signals: list[str] = []
-    if ma20 is not None:
-        if price > ma20:
-            score += 8
-            signals.append("价格在20日均线上方")
-        else:
-            score -= 8
-            signals.append("价格在20日均线下方")
-    if ma60 is not None:
-        score += 7 if price > ma60 else -7
-    if all(value is not None for value in [ma5, ma10, ma20, ma60]):
-        if price > ma5 > ma10 > ma20 > ma60:
-            score += 15
-            signals.append("均线多头排列")
-        elif price < ma5 < ma10 < ma20 < ma60:
-            score -= 15
-            signals.append("均线空头排列")
-        elif price < ma5 and ma5 < ma20:
-            score -= 8
-            signals.append("短均线转弱")
-        else:
-            signals.append("均线结构震荡")
-    score += 10 if macd_hist > 0 else -10
-    if rsi is not None:
-        if 50 <= rsi <= 68:
-            score += 8
-        elif 32 <= rsi < 50:
-            score -= 4
-        elif rsi > 75:
-            score -= 5
-            signals.append("RSI偏热")
-        elif rsi < 30:
-            score += 3
-            signals.append("RSI超卖修复")
-    if high20 is not None and price > high20:
-        score += 12
-        signals.append("突破20日唐奇安上轨")
-    elif low20 is not None and price < low20:
-        score -= 12
-        signals.append("跌破20日唐奇安下轨")
-    if boll_upper is not None and boll_lower is not None:
-        if price > boll_upper:
-            score += 5
-            signals.append("突破布林上轨")
-        elif price < boll_lower:
-            score -= 5
-            signals.append("跌破布林下轨")
-
-    score = round(clamp(score, 20, 80), 1)
-    if score >= 65:
-        trend = "偏多"
-    elif score <= 40:
-        trend = "偏空"
-    else:
-        trend = "震荡"
-
-    return {
-        "score": score,
-        "trend": trend,
-        "atr": atr,
-        "levels": {
-            "ma20": ma20,
-            "ma60": ma60,
-            "donchian20_high": high20,
-            "donchian20_low": low20,
-            "donchian55_high": high55,
-            "donchian55_low": low55,
-            "boll_upper": boll_upper,
-            "boll_lower": boll_lower,
-        },
-        "signals": signals[:3],
-    }
-
-
-def fundamental_score(spec: dict[str, str], snapshot: dict[str, Any] | None) -> tuple[float, str]:
-    snapshot = snapshot or {}
-    external = snapshot.get("external", {})
-    fundamental = snapshot.get("fundamental", {})
-    inventory = fundamental.get("inventory", {})
-    spread = fundamental.get("spread", {})
-    score = 50.0
-    notes: list[str] = []
-
-    cbot = as_float(external.get("cbot_bean_oil", {}).get("change_pct"))
-    fcpo = as_float(external.get("bmd_palm_oil", {}).get("change_pct"))
-    if spec["key"] == "palm_oil":
-        if fcpo is not None:
-            score += max(-10, min(10, fcpo * 5))
-            notes.append("FCPO联动")
-        inv = as_float(inventory.get("palm_oil_inventory", {}).get("price"))
-        if inv is not None and inv >= 65:
-            score -= 6
-            notes.append("棕榈油库存偏高")
-        soy_palm = as_float(spread.get("soybean_palm_spread", {}).get("price") if isinstance(spread.get("soybean_palm_spread"), dict) else spread.get("soybean_palm_spread"))
-        if soy_palm is not None and soy_palm < 0:
-            score += 4
-            notes.append("豆棕价差仍支撑P相对强弱")
-    elif spec["key"] == "soybean_oil":
-        if cbot is not None:
-            score += max(-10, min(10, cbot * 5))
-            notes.append("CBOT豆油联动")
-        inv = as_float(inventory.get("soybean_oil_inventory", {}).get("price"))
-        if inv is not None and inv >= 110:
-            score -= 8
-            notes.append("豆油库存压力")
-    elif spec["key"] == "rapeseed_oil":
-        inv = as_float(inventory.get("rapeseed_oil_inventory", {}).get("price"))
-        if inv is not None and inv >= 30:
-            score -= 6
-            notes.append("菜油库存压力")
-        if cbot is not None and cbot > 0:
-            score += 3
-            notes.append("油脂板块共振")
-
-    return round(clamp(score, 25, 75), 1), "；".join(notes) if notes else "基本面暂无强新增驱动"
-
-
-def strategy_levels(price: float | None, tech: dict[str, Any], trend: str) -> list[dict[str, str]]:
-    if price is None:
+def history_records(history: Any) -> list[dict[str, Any]]:
+    if history is None:
         return []
-    atr = as_float(tech.get("atr")) or max(price * 0.01, 1)
-    levels = tech.get("levels", {})
-    turtle_high = as_float(levels.get("donchian20_high"))
-    turtle_low = as_float(levels.get("donchian20_low"))
-    long_stop = price - 2 * atr
-    short_stop = price + 2 * atr
-    if trend == "偏多":
-        atr_take = price + 3 * atr
-        turtle_trigger = turtle_high or price + atr
-        turtle_stop = turtle_trigger - 2 * atr
-    elif trend == "偏空":
-        atr_take = price - 3 * atr
-        turtle_trigger = turtle_low or price - atr
-        turtle_stop = turtle_trigger + 2 * atr
-    else:
-        upper = turtle_high or price + 1.5 * atr
-        lower = turtle_low or price - 1.5 * atr
-        return [
-            {
-                "name": "ATR区间",
-                "entry": f"{fmt_number(lower)} - {fmt_number(upper)}",
-                "take_profit": f"上沿 {fmt_number(upper)} / 下沿 {fmt_number(lower)}",
-                "stop_loss": f"上破 {fmt_number(upper + atr)} 或下破 {fmt_number(lower - atr)}",
+    return json.loads(history.to_json(orient="records", force_ascii=False))
+
+
+def call_master_analysis(payload: dict[str, Any]) -> dict[str, Any]:
+    if not MASTER_ANALYTIC_CLI.exists():
+        return {
+            "score": {
+                "total": 50,
+                "technical": 50,
+                "fundamental": 50,
+                "stance": "震荡",
+                "weights": "技术面70% / 基本面30%",
             },
-            {
-                "name": "海龟20日突破",
-                "entry": f"上破 {fmt_number(upper)} 或下破 {fmt_number(lower)}",
-                "take_profit": f"顺势 2ATR：{fmt_number(price + 2 * atr)} / {fmt_number(price - 2 * atr)}",
-                "stop_loss": f"反向 1ATR：{fmt_number(price - atr)} / {fmt_number(price + atr)}",
-            },
-        ]
-
-    return [
-        {
-            "name": "ATR趋势",
-            "entry": f"现价附近 {fmt_number(price)}",
-            "take_profit": fmt_number(atr_take),
-            "stop_loss": fmt_number(long_stop if trend == "偏多" else short_stop),
-        },
-        {
-            "name": "海龟20日突破",
-            "entry": fmt_number(turtle_trigger),
-            "take_profit": fmt_number(turtle_trigger + 2 * atr if trend == "偏多" else turtle_trigger - 2 * atr),
-            "stop_loss": fmt_number(turtle_stop),
-        },
-    ]
-
-
-def build_market_view(name: str, total_score: float, tech: dict[str, Any], fundamental_note: str) -> str:
-    signals = "、".join(tech.get("signals") or [])
-    trend = tech.get("trend", "震荡")
-    if total_score >= 65:
-        tone = "当前行情偏强，顺势思路优先"
-    elif total_score <= 40:
-        tone = "当前行情偏弱，反弹压力优先"
-    else:
-        tone = "当前行情偏震荡，等待突破确认"
-    detail = f"技术面显示{trend}"
-    if signals:
-        detail += f"（{signals}）"
-    return f"{name}{tone}；{detail}。基本面：{fundamental_note}。"
+            "view": "master_analytic_skill 不可用，分析结论需进一步核验。",
+            "strategies": [],
+            "quality_note": "master_analytic_skill 脚本不存在",
+        }
+    result = subprocess.run(
+        [sys.executable, str(MASTER_ANALYTIC_CLI)],
+        input=json.dumps(payload, ensure_ascii=False),
+        cwd=str(ROOT),
+        text=True,
+        capture_output=True,
+        timeout=60,
+        check=False,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(result.stderr.strip() or "master_analytic_skill 调用失败")
+    return json.loads(result.stdout)
 
 
 def hithink_contract(contract: str) -> dict[str, Any]:
@@ -588,16 +379,14 @@ def merge_domestic(spec: dict[str, str], snapshot: dict[str, Any] | None, ak: An
     hithink = hithink_contract(contract)
     verification = verification_note(source, hithink)
     price = as_float(source.get("price"))
-    tech = technical_analysis(price, history)
-    fundamental, fundamental_note = fundamental_score(spec, snapshot)
-    technical = as_float(tech.get("score")) or 50
-    total_score = round(clamp(technical * 0.7 + fundamental * 0.3), 1)
-    if total_score >= 65:
-        stance = "偏多"
-    elif total_score <= 40:
-        stance = "偏空"
-    else:
-        stance = "震荡"
+    analysis = call_master_analysis(
+        {
+            "spec": spec,
+            "source": source,
+            "snapshot": snapshot,
+            "history": history_records(history),
+        }
+    )
     return {
         "symbol": spec["symbol"],
         "name": spec["name"],
@@ -617,35 +406,18 @@ def merge_domestic(spec: dict[str, str], snapshot: dict[str, Any] | None, ak: An
         "source": "AkShare + 同花顺问财行情skill" if hithink.get("status") == "ok" else source.get("source") or "需进一步核验",
         "note": spec["note"],
         "verification": verification,
-        "score": {
-            "total": total_score,
-            "technical": technical,
-            "fundamental": fundamental,
-            "stance": stance,
-            "weights": "技术面70% / 基本面30%",
-        },
-        "view": build_market_view(spec["name"], total_score, tech, fundamental_note),
-        "strategies": strategy_levels(price, tech, stance),
+        "score": analysis.get("score"),
+        "view": analysis.get("view"),
+        "strategies": analysis.get("strategies", []),
+        "analysis_skill": analysis.get("analysis_skill", "master_analytic_skill"),
+        "child_skill": analysis.get("child_skill", "technical_basic_analysis_skill"),
+        "quality_note": analysis.get("quality_note", "需进一步核验"),
     }
 
 
 def merge_external(spec: dict[str, str], snapshot: dict[str, Any] | None) -> dict[str, Any]:
     record = (snapshot or {}).get("external", {}).get(spec["key"], {})
-    change_pct = as_float(record.get("change_pct"))
-    technical = 58 if change_pct and change_pct > 0 else 42 if change_pct and change_pct < 0 else 50
-    fundamental = 50
-    total_score = round(technical * 0.7 + fundamental * 0.3, 1)
-    stance = "偏多" if total_score >= 65 else "偏空" if total_score <= 40 else "震荡"
-    price = as_float(record.get("price"))
-    high = as_float(record.get("high")) or price or 0
-    low = as_float(record.get("low")) or price or 0
-    atr_proxy = abs(high - low)
-    tech = {
-        "atr": atr_proxy or ((price or 1) * 0.01),
-        "trend": stance,
-        "levels": {},
-        "signals": ["外盘参考合约，技术历史样本不足"],
-    }
+    analysis = call_master_analysis({"spec": spec, "source": record, "snapshot": snapshot, "external": True})
     return {
         "symbol": spec["symbol"],
         "name": spec["name"],
@@ -665,15 +437,12 @@ def merge_external(spec: dict[str, str], snapshot: dict[str, Any] | None) -> dic
         "source": record.get("source") or "需进一步核验",
         "note": spec["note"],
         "verification": "外盘合约暂不使用同花顺问财核验；以公开外盘数据源为准。",
-        "score": {
-            "total": total_score,
-            "technical": technical,
-            "fundamental": fundamental,
-            "stance": stance,
-            "weights": "技术面70% / 基本面30%",
-        },
-        "view": f"{spec['name']}作为外盘参考，当前按{stance}处理；主要用于判断内盘油脂情绪传导，不单独作为交易指令。",
-        "strategies": strategy_levels(price, tech, stance),
+        "score": analysis.get("score"),
+        "view": analysis.get("view"),
+        "strategies": analysis.get("strategies", []),
+        "analysis_skill": analysis.get("analysis_skill", "master_analytic_skill"),
+        "child_skill": analysis.get("child_skill", "technical_basic_analysis_skill"),
+        "quality_note": analysis.get("quality_note", "需进一步核验"),
     }
 
 

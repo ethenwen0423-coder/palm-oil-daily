@@ -826,12 +826,10 @@ select {
   font-size: clamp(1.1rem, 2vw, 1.42rem);
 }
 
-.futures-card h3 small {
-  display: inline-block;
-  margin-left: 8px;
+.futures-card h3 span {
+  margin-left: 6px;
   color: #9edb9b;
-  font-size: 0.72em;
-  font-weight: 900;
+  font-size: 0.82em;
 }
 
 .futures-direction {
@@ -872,104 +870,35 @@ select {
   text-align: right;
 }
 
-.futures-meta {
+.futures-score {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px 18px;
+  gap: 1px;
   margin: 0;
+  background: rgba(220, 240, 213, 0.12);
 }
 
-.futures-meta div {
+.futures-score div {
   min-width: 0;
+  background: rgba(4, 18, 14, 0.58);
+  padding: 10px 12px;
 }
 
-.futures-meta dt {
+.futures-score dt {
   color: rgba(244, 248, 242, 0.52);
-  font-size: 0.74rem;
+  font-size: 0.72rem;
   font-weight: 850;
 }
 
-.futures-meta dd {
-  margin: 2px 0 0;
-  color: rgba(244, 248, 242, 0.9);
-  font-size: 0.94rem;
-  font-weight: 760;
+.futures-score dd {
+  margin: 3px 0 0;
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 880;
   overflow-wrap: anywhere;
 }
 
-.futures-score {
-  display: grid;
-  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1fr);
-  gap: 16px;
-  padding: 16px;
-  border: 1px solid rgba(220, 240, 213, 0.12);
-  background: rgba(244, 248, 242, 0.045);
-}
-
-.futures-score > div {
-  display: grid;
-  gap: 2px;
-}
-
-.futures-score span,
-.futures-score dt,
-.futures-strategies dt {
-  color: rgba(244, 248, 242, 0.52);
-  font-size: 0.74rem;
-  font-weight: 850;
-}
-
-.futures-score strong {
-  color: #ffffff;
-  font-size: clamp(2rem, 4vw, 3rem);
-  line-height: 1;
-}
-
-.futures-score small {
-  color: #9edb9b;
-  font-size: 0.9rem;
-  font-weight: 900;
-}
-
-.futures-score dl,
-.futures-strategies dl {
-  display: grid;
-  gap: 10px;
-  margin: 0;
-}
-
-.futures-score dd,
-.futures-strategies dd {
-  margin: 2px 0 0;
-  color: rgba(244, 248, 242, 0.9);
-  font-size: 0.94rem;
-  font-weight: 760;
-}
-
-.futures-view {
-  padding: 0 0 0 12px;
-  border-left: 3px solid #9edb9b;
-}
-
-.futures-strategies {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.futures-strategies section {
-  min-width: 0;
-  padding: 13px 14px;
-  border: 1px solid rgba(220, 240, 213, 0.11);
-  background: rgba(4, 18, 14, 0.38);
-}
-
-.futures-strategies h4 {
-  margin: 0 0 10px;
-  color: #ffffff;
-  font-size: 0.96rem;
-}
-
+.futures-view,
 .futures-card p {
   margin: 0;
   color: rgba(244, 248, 242, 0.72);
@@ -977,20 +906,36 @@ select {
   line-height: 1.65;
 }
 
-.futures-card .futures-verification {
-  padding: 10px 12px;
-  border-left: 3px solid #f1c96b;
-  background: rgba(241, 201, 107, 0.08);
-  color: rgba(244, 248, 242, 0.82);
-  font-size: 0.84rem;
-  font-weight: 740;
+.futures-strategies {
+  display: grid;
+  gap: 8px;
 }
 
-.futures-source {
-  color: rgba(244, 248, 242, 0.42);
-  font-size: 0.76rem;
-  font-weight: 760;
+.futures-strategies div {
+  display: grid;
+  gap: 3px;
+  padding: 10px 12px;
+  border: 1px solid rgba(220, 240, 213, 0.12);
+  background: rgba(4, 18, 14, 0.42);
+}
+
+.futures-strategies strong {
+  color: #9edb9b;
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+
+.futures-strategies span,
+.futures-verification {
+  color: rgba(244, 248, 242, 0.62);
+  font-size: 0.82rem;
+  line-height: 1.55;
   overflow-wrap: anywhere;
+}
+
+.futures-verification {
+  border-top: 1px solid rgba(220, 240, 213, 0.12);
+  padding-top: 10px;
 }
 
 .futures-footnote {
@@ -1316,11 +1261,6 @@ select {
   .futures-card-top,
   .futures-price-row {
     display: grid;
-  }
-
-  .futures-score,
-  .futures-strategies {
-    grid-template-columns: 1fr;
   }
 
   .futures-price-row span {
