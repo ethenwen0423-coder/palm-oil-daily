@@ -443,51 +443,49 @@
               <strong>${escapeHtml(contract.price || "需进一步核验")}</strong>
               <span>${escapeHtml(contract.change || "需进一步核验")}</span>
             </div>
-            <dl class="futures-meta">
+            <section class="futures-score">
               <div>
-                <dt>代码</dt>
-                <dd>${escapeHtml(contract.symbol || "")}</dd>
+                <span>综合评分</span>
+                <strong>${escapeHtml(contract.score?.total ?? "需进一步核验")}</strong>
+                <small>${escapeHtml(contract.score?.stance || "需进一步核验")}</small>
               </div>
-              <div>
-                <dt>合约</dt>
-                <dd>${escapeHtml(contract.contract || "需进一步核验")}</dd>
-              </div>
-              <div>
-                <dt>成交</dt>
-                <dd>${escapeHtml(contract.volume || "需进一步核验")}</dd>
-              </div>
-              <div>
-                <dt>持仓</dt>
-                <dd>${escapeHtml(contract.open_interest || "需进一步核验")}</dd>
-              </div>
-            </dl>
-            <dl class="futures-daily">
-              <div>
-                <dt>交易日</dt>
-                <dd>${escapeHtml(contract.trade_date || "需进一步核验")}</dd>
-              </div>
-              <div>
-                <dt>开盘</dt>
-                <dd>${escapeHtml(contract.open || "需进一步核验")}</dd>
-              </div>
-              <div>
-                <dt>最高</dt>
-                <dd>${escapeHtml(contract.high || "需进一步核验")}</dd>
-              </div>
-              <div>
-                <dt>最低</dt>
-                <dd>${escapeHtml(contract.low || "需进一步核验")}</dd>
-              </div>
-              <div>
-                <dt>昨收</dt>
-                <dd>${escapeHtml(contract.preclose || "需进一步核验")}</dd>
-              </div>
-              <div>
-                <dt>结算</dt>
-                <dd>${escapeHtml(contract.settle || "需进一步核验")}</dd>
-              </div>
-            </dl>
-            <p>${escapeHtml(contract.note || "")}</p>
+              <dl>
+                <div>
+                  <dt>技术面 70%</dt>
+                  <dd>${escapeHtml(contract.score?.technical ?? "需进一步核验")}</dd>
+                </div>
+                <div>
+                  <dt>基本面 30%</dt>
+                  <dd>${escapeHtml(contract.score?.fundamental ?? "需进一步核验")}</dd>
+                </div>
+              </dl>
+            </section>
+            <p class="futures-view">${escapeHtml(contract.view || contract.note || "走势观点需进一步核验")}</p>
+            <div class="futures-strategies">
+              ${(contract.strategies || [])
+                .map(
+                  (strategy) => `
+                    <section>
+                      <h4>${escapeHtml(strategy.name || "策略")}</h4>
+                      <dl>
+                        <div>
+                          <dt>触发</dt>
+                          <dd>${escapeHtml(strategy.entry || "需进一步核验")}</dd>
+                        </div>
+                        <div>
+                          <dt>止盈</dt>
+                          <dd>${escapeHtml(strategy.take_profit || "需进一步核验")}</dd>
+                        </div>
+                        <div>
+                          <dt>止损</dt>
+                          <dd>${escapeHtml(strategy.stop_loss || "需进一步核验")}</dd>
+                        </div>
+                      </dl>
+                    </section>
+                  `,
+                )
+                .join("")}
+            </div>
             <p class="futures-verification">${escapeHtml(contract.verification || "核验状态：需进一步核验")}</p>
             <span class="futures-source">${escapeHtml(contract.source || "需进一步核验")}</span>
           </article>

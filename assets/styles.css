@@ -872,36 +872,24 @@ select {
   text-align: right;
 }
 
-.futures-meta,
-.futures-daily {
+.futures-meta {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px 18px;
   margin: 0;
 }
 
-.futures-daily {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-  padding: 13px 0;
-  border-top: 1px solid rgba(220, 240, 213, 0.11);
-  border-bottom: 1px solid rgba(220, 240, 213, 0.11);
-}
-
-.futures-meta div,
-.futures-daily div {
+.futures-meta div {
   min-width: 0;
 }
 
-.futures-meta dt,
-.futures-daily dt {
+.futures-meta dt {
   color: rgba(244, 248, 242, 0.52);
   font-size: 0.74rem;
   font-weight: 850;
 }
 
-.futures-meta dd,
-.futures-daily dd {
+.futures-meta dd {
   margin: 2px 0 0;
   color: rgba(244, 248, 242, 0.9);
   font-size: 0.94rem;
@@ -909,9 +897,77 @@ select {
   overflow-wrap: anywhere;
 }
 
-.futures-daily dd {
-  color: rgba(244, 248, 242, 0.84);
+.futures-score {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1fr);
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid rgba(220, 240, 213, 0.12);
+  background: rgba(244, 248, 242, 0.045);
+}
+
+.futures-score > div {
+  display: grid;
+  gap: 2px;
+}
+
+.futures-score span,
+.futures-score dt,
+.futures-strategies dt {
+  color: rgba(244, 248, 242, 0.52);
+  font-size: 0.74rem;
+  font-weight: 850;
+}
+
+.futures-score strong {
+  color: #ffffff;
+  font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 1;
+}
+
+.futures-score small {
+  color: #9edb9b;
   font-size: 0.9rem;
+  font-weight: 900;
+}
+
+.futures-score dl,
+.futures-strategies dl {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.futures-score dd,
+.futures-strategies dd {
+  margin: 2px 0 0;
+  color: rgba(244, 248, 242, 0.9);
+  font-size: 0.94rem;
+  font-weight: 760;
+}
+
+.futures-view {
+  padding: 0 0 0 12px;
+  border-left: 3px solid #9edb9b;
+}
+
+.futures-strategies {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.futures-strategies section {
+  min-width: 0;
+  padding: 13px 14px;
+  border: 1px solid rgba(220, 240, 213, 0.11);
+  background: rgba(4, 18, 14, 0.38);
+}
+
+.futures-strategies h4 {
+  margin: 0 0 10px;
+  color: #ffffff;
+  font-size: 0.96rem;
 }
 
 .futures-card p {
@@ -1262,8 +1318,9 @@ select {
     display: grid;
   }
 
-  .futures-daily {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .futures-score,
+  .futures-strategies {
+    grid-template-columns: 1fr;
   }
 
   .futures-price-row span {
