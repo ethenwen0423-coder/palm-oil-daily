@@ -677,6 +677,43 @@ select {
     var(--deep);
 }
 
+.home-tabs {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.home-tab {
+  min-height: 42px;
+  border: 1px solid rgba(220, 240, 213, 0.18);
+  border-radius: 8px;
+  background: rgba(244, 248, 242, 0.045);
+  color: rgba(244, 248, 242, 0.76);
+  padding: 0 16px;
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.home-tab.active,
+.home-tab:hover {
+  border-color: rgba(215, 239, 207, 0.72);
+  background: #f4f8f2;
+  color: #092119;
+}
+
+.tab-panel {
+  grid-column: 1 / -1;
+  display: none;
+}
+
+.tab-panel.active {
+  display: grid;
+  gap: 36px;
+}
+
 .home-page .archive-grid,
 .home-page .recent-list {
   grid-template-columns: 1fr;
@@ -735,6 +772,140 @@ select {
 .home-page .archive-divider::after {
   background: rgba(220, 240, 213, 0.18);
   opacity: 1;
+}
+
+.futures-section {
+  color: #f4f8f2;
+}
+
+.home-page .futures-heading {
+  align-items: center;
+}
+
+.home-page .futures-heading > div {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+}
+
+.futures-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  padding: 1px;
+  background: rgba(220, 240, 213, 0.1);
+}
+
+.futures-card {
+  min-width: 0;
+  display: grid;
+  gap: 16px;
+  background: rgba(4, 18, 14, 0.66);
+  padding: 22px 24px;
+}
+
+.futures-card-top,
+.futures-price-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.futures-market {
+  display: block;
+  color: rgba(158, 219, 155, 0.78);
+  font-size: 0.74rem;
+  font-weight: 900;
+}
+
+.futures-card h3 {
+  margin-top: 3px;
+  color: #ffffff;
+  font-size: clamp(1.1rem, 2vw, 1.42rem);
+}
+
+.futures-direction {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(244, 248, 242, 0.1);
+  font-size: 1.2rem;
+  font-weight: 900;
+  flex: 0 0 auto;
+}
+
+.futures-direction.up {
+  color: #9edb9b;
+}
+
+.futures-direction.down {
+  color: #e19b86;
+}
+
+.futures-direction.flat {
+  color: #f1c96b;
+}
+
+.futures-price-row strong {
+  color: #ffffff;
+  font-size: clamp(1.8rem, 4vw, 3rem);
+  line-height: 1;
+}
+
+.futures-price-row span {
+  color: rgba(244, 248, 242, 0.72);
+  font-size: 0.95rem;
+  font-weight: 850;
+  text-align: right;
+}
+
+.futures-meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 18px;
+  margin: 0;
+}
+
+.futures-meta div {
+  min-width: 0;
+}
+
+.futures-meta dt {
+  color: rgba(244, 248, 242, 0.52);
+  font-size: 0.74rem;
+  font-weight: 850;
+}
+
+.futures-meta dd {
+  margin: 2px 0 0;
+  color: rgba(244, 248, 242, 0.9);
+  font-size: 0.94rem;
+  font-weight: 760;
+  overflow-wrap: anywhere;
+}
+
+.futures-card p {
+  margin: 0;
+  color: rgba(244, 248, 242, 0.72);
+  font-size: 0.94rem;
+  line-height: 1.65;
+}
+
+.futures-footnote {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 10px 18px;
+  padding: 16px 24px 20px;
+  border-top: 1px solid rgba(220, 240, 213, 0.12);
+  color: rgba(244, 248, 242, 0.58);
+  font-size: 0.82rem;
+  font-weight: 720;
 }
 
 .home-page .site-footer {
@@ -1015,6 +1186,10 @@ select {
     grid-template-columns: 1fr;
   }
 
+  .futures-grid {
+    grid-template-columns: 1fr;
+  }
+
   .recent-list {
     grid-template-columns: 1fr;
   }
@@ -1033,6 +1208,21 @@ select {
 @media (max-width: 520px) {
   .shell {
     width: min(100% - 24px, 1120px);
+  }
+
+  .home-tabs {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .home-page .futures-heading > div,
+  .futures-card-top,
+  .futures-price-row {
+    display: grid;
+  }
+
+  .futures-price-row span {
+    text-align: left;
   }
 
   .report-content,

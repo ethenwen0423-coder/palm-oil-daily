@@ -8,6 +8,7 @@
       name="description"
       content="每日棕榈油期货、现货、库存、外盘与宏观要点汇总。"
     />
+    <link rel="icon" href="data:," />
     <script>
       window.PALM_OIL_CACHE_BUST = Date.now();
       document.write('<link rel="stylesheet" href="assets/styles.css?v=' + window.PALM_OIL_CACHE_BUST + '" />');
@@ -43,41 +44,65 @@
         <div class="hero-actions" aria-label="报告入口">
           <a id="daily-report-link" class="hero-button hero-button-primary" href="#recent-title">阅读今日晨报 →</a>
           <a id="weekly-report-link" class="hero-button hero-button-secondary" href="#weekly-title">查看本周周报 →</a>
+          <a class="hero-button hero-button-secondary" href="#oil-futures-panel" data-tab-target="oil-futures-panel">查看油脂主力 →</a>
         </div>
       </div>
     </header>
 
     <main class="shell newspaper-layout">
-      <section class="newspaper-section recent-section" aria-labelledby="recent-title">
-        <header class="section-heading">
-          <h2 id="recent-title">最近一周报告</h2>
-          <span>按时间排序</span>
-        </header>
-        <div id="recent-list" class="report-link-list recent-list"></div>
+      <nav class="home-tabs" aria-label="首页内容切换" role="tablist">
+        <button class="home-tab active" type="button" data-tab-target="reports-panel">报告归档</button>
+        <button class="home-tab" type="button" data-tab-target="oil-futures-panel">油脂主力合约</button>
+      </nav>
+
+      <section id="reports-panel" class="tab-panel active" aria-label="报告归档">
+        <section class="newspaper-section recent-section" aria-labelledby="recent-title">
+          <header class="section-heading">
+            <h2 id="recent-title">最近一周报告</h2>
+            <span>按时间排序</span>
+          </header>
+          <div id="recent-list" class="report-link-list recent-list"></div>
+        </section>
+
+        <section class="archive-area" aria-label="过往报告归档">
+          <div class="archive-divider">
+            <span>过往报告归档</span>
+          </div>
+
+          <div class="archive-grid">
+            <section class="newspaper-section archive-section" aria-labelledby="daily-title">
+              <header class="section-heading">
+                <h2 id="daily-title">日报</h2>
+                <span>每日晨报</span>
+              </header>
+              <div id="daily-list" class="report-link-list"></div>
+            </section>
+
+            <section class="newspaper-section archive-section" aria-labelledby="weekly-title">
+              <header class="section-heading">
+                <h2 id="weekly-title">周报</h2>
+                <span>周度研判</span>
+              </header>
+              <div id="weekly-list" class="report-link-list compact"></div>
+            </section>
+          </div>
+        </section>
       </section>
 
-      <section class="archive-area" aria-label="过往报告归档">
-        <div class="archive-divider">
-          <span>过往报告归档</span>
-        </div>
-
-        <div class="archive-grid">
-          <section class="newspaper-section archive-section" aria-labelledby="daily-title">
-            <header class="section-heading">
-              <h2 id="daily-title">日报</h2>
-              <span>每日晨报</span>
-            </header>
-            <div id="daily-list" class="report-link-list"></div>
-          </section>
-
-          <section class="newspaper-section archive-section" aria-labelledby="weekly-title">
-            <header class="section-heading">
-              <h2 id="weekly-title">周报</h2>
-              <span>周度研判</span>
-            </header>
-            <div id="weekly-list" class="report-link-list compact"></div>
-          </section>
-        </div>
+      <section id="oil-futures-panel" class="tab-panel" aria-labelledby="oil-futures-title">
+        <section class="newspaper-section futures-section">
+          <header class="section-heading futures-heading">
+            <div>
+              <h2 id="oil-futures-title">油脂期货主力合约</h2>
+              <span id="oil-futures-updated">等待行情数据</span>
+            </div>
+          </header>
+          <div id="oil-futures-list" class="futures-grid"></div>
+          <div class="futures-footnote">
+            <span id="oil-futures-source">数据源等待加载</span>
+            <span>仅作研究跟踪，不构成投资建议。</span>
+          </div>
+        </section>
       </section>
     </main>
 
@@ -89,6 +114,9 @@
 
     <script>
       document.write('<script src="data/reports.js?v=' + window.PALM_OIL_CACHE_BUST + '"><\/script>');
+    </script>
+    <script>
+      document.write('<script src="data/oil_futures.js?v=' + window.PALM_OIL_CACHE_BUST + '"><\/script>');
     </script>
     <script>
       document.write('<script src="assets/app.js?v=' + window.PALM_OIL_CACHE_BUST + '"><\/script>');

@@ -7,6 +7,12 @@
   const weeklyList = document.querySelector("#weekly-list");
   const dailyReportLink = document.querySelector("#daily-report-link");
   const weeklyReportLink = document.querySelector("#weekly-report-link");
+  const tabTriggers = Array.from(document.querySelectorAll("[data-tab-target]"));
+  const homeTabs = Array.from(document.querySelectorAll(".home-tab"));
+  const tabPanels = Array.from(document.querySelectorAll(".tab-panel"));
+  const oilFuturesList = document.querySelector("#oil-futures-list");
+  const oilFuturesUpdated = document.querySelector("#oil-futures-updated");
+  const oilFuturesSource = document.querySelector("#oil-futures-source");
   const heroCall = document.querySelector("#hero-call");
   const heroPoints = document.querySelector("#hero-points");
   const detailTitle = document.querySelector("#detail-title");
@@ -399,6 +405,100 @@
     return Number.isNaN(timestamp) ? 0 : timestamp;
   }
 
+  function renderDirection(value) {
+    const direction = String(value || "→");
+    const className = direction === "↑" ? "up" : direction === "↓" ? "down" : "flat";
+    return `<span class="futures-direction ${className}">${escapeHtml(direction)}</span>`;
+  }
+
+  function renderOilFutures() {
+    if (!oilFuturesList) return;
+    const data = window.OIL_FUTURES_CONTRACTS || {};
+    const contracts = Array.isArray(data.contracts) ? data.contracts : [];
+    if (oilFuturesUpdated) {
+      oilFuturesUpdated.textContent = data.updated_at ? `更新 ${data.updated_at}` : "等待行情数据";
+    }
+    if (oilFuturesSource) {
+      oilFuturesSource.textContent = data.source || "数据源等待加载";
+    }
+    if (!contracts.length) {
+      oilFuturesList.innerHTML = '<p class="empty">暂无油脂期货主力合约数据。</p>';
+      return;
+    }
+    oilFuturesList.innerHTML = contracts
+      .map(
+        (contract) => `
+          <article class="futures-card">
+            <div class="futures-card-top">
+              <div>
+                <span class="futures-market">${escapeHtml(contract.market || "")}</span>
+                <h3>${escapeHtml(contract.name || "")}</h3>
+              </div>
+              ${renderDirection(contract.direction)}
+            </div>
+            <div class="futures-price-row">
+              <strong>${escapeHtml(contract.price || "需进一步核验")}</strong>
+              <span>${escapeHtml(contract.change || "需进一步核验")}</span>
+            </div>
+            <dl class="futures-meta">
+              <div>
+                <dt>代码</dt>
+                <dd>${escapeHtml(contract.symbol || "")}</dd>
+              </div>
+              <div>
+                <dt>合约</dt>
+                <dd>${escapeHtml(contract.contract || "主力")}</dd>
+              </div>
+              <div>
+                <dt>成交</dt>
+                <dd>${escapeHtml(contract.volume || "需进一步核验")}</dd>
+              </div>
+              <div>
+                <dt>持仓</dt>
+                <dd>${escapeHtml(contract.open_interest || "需进一步核验")}</dd>
+              </div>
+            </dl>
+            <p>${escapeHtml(contract.note || "")}</p>
+          </article>
+        `,
+      )
+      .join("");
+  }
+
+  function activateTab(targetId) {
+    homeTabs.forEach((tab) => {
+      const active = tab.dataset.tabTarget === targetId;
+      tab.classList.toggle("active", active);
+      tab.setAttribute("aria-selected", active ? "true" : "false");
+    });
+    tabPanels.forEach((panel) => {
+      panel.classList.toggle("active", panel.id === targetId);
+    });
+  }
+
+  function bindHomeTabs() {
+    if (!tabTriggers.length) return;
+    homeTabs.forEach((tab) => {
+      tab.setAttribute("role", "tab");
+      tab.setAttribute("aria-selected", tab.classList.contains("active") ? "true" : "false");
+    });
+    tabTriggers.forEach((trigger) => {
+      trigger.addEventListener("click", (event) => {
+        const targetId = trigger.dataset.tabTarget;
+        if (!targetId) return;
+        activateTab(targetId);
+        if (trigger.tagName !== "A") return;
+        event.preventDefault();
+        window.history.replaceState(null, "", `#${targetId}`);
+        document.getElementById(targetId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    });
+    const hashTarget = window.location.hash.replace(/^#/, "");
+    if (hashTarget && tabPanels.some((panel) => panel.id === hashTarget)) {
+      activateTab(hashTarget);
+    }
+  }
+
   function recentReports() {
     const datedReports = reports.filter((report) => reportTime(report));
     if (!datedReports.length) return [];
@@ -491,5 +591,7 @@
   }
 
   renderIndex();
+  renderOilFutures();
+  bindHomeTabs();
   renderDetail();
 })();
