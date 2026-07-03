@@ -17,6 +17,7 @@ if (( ${#changed_reports[@]} > 0 )); then
   python3 scripts/check_title_quality.py "${changed_reports[@]}"
 fi
 
+python3 scripts/update_oil_futures_data.py
 python3 scripts/publish_report.py
 
 if git diff --quiet -- reports data downloads; then
