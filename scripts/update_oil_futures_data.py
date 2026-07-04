@@ -52,6 +52,16 @@ DOMESTIC = [
     },
 ]
 
+EXTERNAL = [
+    {
+        "key": "bmd_palm_oil",
+        "symbol": "FCPO",
+        "name": "马棕油",
+        "market": "BMD",
+        "note": "FCPO 是棕榈油最直接的外盘参考，只用于观察产地盘面对 P 的传导。",
+    },
+]
+
 def load_akshare():
     try:
         import akshare as ak  # type: ignore
@@ -399,6 +409,39 @@ def merge_domestic(spec: dict[str, str], snapshot: dict[str, Any] | None, ak: An
     }
 
 
+def merge_external(spec: dict[str, str], snapshot: dict[str, Any] | None) -> dict[str, Any]:
+    record = (snapshot or {}).get("external", {}).get(spec["key"], {})
+    analysis = call_master_analysis({"spec": spec, "source": record, "snapshot": snapshot, "external": True})
+    return {
+        "symbol": spec["symbol"],
+        "name": spec["name"],
+        "market": spec["market"],
+        "contract": record.get("contract") or spec["symbol"],
+        "price": fmt_number(record.get("price")),
+        "change": fmt_pct(record.get("change_pct")),
+        "volume": fmt_lots(record.get("volume")),
+        "open_interest": fmt_lots(record.get("open_interest")),
+        "direction": direction(record.get("change_pct")),
+        "open": fmt_number(record.get("open")),
+        "high": fmt_number(record.get("high")),
+        "low": fmt_number(record.get("low")),
+        "preclose": fmt_number(record.get("close")),
+        "settle": "需进一步核验",
+        "trade_date": record.get("published_at", "")[:10] or record.get("fetched_at", "")[:10],
+        "source": record.get("source") or "需进一步核验",
+        "note": spec["note"],
+        "verification": "外盘只展示与棕榈油最相关的 FCPO；暂不使用同花顺问财核验，以公开外盘数据源为准。",
+        "score": analysis.get("score"),
+        "view": analysis.get("view"),
+        "technical_detail": analysis.get("technical_detail", []),
+        "fundamental_detail": analysis.get("fundamental_detail", []),
+        "strategy_recommendation": analysis.get("strategy_recommendation", {}),
+        "analysis_skill": analysis.get("analysis_skill", "master_analytic_skill"),
+        "child_skill": analysis.get("child_skill", "technical_basic_analysis_skill"),
+        "quality_note": analysis.get("quality_note", "需进一步核验"),
+    }
+
+
 def write_js(payload: dict[str, Any], output: Path) -> None:
     output.parent.mkdir(parents=True, exist_ok=True)
     text = json.dumps(payload, ensure_ascii=False, indent=2)
@@ -413,11 +456,12 @@ def main() -> int:
     snapshot, snapshot_path = latest_market_snapshot()
     ak = load_akshare()
     contracts = [merge_domestic(spec, snapshot, ak) for spec in DOMESTIC]
+    contracts.extend(merge_external(spec, snapshot) for spec in EXTERNAL)
 
     source_note = "futures-oil-daily 最新快照"
     if snapshot_path:
         source_note += f"：{snapshot_path.relative_to(ROOT)}"
-    source_note += "；主卡片展示国内油脂主力合约，内盘具体合约与日线缺口由 AkShare 补充，并用同花顺问财行情skill交叉验证；外盘仅作为联动因子纳入评分"
+    source_note += "；主卡片以国内油脂主力合约为主，外盘仅展示与棕榈油最相关的 FCPO；内盘具体合约与日线缺口由 AkShare 补充，并用同花顺问财行情skill交叉验证"
     payload = {
         "updated_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
         "source": source_note,

@@ -1,6 +1,6 @@
 ---
 name: master_analytic_skill
-description: Master orchestration skill for generating or updating the oil-futures main-contract tab page. Use when Codex needs to build, refresh, or review the homepage tab for domestic oil-related dominant contracts such as P, Y, and OI. External markets such as FCPO and CBOT soybean oil are linked drivers, not primary contract cards. This skill is independent from the daily-report workflow and coordinates technical_basic_analysis_skill plus tab data rendering; it does not write morning reports or call daily-report skills.
+description: Master orchestration skill for generating or updating the oil-futures main-contract tab page. Use when Codex needs to build, refresh, or review the homepage tab for domestic oil-related dominant contracts such as P, Y, and OI, plus the single most palm-oil-relevant external reference contract FCPO. CBOT soybean oil is a linked driver, not a visible contract card. This skill is independent from the daily-report workflow and coordinates technical_basic_analysis_skill plus tab data rendering; it does not write morning reports or call daily-report skills.
 ---
 
 # Skill: master_analytic_skill
@@ -44,10 +44,10 @@ Default visible contract cards:
 - `P`: DCE palm oil dominant contract
 - `Y`: DCE soybean oil dominant contract
 - `OI`: CZCE rapeseed oil dominant contract
+- `FCPO`: Bursa Malaysia palm oil dominant contract, shown as the only external visible card because it is the closest external reference for palm oil
 
 External linked variables, not default visible cards:
 
-- `FCPO`: Bursa Malaysia palm oil dominant contract
 - `CBOT BO`: CBOT soybean oil dominant contract
 
 Optional linked variables:
