@@ -420,24 +420,29 @@
     return `<span class="futures-direction ${className}">${escapeHtml(direction)}</span>`;
   }
 
-  function renderStrategies(strategies) {
-    if (!Array.isArray(strategies) || !strategies.length) {
-      return '<p class="futures-view">策略点位需进一步核验。</p>';
+  function renderStrategyRecommendation(recommendation) {
+    const strategy = recommendation || {};
+    if (!strategy.take_profit || !strategy.stop_loss) {
+      return '<p class="futures-view">综合止盈止损需进一步核验。</p>';
     }
     return `
-      <div class="futures-strategies">
-        ${strategies
-          .map(
-            (strategy) => `
-              <div>
-                <strong>${escapeHtml(strategy.name || "策略")}</strong>
-                <span>入场：${escapeHtml(strategy.entry || "需进一步核验")}</span>
-                <span>止盈：${escapeHtml(strategy.take_profit || "需进一步核验")}</span>
-                <span>止损：${escapeHtml(strategy.stop_loss || "需进一步核验")}</span>
-              </div>
-            `,
-          )
-          .join("")}
+      <div class="futures-strategy-recommendation">
+        <h4>综合策略建议</h4>
+        <dl>
+          <div>
+            <dt>参考触发</dt>
+            <dd>${escapeHtml(strategy.entry || "需进一步核验")}</dd>
+          </div>
+          <div>
+            <dt>综合止盈</dt>
+            <dd>${escapeHtml(strategy.take_profit || "需进一步核验")}</dd>
+          </div>
+          <div>
+            <dt>综合止损</dt>
+            <dd>${escapeHtml(strategy.stop_loss || "需进一步核验")}</dd>
+          </div>
+        </dl>
+        <p>${escapeHtml(strategy.basis || "综合多组策略测算后给出当前最合适点位。")}</p>
       </div>
     `;
   }
@@ -531,7 +536,7 @@
             </dl>
             <p class="futures-view">${escapeHtml(contract.view || contract.note || "走势观点需进一步核验。")}</p>
             ${renderAnalysisDetails(contract)}
-            ${renderStrategies(contract.strategies)}
+            ${renderStrategyRecommendation(contract.strategy_recommendation)}
             <p class="futures-verification">${escapeHtml(contract.verification || contract.quality_note || "")}</p>
           </article>
         `;

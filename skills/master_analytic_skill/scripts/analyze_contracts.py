@@ -36,8 +36,9 @@ def check_quality(item: dict[str, Any]) -> dict[str, Any]:
             notes.append(f"综合评分口径需核验：期望 {expected}，当前 {total}")
     else:
         notes.append("评分字段需进一步核验")
-    if not item.get("strategies"):
-        notes.append("策略点位需进一步核验")
+    recommendation = item.get("strategy_recommendation", {})
+    if not recommendation or recommendation.get("take_profit") == "需进一步核验" or recommendation.get("stop_loss") == "需进一步核验":
+        notes.append("综合止盈止损需进一步核验")
     if not item.get("view"):
         notes.append("走势观点需进一步核验")
     return {

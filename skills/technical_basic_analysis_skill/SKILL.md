@@ -19,7 +19,7 @@ For each contract, collect as many of these fields as possible:
 - latest price, previous close, change percent
 - volume, open interest, open-interest change
 - moving averages: MA5, MA10, MA20, MA60
-- MACD, RSI, KDJ, ATR or volatility proxy
+- MACD, RSI, KDJ, volatility proxy
 - recent high/low and support/resistance
 - inventory, basis, import margin, crush margin, spread, supply-demand change
 - external drivers such as FCPO, CBOT soybean oil, crude oil, FX, policy, weather
@@ -100,12 +100,22 @@ Convert to tab strategy labels:
 
 Use `scripts/analysis_engine.py` for the full tab-card analysis flow. It contains:
 
-- `technical_analysis`: MA/MACD/RSI/BOLL/ATR/Donchian scoring
+- `technical_analysis`: MA/MACD/RSI/BOLL/volatility/breakout scoring
 - `fundamental_score`: supply-demand, inventory, spread, and external-market scoring
-- `strategy_levels`: ATR trend/ATR range and Turtle 20-day breakout levels
+- `strategy_recommendation`: calculate multiple candidate take-profit/stop-loss points, then return one integrated recommendation
 - `build_market_view`: score-led current market view
 
 Use `scripts/strategy_calculator.py` only when deterministic post-score mapping is useful.
+
+`strategy_recommendation` should internally combine at least these method families:
+
+- volatility envelope
+- breakout confirmation
+- moving-average support/resistance
+- range and band position
+- risk-reward symmetry
+
+The tab output must not expose the exact method names as separate trade cards. It should show only `综合策略建议`, `参考触发`, `综合止盈`, `综合止损`, and a short basis explaining that multiple candidate points were combined.
 
 The script accepts JSON with `basic_score`, `technical_score`, optional `price`, `support`, `resistance`, and `data_quality`, and returns:
 

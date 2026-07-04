@@ -187,10 +187,10 @@ def technical_analysis(price: float | None, history: list[dict[str, Any]] | None
             signals.append("RSI超卖修复")
     if high20 is not None and price > high20:
         score += 12
-        signals.append("突破20日唐奇安上轨")
+        signals.append("突破20日区间上沿")
     elif low20 is not None and price < low20:
         score -= 12
-        signals.append("跌破20日唐奇安下轨")
+        signals.append("跌破20日区间下沿")
     if boll_upper is not None and boll_lower is not None:
         if price > boll_upper:
             score += 5
@@ -305,11 +305,11 @@ def build_technical_detail(price: float | None, tech: dict[str, Any], total_scor
         },
         {
             "title": "支撑压力",
-            "text": f"20日唐奇安上沿 {high20}、下沿 {low20}；布林上轨 {boll_upper}、下轨 {boll_lower}。这些位置决定突破确认和反抽压力。",
+            "text": f"20日价格区间上沿 {high20}、下沿 {low20}；统计通道上轨 {boll_upper}、下轨 {boll_lower}。这些位置决定突破确认和反抽压力。",
         },
         {
             "title": "波动与执行",
-            "text": f"14日ATR约 {atr}，用于衡量止损宽度和止盈弹性。综合评分 {fmt_number(total_score)} 低于强势阈值时，不宜把反弹直接视为趋势反转。",
+            "text": f"14日平均波动幅度约 {atr}，用于衡量止损宽度和止盈弹性。综合评分 {fmt_number(total_score)} 低于强势阈值时，不宜把反弹直接视为趋势反转。",
         },
     ]
 
@@ -358,55 +358,109 @@ def stance_for(score: float) -> str:
     return "震荡"
 
 
-def strategy_levels(price: float | None, tech: dict[str, Any], trend: str) -> list[dict[str, str]]:
+def median(values: list[float]) -> float | None:
+    clean = sorted(value for value in values if value is not None)
+    if not clean:
+        return None
+    midpoint = len(clean) // 2
+    if len(clean) % 2:
+        return clean[midpoint]
+    return (clean[midpoint - 1] + clean[midpoint]) / 2
+
+
+def candidate_points(price: float | None, tech: dict[str, Any], trend: str) -> list[dict[str, Any]]:
     if price is None:
         return []
     atr = as_float(tech.get("atr")) or max(price * 0.01, 1)
     levels = tech.get("levels", {})
-    turtle_high = as_float(levels.get("donchian20_high"))
-    turtle_low = as_float(levels.get("donchian20_low"))
-    long_stop = price - 2 * atr
-    short_stop = price + 2 * atr
+    range_high = as_float(levels.get("donchian20_high")) or price + 1.5 * atr
+    range_low = as_float(levels.get("donchian20_low")) or price - 1.5 * atr
+    ma20 = as_float(levels.get("ma20"))
+    ma60 = as_float(levels.get("ma60"))
+    boll_upper = as_float(levels.get("boll_upper")) or price + 2 * atr
+    boll_lower = as_float(levels.get("boll_lower")) or price - 2 * atr
+    candidates: list[dict[str, Any]] = []
     if trend == "偏多":
-        atr_take = price + 3 * atr
-        turtle_trigger = turtle_high or price + atr
-        turtle_stop = turtle_trigger - 2 * atr
+        candidates.extend(
+            [
+                {"entry": price, "take_profit": price + 2.6 * atr, "stop_loss": price - 1.6 * atr, "weight": 0.24},
+                {"entry": max(price, range_high), "take_profit": range_high + 1.5 * atr, "stop_loss": range_high - 1.4 * atr, "weight": 0.22},
+                {"entry": price, "take_profit": boll_upper, "stop_loss": boll_lower, "weight": 0.18},
+                {"entry": price, "take_profit": price + 2 * (price - min(value for value in [range_low, ma20, ma60] if value is not None)), "stop_loss": min(value for value in [range_low, ma20, ma60] if value is not None), "weight": 0.2},
+                {"entry": price, "take_profit": price + 3 * atr, "stop_loss": price - 2 * atr, "weight": 0.16},
+            ]
+        )
     elif trend == "偏空":
-        atr_take = price - 3 * atr
-        turtle_trigger = turtle_low or price - atr
-        turtle_stop = turtle_trigger + 2 * atr
+        resistance = max(value for value in [range_high, ma20, ma60] if value is not None)
+        candidates.extend(
+            [
+                {"entry": price, "take_profit": price - 2.6 * atr, "stop_loss": price + 1.6 * atr, "weight": 0.24},
+                {"entry": min(price, range_low), "take_profit": range_low - 1.5 * atr, "stop_loss": range_low + 1.4 * atr, "weight": 0.22},
+                {"entry": price, "take_profit": boll_lower, "stop_loss": boll_upper, "weight": 0.18},
+                {"entry": price, "take_profit": price - 2 * (resistance - price), "stop_loss": resistance, "weight": 0.2},
+                {"entry": price, "take_profit": price - 3 * atr, "stop_loss": price + 2 * atr, "weight": 0.16},
+            ]
+        )
     else:
-        upper = turtle_high or price + 1.5 * atr
-        lower = turtle_low or price - 1.5 * atr
-        return [
-            {
-                "name": "ATR区间",
-                "entry": f"{fmt_number(lower)} - {fmt_number(upper)}",
-                "take_profit": f"上沿 {fmt_number(upper)} / 下沿 {fmt_number(lower)}",
-                "stop_loss": f"上破 {fmt_number(upper + atr)} 或下破 {fmt_number(lower - atr)}",
-            },
-            {
-                "name": "海龟20日突破",
-                "entry": f"上破 {fmt_number(upper)} 或下破 {fmt_number(lower)}",
-                "take_profit": f"顺势 2ATR：{fmt_number(price + 2 * atr)} / {fmt_number(price - 2 * atr)}",
-                "stop_loss": f"反向 1ATR：{fmt_number(price - atr)} / {fmt_number(price + atr)}",
-            },
-        ]
+        upper = median([range_high, boll_upper, price + 1.6 * atr]) or price + 1.5 * atr
+        lower = median([range_low, boll_lower, price - 1.6 * atr]) or price - 1.5 * atr
+        candidates.extend(
+            [
+                {"entry": price, "take_profit": upper, "stop_loss": lower - 0.7 * atr, "weight": 0.28},
+                {"entry": price, "take_profit": lower, "stop_loss": upper + 0.7 * atr, "weight": 0.28},
+                {"entry": upper, "take_profit": upper + 1.3 * atr, "stop_loss": price, "weight": 0.22},
+                {"entry": lower, "take_profit": lower - 1.3 * atr, "stop_loss": price, "weight": 0.22},
+            ]
+        )
+    return [item for item in candidates if as_float(item.get("take_profit")) is not None and as_float(item.get("stop_loss")) is not None]
 
-    return [
-        {
-            "name": "ATR趋势",
-            "entry": f"现价附近 {fmt_number(price)}",
-            "take_profit": fmt_number(atr_take),
-            "stop_loss": fmt_number(long_stop if trend == "偏多" else short_stop),
-        },
-        {
-            "name": "海龟20日突破",
-            "entry": fmt_number(turtle_trigger),
-            "take_profit": fmt_number(turtle_trigger + 2 * atr if trend == "偏多" else turtle_trigger - 2 * atr),
-            "stop_loss": fmt_number(turtle_stop),
-        },
-    ]
+
+def weighted_average(values: list[tuple[float, float]]) -> float | None:
+    total_weight = sum(weight for _, weight in values)
+    if total_weight <= 0:
+        return None
+    return sum(value * weight for value, weight in values) / total_weight
+
+
+def strategy_recommendation(price: float | None, tech: dict[str, Any], trend: str) -> dict[str, str]:
+    candidates = candidate_points(price, tech, trend)
+    if price is None or not candidates:
+        return {
+            "stance": trend,
+            "entry": "需进一步核验",
+            "take_profit": "需进一步核验",
+            "stop_loss": "需进一步核验",
+            "basis": "行情价格或关键位不足，暂不输出具体点位。",
+        }
+    if trend == "偏多":
+        take_values = [(value, item["weight"]) for item in candidates if (value := as_float(item.get("take_profit"))) is not None and value > price]
+        stop_values = [(value, item["weight"]) for item in candidates if (value := as_float(item.get("stop_loss"))) is not None and value < price]
+        action = "回撤不破支撑时偏多跟随"
+    elif trend == "偏空":
+        take_values = [(value, item["weight"]) for item in candidates if (value := as_float(item.get("take_profit"))) is not None and value < price]
+        stop_values = [(value, item["weight"]) for item in candidates if (value := as_float(item.get("stop_loss"))) is not None and value > price]
+        action = "反弹不过压力时偏空处理"
+    else:
+        upper_values = [(value, item["weight"]) for item in candidates if (value := as_float(item.get("take_profit"))) is not None and value > price]
+        lower_values = [(value, item["weight"]) for item in candidates if (value := as_float(item.get("take_profit"))) is not None and value < price]
+        take_values = upper_values + lower_values
+        stop_values = [(value, item["weight"]) for item in candidates if (value := as_float(item.get("stop_loss"))) is not None]
+        action = "区间内等待突破确认"
+    take_profit = weighted_average(take_values)
+    stop_loss = weighted_average(stop_values)
+    if trend == "震荡" and take_values:
+        upper_target = weighted_average([(value, weight) for value, weight in take_values if value > price])
+        lower_target = weighted_average([(value, weight) for value, weight in take_values if value < price])
+        take_text = f"上沿 {fmt_number(upper_target)} / 下沿 {fmt_number(lower_target)}"
+    else:
+        take_text = fmt_number(take_profit)
+    return {
+        "stance": trend,
+        "entry": f"现价附近 {fmt_number(price)}；{action}",
+        "take_profit": take_text,
+        "stop_loss": fmt_number(stop_loss),
+        "basis": f"综合波动、突破、均线、区间和风险回报测算后取加权中枢；共纳入 {len(candidates)} 组候选点位。",
+    }
 
 
 def build_market_view(name: str, total_score: float, tech: dict[str, Any], fundamental_note: str) -> str:
@@ -465,12 +519,12 @@ def analyze_contract(item: dict[str, Any]) -> dict[str, Any]:
         "view": view,
         "technical_detail": build_technical_detail(price, tech, total_score),
         "fundamental_detail": build_fundamental_detail(spec, snapshot, fundamental_note, fundamental),
-        "strategies": strategy_levels(price, tech, stance),
+        "strategy_recommendation": strategy_recommendation(price, tech, stance),
         "skill_trace": {
             "skill": "technical_basic_analysis_skill",
             "technical_function": "technical_analysis",
             "fundamental_function": "fundamental_score",
-            "strategy_function": "strategy_levels",
+            "strategy_function": "strategy_recommendation",
         },
     }
 

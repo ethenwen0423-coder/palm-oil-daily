@@ -90,14 +90,22 @@ For each contract, return a structured item:
   "volume": "需进一步核验",
   "open_interest": "需进一步核验",
   "direction": "→",
-  "basic_score": 0,
-  "technical_score": 0,
-  "total_score": 0,
-  "rating": "中性",
-  "strategy": "观望",
-  "support": "需进一步核验",
-  "resistance": "需进一步核验",
-  "risk_control": "需进一步核验",
+  "score": {
+    "total": 0,
+    "technical": 0,
+    "fundamental": 0,
+    "stance": "中性",
+    "weights": "技术面70% / 基本面30%"
+  },
+  "view": "需进一步核验",
+  "technical_detail": [],
+  "fundamental_detail": [],
+  "strategy_recommendation": {
+    "entry": "需进一步核验",
+    "take_profit": "需进一步核验",
+    "stop_loss": "需进一步核验",
+    "basis": "需进一步核验"
+  },
   "note": "需进一步核验"
 }
 ```
@@ -108,7 +116,7 @@ Allowed `direction` values:
 - `↓`
 - `→`
 
-Allowed `strategy` values:
+Allowed `score.stance` values:
 
 - `偏多`
 - `偏空`
@@ -120,9 +128,9 @@ Allowed `strategy` values:
 Before finishing, verify:
 
 - `technical_basic_analysis_skill` was called or explicitly marked unavailable.
-- Every contract has `basic_score`, `technical_score`, and `total_score`.
-- `total_score = basic_score * 0.30 + technical_score * 0.70`.
-- Operation strategy is consistent with score and risk controls.
+- Every contract has `score.fundamental`, `score.technical`, and `score.total`.
+- `score.total = score.fundamental * 0.30 + score.technical * 0.70`.
+- `strategy_recommendation` gives one integrated take-profit and stop-loss recommendation, without exposing a single named calculation method as the visible source.
 - Missing data is shown as `需进一步核验`.
 - The tab output does not mention daily-report conclusions unless independently supported by tab data.
 

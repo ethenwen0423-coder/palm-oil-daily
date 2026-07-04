@@ -952,31 +952,51 @@ select {
   overflow-wrap: anywhere;
 }
 
-.futures-strategies {
+.futures-strategy-recommendation {
   display: grid;
-  gap: 8px;
-}
-
-.futures-strategies div {
-  display: grid;
-  gap: 3px;
+  gap: 10px;
   padding: 10px 12px;
   border: 1px solid rgba(220, 240, 213, 0.12);
   background: rgba(4, 18, 14, 0.42);
 }
 
-.futures-strategies strong {
+.futures-strategy-recommendation h4 {
+  margin: 0;
   color: #9edb9b;
-  font-size: 0.82rem;
+  font-size: 0.92rem;
+  font-weight: 900;
+}
+
+.futures-strategy-recommendation dl {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.futures-strategy-recommendation div {
+  min-width: 0;
+}
+
+.futures-strategy-recommendation dt {
+  color: rgba(244, 248, 242, 0.5);
+  font-size: 0.72rem;
   font-weight: 850;
 }
 
-.futures-strategies span,
+.futures-strategy-recommendation dd,
+.futures-strategy-recommendation p,
 .futures-verification {
+  margin: 2px 0 0;
   color: rgba(244, 248, 242, 0.62);
   font-size: 0.82rem;
   line-height: 1.55;
   overflow-wrap: anywhere;
+}
+
+.futures-strategy-recommendation dd {
+  color: rgba(244, 248, 242, 0.88);
+  font-weight: 820;
 }
 
 .futures-verification {
