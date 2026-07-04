@@ -482,6 +482,96 @@
     `;
   }
 
+  function renderContractBody(contract) {
+    const score = contract.score || {};
+    const totalScore = score.total ?? contract.total_score ?? "需进一步核验";
+    const technicalScore = score.technical ?? contract.technical_score ?? "需进一步核验";
+    const fundamentalScore = score.fundamental ?? contract.basic_score ?? "需进一步核验";
+    const stance = score.stance || contract.strategy || "需进一步核验";
+    return `
+      <div class="futures-card-top">
+        <div>
+          <span class="futures-market">${escapeHtml(contract.market || "")}</span>
+          <h3>${escapeHtml(contract.name || "")} <span>${escapeHtml(contract.contract || "主力")}</span></h3>
+        </div>
+        ${renderDirection(contract.direction)}
+      </div>
+      <div class="futures-price-row">
+        <strong>${escapeHtml(contract.price || "需进一步核验")}</strong>
+        <span>${escapeHtml(contract.change || "需进一步核验")}</span>
+      </div>
+      <dl class="futures-score">
+        <div>
+          <dt>综合评分</dt>
+          <dd>${escapeHtml(totalScore)}</dd>
+        </div>
+        <div>
+          <dt>行情观点</dt>
+          <dd>${escapeHtml(stance)}</dd>
+        </div>
+        <div>
+          <dt>技术面</dt>
+          <dd>${escapeHtml(technicalScore)}</dd>
+        </div>
+        <div>
+          <dt>基本面</dt>
+          <dd>${escapeHtml(fundamentalScore)}</dd>
+        </div>
+      </dl>
+      <p class="futures-view">${escapeHtml(contract.view || contract.note || "走势观点需进一步核验。")}</p>
+      ${renderAnalysisDetails(contract)}
+      ${renderStrategyRecommendation(contract.strategy_recommendation)}
+      <p class="futures-verification">${escapeHtml(contract.verification || contract.quality_note || "")}</p>
+    `;
+  }
+
+  function renderContractCard(contract) {
+    return `<article class="futures-card">${renderContractBody(contract)}</article>`;
+  }
+
+  function renderWatchlistCard(contracts, options) {
+    const optionItems = (Array.isArray(options) && options.length ? options : contracts.map((contract) => ({
+      value: contract.symbol,
+      label: contract.symbol,
+      name: contract.name,
+      contract: contract.contract,
+    }))).filter((item) => item.value);
+    return `
+      <article class="futures-card futures-watch-card">
+        <div class="futures-card-top">
+          <div>
+            <span class="futures-market">WATCH</span>
+            <h3>自选合约 <span>关注</span></h3>
+          </div>
+        </div>
+        <div class="futures-watch-controls">
+          <select id="futures-watch-select" aria-label="合约简称">
+            <option value="">选择合约</option>
+            ${optionItems
+              .map(
+                (item) =>
+                  `<option value="${escapeHtml(item.value)}">${escapeHtml(item.label)} · ${escapeHtml(item.name || "")} ${escapeHtml(item.contract || "")}</option>`,
+              )
+              .join("")}
+          </select>
+          <button id="futures-watch-confirm" type="button">确认</button>
+        </div>
+        <div id="futures-watch-result" class="futures-watch-result"></div>
+      </article>
+    `;
+  }
+
+  function bindFuturesWatchlist(contracts) {
+    const select = document.querySelector("#futures-watch-select");
+    const confirm = document.querySelector("#futures-watch-confirm");
+    const result = document.querySelector("#futures-watch-result");
+    if (!select || !confirm || !result) return;
+    confirm.addEventListener("click", () => {
+      const contract = contracts.find((item) => item.symbol === select.value);
+      result.innerHTML = contract ? renderContractBody(contract) : '<p class="futures-view">需进一步核验。</p>';
+    });
+  }
+
   function renderOilFutures() {
     if (!oilFuturesList) return;
     const data = window.OIL_FUTURES_CONTRACTS || {};
@@ -496,52 +586,8 @@
       oilFuturesList.innerHTML = '<p class="empty">暂无油脂期货主力合约数据。</p>';
       return;
     }
-    oilFuturesList.innerHTML = contracts
-      .map((contract) => {
-        const score = contract.score || {};
-        const totalScore = score.total ?? contract.total_score ?? "需进一步核验";
-        const technicalScore = score.technical ?? contract.technical_score ?? "需进一步核验";
-        const fundamentalScore = score.fundamental ?? contract.basic_score ?? "需进一步核验";
-        const stance = score.stance || contract.strategy || "需进一步核验";
-        return `
-          <article class="futures-card">
-            <div class="futures-card-top">
-              <div>
-                <span class="futures-market">${escapeHtml(contract.market || "")}</span>
-                <h3>${escapeHtml(contract.name || "")} <span>${escapeHtml(contract.contract || "主力")}</span></h3>
-              </div>
-              ${renderDirection(contract.direction)}
-            </div>
-            <div class="futures-price-row">
-              <strong>${escapeHtml(contract.price || "需进一步核验")}</strong>
-              <span>${escapeHtml(contract.change || "需进一步核验")}</span>
-            </div>
-            <dl class="futures-score">
-              <div>
-                <dt>综合评分</dt>
-                <dd>${escapeHtml(totalScore)}</dd>
-              </div>
-              <div>
-                <dt>行情观点</dt>
-                <dd>${escapeHtml(stance)}</dd>
-              </div>
-              <div>
-                <dt>技术面</dt>
-                <dd>${escapeHtml(technicalScore)}</dd>
-              </div>
-              <div>
-                <dt>基本面</dt>
-                <dd>${escapeHtml(fundamentalScore)}</dd>
-              </div>
-            </dl>
-            <p class="futures-view">${escapeHtml(contract.view || contract.note || "走势观点需进一步核验。")}</p>
-            ${renderAnalysisDetails(contract)}
-            ${renderStrategyRecommendation(contract.strategy_recommendation)}
-            <p class="futures-verification">${escapeHtml(contract.verification || contract.quality_note || "")}</p>
-          </article>
-        `;
-      })
-      .join("");
+    oilFuturesList.innerHTML = `${contracts.map(renderContractCard).join("")}${renderWatchlistCard(contracts, data.watchlist_options)}`;
+    bindFuturesWatchlist(contracts);
   }
 
   function activateTab(targetId) {

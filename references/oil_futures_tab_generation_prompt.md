@@ -11,7 +11,8 @@
 5. 分支 skill 使用 `skills/technical_basic_analysis_skill/scripts/analysis_engine.py` 生成技术评分、基本面评分、当前行情观点和综合止盈止损点位。
 6. 综合止盈止损必须内部纳入多类候选策略，包括波动包络、突破确认、均线支撑压力、区间/通道位置和风险回报测算；页面上不得单独标注具体算法名称。
 7. 技术面与基本面必须分别输出详解字段，说明评分依据、关键位置、外盘联动、库存与价差影响。
-8. 缺失或无法核验的数据必须写 `需进一步核验`。
+8. 必须生成 `watchlist_options`，值列表使用各合约简称，供页面自选合约卡片确认后刷新展示。
+9. 缺失或无法核验的数据必须写 `需进一步核验`。
 
 默认展示合约卡片以国内主力合约为主：
 
@@ -51,6 +52,10 @@
 - strategy_recommendation.take_profit
 - strategy_recommendation.stop_loss
 - strategy_recommendation.basis
+- watchlist_options[].value
+- watchlist_options[].label
+- watchlist_options[].name
+- watchlist_options[].contract
 - verification
 - analysis_skill
 - child_skill

@@ -28,6 +28,7 @@ When generating the main-contract tab, execute in this order:
 4. Calculate operation strategy fields.
 5. Generate or update the tab data payload.
 6. Check that every visible tab conclusion can be traced to scored data.
+7. Generate `watchlist_options` from the prepared contract payload so the static GitHub Pages UI can refresh a user-selected contract card without a backend call.
 
 Callable entrypoint:
 
@@ -111,6 +112,19 @@ For each contract, return a structured item:
   },
   "note": "需进一步核验"
 }
+```
+
+For the page-level payload, also return a contract selector list:
+
+```json
+  "watchlist_options": [
+    {
+      "value": "P",
+      "label": "P",
+      "name": "棕榈油",
+      "contract": "P2609"
+    }
+  ]
 ```
 
 Allowed `direction` values:

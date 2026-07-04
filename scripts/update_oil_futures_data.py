@@ -466,6 +466,15 @@ def main() -> int:
         "updated_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
         "source": source_note,
         "contracts": contracts,
+        "watchlist_options": [
+            {
+                "value": contract.get("symbol"),
+                "label": contract.get("symbol"),
+                "name": contract.get("name"),
+                "contract": contract.get("contract"),
+            }
+            for contract in contracts
+        ],
     }
     write_js(payload, args.output)
     try:

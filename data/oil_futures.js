@@ -1,5 +1,5 @@
 window.OIL_FUTURES_CONTRACTS = {
-  "updated_at": "2026-07-04 10:34",
+  "updated_at": "2026-07-04 10:39",
   "source": "futures-oil-daily 最新快照：source_runs/2026-07-03-daily/raw/futures_market_data.json；主卡片以国内油脂主力合约为主，外盘仅展示与棕榈油最相关的 FCPO；内盘具体合约与日线缺口由 AkShare 补充，并用同花顺问财行情skill交叉验证",
   "contracts": [
     {
@@ -265,6 +265,32 @@ window.OIL_FUTURES_CONTRACTS = {
       "analysis_skill": "master_analytic_skill",
       "child_skill": "technical_basic_analysis_skill",
       "quality_note": "评分、观点与策略已通过skill质量检查"
+    }
+  ],
+  "watchlist_options": [
+    {
+      "value": "P",
+      "label": "P",
+      "name": "棕榈油",
+      "contract": "P2609"
+    },
+    {
+      "value": "Y",
+      "label": "Y",
+      "name": "豆油",
+      "contract": "Y2609"
+    },
+    {
+      "value": "OI",
+      "label": "OI",
+      "name": "菜油",
+      "contract": "OI2609"
+    },
+    {
+      "value": "FCPO",
+      "label": "FCPO",
+      "name": "马棕油",
+      "contract": "FCPOU2026"
     }
   ]
 };

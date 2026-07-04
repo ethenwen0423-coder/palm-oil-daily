@@ -1004,6 +1004,48 @@ select {
   padding-top: 10px;
 }
 
+.futures-watch-card {
+  align-content: start;
+}
+
+.futures-watch-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+}
+
+.futures-watch-controls select,
+.futures-watch-controls button {
+  min-width: 0;
+  border: 1px solid rgba(220, 240, 213, 0.18);
+  background: rgba(4, 18, 14, 0.58);
+  color: #ffffff;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 820;
+}
+
+.futures-watch-controls select {
+  width: 100%;
+  padding: 11px 12px;
+}
+
+.futures-watch-controls button {
+  padding: 11px 16px;
+  color: #07120d;
+  background: #9edb9b;
+  cursor: pointer;
+}
+
+.futures-watch-result {
+  display: grid;
+  gap: 16px;
+}
+
+.futures-watch-result:empty {
+  min-height: 1px;
+}
+
 .futures-footnote {
   display: flex;
   flex-wrap: wrap;
