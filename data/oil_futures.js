@@ -1,6 +1,6 @@
 window.OIL_FUTURES_CONTRACTS = {
-  "updated_at": "2026-07-04 10:29",
-  "source": "futures-oil-daily 最新快照：source_runs/2026-07-03-daily/raw/futures_market_data.json；主卡片展示国内油脂主力合约，内盘具体合约与日线缺口由 AkShare 补充，并用同花顺问财行情skill交叉验证；外盘仅作为联动因子纳入评分",
+  "updated_at": "2026-07-04 10:34",
+  "source": "futures-oil-daily 最新快照：source_runs/2026-07-03-daily/raw/futures_market_data.json；主卡片以国内油脂主力合约为主，外盘仅展示与棕榈油最相关的 FCPO；内盘具体合约与日线缺口由 AkShare 补充，并用同花顺问财行情skill交叉验证",
   "contracts": [
     {
       "symbol": "P",
@@ -195,6 +195,72 @@ window.OIL_FUTURES_CONTRACTS = {
         "take_profit": "9044.71",
         "stop_loss": "9962.48",
         "basis": "综合波动、突破、均线、区间和风险回报测算后取加权中枢；共纳入 5 组候选点位。"
+      },
+      "analysis_skill": "master_analytic_skill",
+      "child_skill": "technical_basic_analysis_skill",
+      "quality_note": "评分、观点与策略已通过skill质量检查"
+    },
+    {
+      "symbol": "FCPO",
+      "name": "马棕油",
+      "market": "BMD",
+      "contract": "FCPOU2026",
+      "price": "4547",
+      "change": "-0.09%",
+      "volume": "1.17 万手",
+      "open_interest": "8.01 万手",
+      "direction": "↓",
+      "open": "4551",
+      "high": "4570",
+      "low": "4536",
+      "preclose": "需进一步核验",
+      "settle": "需进一步核验",
+      "trade_date": "2026-07-02",
+      "source": "tradingview:MYX:FCPO1!",
+      "note": "FCPO 是棕榈油最直接的外盘参考，只用于观察产地盘面对 P 的传导。",
+      "verification": "外盘只展示与棕榈油最相关的 FCPO；暂不使用同花顺问财核验，以公开外盘数据源为准。",
+      "score": {
+        "total": 44.4,
+        "technical": 42,
+        "fundamental": 50.0,
+        "stance": "震荡",
+        "weights": "技术面70% / 基本面30%"
+      },
+      "view": "马棕油作为外盘参考，当前按震荡处理；主要用于判断内盘油脂情绪传导，不单独作为交易指令。",
+      "technical_detail": [
+        {
+          "title": "趋势结构",
+          "text": "现价 4547 对照 MA20 需进一步核验、MA60 需进一步核验，当前技术评分为 需进一步核验，趋势标签为震荡。核心信号为：外盘参考合约，技术历史样本不足。"
+        },
+        {
+          "title": "支撑压力",
+          "text": "20日价格区间上沿 需进一步核验、下沿 需进一步核验；统计通道上轨 需进一步核验、下轨 需进一步核验。这些位置决定突破确认和反抽压力。"
+        },
+        {
+          "title": "波动与执行",
+          "text": "14日平均波动幅度约 34，用于衡量止损宽度和止盈弹性。综合评分 44.40 低于强势阈值时，不宜把反弹直接视为趋势反转。"
+        }
+      ],
+      "fundamental_detail": [
+        {
+          "title": "外盘联动",
+          "text": "外盘涨跌幅用于观察情绪传导：FCPO -0.09%，CBOT豆油 +0.51%。"
+        },
+        {
+          "title": "库存与价差",
+          "text": "外盘参考合约暂缺国内库存、基差与价差的可比口径，基本面评分按中性处理。"
+        },
+        {
+          "title": "评分解释",
+          "text": "基本面评分 50。本轮纳入的可核验因子为：外盘参考合约，国内基本面因子不直接套用；未能核验的政策、天气、基差和进口利润不直接上调评分。"
+        }
+      ],
+      "strategy_recommendation": {
+        "stance": "震荡",
+        "entry": "现价附近 4547；区间内等待突破确认",
+        "take_profit": "上沿 4620.85 / 下沿 4473.15",
+        "stop_loss": "4547",
+        "basis": "综合波动、突破、均线、区间和风险回报测算后取加权中枢；共纳入 4 组候选点位。"
       },
       "analysis_skill": "master_analytic_skill",
       "child_skill": "technical_basic_analysis_skill",
