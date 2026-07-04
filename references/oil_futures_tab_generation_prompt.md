@@ -9,7 +9,8 @@
 3. 使用 `基本面评分 * 30% + 技术面评分 * 70%` 计算每个油脂相关主力合约的综合评分。
 4. 使用 `skills/master_analytic_skill/scripts/analyze_contracts.py` 调用分支 skill。
 5. 分支 skill 使用 `skills/technical_basic_analysis_skill/scripts/analysis_engine.py` 生成技术评分、基本面评分、当前行情观点、ATR 策略和海龟 20 日突破点位。
-6. 缺失或无法核验的数据必须写 `需进一步核验`。
+6. 技术面与基本面必须分别输出详解字段，说明评分依据、关键位置、外盘联动、库存与价差影响。
+7. 缺失或无法核验的数据必须写 `需进一步核验`。
 
 默认覆盖合约：
 
@@ -35,6 +36,10 @@
 - score.fundamental
 - score.stance
 - view
+- technical_detail[].title
+- technical_detail[].text
+- fundamental_detail[].title
+- fundamental_detail[].text
 - strategies[].name
 - strategies[].entry
 - strategies[].take_profit

@@ -263,6 +263,93 @@ def fundamental_score(spec: dict[str, Any], snapshot: dict[str, Any] | None) -> 
     return round(clamp(score, 25, 75), 1), "；".join(notes) if notes else "基本面暂无强新增驱动"
 
 
+def source_change(snapshot: dict[str, Any] | None, key: str) -> str:
+    record = (snapshot or {}).get("external", {}).get(key, {})
+    change = as_float(record.get("change_pct"))
+    if change is None:
+        return "需进一步核验"
+    sign = "+" if change > 0 else ""
+    return f"{sign}{change:.2f}%"
+
+
+def nested_price(snapshot: dict[str, Any] | None, section: str, key: str) -> str:
+    record = (snapshot or {}).get("fundamental", {}).get(section, {}).get(key)
+    if isinstance(record, dict):
+        return fmt_number(record.get("price"))
+    return fmt_number(record)
+
+
+def build_technical_detail(price: float | None, tech: dict[str, Any], total_score: float) -> list[dict[str, str]]:
+    levels = tech.get("levels", {})
+    signals = "、".join(tech.get("signals") or []) or "暂无明确技术信号"
+    ma20 = fmt_number(levels.get("ma20"))
+    ma60 = fmt_number(levels.get("ma60"))
+    high20 = fmt_number(levels.get("donchian20_high"))
+    low20 = fmt_number(levels.get("donchian20_low"))
+    boll_upper = fmt_number(levels.get("boll_upper"))
+    boll_lower = fmt_number(levels.get("boll_lower"))
+    atr = fmt_number(tech.get("atr"))
+    trend = tech.get("trend", "震荡")
+    price_text = fmt_number(price)
+    if price is None:
+        position = "价格缺失，技术结构需进一步核验。"
+    else:
+        position = (
+            f"现价 {price_text} 对照 MA20 {ma20}、MA60 {ma60}，当前技术评分为 {fmt_number(tech.get('score'))}，"
+            f"趋势标签为{trend}。核心信号为：{signals}。"
+        )
+    return [
+        {
+            "title": "趋势结构",
+            "text": position,
+        },
+        {
+            "title": "支撑压力",
+            "text": f"20日唐奇安上沿 {high20}、下沿 {low20}；布林上轨 {boll_upper}、下轨 {boll_lower}。这些位置决定突破确认和反抽压力。",
+        },
+        {
+            "title": "波动与执行",
+            "text": f"14日ATR约 {atr}，用于衡量止损宽度和止盈弹性。综合评分 {fmt_number(total_score)} 低于强势阈值时，不宜把反弹直接视为趋势反转。",
+        },
+    ]
+
+
+def build_fundamental_detail(spec: dict[str, Any], snapshot: dict[str, Any] | None, note: str, score: float) -> list[dict[str, str]]:
+    key = spec.get("key")
+    fcpo_change = source_change(snapshot, "bmd_palm_oil")
+    cbot_change = source_change(snapshot, "cbot_bean_oil")
+    palm_inventory = nested_price(snapshot, "inventory", "palm_oil_inventory")
+    soybean_inventory = nested_price(snapshot, "inventory", "soybean_oil_inventory")
+    rapeseed_inventory = nested_price(snapshot, "inventory", "rapeseed_oil_inventory")
+    soy_palm_spread = nested_price(snapshot, "spread", "soybean_palm_spread")
+    if key == "palm_oil":
+        inventory_text = f"棕榈油库存 {palm_inventory}，豆棕价差 {soy_palm_spread}。库存偏高会压制单边上行，价差偏低则仍支撑P相对强弱。"
+        linkage_text = f"FCPO涨跌幅 {fcpo_change} 是P的外盘弹性来源，CBOT豆油 {cbot_change} 影响油脂板块共振。"
+    elif key == "soybean_oil":
+        inventory_text = f"豆油库存 {soybean_inventory}，豆棕价差 {soy_palm_spread}。库存高位会限制豆油独立上攻，价差变化决定对P的拖累或托底。"
+        linkage_text = f"CBOT豆油涨跌幅 {cbot_change} 是Y的主要外盘锚，FCPO {fcpo_change} 影响油脂整体风险偏好。"
+    elif key == "rapeseed_oil":
+        inventory_text = f"菜油库存 {rapeseed_inventory}，豆棕价差 {soy_palm_spread}。菜油更偏油脂内部轮动，若库存压力不缓解，追涨持续性受限。"
+        linkage_text = f"CBOT豆油 {cbot_change} 和FCPO {fcpo_change} 共同决定油脂共振强度，OI当前更多看相对强弱切换。"
+    else:
+        inventory_text = "外盘参考合约暂缺国内库存、基差与价差的可比口径，基本面评分按中性处理。"
+        linkage_text = f"外盘涨跌幅用于观察情绪传导：FCPO {fcpo_change}，CBOT豆油 {cbot_change}。"
+    return [
+        {
+            "title": "外盘联动",
+            "text": linkage_text,
+        },
+        {
+            "title": "库存与价差",
+            "text": inventory_text,
+        },
+        {
+            "title": "评分解释",
+            "text": f"基本面评分 {fmt_number(score)}。本轮纳入的可核验因子为：{note}；未能核验的政策、天气、基差和进口利润不直接上调评分。",
+        },
+    ]
+
+
 def stance_for(score: float) -> str:
     if score >= 65:
         return "偏多"
@@ -358,6 +445,7 @@ def analyze_contract(item: dict[str, Any]) -> dict[str, Any]:
             "signals": ["外盘参考合约，技术历史样本不足"],
         }
         view = f"{spec.get('name', '')}作为外盘参考，当前按{stance}处理；主要用于判断内盘油脂情绪传导，不单独作为交易指令。"
+        fundamental_note = "外盘参考合约，国内基本面因子不直接套用"
     else:
         tech = technical_analysis(price, history)
         fundamental, fundamental_note = fundamental_score(spec, snapshot)
@@ -375,6 +463,8 @@ def analyze_contract(item: dict[str, Any]) -> dict[str, Any]:
             "weights": "技术面70% / 基本面30%",
         },
         "view": view,
+        "technical_detail": build_technical_detail(price, tech, total_score),
+        "fundamental_detail": build_fundamental_detail(spec, snapshot, fundamental_note, fundamental),
         "strategies": strategy_levels(price, tech, stance),
         "skill_trace": {
             "skill": "technical_basic_analysis_skill",

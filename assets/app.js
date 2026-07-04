@@ -442,6 +442,41 @@
     `;
   }
 
+  function renderAnalysisDetails(contract) {
+    const groups = [
+      ["技术面详解", contract.technical_detail],
+      ["基本面详解", contract.fundamental_detail],
+    ];
+    return `
+      <div class="futures-analysis-details">
+        ${groups
+          .map(([title, items]) => {
+            const detailItems = Array.isArray(items) ? items : [];
+            return `
+              <section>
+                <h4>${escapeHtml(title)}</h4>
+                ${
+                  detailItems.length
+                    ? `<ul>${detailItems
+                        .map(
+                          (item) => `
+                            <li>
+                              <strong>${escapeHtml(item.title || "要点")}</strong>
+                              <span>${escapeHtml(item.text || "需进一步核验")}</span>
+                            </li>
+                          `,
+                        )
+                        .join("")}</ul>`
+                    : '<p>需进一步核验。</p>'
+                }
+              </section>
+            `;
+          })
+          .join("")}
+      </div>
+    `;
+  }
+
   function renderOilFutures() {
     if (!oilFuturesList) return;
     const data = window.OIL_FUTURES_CONTRACTS || {};
@@ -495,6 +530,7 @@
               </div>
             </dl>
             <p class="futures-view">${escapeHtml(contract.view || contract.note || "走势观点需进一步核验。")}</p>
+            ${renderAnalysisDetails(contract)}
             ${renderStrategies(contract.strategies)}
             <p class="futures-verification">${escapeHtml(contract.verification || contract.quality_note || "")}</p>
           </article>

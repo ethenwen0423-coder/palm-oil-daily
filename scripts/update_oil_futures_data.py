@@ -408,6 +408,8 @@ def merge_domestic(spec: dict[str, str], snapshot: dict[str, Any] | None, ak: An
         "verification": verification,
         "score": analysis.get("score"),
         "view": analysis.get("view"),
+        "technical_detail": analysis.get("technical_detail", []),
+        "fundamental_detail": analysis.get("fundamental_detail", []),
         "strategies": analysis.get("strategies", []),
         "analysis_skill": analysis.get("analysis_skill", "master_analytic_skill"),
         "child_skill": analysis.get("child_skill", "technical_basic_analysis_skill"),
@@ -439,6 +441,8 @@ def merge_external(spec: dict[str, str], snapshot: dict[str, Any] | None) -> dic
         "verification": "外盘合约暂不使用同花顺问财核验；以公开外盘数据源为准。",
         "score": analysis.get("score"),
         "view": analysis.get("view"),
+        "technical_detail": analysis.get("technical_detail", []),
+        "fundamental_detail": analysis.get("fundamental_detail", []),
         "strategies": analysis.get("strategies", []),
         "analysis_skill": analysis.get("analysis_skill", "master_analytic_skill"),
         "child_skill": analysis.get("child_skill", "technical_basic_analysis_skill"),
@@ -472,7 +476,11 @@ def main() -> int:
         "contracts": contracts,
     }
     write_js(payload, args.output)
-    print(f"updated {args.output.relative_to(ROOT)} with {len(contracts)} contracts")
+    try:
+        display_path = args.output.relative_to(ROOT)
+    except ValueError:
+        display_path = args.output
+    print(f"updated {display_path} with {len(contracts)} contracts")
     return 0
 
 
