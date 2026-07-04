@@ -107,7 +107,9 @@ def run_backfill(report_date: str, dry_run: bool) -> int:
 
 请严格按原日报自动任务执行，但使用固定报告日期 {report_date}，不要改成其他日期。
 必须先运行 git pull --ff-only。
+必须先读取并调用 skills/master_report_skill/SKILL.md，按 market_data_skill、oil_report_freshness、report_writer_skill、headline_skill、report_quality_gate 顺序调度。
 必须调用 scripts/run_financial_skills.py 并读取 source_runs/{report_date}-daily/manifest.json。
+必须调用 skills/oil-report-freshness/SKILL.md 后再进入正文写作和标题生成。
 必须生成或更新 reports/{report_date}.md，然后运行 bash scripts/deploy_report.sh 发布。
 如果今天不是中国期货市场交易日，停止发布并说明原因。
 如果已发现报告实际存在且合格，停止补跑。

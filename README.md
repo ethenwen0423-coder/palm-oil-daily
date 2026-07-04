@@ -24,8 +24,11 @@
 - `scripts/run_financial_skills.py`：抓取和整理外盘、内盘、库存、价差、持仓等数据。
 - `scripts/publish_report.py`：把 `reports/` 汇总成网站数据。
 - `scripts/deploy_report.sh`：发布报告数据并推送到 GitHub。
+- `scripts/update_oil_futures_data.py`：更新首页“油脂主力合约”tab 数据。
+- `scripts/deploy_oil_futures_tab.sh`：单独发布首页“油脂主力合约”tab 数据。
 - `scripts/install_daily_watchdog_launchd.sh`：安装工作日日报补检任务。
 - `scripts/install_weekly_watchdog_launchd.sh`：安装周末周报补检任务。
+- `scripts/install_oil_futures_tab_launchd.sh`：安装首页“油脂主力合约”tab 刷新任务。
 
 ## 自动化调度
 
@@ -43,12 +46,16 @@
 - `com.vinsontesla.palm-oil-weekly-watchdog`
   - 周日 21:15 主动检查并生成周报
   - 周日 21:40 再次补检
+- `com.vinsontesla.oil-futures-tab`
+  - 周一至周五 08:45 独立刷新首页“油脂主力合约”tab
+  - 日报已发布但 tab 数据未更新时，仍会单独提交并推送 `data/oil_futures.js`
 
 安装或刷新调度：
 
 ```bash
 bash scripts/install_daily_watchdog_launchd.sh
 bash scripts/install_weekly_watchdog_launchd.sh
+bash scripts/install_oil_futures_tab_launchd.sh
 ```
 
 ## 手动发布流程
@@ -63,7 +70,7 @@ bash scripts/deploy_report.sh
 
 1. 读取 `reports/*.md`。
 2. 生成或更新 `downloads/*.md`。
-3. 生成或更新 `data/reports.js` 和 `data/version.js`。
+3. 生成或更新 `data/reports.js`、`data/version.js` 和 `data/oil_futures.js`。
 4. 提交报告相关变更。
 5. 推送到 GitHub，触发 GitHub Pages 更新。
 

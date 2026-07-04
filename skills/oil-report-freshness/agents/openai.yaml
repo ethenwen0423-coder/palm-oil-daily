@@ -1,0 +1,7 @@
+interface:
+  display_name: "Oil Report Freshness"
+  short_description: "Govern oil morning report inputs before writing"
+  default_prompt: "Use $oil-report-freshness to classify oil morning report inputs by freshness, source reliability, verification status, and mainline eligibility before report_writer writes the body."
+
+policy:
+  allow_implicit_invocation: true
