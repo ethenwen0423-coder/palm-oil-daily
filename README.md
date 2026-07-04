@@ -6,7 +6,7 @@
 
 ## 当前功能
 
-- 工作日日报：每个交易日早间生成棕榈油期货日报。
+- 工作日日报：每个交易日早间生成棕榈油期货日报，并在同一调度内刷新首页“油脂主力合约”tab。
 - 周末周报：每周日生成棕榈油、豆油、菜油及外部变量的周度复盘。
 - 自动补检：macOS `launchd` 在固定时间检查报告是否已发布，缺失或不合格时自动补跑。
 - 网站发布：报告 Markdown 会同步写入 `reports/`、`downloads/` 和 `data/reports.js`，供前端页面读取。
@@ -25,10 +25,10 @@
 - `scripts/publish_report.py`：把 `reports/` 汇总成网站数据。
 - `scripts/deploy_report.sh`：发布报告数据并推送到 GitHub。
 - `scripts/update_oil_futures_data.py`：更新首页“油脂主力合约”tab 数据。
-- `scripts/deploy_oil_futures_tab.sh`：单独发布首页“油脂主力合约”tab 数据。
+- `scripts/deploy_oil_futures_tab.sh`：发布首页“油脂主力合约”tab 数据，由工作日日报调度调用。
 - `scripts/install_daily_watchdog_launchd.sh`：安装工作日日报补检任务。
 - `scripts/install_weekly_watchdog_launchd.sh`：安装周末周报补检任务。
-- `scripts/install_oil_futures_tab_launchd.sh`：安装首页“油脂主力合约”tab 刷新任务。
+- `scripts/install_oil_futures_tab_launchd.sh`：卸载旧的独立 tab 刷新任务；tab 更新已并入工作日日报调度。
 
 ## 自动化调度
 
@@ -43,12 +43,11 @@
 - `com.vinsontesla.palm-oil-daily-watchdog`
   - 周一至周五 08:20 主动检查并生成日报
   - 周一至周五 08:40 再次补检
+  - 日报合格后在同一调度内刷新首页“油脂主力合约”tab
 - `com.vinsontesla.palm-oil-weekly-watchdog`
   - 周日 21:15 主动检查并生成周报
   - 周日 21:40 再次补检
-- `com.vinsontesla.oil-futures-tab`
-  - 周一至周五 08:45 独立刷新首页“油脂主力合约”tab
-  - 日报已发布但 tab 数据未更新时，仍会单独提交并推送 `data/oil_futures.js`
+  - 只更新周报，不刷新首页“油脂主力合约”tab
 
 安装或刷新调度：
 

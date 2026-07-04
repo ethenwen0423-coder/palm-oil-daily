@@ -26,6 +26,7 @@ set -euo pipefail
 
 ROOT="$RUNTIME_ROOT"
 REPORT_DATE="\$(TZ=Asia/Shanghai date +%F)"
+WEEKDAY="\$(TZ=Asia/Shanghai date +%u)"
 REPORT="\$ROOT/reports/\$REPORT_DATE.md"
 DOWNLOAD="\$ROOT/downloads/\$REPORT_DATE.md"
 DATA="\$ROOT/data/reports.js"
@@ -34,10 +35,15 @@ FORBIDDEN='未实际调用|当前环境未暴露调用入口|这是测试报告|
 
 echo "[\$(TZ=Asia/Shanghai date '+%F %T')] check \$REPORT_DATE" >> "\$LOG"
 
+if (( WEEKDAY < 1 || WEEKDAY > 5 )); then
+  echo "[\$(TZ=Asia/Shanghai date '+%F %T')] not weekday, skip daily and oil-futures tab" >> "\$LOG"
+  exit 0
+fi
+
 if [[ -s "\$REPORT" && -s "\$DOWNLOAD" && -s "\$DATA" ]] \\
   && grep -q "\"date\": \"\$REPORT_DATE\"" "\$DATA" \\
   && ! grep -Eq "\$FORBIDDEN" "\$REPORT"; then
-  echo "[\$(TZ=Asia/Shanghai date '+%F %T')] published, refresh oil-futures tab" >> "\$LOG"
+  echo "[\$(TZ=Asia/Shanghai date '+%F %T')] daily published, refresh oil-futures tab on same schedule" >> "\$LOG"
   cd "\$ROOT"
   git pull --ff-only >> "\$LOG" 2>&1
   bash scripts/deploy_oil_futures_tab.sh >> "\$LOG" 2>&1
@@ -54,6 +60,17 @@ printf '%s\n' "\$PROMPT" | "$CODEX_BIN" exec \\
   --sandbox danger-full-access \\
   --dangerously-bypass-approvals-and-sandbox \\
   -
+
+if [[ -s "\$REPORT" && -s "\$DOWNLOAD" && -s "\$DATA" ]] \\
+  && grep -q "\"date\": \"\$REPORT_DATE\"" "\$DATA" \\
+  && ! grep -Eq "\$FORBIDDEN" "\$REPORT"; then
+  echo "[\$(TZ=Asia/Shanghai date '+%F %T')] daily backfill complete, refresh oil-futures tab on same schedule" >> "\$LOG"
+  cd "\$ROOT"
+  git pull --ff-only >> "\$LOG" 2>&1
+  bash scripts/deploy_oil_futures_tab.sh >> "\$LOG" 2>&1
+else
+  echo "[\$(TZ=Asia/Shanghai date '+%F %T')] daily still missing or invalid, skip oil-futures tab" >> "\$LOG"
+fi
 RUNNER
 chmod +x "$RUNNER"
 
