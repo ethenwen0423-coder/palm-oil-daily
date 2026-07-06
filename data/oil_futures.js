@@ -1,5 +1,5 @@
 window.OIL_FUTURES_CONTRACTS = {
-  "updated_at": "2026-07-06 08:23",
+  "updated_at": "2026-07-06 08:40",
   "source": "futures-oil-daily 最新快照：source_runs/2026-07-06-daily/raw/futures_market_data.json；主卡片以国内油脂主力合约为主，外盘仅展示与棕榈油最相关的 FCPO；内盘具体合约与日线缺口由 AkShare 补充，并用同花顺问财行情skill交叉验证",
   "contracts": [
     {
