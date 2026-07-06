@@ -1,6 +1,6 @@
 window.OIL_FUTURES_CONTRACTS = {
-  "updated_at": "2026-07-04 10:39",
-  "source": "futures-oil-daily 最新快照：source_runs/2026-07-03-daily/raw/futures_market_data.json；主卡片以国内油脂主力合约为主，外盘仅展示与棕榈油最相关的 FCPO；内盘具体合约与日线缺口由 AkShare 补充，并用同花顺问财行情skill交叉验证",
+  "updated_at": "2026-07-06 08:23",
+  "source": "futures-oil-daily 最新快照：source_runs/2026-07-06-daily/raw/futures_market_data.json；主卡片以国内油脂主力合约为主，外盘仅展示与棕榈油最相关的 FCPO；内盘具体合约与日线缺口由 AkShare 补充，并用同花顺问财行情skill交叉验证",
   "contracts": [
     {
       "symbol": "P",
@@ -22,9 +22,9 @@ window.OIL_FUTURES_CONTRACTS = {
       "note": "P 是棕榈油报告主线，重点看持仓与豆油、菜油共振。",
       "verification": "价格一致：AkShare 9169 / 行情skill 9169；涨跌幅口径不同：AkShare +0.71% / 行情skill +0.23%",
       "score": {
-        "total": 28.3,
+        "total": 27.3,
         "technical": 20.0,
-        "fundamental": 47.6,
+        "fundamental": 44.3,
         "stance": "偏空",
         "weights": "技术面70% / 基本面30%"
       },
@@ -40,21 +40,21 @@ window.OIL_FUTURES_CONTRACTS = {
         },
         {
           "title": "波动与执行",
-          "text": "14日平均波动幅度约 166.29，用于衡量止损宽度和止盈弹性。综合评分 28.30 低于强势阈值时，不宜把反弹直接视为趋势反转。"
+          "text": "14日平均波动幅度约 166.29，用于衡量止损宽度和止盈弹性。综合评分 27.30 低于强势阈值时，不宜把反弹直接视为趋势反转。"
         }
       ],
       "fundamental_detail": [
         {
           "title": "外盘联动",
-          "text": "FCPO涨跌幅 -0.09% 是P的外盘弹性来源，CBOT豆油 +0.51% 影响油脂板块共振。"
+          "text": "FCPO涨跌幅 -0.73% 是P的外盘弹性来源，CBOT豆油 +0.51% 影响油脂板块共振。"
         },
         {
           "title": "库存与价差",
-          "text": "棕榈油库存 67.54，豆棕价差 -735。库存偏高会压制单边上行，价差偏低则仍支撑P相对强弱。"
+          "text": "棕榈油库存 67.54，豆棕价差 -741。库存偏高会压制单边上行，价差偏低则仍支撑P相对强弱。"
         },
         {
           "title": "评分解释",
-          "text": "基本面评分 47.60。本轮纳入的可核验因子为：FCPO联动；棕榈油库存偏高；豆棕价差仍支撑P相对强弱；未能核验的政策、天气、基差和进口利润不直接上调评分。"
+          "text": "基本面评分 44.30。本轮纳入的可核验因子为：FCPO联动；棕榈油库存偏高；豆棕价差仍支撑P相对强弱；未能核验的政策、天气、基差和进口利润不直接上调评分。"
         }
       ],
       "strategy_recommendation": {
@@ -112,11 +112,11 @@ window.OIL_FUTURES_CONTRACTS = {
       "fundamental_detail": [
         {
           "title": "外盘联动",
-          "text": "CBOT豆油涨跌幅 +0.51% 是Y的主要外盘锚，FCPO -0.09% 影响油脂整体风险偏好。"
+          "text": "CBOT豆油涨跌幅 +0.51% 是Y的主要外盘锚，FCPO -0.73% 影响油脂整体风险偏好。"
         },
         {
           "title": "库存与价差",
-          "text": "豆油库存 120.98，豆棕价差 -735。库存高位会限制豆油独立上攻，价差变化决定对P的拖累或托底。"
+          "text": "豆油库存 120.98，豆棕价差 -741。库存高位会限制豆油独立上攻，价差变化决定对P的拖累或托底。"
         },
         {
           "title": "评分解释",
@@ -178,11 +178,11 @@ window.OIL_FUTURES_CONTRACTS = {
       "fundamental_detail": [
         {
           "title": "外盘联动",
-          "text": "CBOT豆油 +0.51% 和FCPO -0.09% 共同决定油脂共振强度，OI当前更多看相对强弱切换。"
+          "text": "CBOT豆油 +0.51% 和FCPO -0.73% 共同决定油脂共振强度，OI当前更多看相对强弱切换。"
         },
         {
           "title": "库存与价差",
-          "text": "菜油库存 37.40，豆棕价差 -735。菜油更偏油脂内部轮动，若库存压力不缓解，追涨持续性受限。"
+          "text": "菜油库存 47.15，豆棕价差 -741。菜油更偏油脂内部轮动，若库存压力不缓解，追涨持续性受限。"
         },
         {
           "title": "评分解释",
@@ -205,17 +205,17 @@ window.OIL_FUTURES_CONTRACTS = {
       "name": "马棕油",
       "market": "BMD",
       "contract": "FCPOU2026",
-      "price": "4547",
-      "change": "-0.09%",
-      "volume": "1.17 万手",
-      "open_interest": "8.01 万手",
+      "price": "4483",
+      "change": "-0.73%",
+      "volume": "2.60 万手",
+      "open_interest": "9.50 万手",
       "direction": "↓",
-      "open": "4551",
-      "high": "4570",
-      "low": "4536",
+      "open": "4516",
+      "high": "4520",
+      "low": "4460",
       "preclose": "需进一步核验",
       "settle": "需进一步核验",
-      "trade_date": "2026-07-02",
+      "trade_date": "2026-07-03",
       "source": "tradingview:MYX:FCPO1!",
       "note": "FCPO 是棕榈油最直接的外盘参考，只用于观察产地盘面对 P 的传导。",
       "verification": "外盘只展示与棕榈油最相关的 FCPO；暂不使用同花顺问财核验，以公开外盘数据源为准。",
@@ -230,7 +230,7 @@ window.OIL_FUTURES_CONTRACTS = {
       "technical_detail": [
         {
           "title": "趋势结构",
-          "text": "现价 4547 对照 MA20 需进一步核验、MA60 需进一步核验，当前技术评分为 需进一步核验，趋势标签为震荡。核心信号为：外盘参考合约，技术历史样本不足。"
+          "text": "现价 4483 对照 MA20 需进一步核验、MA60 需进一步核验，当前技术评分为 需进一步核验，趋势标签为震荡。核心信号为：外盘参考合约，技术历史样本不足。"
         },
         {
           "title": "支撑压力",
@@ -238,13 +238,13 @@ window.OIL_FUTURES_CONTRACTS = {
         },
         {
           "title": "波动与执行",
-          "text": "14日平均波动幅度约 34，用于衡量止损宽度和止盈弹性。综合评分 44.40 低于强势阈值时，不宜把反弹直接视为趋势反转。"
+          "text": "14日平均波动幅度约 60，用于衡量止损宽度和止盈弹性。综合评分 44.40 低于强势阈值时，不宜把反弹直接视为趋势反转。"
         }
       ],
       "fundamental_detail": [
         {
           "title": "外盘联动",
-          "text": "外盘涨跌幅用于观察情绪传导：FCPO -0.09%，CBOT豆油 +0.51%。"
+          "text": "外盘涨跌幅用于观察情绪传导：FCPO -0.73%，CBOT豆油 +0.51%。"
         },
         {
           "title": "库存与价差",
@@ -257,9 +257,9 @@ window.OIL_FUTURES_CONTRACTS = {
       ],
       "strategy_recommendation": {
         "stance": "震荡",
-        "entry": "现价附近 4547；区间内等待突破确认",
-        "take_profit": "上沿 4620.85 / 下沿 4473.15",
-        "stop_loss": "4547",
+        "entry": "现价附近 4483；区间内等待突破确认",
+        "take_profit": "上沿 4613.32 / 下沿 4352.68",
+        "stop_loss": "4483",
         "basis": "综合波动、突破、均线、区间和风险回报测算后取加权中枢；共纳入 4 组候选点位。"
       },
       "analysis_skill": "master_analytic_skill",
