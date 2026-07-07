@@ -1,0 +1,38 @@
+[
+  {
+    "date": "2026-07-06",
+    "contract": "OI",
+    "previous_view": "偏空",
+    "actual_result": "+0.12%，高 9774 / 低 9736 / 收 9753",
+    "hit_status": "PARTIAL",
+    "error_type": [],
+    "root_cause": "昨日观点基本被今日行情验证",
+    "suggested_rule_change": [],
+    "confidence_adjustment": "MISS时下调一档；HIT保持；PARTIAL维持中性观察",
+    "requires_human_approval": false
+  },
+  {
+    "date": "2026-07-06",
+    "contract": "P",
+    "previous_view": "偏空",
+    "actual_result": "+0.23%，高 9270 / 低 9237 / 收 9266",
+    "hit_status": "PARTIAL",
+    "error_type": [],
+    "root_cause": "昨日观点基本被今日行情验证",
+    "suggested_rule_change": [],
+    "confidence_adjustment": "MISS时下调一档；HIT保持；PARTIAL维持中性观察",
+    "requires_human_approval": false
+  },
+  {
+    "date": "2026-07-06",
+    "contract": "Y",
+    "previous_view": "震荡",
+    "actual_result": "+0.36%，高 8543 / 低 8518 / 收 8541",
+    "hit_status": "HIT",
+    "error_type": [],
+    "root_cause": "昨日观点基本被今日行情验证",
+    "suggested_rule_change": [],
+    "confidence_adjustment": "MISS时下调一档；HIT保持；PARTIAL维持中性观察",
+    "requires_human_approval": false
+  }
+]
