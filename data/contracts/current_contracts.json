@@ -1,0 +1,168 @@
+{
+  "month": "2026-07",
+  "generated_at": "2026-07-06 21:59:09",
+  "source": "akshare:futures_zh_realtime",
+  "products": {
+    "P": [
+      {
+        "symbol": "P2609",
+        "product": "P",
+        "product_name": "棕榈油",
+        "rank": 1,
+        "label": "主力",
+        "volume": 116885,
+        "open_interest": 498700,
+        "turnover": null,
+        "data_time": "2026-07-07 21:59:07",
+        "source": "akshare:futures_zh_realtime",
+        "warnings": [
+          "成交额字段缺失，排序已跳过成交额"
+        ]
+      },
+      {
+        "symbol": "P2701",
+        "product": "P",
+        "product_name": "棕榈油",
+        "rank": 2,
+        "label": "次主力",
+        "volume": 20771,
+        "open_interest": 211694,
+        "turnover": null,
+        "data_time": "2026-07-07 21:59:06",
+        "source": "akshare:futures_zh_realtime",
+        "warnings": [
+          "成交额字段缺失，排序已跳过成交额"
+        ]
+      }
+    ],
+    "Y": [
+      {
+        "symbol": "Y2609",
+        "product": "Y",
+        "product_name": "豆油",
+        "rank": 1,
+        "label": "主力",
+        "volume": 75233,
+        "open_interest": 564548,
+        "turnover": null,
+        "data_time": "2026-07-07 21:58:59",
+        "source": "akshare:futures_zh_realtime",
+        "warnings": [
+          "成交额字段缺失，排序已跳过成交额"
+        ]
+      },
+      {
+        "symbol": "Y2701",
+        "product": "Y",
+        "product_name": "豆油",
+        "rank": 2,
+        "label": "次主力",
+        "volume": 26922,
+        "open_interest": 320349,
+        "turnover": null,
+        "data_time": "2026-07-07 21:58:58",
+        "source": "akshare:futures_zh_realtime",
+        "warnings": [
+          "成交额字段缺失，排序已跳过成交额"
+        ]
+      }
+    ],
+    "OI": [
+      {
+        "symbol": "OI2609",
+        "product": "OI",
+        "product_name": "菜油",
+        "rank": 1,
+        "label": "主力",
+        "volume": 63233,
+        "open_interest": 254887,
+        "turnover": null,
+        "data_time": "2026-07-06 21:58:59",
+        "source": "akshare:futures_zh_realtime",
+        "warnings": [
+          "成交额字段缺失，排序已跳过成交额"
+        ]
+      },
+      {
+        "symbol": "OI2611",
+        "product": "OI",
+        "product_name": "菜油",
+        "rank": 2,
+        "label": "次主力",
+        "volume": 12146,
+        "open_interest": 156581,
+        "turnover": null,
+        "data_time": "2026-07-06 21:58:58",
+        "source": "akshare:futures_zh_realtime",
+        "warnings": [
+          "成交额字段缺失，排序已跳过成交额"
+        ]
+      }
+    ],
+    "M": [
+      {
+        "symbol": "M2609",
+        "product": "M",
+        "product_name": "豆粕",
+        "rank": 1,
+        "label": "主力",
+        "volume": 300273,
+        "open_interest": 1887069,
+        "turnover": null,
+        "data_time": "2026-07-07 21:59:07",
+        "source": "akshare:futures_zh_realtime",
+        "warnings": [
+          "成交额字段缺失，排序已跳过成交额"
+        ]
+      },
+      {
+        "symbol": "M2701",
+        "product": "M",
+        "product_name": "豆粕",
+        "rank": 2,
+        "label": "次主力",
+        "volume": 128165,
+        "open_interest": 1387270,
+        "turnover": null,
+        "data_time": "2026-07-07 21:59:07",
+        "source": "akshare:futures_zh_realtime",
+        "warnings": [
+          "成交额字段缺失，排序已跳过成交额"
+        ]
+      }
+    ],
+    "RM": [
+      {
+        "symbol": "RM2609",
+        "product": "RM",
+        "product_name": "菜粕",
+        "rank": 1,
+        "label": "主力",
+        "volume": 178305,
+        "open_interest": 793009,
+        "turnover": null,
+        "data_time": "2026-07-06 21:58:59",
+        "source": "akshare:futures_zh_realtime",
+        "warnings": [
+          "成交额字段缺失，排序已跳过成交额"
+        ]
+      },
+      {
+        "symbol": "RM2701",
+        "product": "RM",
+        "product_name": "菜粕",
+        "rank": 2,
+        "label": "次主力",
+        "volume": 36943,
+        "open_interest": 317304,
+        "turnover": null,
+        "data_time": "2026-07-06 21:58:58",
+        "source": "akshare:futures_zh_realtime",
+        "warnings": [
+          "成交额字段缺失，排序已跳过成交额"
+        ]
+      }
+    ]
+  },
+  "warnings": []
+}

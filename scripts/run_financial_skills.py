@@ -15,6 +15,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SKILLS = Path.home() / ".codex" / "skills"
 SOURCE_RUNS = ROOT / "source_runs"
+CONTRACT_DISCOVERY_CLI = ROOT / "skills" / "contract_discovery_skill" / "scripts" / "select_contracts.py"
+CONTRACT_DISCOVERY_CURRENT = ROOT / "data" / "contracts" / "current_contracts.json"
 
 
 def shlex_join(parts: list[str]) -> str:
@@ -86,6 +88,41 @@ def normalize_weekly_futures_data(source: Path, target: Path) -> None:
     target.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
+def load_discovered_contract_symbols(report_date: str) -> list[str]:
+    report_month = report_date[:7]
+    payload: dict[str, object] = {}
+    if CONTRACT_DISCOVERY_CURRENT.exists():
+        try:
+            payload = json.loads(CONTRACT_DISCOVERY_CURRENT.read_text(encoding="utf-8"))
+        except Exception:
+            payload = {}
+    if payload.get("month") != report_month and CONTRACT_DISCOVERY_CLI.exists():
+        subprocess.run(
+            [sys.executable, str(CONTRACT_DISCOVERY_CLI), "--month", report_month],
+            cwd=str(ROOT),
+            text=True,
+            capture_output=True,
+            timeout=45,
+            check=False,
+        )
+        try:
+            payload = json.loads(CONTRACT_DISCOVERY_CURRENT.read_text(encoding="utf-8"))
+        except Exception:
+            payload = {}
+
+    products = payload.get("products", {})
+    if not isinstance(products, dict):
+        return []
+    symbols: list[str] = []
+    for rows in products.values():
+        if not isinstance(rows, list):
+            continue
+        for row in rows:
+            if isinstance(row, dict) and row.get("symbol"):
+                symbols.append(str(row["symbol"]).upper())
+    return list(dict.fromkeys(symbols))
+
+
 def build_commands(report_date: str, kind: str, output_dir: Path) -> list[tuple[str, list[str]]]:
     raw = output_dir / "raw"
     raw.mkdir(parents=True, exist_ok=True)
@@ -111,10 +148,12 @@ def build_commands(report_date: str, kind: str, output_dir: Path) -> list[tuple[
         if kind == "weekend"
         else "棕榈油 豆油 菜油 油脂油料 晨报 FCPO 原油 美豆油 美元 人民币 马来出口 库存 今日交易 豆棕价差"
     )
+    discovered_symbols = load_discovered_contract_symbols(report_date)
+    contract_phrase = " ".join(discovered_symbols) if discovered_symbols else "棕榈油期货主力合约 豆油 菜油 豆粕 菜粕"
     market_query = (
-        "棕榈油期货主力合约 豆油 菜油 最新价 涨跌幅 成交量 持仓量 周涨跌"
+        f"{contract_phrase} 最新价 涨跌幅 成交量 持仓量 周涨跌"
         if kind == "weekend"
-        else "棕榈油期货主力合约 豆油 菜油 夜盘 最新价 涨跌幅 成交量 持仓量"
+        else f"{contract_phrase} 夜盘 最新价 涨跌幅 成交量 持仓量"
     )
     research_query = (
         "棕榈油 豆油 菜油 油脂油料 周报 研报 行情预测 豆棕价差 菜豆价差 永安期货 中信期货 国泰君安期货 银河期货"
@@ -191,7 +230,7 @@ def build_commands(report_date: str, kind: str, output_dir: Path) -> list[tuple[
                 "--query",
                 market_query,
                 "--limit",
-                "10",
+                "20",
             ],
         ),
         (
@@ -302,6 +341,10 @@ def main() -> int:
         "generated_at": datetime.now().isoformat(timespec="seconds"),
         "skills": skill_status,
         "environment": env_status,
+        "contract_discovery": {
+            "path": str(CONTRACT_DISCOVERY_CURRENT),
+            "symbols": load_discovered_contract_symbols(args.date),
+        },
         "results": results,
     }
     manifest_path = output_dir / "manifest.json"

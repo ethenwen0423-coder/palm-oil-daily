@@ -51,10 +51,13 @@ master_report_skill 是油脂晨报生成流程的总控调度 Skill。
 负责：
 - 根据 market_data_skill 和 oil_report_freshness 的输出生成正文
 - 生成今日观点、昨夜发生了什么、关键数据、开盘推演、风险提示等正文模块
+- 把正文从资讯汇总升级为研究分析，但不增加报告篇幅
+- 对核心观点给出原因、驱动排序、传导链、预期与现实差异、失效条件和研究置信度
 不得负责：
 - 生成 Headline
 - 生成 Subheadline
 - 把低新鲜度信息重新提升为今日主线
+- 新增大量一级标题或用重复资讯拉长正文
 ---
 ### 4. headline_skill
 负责：
@@ -90,6 +93,9 @@ master_report_skill 是油脂晨报生成流程的总控调度 Skill。
 4. 不能让 headline_skill 新增正文中没有的观点。
 5. 不能把无法核验的信息写成确定事实。
 6. 不能把周度库存、旧政策、旧研报写成今日最大驱动。
+7. report_writer_skill 必须先调用 skills/report_writer_skill/SKILL.md，再按通用写作规范润色。
+8. report_writer_skill 必须围绕影响最大的前两项驱动展开，不得平均罗列新闻。
+9. report_writer_skill 输出的核心观点必须包含“为什么”、传导路径、预期与现实、失效条件和置信度。
 ---
 ## 六、最终输出结构
 最终报告建议结构：

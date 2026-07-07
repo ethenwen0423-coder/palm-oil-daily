@@ -548,10 +548,10 @@
           <select id="futures-watch-select" aria-label="合约简称">
             <option value="">选择合约</option>
             ${optionItems
-              .map(
-                (item) =>
-                  `<option value="${escapeHtml(item.value)}">${escapeHtml(item.label)} · ${escapeHtml(item.name || "")} ${escapeHtml(item.contract || "")}</option>`,
-              )
+              .map((item) => {
+                const display = item.display || `${item.name || ""} ${item.contract || item.label || ""} ${item.contract_label || ""}`.trim();
+                return `<option value="${escapeHtml(item.value)}">${escapeHtml(display || item.label || item.value)}</option>`;
+              })
               .join("")}
           </select>
           <button id="futures-watch-confirm" type="button">确认</button>

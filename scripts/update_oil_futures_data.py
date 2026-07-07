@@ -10,6 +10,7 @@ import re
 import subprocess
 import sys
 from datetime import datetime
+import importlib.util
 from pathlib import Path
 from typing import Any
 
@@ -17,8 +18,14 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE_RUNS = ROOT / "source_runs"
 OUTPUT = ROOT / "data" / "oil_futures.js"
+REVIEW_DAILY_DIR = ROOT / "data" / "review" / "daily"
+REVIEW_SNAPSHOT_DIR = ROOT / "data" / "review" / "snapshots"
 HITHINK_CLI = Path.home() / ".codex" / "skills" / "hithink-market-query" / "scripts" / "cli.py"
 MASTER_ANALYTIC_CLI = ROOT / "skills" / "master_analytic_skill" / "scripts" / "analyze_contracts.py"
+DAILY_REVIEW_CLI = ROOT / "skills" / "daily_review_skill" / "scripts" / "daily_review.py"
+REVIEW_MEMORY = ROOT / "skills" / "daily_review_skill" / "scripts" / "review_memory.py"
+CONTRACT_DISCOVERY_CLI = ROOT / "skills" / "contract_discovery_skill" / "scripts" / "select_contracts.py"
+CONTRACT_DISCOVERY_CURRENT = ROOT / "data" / "contracts" / "current_contracts.json"
 PRICE_TOLERANCE = 2.0
 PCT_TOLERANCE = 0.25
 
@@ -29,7 +36,6 @@ DOMESTIC = [
         "name": "棕榈油",
         "market": "DCE",
         "ak_realtime": "棕榈",
-        "fallback": "P2609",
         "note": "P 是棕榈油报告主线，重点看持仓与豆油、菜油共振。",
     },
     {
@@ -38,7 +44,6 @@ DOMESTIC = [
         "name": "豆油",
         "market": "DCE",
         "ak_realtime": "豆油",
-        "fallback": "Y2609",
         "note": "Y 用于观察豆系对棕榈油的共振或拖累。",
     },
     {
@@ -47,8 +52,23 @@ DOMESTIC = [
         "name": "菜油",
         "market": "CZCE",
         "ak_realtime": "菜油",
-        "fallback": "OI2609",
         "note": "OI 用于观察油脂内部轮动和相对强弱切换。",
+    },
+    {
+        "key": "soybean_meal",
+        "symbol": "M",
+        "name": "豆粕",
+        "market": "DCE",
+        "ak_realtime": "豆粕",
+        "note": "M 用于观察豆系蛋白粕与油脂之间的资金和压榨链条联动。",
+    },
+    {
+        "key": "rapeseed_meal",
+        "symbol": "RM",
+        "name": "菜粕",
+        "market": "CZCE",
+        "ak_realtime": "菜粕",
+        "note": "RM 用于观察菜系供需、资金迁移与菜油联动。",
     },
 ]
 
@@ -149,6 +169,58 @@ def latest_market_snapshot() -> tuple[dict[str, Any] | None, Path | None]:
     return None, None
 
 
+def recent_review_learning(limit: int = 5) -> dict[str, Any]:
+    if REVIEW_MEMORY.exists():
+        spec = importlib.util.spec_from_file_location("daily_review_memory", REVIEW_MEMORY)
+        if spec is None or spec.loader is None:
+            loaded = {"reviews": [], "warnings": ["review_memory.py 无法加载"], "loaded_count": 0}
+        else:
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            loaded = module.load_recent_reviews(days=30)
+    else:
+        loaded = {"reviews": [], "warnings": ["review_memory.py 缺失"], "loaded_count": 0}
+
+    review_items = loaded.get("reviews", [])
+    recent_reviews = review_items[-limit:]
+    items: list[dict[str, Any]] = []
+    for wrapped in recent_reviews:
+        payload = wrapped.get("payload", {}) if isinstance(wrapped, dict) else {}
+        rows = payload.get("learning_notes") or payload.get("review_result") or []
+        for row in rows:
+            if isinstance(row, dict):
+                items.append(row)
+    candidates = sorted({str(error) for item in items for error in item.get("error_type", []) if error})
+    repeated: dict[str, int] = {}
+    for error in candidates:
+        count = 0
+        for wrapped in reversed(recent_reviews):
+            payload = wrapped.get("payload", {}) if isinstance(wrapped, dict) else {}
+            rows = payload.get("learning_notes") or payload.get("review_result") or []
+            present = any(error in (row.get("error_type", []) if isinstance(row, dict) else []) for row in rows)
+            if not present:
+                break
+            count += 1
+        if count >= 3:
+            repeated[error] = count
+    if not repeated:
+        return {
+            "items": items,
+            "repeated_errors": {},
+            "warnings": loaded.get("warnings", []),
+            "loaded_count": loaded.get("loaded_count", 0),
+            "warning": "",
+        }
+    parts = [f"{error}出现{count}次" for error, count in sorted(repeated.items(), key=lambda item: item[1], reverse=True)]
+    return {
+        "items": items,
+        "repeated_errors": repeated,
+        "warnings": loaded.get("warnings", []),
+        "loaded_count": loaded.get("loaded_count", 0),
+        "warning": f"近期模型偏差提示：最近5次复盘中{'; '.join(parts)}，本次观点需降低相关因素的单独主导性。",
+    }
+
+
 def concrete_contract(value: Any) -> str | None:
     text = str(value or "").upper().strip()
     if re.fullmatch(r"[A-Z]+0", text):
@@ -160,7 +232,47 @@ def concrete_contract(value: Any) -> str | None:
     return None
 
 
-def ak_realtime_contract(ak: Any, variety: str) -> dict[str, Any] | None:
+def load_contract_discovery() -> dict[str, Any]:
+    now_month = datetime.now().strftime("%Y-%m")
+    if CONTRACT_DISCOVERY_CURRENT.exists():
+        try:
+            payload = json.loads(CONTRACT_DISCOVERY_CURRENT.read_text(encoding="utf-8"))
+            if payload.get("month") == now_month:
+                return payload
+        except Exception:
+            pass
+
+    if not CONTRACT_DISCOVERY_CLI.exists():
+        return {
+            "month": now_month,
+            "products": {},
+            "warnings": ["contract_discovery_skill 缺失，无法生成当月合约名单"],
+        }
+    result = subprocess.run(
+        [sys.executable, str(CONTRACT_DISCOVERY_CLI)],
+        cwd=str(ROOT),
+        text=True,
+        capture_output=True,
+        timeout=45,
+        check=False,
+    )
+    if result.returncode != 0:
+        return {
+            "month": now_month,
+            "products": {},
+            "warnings": [f"contract_discovery_skill 调用失败：{result.stderr.strip() or result.stdout.strip()}"],
+        }
+    try:
+        return json.loads(CONTRACT_DISCOVERY_CURRENT.read_text(encoding="utf-8"))
+    except Exception as exc:
+        return {
+            "month": now_month,
+            "products": {},
+            "warnings": [f"contract_discovery_skill 已运行但名单读取失败：{exc}"],
+        }
+
+
+def ak_realtime_contract(ak: Any, variety: str, preferred_contract: str | None = None) -> dict[str, Any] | None:
     if ak is None:
         return None
     try:
@@ -170,6 +282,10 @@ def ak_realtime_contract(ak: Any, variety: str) -> dict[str, Any] | None:
         rows = df[~df["symbol"].astype(str).str.fullmatch(r"[A-Za-z]+0")]
         if rows.empty:
             return None
+        if preferred_contract:
+            selected_rows = rows[rows["symbol"].astype(str).str.upper() == preferred_contract.upper()]
+            if not selected_rows.empty:
+                rows = selected_rows
         rows = rows.sort_values(by="volume", ascending=False)
         row = rows.iloc[0]
         trade = as_float(row.get("trade"))
@@ -352,12 +468,19 @@ def verification_note(ak_source: dict[str, Any], hithink: dict[str, Any]) -> str
     return "；".join(notes)
 
 
-def merge_domestic(spec: dict[str, str], snapshot: dict[str, Any] | None, ak: Any) -> dict[str, Any]:
+def merge_domestic(
+    spec: dict[str, Any],
+    selected_contract: dict[str, Any],
+    snapshot: dict[str, Any] | None,
+    ak: Any,
+    review_learning: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     skill_record = (snapshot or {}).get("domestic", {}).get(spec["key"], {})
-    realtime = ak_realtime_contract(ak, spec["ak_realtime"])
-    fallback_contract = concrete_contract(skill_record.get("contract")) or (realtime or {}).get("contract") or spec["fallback"]
-    history = ak_daily_history(ak, fallback_contract)
-    daily = ak_daily_contract(ak, fallback_contract)
+    selected_symbol = concrete_contract(selected_contract.get("symbol"))
+    realtime = ak_realtime_contract(ak, spec["ak_realtime"], selected_symbol)
+    fallback_contract = selected_symbol or concrete_contract(skill_record.get("contract")) or (realtime or {}).get("contract")
+    history = ak_daily_history(ak, fallback_contract) if fallback_contract else None
+    daily = ak_daily_contract(ak, fallback_contract) if fallback_contract else None
 
     source = skill_record if skill_record.get("status") == "ok" else {}
     if not source:
@@ -367,23 +490,28 @@ def merge_domestic(spec: dict[str, str], snapshot: dict[str, Any] | None, ak: An
     if daily:
         source = {**daily, **{key: value for key, value in source.items() if value not in (None, "", "需进一步核验")}}
 
-    contract = concrete_contract(source.get("contract")) or fallback_contract
-    hithink = hithink_contract(contract)
+    contract = concrete_contract(source.get("contract")) or fallback_contract or selected_contract.get("symbol") or spec["symbol"]
+    hithink = hithink_contract(contract) if concrete_contract(contract) else {"status": "missing", "message": "缺少可核验的具体合约代码"}
     verification = verification_note(source, hithink)
     price = as_float(source.get("price"))
+    rank = selected_contract.get("rank")
+    contract_label = selected_contract.get("label") or ("主力" if rank == 1 else "次主力" if rank else "")
     analysis = call_master_analysis(
         {
             "spec": spec,
             "source": source,
-            "snapshot": snapshot,
+            "snapshot": {**(snapshot or {}), "review_learning": review_learning or {}},
             "history": history_records(history),
         }
     )
     return {
-        "symbol": spec["symbol"],
+        "symbol": contract,
+        "product": spec["symbol"],
         "name": spec["name"],
         "market": spec["market"],
         "contract": contract,
+        "contract_rank": rank,
+        "contract_label": contract_label,
         "price": fmt_number(source.get("price")),
         "change": fmt_pct(source.get("change_pct")),
         "volume": fmt_lots(source.get("volume")),
@@ -409,9 +537,9 @@ def merge_domestic(spec: dict[str, str], snapshot: dict[str, Any] | None, ak: An
     }
 
 
-def merge_external(spec: dict[str, str], snapshot: dict[str, Any] | None) -> dict[str, Any]:
+def merge_external(spec: dict[str, str], snapshot: dict[str, Any] | None, review_learning: dict[str, Any] | None = None) -> dict[str, Any]:
     record = (snapshot or {}).get("external", {}).get(spec["key"], {})
-    analysis = call_master_analysis({"spec": spec, "source": record, "snapshot": snapshot, "external": True})
+    analysis = call_master_analysis({"spec": spec, "source": record, "snapshot": {**(snapshot or {}), "review_learning": review_learning or {}}, "external": True})
     return {
         "symbol": spec["symbol"],
         "name": spec["name"],
@@ -448,40 +576,104 @@ def write_js(payload: dict[str, Any], output: Path) -> None:
     output.write_text(f"window.OIL_FUTURES_CONTRACTS = {text};\n", encoding="utf-8")
 
 
+def archive_existing_output(output: Path, review_date: str) -> Path | None:
+    if output.resolve() != OUTPUT.resolve() or not output.exists() or output.stat().st_size == 0:
+        return None
+    REVIEW_SNAPSHOT_DIR.mkdir(parents=True, exist_ok=True)
+    target = REVIEW_SNAPSHOT_DIR / f"{review_date}-previous-oil_futures.js"
+    target.write_text(output.read_text(encoding="utf-8"), encoding="utf-8")
+    return target
+
+
+def run_daily_review(previous: Path | None, current: Path, review_date: str) -> str:
+    if previous is None or not DAILY_REVIEW_CLI.exists() or current.resolve() != OUTPUT.resolve():
+        return ""
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(DAILY_REVIEW_CLI),
+            "--previous",
+            str(previous),
+            "--current",
+            str(current),
+            "--date",
+            review_date,
+        ],
+        cwd=str(ROOT),
+        text=True,
+        capture_output=True,
+        timeout=30,
+        check=False,
+    )
+    if result.returncode != 0:
+        return f"daily_review_skill failed: {result.stderr.strip() or result.stdout.strip()}"
+    try:
+        payload = json.loads(result.stdout)
+    except json.JSONDecodeError:
+        return "daily_review_skill returned non-JSON output"
+    return f"daily_review_skill wrote {payload.get('learning_notes_path', 'learning notes')}"
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Update static oil futures contract data.")
     parser.add_argument("--output", type=Path, default=OUTPUT)
     args = parser.parse_args()
 
     snapshot, snapshot_path = latest_market_snapshot()
+    review_learning = recent_review_learning()
+    discovery = load_contract_discovery()
     ak = load_akshare()
-    contracts = [merge_domestic(spec, snapshot, ak) for spec in DOMESTIC]
-    contracts.extend(merge_external(spec, snapshot) for spec in EXTERNAL)
+    discovery_products = discovery.get("products", {}) if isinstance(discovery, dict) else {}
+    contracts = [
+        merge_domestic(spec, selected, snapshot, ak, review_learning)
+        for spec in DOMESTIC
+        for selected in discovery_products.get(spec["symbol"], [])
+    ]
+    contracts.extend(merge_external(spec, snapshot, review_learning) for spec in EXTERNAL)
 
     source_note = "futures-oil-daily 最新快照"
     if snapshot_path:
         source_note += f"：{snapshot_path.relative_to(ROOT)}"
-    source_note += "；主卡片以国内油脂主力合约为主，外盘仅展示与棕榈油最相关的 FCPO；内盘具体合约与日线缺口由 AkShare 补充，并用同花顺问财行情skill交叉验证"
+    source_note += "；国内合约名单由 contract_discovery_skill 按当月实时成交量、持仓量、成交额排序生成，外盘仅展示与棕榈油最相关的 FCPO；内盘具体合约与日线缺口由 AkShare 补充，并用同花顺问财行情skill交叉验证"
+    now = datetime.now()
+    review_date = now.strftime("%Y-%m-%d")
     payload = {
-        "updated_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
+        "updated_at": now.strftime("%Y-%m-%d %H:%M"),
         "source": source_note,
+        "contract_discovery_skill": "contract_discovery_skill",
+        "contract_discovery_month": discovery.get("month", ""),
+        "contract_discovery_warnings": discovery.get("warnings", []),
+        "review_learning_warning": review_learning.get("warning", ""),
+        "review_learning_repeated_errors": review_learning.get("repeated_errors", {}),
         "contracts": contracts,
         "watchlist_options": [
             {
                 "value": contract.get("symbol"),
-                "label": contract.get("symbol"),
+                "label": contract.get("contract"),
+                "display": " ".join(
+                    str(part)
+                    for part in [contract.get("name"), contract.get("contract"), contract.get("contract_label")]
+                    if part
+                ),
                 "name": contract.get("name"),
                 "contract": contract.get("contract"),
+                "product": contract.get("product") or contract.get("symbol"),
+                "rank": contract.get("contract_rank"),
+                "contract_label": contract.get("contract_label"),
             }
             for contract in contracts
         ],
     }
+    previous_output = archive_existing_output(args.output, review_date)
     write_js(payload, args.output)
+    review_note = run_daily_review(previous_output, args.output, review_date)
     try:
         display_path = args.output.relative_to(ROOT)
     except ValueError:
         display_path = args.output
     print(f"updated {display_path} with {len(contracts)} contracts")
+    if review_note:
+        print(review_note)
     return 0
 
 

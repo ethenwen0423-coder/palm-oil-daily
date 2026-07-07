@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from datetime import datetime, timezone
 from typing import Any
 
 
@@ -31,6 +32,74 @@ def fmt_number(value: Any, digits: int = 2) -> str:
 
 def clamp(value: float, low: float = 0.0, high: float = 100.0) -> float:
     return max(low, min(high, value))
+
+
+def parse_dt(value: Any) -> datetime | None:
+    if not value:
+        return None
+    text = str(value).strip()
+    if not text:
+        return None
+    try:
+        if len(text) == 10 and text[4] == "-":
+            return datetime.fromisoformat(text).replace(tzinfo=timezone.utc)
+        return datetime.fromisoformat(text.replace("Z", "+00:00")).astimezone(timezone.utc)
+    except ValueError:
+        return None
+
+
+def snapshot_time(snapshot: dict[str, Any] | None) -> datetime | None:
+    snapshot = snapshot or {}
+    return parse_dt(snapshot.get("timestamp") or snapshot.get("date"))
+
+
+def record_time(record: Any) -> datetime | None:
+    if not isinstance(record, dict):
+        return None
+    return parse_dt(record.get("published_at") or record.get("fetched_at") or record.get("date"))
+
+
+def is_fresh(record: Any, snapshot: dict[str, Any] | None, hours: int = 24) -> bool:
+    when = record_time(record)
+    base = snapshot_time(snapshot) or datetime.now(timezone.utc)
+    if when is None:
+        return False
+    return 0 <= (base - when).total_seconds() <= hours * 3600
+
+
+def is_verified(record: Any) -> bool:
+    if not isinstance(record, dict):
+        return False
+    if record.get("status") not in (None, "ok"):
+        return False
+    source = str(record.get("source") or "").lower()
+    summary = str(record.get("summary") or "")
+    if any(word in source for word in ["rumor", "传闻", "anonymous"]):
+        return False
+    if any(word in summary for word in ["传闻", "据传", "未确认", "无法确认", "匿名"]):
+        return False
+    return True
+
+
+def score_from_change(change: float | None, multiplier: float = 4.0, limit: float = 12.0) -> float:
+    if change is None:
+        return 0.0
+    return max(-limit, min(limit, change * multiplier))
+
+
+def direction_bucket(score: float, bullish: float = 55, bearish: float = 45) -> str:
+    if score >= bullish:
+        return "up"
+    if score <= bearish:
+        return "down"
+    return "flat"
+
+
+def pct_text(value: float | None) -> str:
+    if value is None:
+        return "需进一步核验"
+    sign = "+" if value > 0 else ""
+    return f"{sign}{value:.2f}%"
 
 
 def last(values: list[float | None]) -> float | None:
@@ -124,19 +193,6 @@ def technical_analysis(price: float | None, history: list[dict[str, Any]] | None
     ma10 = last(rolling_mean(close, 10))
     ma20 = last(rolling_mean(close, 20))
     ma60 = last(rolling_mean(close, 60))
-    ema12 = ema(close, 12)
-    ema26 = ema(close, 26)
-    dif = [a - b for a, b in zip(ema12, ema26)]
-    dea = ema(dif, 9)
-    macd_hist = last([a - b for a, b in zip(dif, dea)]) or 0
-
-    deltas = [0.0] + [close[index] - close[index - 1] for index in range(1, len(close))]
-    gains = [max(delta, 0) for delta in deltas]
-    losses = [max(-delta, 0) for delta in deltas]
-    avg_gain = last(rolling_mean(gains, 14))
-    avg_loss = last(rolling_mean(losses, 14))
-    rsi = None if avg_gain is None or avg_loss in (None, 0) else 100 - 100 / (1 + avg_gain / avg_loss)
-
     boll_std = last(rolling_std(close, 20))
     boll_upper = ma20 + 2 * boll_std if ma20 is not None and boll_std is not None else None
     boll_lower = ma20 - 2 * boll_std if ma20 is not None and boll_std is not None else None
@@ -163,43 +219,39 @@ def technical_analysis(price: float | None, history: list[dict[str, Any]] | None
         score += 7 if price > ma60 else -7
     if all(value is not None for value in [ma5, ma10, ma20, ma60]):
         if price > ma5 > ma10 > ma20 > ma60:
-            score += 15
+            score += 12
             signals.append("均线多头排列")
         elif price < ma5 < ma10 < ma20 < ma60:
-            score -= 15
+            score -= 12
             signals.append("均线空头排列")
         elif price < ma5 and ma5 < ma20:
-            score -= 8
+            score -= 6
             signals.append("短均线转弱")
         else:
             signals.append("均线结构震荡")
-    score += 10 if macd_hist > 0 else -10
-    if rsi is not None:
-        if 50 <= rsi <= 68:
-            score += 8
-        elif 32 <= rsi < 50:
-            score -= 4
-        elif rsi > 75:
-            score -= 5
-            signals.append("RSI偏热")
-        elif rsi < 30:
-            score += 3
-            signals.append("RSI超卖修复")
     if high20 is not None and price > high20:
-        score += 12
+        score += 10
         signals.append("突破20日区间上沿")
     elif low20 is not None and price < low20:
-        score -= 12
+        score -= 10
         signals.append("跌破20日区间下沿")
     if boll_upper is not None and boll_lower is not None:
         if price > boll_upper:
-            score += 5
-            signals.append("突破布林上轨")
+            score += 3
+            signals.append("处于统计区间上沿外侧")
         elif price < boll_lower:
-            score -= 5
-            signals.append("跌破布林下轨")
+            score -= 3
+            signals.append("处于统计区间下沿外侧")
+    if atr and price:
+        range_width = (high20 - low20) if high20 is not None and low20 is not None else None
+        if range_width and range_width > 0:
+            atr_ratio = atr / range_width
+            if atr_ratio > 0.45:
+                signals.append("波动放大，单一技术信号可靠性下降")
+            elif atr_ratio < 0.18:
+                signals.append("区间波动收敛，等待方向确认")
 
-    score = round(clamp(score, 20, 80), 1)
+    score = round(clamp(score, 25, 75), 1)
     trend = "偏多" if score >= 65 else "偏空" if score <= 40 else "震荡"
     return {
         "score": score,
@@ -221,46 +273,179 @@ def technical_analysis(price: float | None, history: list[dict[str, Any]] | None
 
 def fundamental_score(spec: dict[str, Any], snapshot: dict[str, Any] | None) -> tuple[float, str]:
     snapshot = snapshot or {}
-    external = snapshot.get("external", {})
     fundamental = snapshot.get("fundamental", {})
     inventory = fundamental.get("inventory", {})
     spread = fundamental.get("spread", {})
     score = 50.0
     notes: list[str] = []
 
-    cbot = as_float(external.get("cbot_bean_oil", {}).get("change_pct"))
-    fcpo = as_float(external.get("bmd_palm_oil", {}).get("change_pct"))
     if spec.get("key") == "palm_oil":
-        if fcpo is not None:
-            score += max(-10, min(10, fcpo * 5))
-            notes.append("FCPO联动")
-        inv = as_float(inventory.get("palm_oil_inventory", {}).get("price"))
-        if inv is not None and inv >= 65:
-            score -= 6
-            notes.append("棕榈油库存偏高")
+        inv_record = inventory.get("palm_oil_inventory", {})
+        inv = as_float(inv_record.get("price"))
+        if inv is not None:
+            if is_fresh(inv_record, snapshot) and inv >= 65:
+                score -= 3
+                notes.append("棕榈油库存偏高但仅作背景压力")
+            elif inv >= 65:
+                notes.append("棕榈油库存偏高，非24小时新增，只作背景")
         soy_palm_record = spread.get("soybean_palm_spread")
         soy_palm = as_float(soy_palm_record.get("price") if isinstance(soy_palm_record, dict) else soy_palm_record)
-        if soy_palm is not None and soy_palm < 0:
-            score += 4
-            notes.append("豆棕价差仍支撑P相对强弱")
+        if soy_palm is not None:
+            notes.append("豆棕价差用于相对强弱背景")
     elif spec.get("key") == "soybean_oil":
-        if cbot is not None:
-            score += max(-10, min(10, cbot * 5))
-            notes.append("CBOT豆油联动")
-        inv = as_float(inventory.get("soybean_oil_inventory", {}).get("price"))
-        if inv is not None and inv >= 110:
-            score -= 8
-            notes.append("豆油库存压力")
+        inv_record = inventory.get("soybean_oil_inventory", {})
+        inv = as_float(inv_record.get("price"))
+        if inv is not None:
+            if is_fresh(inv_record, snapshot) and inv >= 110:
+                score -= 3
+                notes.append("豆油库存压力但仅作背景压力")
+            elif inv >= 110:
+                notes.append("豆油库存压力，非24小时新增，只作背景")
     elif spec.get("key") == "rapeseed_oil":
-        inv = as_float(inventory.get("rapeseed_oil_inventory", {}).get("price"))
-        if inv is not None and inv >= 30:
-            score -= 6
-            notes.append("菜油库存压力")
-        if cbot is not None and cbot > 0:
-            score += 3
-            notes.append("油脂板块共振")
+        inv_record = inventory.get("rapeseed_oil_inventory", {})
+        inv = as_float(inv_record.get("price"))
+        if inv is not None:
+            if is_fresh(inv_record, snapshot) and inv >= 30:
+                score -= 3
+                notes.append("菜油库存压力但仅作背景压力")
+            elif inv >= 30:
+                notes.append("菜油库存压力，非24小时新增，只作背景")
+        notes.append("菜油基本面更多看油脂内部轮动")
 
     return round(clamp(score, 25, 75), 1), "；".join(notes) if notes else "基本面暂无强新增驱动"
+
+
+def driver_score(snapshot: dict[str, Any] | None, spec: dict[str, Any]) -> tuple[float, str, list[str]]:
+    snapshot = snapshot or {}
+    external = snapshot.get("external", {})
+    cross = snapshot.get("fundamental", {}).get("cross_drivers", {})
+    key = spec.get("key")
+    score = 50.0
+    notes: list[str] = []
+    warnings: list[str] = []
+
+    def add_change(record: dict[str, Any], label: str, multiplier: float, limit: float) -> None:
+        nonlocal score
+        if not is_verified(record):
+            warnings.append(f"{label}无法核验，不计入驱动评分")
+            return
+        change = as_float(record.get("change_pct"))
+        if change is None:
+            notes.append(f"{label}缺少涨跌幅，按中性处理")
+            return
+        fresh = is_fresh(record, snapshot)
+        weight = 1.0 if fresh else 0.35
+        score += score_from_change(change, multiplier=multiplier * weight, limit=limit * weight)
+        suffix = "24小时新增" if fresh else "非24小时新增，降权"
+        notes.append(f"{label}{pct_text(change)}（{suffix}）")
+
+    add_change(external.get("bmd_palm_oil", {}), "FCPO", 5.0 if key == "palm_oil" else 3.0, 14.0)
+    add_change(external.get("cbot_bean_oil", {}), "CBOT豆油", 5.0 if key == "soybean_oil" else 3.5, 12.0)
+    add_change(external.get("cbot_soybean", {}), "美豆", 2.2 if key == "soybean_oil" else 1.2, 7.0)
+    add_change(cross.get("crude_oil", {}), "WTI/Brent原油", 3.0, 10.0)
+
+    weather = cross.get("weather", {})
+    if is_verified(weather) and is_fresh(weather, snapshot):
+        summary = str(weather.get("summary") or "")
+        if any(word in summary for word in ["极端", "干旱", "洪涝", "高温", "暴雨"]):
+            score += 5
+            notes.append("天气出现24小时内可核验扰动")
+        else:
+            notes.append("天气24小时内更新但暂无极端信号")
+    elif weather:
+        notes.append("天气非24小时新增或无法核验，不加分")
+
+    for ship_key in ("shipping", "export", "shipment", "vessel", "ship"):
+        record = cross.get(ship_key) or snapshot.get("fundamental", {}).get(ship_key)
+        if isinstance(record, dict):
+            if is_verified(record) and is_fresh(record, snapshot):
+                score += score_from_change(as_float(record.get("change_pct")), multiplier=3.0, limit=8.0)
+                notes.append(f"船运/出口24小时内更新：{record.get('summary') or record.get('name') or ship_key}")
+            else:
+                notes.append("船运/出口信息非24小时新增或无法核验，只作背景")
+
+    policy = cross.get("policy_trade", {})
+    if isinstance(policy, dict):
+        if is_verified(policy) and is_fresh(policy, snapshot):
+            summary = str(policy.get("summary") or "")
+            if any(word in summary for word in ["新增", "落地", "上调", "下调", "批准", "限制", "关税"]):
+                score += 5 if key == "palm_oil" else 2
+                notes.append("当日新增政策/新闻纳入驱动")
+            else:
+                notes.append("政策/新闻为24小时内更新，但未形成明确新增驱动")
+        else:
+            notes.append("旧政策、旧研报只作背景")
+
+    inventory = snapshot.get("fundamental", {}).get("inventory", {})
+    if inventory:
+        notes.append("周度库存不作为今日主驱动")
+
+    return round(clamp(score, 20, 80), 1), "；".join(notes) if notes else "今日新增驱动不足，按中性处理", warnings
+
+
+def money_flow_score(source: dict[str, Any], snapshot: dict[str, Any] | None, spec: dict[str, Any]) -> tuple[float, str]:
+    snapshot = snapshot or {}
+    previous = snapshot.get("previous_snapshot") or {}
+    current_domestic = snapshot.get("domestic", {})
+    previous_domestic = previous.get("domestic", {}) if isinstance(previous, dict) else {}
+    key = spec.get("key")
+    score = 50.0
+    notes: list[str] = []
+
+    change = as_float(source.get("change_pct"))
+    score += score_from_change(change, multiplier=4.0, limit=12.0)
+    notes.append(f"当日涨跌幅{pct_text(change)}")
+
+    current_volume = as_float(source.get("volume"))
+    current_oi = as_float(source.get("open_interest"))
+    previous_record = previous_domestic.get(key, {}) if isinstance(previous_domestic, dict) else {}
+    previous_volume = as_float(previous_record.get("volume"))
+    previous_oi = as_float(previous_record.get("open_interest"))
+    if current_volume is not None and previous_volume:
+        volume_change = (current_volume - previous_volume) / previous_volume * 100
+        score += score_from_change(volume_change, multiplier=0.7, limit=7.0)
+        notes.append(f"成交量较前快照{pct_text(volume_change)}")
+    else:
+        notes.append("成交量变化需进一步核验")
+    if current_oi is not None and previous_oi:
+        oi_change = (current_oi - previous_oi) / previous_oi * 100
+        change_sign = 1 if (change or 0) >= 0 else -1
+        score += score_from_change(oi_change * change_sign, multiplier=0.9, limit=7.0)
+        notes.append(f"持仓较前快照{pct_text(oi_change)}")
+    else:
+        notes.append("持仓变化需进一步核验")
+
+    domestic_changes: list[tuple[str, float]] = []
+    for item_key, record in current_domestic.items():
+        value = as_float(record.get("change_pct")) if isinstance(record, dict) else None
+        if value is not None:
+            domestic_changes.append((item_key, value))
+    if domestic_changes:
+        domestic_changes.sort(key=lambda item: item[1], reverse=True)
+        rank = [item_key for item_key, _ in domestic_changes].index(key) + 1 if key in [item_key for item_key, _ in domestic_changes] else None
+        if rank == 1:
+            score += 5
+        elif rank == len(domestic_changes):
+            score -= 5
+        rank_text = " > ".join(item_key for item_key, _ in domestic_changes)
+        notes.append(f"板块强弱排序 {rank_text}")
+
+    spread = snapshot.get("fundamental", {}).get("spread", {})
+    prev_spread = previous.get("fundamental", {}).get("spread", {}) if isinstance(previous, dict) else {}
+    for spread_key in ("soybean_palm_spread", "rapeseed_soybean_spread", "rapeseed_palm_spread"):
+        record = spread.get(spread_key, {})
+        prev_record = prev_spread.get(spread_key, {})
+        current_value = as_float(record.get("price") if isinstance(record, dict) else record)
+        previous_value = as_float(prev_record.get("price") if isinstance(prev_record, dict) else prev_record)
+        if current_value is not None and previous_value is not None:
+            diff = current_value - previous_value
+            if key == "palm_oil" and spread_key == "soybean_palm_spread":
+                score += -3 if diff > 0 else 3 if diff < 0 else 0
+            elif key == "soybean_oil" and spread_key == "soybean_palm_spread":
+                score += 3 if diff > 0 else -3 if diff < 0 else 0
+            notes.append(f"{spread_key}变化 {fmt_number(diff)}")
+
+    return round(clamp(score, 20, 80), 1), "；".join(notes)
 
 
 def source_change(snapshot: dict[str, Any] | None, key: str) -> str:
@@ -309,7 +494,7 @@ def build_technical_detail(price: float | None, tech: dict[str, Any], total_scor
         },
         {
             "title": "波动与执行",
-            "text": f"14日平均波动幅度约 {atr}，用于衡量止损宽度和止盈弹性。综合评分 {fmt_number(total_score)} 低于强势阈值时，不宜把反弹直接视为趋势反转。",
+            "text": f"14日平均波动幅度约 {atr}，用于衡量波动区间和观察位有效性。综合评分 {fmt_number(total_score)} 只作多因子结果，技术面不得单独决定总观点。",
         },
     ]
 
@@ -345,17 +530,103 @@ def build_fundamental_detail(spec: dict[str, Any], snapshot: dict[str, Any] | No
         },
         {
             "title": "评分解释",
-            "text": f"基本面评分 {fmt_number(score)}。本轮纳入的可核验因子为：{note}；未能核验的政策、天气、基差和进口利润不直接上调评分。",
+            "text": f"基本面评分 {fmt_number(score)}。本轮纳入的可核验因子为：{note}；库存、基差、进口利润、压榨利润只作背景压力，非24小时信息不得作为今日主线加减分。",
         },
     ]
 
 
-def stance_for(score: float) -> str:
-    if score >= 65:
-        return "偏多"
-    if score <= 40:
-        return "偏空"
+def stance_for(
+    total_score: float,
+    technical: float,
+    fundamental: float,
+    driver: float,
+    money_flow: float,
+) -> str:
+    driver_dir = direction_bucket(driver)
+    money_dir = direction_bucket(money_flow)
+    technical_dir = direction_bucket(technical)
+    fundamental_dir = direction_bucket(fundamental)
+
+    if driver_dir == money_dir and driver_dir == "up":
+        return "震荡偏强" if technical_dir == "down" else "偏多" if total_score >= 62 else "震荡偏强"
+    if driver_dir == money_dir and driver_dir == "down":
+        return "震荡偏弱" if technical_dir == "up" else "偏空" if total_score <= 38 else "震荡偏弱"
+    directional = {driver_dir, money_dir, technical_dir, fundamental_dir}
+    if "up" in directional and "down" in directional and len(directional) >= 3:
+        return "分歧震荡"
+    if total_score >= 62:
+        return "震荡偏强" if technical_dir != driver_dir else "偏多"
+    if total_score <= 38:
+        return "震荡偏弱" if technical_dir != driver_dir else "偏空"
     return "震荡"
+
+
+def view_confidence(
+    snapshot: dict[str, Any] | None,
+    technical: float,
+    fundamental: float,
+    driver: float,
+    money_flow: float,
+    warnings: list[str],
+) -> str:
+    snapshot = snapshot or {}
+    external = snapshot.get("external", {})
+    cross = snapshot.get("fundamental", {}).get("cross_drivers", {})
+    records = [
+        external.get("bmd_palm_oil", {}),
+        external.get("cbot_bean_oil", {}),
+        cross.get("crude_oil", {}),
+    ]
+    fresh_count = sum(1 for record in records if is_verified(record) and is_fresh(record, snapshot))
+    dirs = [direction_bucket(value) for value in [technical, fundamental, driver, money_flow]]
+    non_flat = [item for item in dirs if item != "flat"]
+    agreement = max(non_flat.count("up"), non_flat.count("down")) if non_flat else 0
+    conflict = "up" in non_flat and "down" in non_flat
+    if warnings or conflict and agreement <= 2:
+        return "低"
+    if fresh_count >= 2 and agreement >= 3:
+        return "高"
+    return "中"
+
+
+def contradiction_warning(
+    spec: dict[str, Any],
+    source: dict[str, Any],
+    snapshot: dict[str, Any] | None,
+    technical: float,
+    fundamental: float,
+    driver: float,
+    money_flow: float,
+) -> str:
+    snapshot = snapshot or {}
+    warnings: list[str] = []
+    change = as_float(source.get("change_pct"))
+    external = snapshot.get("external", {})
+    fcpo = as_float(external.get("bmd_palm_oil", {}).get("change_pct"))
+    inventory = snapshot.get("fundamental", {}).get("inventory", {})
+    inv_map = {
+        "palm_oil": ("palm_oil_inventory", 65),
+        "soybean_oil": ("soybean_oil_inventory", 110),
+        "rapeseed_oil": ("rapeseed_oil_inventory", 30),
+    }
+    if direction_bucket(technical) == "down" and direction_bucket(money_flow) == "up":
+        warnings.append("技术面偏空，但资金与盘面偏多，当前不宜仅按技术面给出偏空结论。")
+    if direction_bucket(fundamental) == "down" and change is not None and change > 0:
+        warnings.append("基本面背景偏空但盘面上涨，说明市场正在交易现实之外的驱动或资金。")
+    if spec.get("key") == "palm_oil" and fcpo is not None and fcpo < 0 and change is not None and change > 0:
+        warnings.append("FCPO偏弱但内盘P走强，需核验内盘资金、价差或政策驱动。")
+    inv_key, threshold = inv_map.get(spec.get("key"), ("", 0))
+    inv = as_float(inventory.get(inv_key, {}).get("price")) if inv_key else None
+    if inv is not None and inv >= threshold and change is not None and change > 0:
+        warnings.append("库存偏高但价格上涨，库存不能单独解释今日方向。")
+    return "；".join(warnings) if warnings else "暂无明显冲突信号"
+
+
+def review_learning_warning(snapshot: dict[str, Any] | None) -> str:
+    learning = (snapshot or {}).get("review_learning", {})
+    if not isinstance(learning, dict):
+        return ""
+    return str(learning.get("warning") or "")
 
 
 def median(values: list[float]) -> float | None:
@@ -428,54 +699,83 @@ def strategy_recommendation(price: float | None, tech: dict[str, Any], trend: st
         return {
             "stance": trend,
             "entry": "需进一步核验",
-            "take_profit": "需进一步核验",
-            "stop_loss": "需进一步核验",
-            "basis": "行情价格或关键位不足，暂不输出具体点位。",
+            "take_profit": "上方观察位需进一步核验",
+            "stop_loss": "下方观察位需进一步核验",
+            "upper_watch": "需进一步核验",
+            "lower_watch": "需进一步核验",
+            "invalidation": "行情价格或关键位不足，观点失效条件需进一步核验。",
+            "risk_tip": "不输出明确开平仓指令。",
+            "basis": "行情价格或关键位不足，暂不输出具体观察位。",
         }
-    if trend == "偏多":
+    if trend in ("偏多", "震荡偏强"):
         take_values = [(value, item["weight"]) for item in candidates if (value := as_float(item.get("take_profit"))) is not None and value > price]
         stop_values = [(value, item["weight"]) for item in candidates if (value := as_float(item.get("stop_loss"))) is not None and value < price]
-        action = "回撤不破支撑时偏多跟随"
-    elif trend == "偏空":
+        action = "观察回撤后能否守住下方关键位"
+    elif trend in ("偏空", "震荡偏弱"):
         take_values = [(value, item["weight"]) for item in candidates if (value := as_float(item.get("take_profit"))) is not None and value < price]
         stop_values = [(value, item["weight"]) for item in candidates if (value := as_float(item.get("stop_loss"))) is not None and value > price]
-        action = "反弹不过压力时偏空处理"
+        action = "观察反弹后能否突破上方关键位"
     else:
         upper_values = [(value, item["weight"]) for item in candidates if (value := as_float(item.get("take_profit"))) is not None and value > price]
         lower_values = [(value, item["weight"]) for item in candidates if (value := as_float(item.get("take_profit"))) is not None and value < price]
         take_values = upper_values + lower_values
         stop_values = [(value, item["weight"]) for item in candidates if (value := as_float(item.get("stop_loss"))) is not None]
-        action = "区间内等待突破确认"
+        action = "区间内等待驱动与资金确认"
     take_profit = weighted_average(take_values)
     stop_loss = weighted_average(stop_values)
-    if trend == "震荡" and take_values:
+    upper_target = weighted_average([(value, weight) for value, weight in take_values if value > price])
+    lower_target = weighted_average([(value, weight) for value, weight in take_values if value < price])
+    upper_watch = upper_target if upper_target is not None else (take_profit if take_profit and take_profit > price else None)
+    lower_watch = lower_target if lower_target is not None else (take_profit if take_profit and take_profit < price else None)
+    if trend in ("震荡", "分歧震荡") and take_values:
         upper_target = weighted_average([(value, weight) for value, weight in take_values if value > price])
         lower_target = weighted_average([(value, weight) for value, weight in take_values if value < price])
-        take_text = f"上沿 {fmt_number(upper_target)} / 下沿 {fmt_number(lower_target)}"
+        take_text = f"上方观察位 {fmt_number(upper_target)} / 下方观察位 {fmt_number(lower_target)}"
     else:
-        take_text = fmt_number(take_profit)
+        take_text = f"上方观察位 {fmt_number(upper_watch)}"
+    lower_text = f"下方观察位 {fmt_number(lower_watch if lower_watch is not None else stop_loss)}"
+    invalidation = "若驱动评分与资金评分同步转弱，当前偏强判断失效。" if trend in ("偏多", "震荡偏强") else (
+        "若驱动评分与资金评分同步转强，当前偏弱判断失效。" if trend in ("偏空", "震荡偏弱") else "若价格突破区间且驱动/资金同向，震荡判断失效。"
+    )
     return {
         "stance": trend,
-        "entry": f"现价附近 {fmt_number(price)}；{action}",
+        "entry": f"现价 {fmt_number(price)}；{action}",
         "take_profit": take_text,
-        "stop_loss": fmt_number(stop_loss),
-        "basis": f"综合波动、突破、均线、区间和风险回报测算后取加权中枢；共纳入 {len(candidates)} 组候选点位。",
+        "stop_loss": lower_text,
+        "upper_watch": fmt_number(upper_watch),
+        "lower_watch": fmt_number(lower_watch if lower_watch is not None else stop_loss),
+        "invalidation": invalidation,
+        "risk_tip": "仅给观察位和失效条件，不构成开平仓指令。",
+        "basis": f"综合波动、突破、均线和区间测算观察位；共纳入 {len(candidates)} 组候选点位，不输出明确交易指令。",
     }
 
 
-def build_market_view(name: str, total_score: float, tech: dict[str, Any], fundamental_note: str) -> str:
+def build_market_view(
+    name: str,
+    stance: str,
+    tech: dict[str, Any],
+    fundamental_note: str,
+    driver_note: str,
+    money_note: str,
+    confidence: str,
+    warning: str,
+    learning_warning: str = "",
+) -> str:
     signals = "、".join(tech.get("signals") or [])
     trend = tech.get("trend", "震荡")
-    if total_score >= 65:
-        tone = "当前行情偏强，顺势思路优先"
-    elif total_score <= 40:
-        tone = "当前行情偏弱，反弹压力优先"
+    if stance in ("偏多", "震荡偏强"):
+        tone = "当前驱动与资金偏强"
+    elif stance in ("偏空", "震荡偏弱"):
+        tone = "当前驱动与资金偏弱"
+    elif stance == "分歧震荡":
+        tone = "当前信号分歧，按震荡处理"
     else:
-        tone = "当前行情偏震荡，等待突破确认"
+        tone = "当前行情偏震荡，等待驱动确认"
     detail = f"技术面显示{trend}"
     if signals:
         detail += f"（{signals}）"
-    return f"{name}{tone}；{detail}。基本面：{fundamental_note}。"
+    learning_text = f"复盘提示：{learning_warning}。" if learning_warning else ""
+    return f"{name}{tone}，总观点为{stance}，置信度{confidence}；{detail}。基本面背景：{fundamental_note}。驱动：{driver_note}。资金：{money_note}。冲突提示：{warning}。{learning_text}"
 
 
 def analyze_contract(item: dict[str, Any]) -> dict[str, Any]:
@@ -486,36 +786,54 @@ def analyze_contract(item: dict[str, Any]) -> dict[str, Any]:
     history = item.get("history")
     if item.get("external"):
         change_pct = as_float(source.get("change_pct"))
-        technical = 58 if change_pct and change_pct > 0 else 42 if change_pct and change_pct < 0 else 50
+        technical = 56 if change_pct and change_pct > 0 else 44 if change_pct and change_pct < 0 else 50
         fundamental = 50.0
-        total_score = round(technical * 0.7 + fundamental * 0.3, 1)
-        stance = stance_for(total_score)
+        driver, driver_note, driver_warnings = driver_score(snapshot, spec)
+        money_flow, money_note = money_flow_score(source, snapshot, spec)
+        total_score = round(clamp(technical * 0.25 + fundamental * 0.25 + driver * 0.30 + money_flow * 0.20), 1)
+        stance = stance_for(total_score, technical, fundamental, driver, money_flow)
         high = as_float(source.get("high")) or price or 0
         low = as_float(source.get("low")) or price or 0
         tech = {
             "atr": abs(high - low) or ((price or 1) * 0.01),
-            "trend": stance,
+            "trend": "偏多" if technical >= 55 else "偏空" if technical <= 45 else "震荡",
             "levels": {},
             "signals": ["外盘参考合约，技术历史样本不足"],
         }
-        view = f"{spec.get('name', '')}作为外盘参考，当前按{stance}处理；主要用于判断内盘油脂情绪传导，不单独作为交易指令。"
         fundamental_note = "外盘参考合约，国内基本面因子不直接套用"
+        warning = contradiction_warning(spec, source, snapshot, technical, fundamental, driver, money_flow)
+        if driver_warnings:
+            warning = "；".join([warning, *driver_warnings]) if warning != "暂无明显冲突信号" else "；".join(driver_warnings)
+        confidence = view_confidence(snapshot, technical, fundamental, driver, money_flow, driver_warnings)
+        view = build_market_view(str(spec.get("name", "")), stance, tech, fundamental_note, driver_note, money_note, confidence, warning, review_learning_warning(snapshot))
     else:
         tech = technical_analysis(price, history)
         fundamental, fundamental_note = fundamental_score(spec, snapshot)
         technical = as_float(tech.get("score")) or 50.0
-        total_score = round(clamp(technical * 0.7 + fundamental * 0.3), 1)
-        stance = stance_for(total_score)
-        view = build_market_view(str(spec.get("name", "")), total_score, tech, fundamental_note)
+        driver, driver_note, driver_warnings = driver_score(snapshot, spec)
+        money_flow, money_note = money_flow_score(source, snapshot, spec)
+        total_score = round(clamp(technical * 0.25 + fundamental * 0.25 + driver * 0.30 + money_flow * 0.20), 1)
+        stance = stance_for(total_score, technical, fundamental, driver, money_flow)
+        warning = contradiction_warning(spec, source, snapshot, technical, fundamental, driver, money_flow)
+        if driver_warnings:
+            warning = "；".join([warning, *driver_warnings]) if warning != "暂无明显冲突信号" else "；".join(driver_warnings)
+        confidence = view_confidence(snapshot, technical, fundamental, driver, money_flow, driver_warnings)
+        view = build_market_view(str(spec.get("name", "")), stance, tech, fundamental_note, driver_note, money_note, confidence, warning, review_learning_warning(snapshot))
 
     return {
         "score": {
             "total": total_score,
             "technical": technical,
             "fundamental": fundamental,
+            "driver": driver,
+            "money_flow": money_flow,
             "stance": stance,
-            "weights": "技术面70% / 基本面30%",
+            "weights": "技术面25% / 基本面25% / 驱动30% / 资金20%",
+            "view_confidence": confidence,
+            "contradiction_warning": warning,
         },
+        "view_confidence": confidence,
+        "contradiction_warning": warning,
         "view": view,
         "technical_detail": build_technical_detail(price, tech, total_score),
         "fundamental_detail": build_fundamental_detail(spec, snapshot, fundamental_note, fundamental),
@@ -524,6 +842,8 @@ def analyze_contract(item: dict[str, Any]) -> dict[str, Any]:
             "skill": "technical_basic_analysis_skill",
             "technical_function": "technical_analysis",
             "fundamental_function": "fundamental_score",
+            "driver_function": "driver_score",
+            "money_flow_function": "money_flow_score",
             "strategy_function": "strategy_recommendation",
         },
     }

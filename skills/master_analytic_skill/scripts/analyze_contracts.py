@@ -28,24 +28,52 @@ def check_quality(item: dict[str, Any]) -> dict[str, Any]:
     score = item.get("score", {})
     basic = score.get("fundamental")
     technical = score.get("technical")
+    driver = score.get("driver")
+    money_flow = score.get("money_flow")
     total = score.get("total")
     notes: list[str] = []
-    if isinstance(basic, (int, float)) and isinstance(technical, (int, float)) and isinstance(total, (int, float)):
-        expected = round(basic * 0.30 + technical * 0.70, 1)
+    required_scores = [basic, technical, driver, money_flow, total]
+    if all(isinstance(value, (int, float)) for value in required_scores):
+        expected = round(technical * 0.25 + basic * 0.25 + driver * 0.30 + money_flow * 0.20, 1)
         if abs(expected - total) > 0.05:
             notes.append(f"综合评分口径需核验：期望 {expected}，当前 {total}")
     else:
-        notes.append("评分字段需进一步核验")
+        notes.append("评分字段需进一步核验：必须包含 technical、fundamental、driver、money_flow、total")
+
+    if "driver" not in score:
+        notes.append("缺少 driver_score")
+    if "money_flow" not in score:
+        notes.append("缺少 money_flow_score")
+    confidence = item.get("view_confidence") or score.get("view_confidence")
+    if confidence not in ("高", "中", "低"):
+        notes.append("缺少 view_confidence 或取值不合规")
+    warning = item.get("contradiction_warning") or score.get("contradiction_warning")
+    if not warning:
+        notes.append("缺少 contradiction_warning")
+
+    stance = score.get("stance")
+    tech_dir = "up" if isinstance(technical, (int, float)) and technical >= 55 else "down" if isinstance(technical, (int, float)) and technical <= 45 else "flat"
+    driver_dir = "up" if isinstance(driver, (int, float)) and driver >= 55 else "down" if isinstance(driver, (int, float)) and driver <= 45 else "flat"
+    money_dir = "up" if isinstance(money_flow, (int, float)) and money_flow >= 55 else "down" if isinstance(money_flow, (int, float)) and money_flow <= 45 else "flat"
+    if tech_dir != "flat" and driver_dir not in ("flat", tech_dir) and money_dir not in ("flat", tech_dir) and stance in ("偏多", "偏空"):
+        notes.append("存在技术面单独决定总观点的风险")
+
     recommendation = item.get("strategy_recommendation", {})
-    if not recommendation or recommendation.get("take_profit") == "需进一步核验" or recommendation.get("stop_loss") == "需进一步核验":
-        notes.append("综合止盈止损需进一步核验")
+    if not recommendation:
+        notes.append("观察位与失效条件需进一步核验")
+    else:
+        text = json.dumps(recommendation, ensure_ascii=False)
+        if any(word in text for word in ["止盈", "止损"]):
+            notes.append("策略输出仍含明确止盈/止损指令，应改为观察位和失效条件")
+        if not recommendation.get("invalidation"):
+            notes.append("缺少观点失效条件")
     if not item.get("view"):
         notes.append("走势观点需进一步核验")
     return {
         **item,
         "analysis_skill": "master_analytic_skill",
         "child_skill": "technical_basic_analysis_skill",
-        "quality_note": "；".join(notes) if notes else "评分、观点与策略已通过skill质量检查",
+        "quality_note": "；".join(notes) if notes else "动态驱动评分、观点置信度、冲突提示与观察位已通过skill质量检查",
     }
 
 

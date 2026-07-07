@@ -9,6 +9,8 @@ Use this checklist before publishing any research-facing text.
 - [ ] 是否给出交易建议或行动含义？
 - [ ] 是否说明观点失效条件或主要风险？
 - [ ] 是否区分市场交易的是预期还是现实？
+- [ ] 每个核心观点是否有明确原因，而不是只写结果？
+- [ ] 每个核心观点是否标注研究置信度？
 
 ## Structure
 
@@ -17,6 +19,8 @@ Use this checklist before publishing any research-facing text.
 - [ ] 每段是否只表达一个观点？
 - [ ] 每段是否不超过 3 句话？
 - [ ] 是否有足够留白，方便快速扫描？
+- [ ] 是否保持现有一级标题结构，没有为解释逻辑额外扩篇幅？
+- [ ] 是否用“观点 -> 三个原因 -> 一句总结”压缩重复表达？
 
 ## Data
 
@@ -26,6 +30,8 @@ Use this checklist before publishing any research-facing text.
 - [ ] 三个以上数字是否优先表格化？
 - [ ] 结尾是否包含实际消息来源链接？
 - [ ] 是否说明 Reuters/Wind 等不可访问来源未包装成事实？
+- [ ] 是否按影响程度排序驱动，正文围绕前两项展开？
+- [ ] 是否区分今日新增驱动、背景信息和低新鲜度事件？
 
 ## Language
 
@@ -34,6 +40,15 @@ Use this checklist before publishing any research-facing text.
 - [ ] 是否使用主动、直接、克制的表达？
 - [ ] 是否避免公众号、自媒体、营销号语气？
 - [ ] 是否符合机构研究风格？
+- [ ] 是否像研究所晨报而不是资讯摘要？
+
+## Research Logic
+
+- [ ] 重要观点是否写清传导链，例如 `原油 -> 生柴利润 -> POGO估值 -> 需求预期 -> P承压`？
+- [ ] 是否说明市场交易的是预期还是现实，以及两者为什么没有完全一致？
+- [ ] 每个核心观点是否写明什么条件会改变研究结论？
+- [ ] 风险提示是否是观点失效条件，而不是泛化风险？
+- [ ] 是否避免把周度库存、旧政策、旧研报写成今日最大驱动？
 
 ## Readability
 

@@ -14,21 +14,32 @@ Master Skill 调度规则：
 3. 当前项目中尚未单独落地的子 Skill 只保留接口，不伪造实现；但必须完成下列现有映射。
 4. market_data_skill 当前由 python3 scripts/run_financial_skills.py、source_runs/$REPORT_DATE-daily/manifest.json 和 raw/ 原始结果承担；必须记录数据时间、来源、失败项和替代来源。
 5. oil_report_freshness 当前由 skills/oil-report-freshness/SKILL.md 承担；必须输出今日新增驱动、今日主线建议、延续性背景、风险因素、不允许作为主线的信息、待核验信息、信息新鲜度表。
-6. report_writer_skill 当前由 skills/vinson-research-writing/SKILL.md 及其 checklist/terminology/examples/anti_patterns 承担写作规范；正文只能使用 market_data_skill 和 oil_report_freshness 治理后的内容。
+6. report_writer_skill 当前由 skills/report_writer_skill/SKILL.md 承担正文研究质量控制，并以 skills/vinson-research-writing/SKILL.md 及其 checklist/terminology/examples/anti_patterns 作为通用写作规范；正文只能使用 market_data_skill 和 oil_report_freshness 治理后的内容。
 7. headline_skill 当前由 skills/title-generation/SKILL.md 和 skills/title-quality-gate/SKILL.md 共同承担；标题只能基于 oil_report_freshness 的今日新增驱动和今日主线建议生成，不得新增正文中没有的观点。
 8. report_quality_gate 当前保留接口，由 vinson-research-writing checklist、title-quality-gate、信息来源与核验说明、oil_report_freshness 禁用项共同完成最终一致性检查；不得新增观点、伪造来源或覆盖前面 Skill 的职责。
 
 Writing Skill 规则：
-1. 正式写作前必须读取 skills/vinson-research-writing/SKILL.md。
-2. 涉及术语统一时读取 skills/vinson-research-writing/terminology.md。
-3. 涉及表达优化时读取 skills/vinson-research-writing/examples.md 和 skills/vinson-research-writing/anti_patterns.md。
-4. 发布前必须按 skills/vinson-research-writing/checklist.md 自检；不符合项必须先重写。
-5. report_writer 只能使用 oil-report-freshness 治理后的内容生成正文，不得把 Level 2 或未升级的 Level 3 信息重新提升为今日主线、今日驱动或今日最大影响。
-6. title-generation 只能基于 oil-report-freshness 的“今日新增驱动”和“今日主线建议”提炼标题；不得把延续性背景、旧政策、周度库存或待核验信息写成 Headline 依据。
-7. 生成或修改【今日观点】、网站首页标题、列表标题前，必须先读取并调用 skills/title-generation/SKILL.md，提炼今日市场主线并生成 Headline / Subheadline / Report Title / One Sentence Summary。
-8. 标题生成后必须读取并调用 skills/title-quality-gate/SKILL.md 做质量门检查；若未通过，必须回到 title-generation 按失败原因重写，直到通过后才允许发布。
-9. Headline 只写市场观点，Subheadline 只写核心逻辑，具体价格、追高、低吸、止损、加减仓等执行动作只能放入【开盘推演】或【交易计划】，不得塞进标题或首页观点。
-10. Writing Skill 只用于提升结构、表达、可读性和机构研究风格，不得改变数据来源、业务逻辑或交易策略。
+1. 正式写作前必须先读取并调用 skills/report_writer_skill/SKILL.md。
+2. 正式写作前必须读取 skills/vinson-research-writing/SKILL.md。
+3. 涉及术语统一时读取 skills/vinson-research-writing/terminology.md。
+4. 涉及表达优化时读取 skills/vinson-research-writing/examples.md 和 skills/vinson-research-writing/anti_patterns.md。
+5. 发布前必须按 skills/vinson-research-writing/checklist.md 自检；不符合项必须先重写。
+6. report_writer 只能使用 oil-report-freshness 治理后的内容生成正文，不得把 Level 2 或未升级的 Level 3 信息重新提升为今日主线、今日驱动或今日最大影响。
+7. report_writer 必须把正文从资讯汇总改成研究分析：每个核心观点必须回答为什么，按影响程度排序驱动，写清传导链，区分预期与现实，说明观点失效条件，并给出研究置信度。
+8. report_writer 不得为满足上述要求增加新的一级标题或拉长篇幅；必须把分析能力压缩进【今日观点】【今日交易重点】【开盘推演】【风险提示】等既有模块。
+9. title-generation 只能基于 oil-report-freshness 的“今日新增驱动”和“今日主线建议”提炼标题；不得把延续性背景、旧政策、周度库存或待核验信息写成 Headline 依据。
+10. 生成或修改【今日观点】、网站首页标题、列表标题前，必须先读取并调用 skills/title-generation/SKILL.md，提炼今日市场主线并生成 Headline / Subheadline / Report Title / One Sentence Summary。
+11. 标题生成后必须读取并调用 skills/title-quality-gate/SKILL.md 做质量门检查；若未通过，必须回到 title-generation 按失败原因重写，直到通过后才允许发布。
+12. Headline 只写市场观点，Subheadline 只写核心逻辑，具体价格、追高、低吸、止损、加减仓等执行动作只能放入【开盘推演】或【交易计划】，不得塞进标题或首页观点。
+13. Writing Skill 只用于提升结构、表达、可读性和机构研究风格，不得改变数据来源、业务逻辑或交易策略。
+
+Daily Review 学习规则：
+1. 每天生成晨报前必须通过 skills/daily_review_skill/scripts/review_memory.py 的 load_recent_reviews(days=30) 只读取 data/review/daily/ 最近30天每日复盘；如果 data/review/latest_review.json 存在，也可以读取摘要。不得读取30天以前的每日明细。
+2. 每天生成晨报前必须读取 `data/contracts/current_contracts.json` 作为 P/Y/OI/M/RM 的当月分析合约名单；如果该文件缺失或不是当前月份，先运行 `python3 skills/contract_discovery_skill/scripts/select_contracts.py`。日报和tab页的选择合约分析必须包含 contract_discovery_skill 输出的全部合约；rank=1 作为主叙事合约，rank=2 作为换月、资金迁移、跨期强弱和流动性分析合约，不得在分析入口丢弃。
+3. 若最近复盘出现连续同类错误，正文必须提示“近期模型容易低估/高估某因素”，并在【今日交易重点】【开盘推演】或【风险提示】中降低相关因素单独主导性或增加风险提示。
+4. 允许的调整只限于当日文字层面的风险提示、置信度下调、主线降级或情景推演补充；不得未经人工确认永久修改评分权重、参数或策略规则。
+5. 如果最近30天复盘或 latest_review 显示是否需要人工确认 human_approval_required=true，报告只能写成“需人工确认的改进建议”，不得写成已生效规则。
+6. 如果没有最近30天复盘，写作流程继续，但不得伪造复盘结论。
 
 
 

@@ -1,6 +1,6 @@
 ---
 name: technical_basic_analysis_skill
-description: Technical and fundamental scoring skill for oil-related dominant futures contracts. Use as the child skill of master_analytic_skill when generating the oil-futures main-contract tab page. It scores contracts with 30% fundamental analysis and 70% technical analysis, then calculates operation strategy, support/resistance, risk controls, and tab-ready conclusions. Alias: technical&basic analysis skill.
+description: Dynamic driver-led scoring skill for oil-related dominant futures contracts. Use as the child skill of master_analytic_skill when generating the oil-futures main-contract tab page. It scores contracts with 25% technical, 25% fundamental, 30% driver, and 20% money-flow analysis, then returns observation levels, invalidation conditions, confidence, contradiction warnings, and tab-ready conclusions. Alias: technical&basic analysis skill.
 ---
 
 # Skill: technical&basic analysis skill
@@ -32,12 +32,12 @@ If a field is unavailable, mark it `需进一步核验` and do not invent a numb
 Use a 0-100 scoring scale.
 
 ```text
-total_score = basic_score * 0.30 + technical_score * 0.70
+total_score = technical_score * 0.25 + basic_score * 0.25 + driver_score * 0.30 + money_flow_score * 0.20
 ```
 
 Round `total_score` to one decimal.
 
-## Fundamental Score: 30%
+## Fundamental Score: 25%
 
 Calculate `basic_score` from these components:
 
@@ -57,52 +57,64 @@ Scoring guide:
 - 30-44: mild bearish pressure
 - 0-29: clear bearish pressure
 
-## Technical Score: 70%
+Inventory, basis, import margin, and crush margin are background pressure unless updated within the latest 24 hours.
 
-Calculate `technical_score` from these components:
+## Technical Score: 25%
 
-| Component | Weight inside technical_score |
-| --- | ---: |
-| Trend structure: price vs MA5/MA10/MA20/MA60 | 30% |
-| Momentum: MACD, RSI, KDJ, breakout/failure | 25% |
-| Volume and open-interest confirmation | 20% |
-| Support/resistance position and risk-reward | 15% |
-| Volatility and intraday execution quality | 10% |
+Technical analysis may only judge:
 
-Scoring guide:
+- price position
+- trend structure
+- support and resistance
+- volatility range
 
-- 80-100: strong trend continuation
-- 65-79: tradable bullish bias
-- 45-64: range-bound or mixed
-- 30-44: bearish bias
-- 0-29: strong downside trend
+It must not independently decide the final bullish or bearish view.
+
+## Driver Score: 30%
+
+Calculate `driver_score` from:
+
+- FCPO
+- CBOT soybean oil
+- WTI/Brent crude oil
+- CBOT soybean
+- weather
+- shipping/export if available
+- same-day policy/news
+
+Fresh information from the latest 24 hours has the highest weight.
+
+Weekly inventory cannot be today's main driver. Old policy, old research, and unverified rumors must not add score.
+
+## Money Flow Score: 20%
+
+Calculate `money_flow_score` from:
+
+- same-day change percent
+- volume change
+- open-interest change
+- sector strength ranking
+- P/Y/OI relative strength
+- spread changes
 
 ## Strategy Function
 
-Use this mapping after calculating `total_score`:
+`stance_for()` must not rely only on `total_score`.
 
-| Total score | Strategy | Rating |
-| ---: | --- | --- |
-| >= 75 | 偏多 | 强势 |
-| 60-74.9 | 震荡偏多 | 偏强 |
-| 45-59.9 | 震荡 | 中性 |
-| 30-44.9 | 震荡偏空 | 偏弱 |
-| < 30 | 偏空 | 弱势 |
-
-Convert to tab strategy labels:
-
-- `偏多` for scores >= 75
-- `震荡` for scores from 45 to 74.9
-- `偏空` for scores < 45
-- `观望` when key data is missing or source reliability is weak
+- If `driver_score` and `money_flow_score` point in the same direction, prioritize drivers and money flow.
+- If technicals conflict with drivers, output `震荡偏强` or `震荡偏弱`.
+- If signals conflict materially, output `分歧震荡`.
+- If key data is missing or source reliability is weak, use `观望` or `需进一步核验`.
 
 ## Operation Strategy Calculation
 
 Use `scripts/analysis_engine.py` for the full tab-card analysis flow. It contains:
 
-- `technical_analysis`: MA/MACD/RSI/BOLL/volatility/breakout scoring
+- `technical_analysis`: price position, trend structure, support/resistance, volatility range, and breakout-position scoring
 - `fundamental_score`: supply-demand, inventory, spread, and external-market scoring
-- `strategy_recommendation`: calculate multiple candidate take-profit/stop-loss points, then return one integrated recommendation
+- `driver_score`: same-day external, policy, weather, shipping, and news driver scoring
+- `money_flow_score`: price, volume, open-interest, relative-strength, and spread-flow scoring
+- `strategy_recommendation`: calculate observation levels and invalidation conditions
 - `build_market_view`: score-led current market view
 
 Use `scripts/strategy_calculator.py` only when deterministic post-score mapping is useful.
@@ -115,7 +127,7 @@ Use `scripts/strategy_calculator.py` only when deterministic post-score mapping 
 - range and band position
 - risk-reward symmetry
 
-The tab output must not expose the exact method names as separate trade cards. It should show only `综合策略建议`, `参考触发`, `综合止盈`, `综合止损`, and a short basis explaining that multiple candidate points were combined.
+The tab output must not expose the exact method names as separate trade cards. It should show only upper watch level, lower watch level, invalidation condition, risk note, and a short basis explaining that multiple candidate points were combined.
 
 The script accepts JSON with `basic_score`, `technical_score`, optional `price`, `support`, `resistance`, and `data_quality`, and returns:
 
@@ -130,7 +142,7 @@ The script accepts JSON with `basic_score`, `technical_score`, optional `price`,
 Manual function definitions:
 
 ```text
-weighted_score = round(basic_score * 0.30 + technical_score * 0.70, 1)
+weighted_score = round(technical_score * 0.25 + basic_score * 0.25 + driver_score * 0.30 + money_flow_score * 0.20, 1)
 
 direction =
   ↑ if weighted_score >= 60
@@ -149,7 +161,7 @@ Risk rules:
 - If `data_quality` is `low`, force `strategy = 观望`.
 - If price is near resistance and score is below 75, do not chase.
 - If price breaks support and technical score is below 45, mark downside risk.
-- If fundamental score and technical score diverge by more than 25 points, reduce position size one level.
+- If driver/money flow and technical score diverge materially, downgrade the stance to range-bound or split-signal.
 - If support or resistance cannot be verified, write `关键位需进一步核验`.
 
 ## Required Output
@@ -163,8 +175,8 @@ Then return tab-ready JSON fields for each contract.
 
 ## Hard Rules
 
-- Do not let fundamental narrative override the 70% technical weight.
+- Do not let technical analysis independently decide the final view.
 - Do not use stale inventory, old policy, or unverified rumors as current facts.
-- Do not output exact trading instructions without support, resistance, and invalidation.
+- Do not output exact trading instructions; output observation levels and invalidation only.
 - Do not write `确定上涨` or `确定下跌`; use score-led strategy language.
 - If data cannot be verified, say `需进一步核验`.
