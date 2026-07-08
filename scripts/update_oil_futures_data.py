@@ -24,6 +24,7 @@ HITHINK_CLI = Path.home() / ".codex" / "skills" / "hithink-market-query" / "scri
 MASTER_ANALYTIC_CLI = ROOT / "skills" / "master_analytic_skill" / "scripts" / "analyze_contracts.py"
 DAILY_REVIEW_CLI = ROOT / "skills" / "daily_review_skill" / "scripts" / "daily_review.py"
 REVIEW_MEMORY = ROOT / "skills" / "daily_review_skill" / "scripts" / "review_memory.py"
+CONTRACT_SELECTOR_CLI = ROOT / "skills" / "contract_selector_skill" / "scripts" / "select_contracts.py"
 CONTRACT_DISCOVERY_CLI = ROOT / "skills" / "contract_discovery_skill" / "scripts" / "select_contracts.py"
 CONTRACT_DISCOVERY_CURRENT = ROOT / "data" / "contracts" / "current_contracts.json"
 PRICE_TOLERANCE = 2.0
@@ -232,24 +233,12 @@ def concrete_contract(value: Any) -> str | None:
     return None
 
 
-def load_contract_discovery() -> dict[str, Any]:
-    now_month = datetime.now().strftime("%Y-%m")
-    if CONTRACT_DISCOVERY_CURRENT.exists():
-        try:
-            payload = json.loads(CONTRACT_DISCOVERY_CURRENT.read_text(encoding="utf-8"))
-            if payload.get("month") == now_month:
-                return payload
-        except Exception:
-            pass
-
-    if not CONTRACT_DISCOVERY_CLI.exists():
-        return {
-            "month": now_month,
-            "products": {},
-            "warnings": ["contract_discovery_skill 缺失，无法生成当月合约名单"],
-        }
+def run_contract_selector(now_month: str) -> list[str]:
+    selector = CONTRACT_SELECTOR_CLI if CONTRACT_SELECTOR_CLI.exists() else CONTRACT_DISCOVERY_CLI
+    if not selector.exists():
+        return ["contract_selector_skill 和 contract_discovery_skill 均缺失，无法生成当月合约名单"]
     result = subprocess.run(
-        [sys.executable, str(CONTRACT_DISCOVERY_CLI)],
+        [sys.executable, str(selector)],
         cwd=str(ROOT),
         text=True,
         capture_output=True,
@@ -257,18 +246,34 @@ def load_contract_discovery() -> dict[str, Any]:
         check=False,
     )
     if result.returncode != 0:
-        return {
-            "month": now_month,
-            "products": {},
-            "warnings": [f"contract_discovery_skill 调用失败：{result.stderr.strip() or result.stdout.strip()}"],
-        }
+        return [f"contract_selector_skill 调用失败：{result.stderr.strip() or result.stdout.strip()}"]
+    return []
+
+
+def load_contract_discovery() -> dict[str, Any]:
+    now_month = datetime.now().strftime("%Y-%m")
+    selector_warnings = run_contract_selector(now_month)
+    if CONTRACT_DISCOVERY_CURRENT.exists():
+        try:
+            payload = json.loads(CONTRACT_DISCOVERY_CURRENT.read_text(encoding="utf-8"))
+            if payload.get("month") == now_month:
+                payload["selector_skill"] = "contract_selector_skill"
+                payload["warnings"] = list(payload.get("warnings", [])) + selector_warnings
+                return payload
+        except Exception:
+            pass
+
     try:
-        return json.loads(CONTRACT_DISCOVERY_CURRENT.read_text(encoding="utf-8"))
+        payload = json.loads(CONTRACT_DISCOVERY_CURRENT.read_text(encoding="utf-8"))
+        payload["selector_skill"] = "contract_selector_skill"
+        payload["warnings"] = list(payload.get("warnings", [])) + selector_warnings
+        return payload
     except Exception as exc:
         return {
             "month": now_month,
             "products": {},
-            "warnings": [f"contract_discovery_skill 已运行但名单读取失败：{exc}"],
+            "selector_skill": "contract_selector_skill",
+            "warnings": selector_warnings + [f"contract_selector_skill 已运行但名单读取失败：{exc}"],
         }
 
 
@@ -634,12 +639,13 @@ def main() -> int:
     source_note = "futures-oil-daily 最新快照"
     if snapshot_path:
         source_note += f"：{snapshot_path.relative_to(ROOT)}"
-    source_note += "；国内合约名单由 contract_discovery_skill 按当月实时成交量、持仓量、成交额排序生成，外盘仅展示与棕榈油最相关的 FCPO；内盘具体合约与日线缺口由 AkShare 补充，并用同花顺问财行情skill交叉验证"
+    source_note += "；国内合约名单先由 contract_selector_skill 选择，再由 contract_discovery_skill 按当月实时成交量、持仓量、成交额排序生成，外盘仅展示与棕榈油最相关的 FCPO；内盘具体合约与日线缺口由 AkShare 补充，并用同花顺问财行情skill交叉验证"
     now = datetime.now()
     review_date = now.strftime("%Y-%m-%d")
     payload = {
         "updated_at": now.strftime("%Y-%m-%d %H:%M"),
         "source": source_note,
+        "contract_selector_skill": discovery.get("selector_skill", "contract_selector_skill"),
         "contract_discovery_skill": "contract_discovery_skill",
         "contract_discovery_month": discovery.get("month", ""),
         "contract_discovery_warnings": discovery.get("warnings", []),

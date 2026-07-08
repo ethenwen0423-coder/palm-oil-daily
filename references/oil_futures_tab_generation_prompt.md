@@ -5,10 +5,11 @@
 生成或更新 `data/oil_futures.js` 前必须执行：
 
 1. 读取 `skills/master_analytic_skill/SKILL.md`。
-2. 读取 `skills/contract_discovery_skill/SKILL.md`。
-3. 调用或读取 `skills/contract_discovery_skill/scripts/select_contracts.py` 生成的 `data/contracts/current_contracts.json`，把其中全部合约作为今天分析入口，不得只取 rank=1。
-4. 读取最近 5 次 `data/review/learning_notes/*.json`，如存在连续同类偏差，生成观点时必须提示近期模型容易低估/高估的因素。
-5. 按 master analytic flow 调用 `skills/technical_basic_analysis_skill/SKILL.md`。
+2. 先读取并调用 `skills/contract_selector_skill/SKILL.md`。
+3. 由 `contract_selector_skill` 调用 `skills/contract_selector_skill/scripts/select_contracts.py`，刷新 `data/contracts/current_contracts.json`。
+4. 把 `current_contracts.json` 中全部 rank=1 主力和 rank=2 次主力合约作为今天分析入口，不得只取 rank=1。
+5. 读取最近 5 次 `data/review/learning_notes/*.json`，如存在连续同类偏差，生成观点时必须提示近期模型容易低估/高估的因素。
+6. 按 master analytic flow 调用 `skills/technical_basic_analysis_skill/SKILL.md`。
 6. 使用 `技术面25% + 基本面25% + 驱动30% + 资金20%` 计算每个油脂相关主力合约的综合评分。
 7. 使用 `skills/master_analytic_skill/scripts/analyze_contracts.py` 调用分支 skill。
 8. 分支 skill 使用 `skills/technical_basic_analysis_skill/scripts/analysis_engine.py` 生成技术评分、基本面评分、驱动评分、资金评分、当前行情观点、观察位和失效条件。

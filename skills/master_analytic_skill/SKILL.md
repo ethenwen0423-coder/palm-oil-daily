@@ -22,16 +22,17 @@ This is an analytics-tab orchestration skill, not a daily-report skill.
 
 When generating the main-contract tab, execute in this order:
 
-1. Call `../contract_discovery_skill/SKILL.md` or read its saved current-month output from `data/contracts/current_contracts.json`.
-2. Use the discovered main and secondary contracts as the analysis entrance; do not hard-code contract months.
-3. Collect market data for every discovered contract.
-4. Read the latest 5 `daily_review_skill` learning notes if available.
-5. Call `../technical_basic_analysis_skill/SKILL.md`.
-6. Score each contract using `技术面25% + 基本面25% + 驱动30% + 资金20%`.
-7. Calculate observation levels and invalidation conditions.
-8. Generate or update the tab data payload.
-9. Check that every visible tab conclusion can be traced to scored data.
-10. Generate `watchlist_options` from the discovered contract payload so the static GitHub Pages UI can refresh a user-selected contract card without a backend call.
+1. Call `../contract_selector_skill/SKILL.md` before any analysis.
+2. `contract_selector_skill` must refresh `data/contracts/current_contracts.json` through `contract_discovery_skill`.
+3. Use every selected main and secondary contract as the analysis entrance; do not hard-code contract months or drop rank 2 contracts.
+4. Collect market data for every selected contract.
+5. Read the latest 5 `daily_review_skill` learning notes if available.
+6. Call `../technical_basic_analysis_skill/SKILL.md`.
+7. Score each contract using `技术面25% + 基本面25% + 驱动30% + 资金20%`.
+8. Calculate observation levels and invalidation conditions.
+9. Generate or update the tab data payload.
+10. Check that every visible tab conclusion can be traced to scored data.
+11. Generate `watchlist_options` from the selected contract payload so the static GitHub Pages UI can refresh a user-selected contract card without a backend call.
 
 Callable entrypoint:
 
@@ -43,9 +44,10 @@ If a required sub-skill or data source is missing, keep the interface and mark t
 
 Contract discovery entrypoint:
 
+- `../contract_selector_skill/scripts/select_contracts.py`
 - `../contract_discovery_skill/scripts/select_contracts.py`
 
-This monthly discovery script saves the current contract universe for the tab and report analysis entrance. All discovered contracts must enter the analysis pool. Rank 1 contracts are primary; rank 2 contracts are rollover, money-migration, spread, and liquidity references.
+`contract_selector_skill` is the first callable entrypoint. It delegates liquidity discovery to `contract_discovery_skill` and saves the current contract universe for the tab and report analysis entrance. All selected contracts must enter the analysis pool. Rank 1 contracts are primary; rank 2 contracts are rollover, money-migration, spread, and liquidity references.
 
 ## Scope
 
@@ -175,7 +177,9 @@ Allowed `score.stance` values:
 Before finishing, verify:
 
 - `technical_basic_analysis_skill` was called or explicitly marked unavailable.
-- `contract_discovery_skill` current-month list was used or explicitly marked unavailable.
+- `contract_selector_skill` was called before technical/basic analysis.
+- `contract_discovery_skill` current-month list was refreshed or explicitly marked unavailable.
+- Rank 1 and rank 2 domestic contracts entered the analysis pool.
 - Domestic contract months are not hard-coded in the tab generation script.
 - Every contract has `score.fundamental`, `score.technical`, `score.driver`, `score.money_flow`, and `score.total`.
 - `score.total = technical * 0.25 + fundamental * 0.25 + driver * 0.30 + money_flow * 0.20`.

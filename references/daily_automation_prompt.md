@@ -35,7 +35,7 @@ Writing Skill 规则：
 
 Daily Review 学习规则：
 1. 每天生成晨报前必须通过 skills/daily_review_skill/scripts/review_memory.py 的 load_recent_reviews(days=30) 只读取 data/review/daily/ 最近30天每日复盘；如果 data/review/latest_review.json 存在，也可以读取摘要。不得读取30天以前的每日明细。
-2. 每天生成晨报前必须读取 `data/contracts/current_contracts.json` 作为 P/Y/OI/M/RM 的当月分析合约名单；如果该文件缺失或不是当前月份，先运行 `python3 skills/contract_discovery_skill/scripts/select_contracts.py`。日报和tab页的选择合约分析必须包含 contract_discovery_skill 输出的全部合约；rank=1 作为主叙事合约，rank=2 作为换月、资金迁移、跨期强弱和流动性分析合约，不得在分析入口丢弃。
+2. 每天生成晨报和刷新 tab 页前必须先调用 `skills/contract_selector_skill/SKILL.md`，运行 `python3 skills/contract_selector_skill/scripts/select_contracts.py` 刷新 `data/contracts/current_contracts.json`，再读取该文件作为 P/Y/OI/M/RM 的当月分析合约名单。日报和 tab 页的选择合约分析必须包含 contract_selector_skill 输出的全部合约；rank=1 作为主叙事合约，rank=2 作为换月、资金迁移、跨期强弱和流动性分析合约，不得在分析入口丢弃。
 3. 若最近复盘出现连续同类错误，正文必须提示“近期模型容易低估/高估某因素”，并在【今日交易重点】【开盘推演】或【风险提示】中降低相关因素单独主导性或增加风险提示。
 4. 允许的调整只限于当日文字层面的风险提示、置信度下调、主线降级或情景推演补充；不得未经人工确认永久修改评分权重、参数或策略规则。
 5. 如果最近30天复盘或 latest_review 显示是否需要人工确认 human_approval_required=true，报告只能写成“需人工确认的改进建议”，不得写成已生效规则。

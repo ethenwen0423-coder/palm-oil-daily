@@ -112,7 +112,7 @@ def run_backfill(report_date: str, dry_run: bool) -> int:
 必须调用 skills/oil-report-freshness/SKILL.md 后再进入正文写作和标题生成。
 必须调用 skills/report_writer_skill/SKILL.md 生成正文；正文必须回答为什么、排序驱动、写清传导链、区分预期与现实、说明失效条件和置信度，且不得增加报告篇幅。
 必须调用 skills/daily_review_skill/scripts/review_memory.py 的 load_recent_reviews(days=30)，只读取 data/review/daily/ 最近30天每日复盘，并可读取 data/review/latest_review.json 摘要；若发现连续错误类型，只能在当日报告中降低相关因素主导性或增加风险提示，不得未经人工确认永久修改参数，不得加载30天以前的每日明细。
-必须读取 data/contracts/current_contracts.json 作为 P/Y/OI/M/RM 的当月分析合约名单；如果该文件缺失或不是当前月份，先运行 python3 skills/contract_discovery_skill/scripts/select_contracts.py。日报和tab页的选择合约分析必须包含 contract_discovery_skill 输出的全部合约；rank=1 作为主叙事合约，rank=2 作为换月、资金迁移、跨期强弱和流动性分析合约，不得在分析入口丢弃。
+必须先调用 skills/contract_selector_skill/SKILL.md，并运行 python3 skills/contract_selector_skill/scripts/select_contracts.py 刷新 data/contracts/current_contracts.json。日报和 tab 页的选择合约分析必须包含 contract_selector_skill 输出的全部合约；rank=1 作为主叙事合约，rank=2 作为换月、资金迁移、跨期强弱和流动性分析合约，不得在分析入口丢弃。
 必须生成或更新 reports/{report_date}.md，然后运行 bash scripts/deploy_report.sh 发布。
 如果今天不是中国期货市场交易日，停止发布并说明原因。
 如果已发现报告实际存在且合格，停止补跑。

@@ -15,6 +15,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SKILLS = Path.home() / ".codex" / "skills"
 SOURCE_RUNS = ROOT / "source_runs"
+CONTRACT_SELECTOR_CLI = ROOT / "skills" / "contract_selector_skill" / "scripts" / "select_contracts.py"
 CONTRACT_DISCOVERY_CLI = ROOT / "skills" / "contract_discovery_skill" / "scripts" / "select_contracts.py"
 CONTRACT_DISCOVERY_CURRENT = ROOT / "data" / "contracts" / "current_contracts.json"
 
@@ -96,9 +97,10 @@ def load_discovered_contract_symbols(report_date: str) -> list[str]:
             payload = json.loads(CONTRACT_DISCOVERY_CURRENT.read_text(encoding="utf-8"))
         except Exception:
             payload = {}
-    if payload.get("month") != report_month and CONTRACT_DISCOVERY_CLI.exists():
+    selector = CONTRACT_SELECTOR_CLI if CONTRACT_SELECTOR_CLI.exists() else CONTRACT_DISCOVERY_CLI
+    if payload.get("month") != report_month and selector.exists():
         subprocess.run(
-            [sys.executable, str(CONTRACT_DISCOVERY_CLI), "--month", report_month],
+            [sys.executable, str(selector), "--month", report_month],
             cwd=str(ROOT),
             text=True,
             capture_output=True,
