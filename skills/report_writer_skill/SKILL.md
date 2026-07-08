@@ -226,6 +226,29 @@ Must contain:
 - one transmission chain
 - one invalidation condition
 
+### 相关新闻导向分析
+
+Use this module when the report structure includes `相关新闻导向分析` or `本周新闻导向分析`.
+
+This is not a news-summary module. It converts important news into market direction and trading relevance.
+
+Each item must include:
+
+- news item
+- direction
+- transmission chain
+- trading implication
+- confidence rating
+
+Keep it compact:
+
+- daily reports: no more than 3 items
+- weekly reports: no more than 3 items
+
+Do not repeat the same news in other modules. If a news item is already in `昨夜发生了什么` or `本周三大变化`, add only the market interpretation here.
+
+Unverified news must be marked as `暂无官方确认` and treated as a sentiment variable, not as a confirmed driver.
+
 ### 开盘推演
 
 Must explain why each scenario would occur.
