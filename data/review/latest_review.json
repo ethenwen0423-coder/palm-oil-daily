@@ -1,12 +1,12 @@
 {
-  "date": "2026-07-06",
+  "date": "2026-07-08",
   "status": "ok",
-  "previous_snapshot": "/Users/ethen/Sites/palm-oil-daily/data/review/snapshots/2026-07-06-previous-oil_futures.js",
-  "current_snapshot": "/Users/ethen/Sites/palm-oil-daily/data/review/snapshots/2026-07-06-actual-oil_futures.js",
-  "learning_notes_path": "/Users/ethen/Sites/palm-oil-daily/data/review/daily/2026-07-06.json",
+  "previous_snapshot": "/Users/ethen/Sites/palm-oil-daily/data/review/snapshots/2026-07-08-previous-oil_futures.js",
+  "current_snapshot": "/Users/ethen/Sites/palm-oil-daily/data/review/snapshots/2026-07-08-actual-oil_futures.js",
+  "learning_notes_path": "/Users/ethen/Sites/palm-oil-daily/data/review/daily/2026-07-08.json",
   "review_memory": {
-    "saved": "data/review/daily/2026-07-06.json",
-    "retained_count": 1,
+    "saved": "data/review/daily/2026-07-08.json",
+    "retained_count": 3,
     "deleted": [],
     "warnings": []
   },

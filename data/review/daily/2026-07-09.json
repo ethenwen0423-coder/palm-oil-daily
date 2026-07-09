@@ -1,0 +1,10 @@
+{
+  "date": "2026-07-09",
+  "review_result": [],
+  "error_type": [],
+  "suggested_improvement": [],
+  "whether_update_rule": false,
+  "human_approval_required": false,
+  "review_markdown": "## 昨日判断复盘\n\n| 合约 | 昨日观点 | 今日实际 | 结果 | 偏差原因 |\n|---|---|---|---|---|\n\n## 偏差归因\n\n- 今日无 MISS，暂不生成偏差归因。\n\n## 改进建议\n\n- 今日无 MISS，不建议调整核心规则。",
+  "learning_notes": []
+}
