@@ -1,5 +1,5 @@
 window.OIL_FUTURES_CONTRACTS = {
-  "updated_at": "2026-07-09 16:35",
+  "updated_at": "2026-07-09 16:36",
   "source": "futures-oil-daily 最新快照：source_runs/2026-07-09-daily/raw/futures_market_data.json；国内合约名单先由 contract_selector_skill 选择，再由 contract_discovery_skill 按当月实时成交量、持仓量、成交额排序生成，外盘仅展示与棕榈油最相关的 FCPO；内盘具体合约与日线缺口由 AkShare 补充，并用同花顺问财行情skill交叉验证",
   "contract_selector_skill": "contract_selector_skill",
   "contract_discovery_skill": "contract_discovery_skill",
@@ -27,9 +27,9 @@ window.OIL_FUTURES_CONTRACTS = {
       "preclose": "9341",
       "settle": "9344",
       "trade_date": "2026-07-09",
-      "source": "AkShare + 同花顺问财行情skill",
+      "source": "akshare:futures_zh_realtime",
       "note": "P 是棕榈油报告主线，重点看持仓与豆油、菜油共振。",
-      "verification": "价格一致：AkShare 9354 / 行情skill 9354",
+      "verification": "行情skill核验：未完成（行情skill未配置 IWENCAI_API_KEY）；当前以 AkShare 为准。",
       "score": {
         "total": 56.8,
         "technical": 51.0,
@@ -104,9 +104,9 @@ window.OIL_FUTURES_CONTRACTS = {
       "preclose": "9614",
       "settle": "9662",
       "trade_date": "2026-07-09",
-      "source": "AkShare + 同花顺问财行情skill",
+      "source": "akshare:futures_zh_realtime",
       "note": "P 是棕榈油报告主线，重点看持仓与豆油、菜油共振。",
-      "verification": "价格一致：AkShare 9630 / 行情skill 9630",
+      "verification": "行情skill核验：未完成（行情skill未配置 IWENCAI_API_KEY）；当前以 AkShare 为准。",
       "score": {
         "total": 53.4,
         "technical": 51.0,
@@ -181,9 +181,9 @@ window.OIL_FUTURES_CONTRACTS = {
       "preclose": "8616",
       "settle": "8623",
       "trade_date": "2026-07-09",
-      "source": "AkShare + 同花顺问财行情skill",
+      "source": "akshare:futures_zh_realtime",
       "note": "Y 用于观察豆系对棕榈油的共振或拖累。",
-      "verification": "价格一致：AkShare 8610 / 行情skill 8610",
+      "verification": "行情skill核验：未完成（行情skill未配置 IWENCAI_API_KEY）；当前以 AkShare 为准。",
       "score": {
         "total": 57.5,
         "technical": 68.0,
@@ -256,14 +256,14 @@ window.OIL_FUTURES_CONTRACTS = {
       "high": "8629",
       "low": "8543",
       "preclose": "8599",
-      "settle": "8582",
+      "settle": "8596",
       "trade_date": "2026-07-09",
-      "source": "AkShare + 同花顺问财行情skill",
+      "source": "akshare:futures_zh_realtime",
       "note": "Y 用于观察豆系对棕榈油的共振或拖累。",
-      "verification": "价格一致：AkShare 8587 / 行情skill 8587",
+      "verification": "行情skill核验：未完成（行情skill未配置 IWENCAI_API_KEY）；当前以 AkShare 为准。",
       "score": {
-        "total": 56.5,
-        "technical": 68.0,
+        "total": 58.2,
+        "technical": 75.0,
         "fundamental": 50.0,
         "driver": 62.3,
         "money_flow": 41.4,
@@ -272,19 +272,19 @@ window.OIL_FUTURES_CONTRACTS = {
         "view_confidence": "低",
         "contradiction_warning": "暂无明显冲突信号"
       },
-      "view": "豆油当前信号分歧，按震荡处理，总观点为分歧震荡，置信度低；技术面显示偏多（价格在20日均线上方、均线结构震荡、处于统计区间上沿外侧）。基本面背景：基本面暂无强新增驱动。驱动：FCPO+1.25%（24小时新增）；CBOT豆油+0.51%（24小时新增）；美豆-0.31%（24小时新增）；WTI/Brent原油-0.10%（24小时新增）；天气出现24小时内可核验扰动；当日新增政策/新闻纳入驱动；周度库存不作为今日主驱动。资金：当日涨跌幅-0.14%；成交量较前快照-13.49%；持仓较前快照-44.09%；板块强弱排序 rapeseed_oil > palm_oil > soybean_oil；soybean_palm_spread变化 -33；rapeseed_soybean_spread变化 13。冲突提示：暂无明显冲突信号。",
+      "view": "豆油当前信号分歧，按震荡处理，总观点为分歧震荡，置信度低；技术面显示偏多（价格在20日均线上方、均线结构震荡、突破20日区间上沿）。基本面背景：基本面暂无强新增驱动。驱动：FCPO+1.25%（24小时新增）；CBOT豆油+0.51%（24小时新增）；美豆-0.31%（24小时新增）；WTI/Brent原油-0.10%（24小时新增）；天气出现24小时内可核验扰动；当日新增政策/新闻纳入驱动；周度库存不作为今日主驱动。资金：当日涨跌幅-0.14%；成交量较前快照-13.49%；持仓较前快照-44.09%；板块强弱排序 rapeseed_oil > palm_oil > soybean_oil；soybean_palm_spread变化 -33；rapeseed_soybean_spread变化 13。冲突提示：暂无明显冲突信号。",
       "technical_detail": [
         {
           "title": "趋势结构",
-          "text": "现价 8587 对照 MA20 8390.55、MA60 8444.52，当前技术评分为 68，趋势标签为偏多。核心信号为：价格在20日均线上方、均线结构震荡、处于统计区间上沿外侧。"
+          "text": "现价 8587 对照 MA20 8375.65、MA60 8441.77，当前技术评分为 75，趋势标签为偏多。核心信号为：价格在20日均线上方、均线结构震荡、突破20日区间上沿。"
         },
         {
           "title": "支撑压力",
-          "text": "20日价格区间上沿 8624、下沿 8237；统计通道上轨 8574.35、下轨 8206.75。这些位置决定突破确认和反抽压力。"
+          "text": "20日价格区间上沿 8570、下沿 8237；统计通道上轨 8536.30、下轨 8215.00。这些位置决定突破确认和反抽压力。"
         },
         {
           "title": "波动与执行",
-          "text": "14日平均波动幅度约 83.86，用于衡量波动区间和观察位有效性。综合评分 56.50 只作多因子结果，技术面不得单独决定总观点。"
+          "text": "14日平均波动幅度约 84.36，用于衡量波动区间和观察位有效性。综合评分 58.20 只作多因子结果，技术面不得单独决定总观点。"
         }
       ],
       "fundamental_detail": [
@@ -304,10 +304,10 @@ window.OIL_FUTURES_CONTRACTS = {
       "strategy_recommendation": {
         "stance": "分歧震荡",
         "entry": "现价 8587；区间内等待驱动与资金确认",
-        "take_profit": "上方观察位 8671.97 / 下方观察位 8189.03",
-        "stop_loss": "下方观察位 8189.03",
-        "upper_watch": "8671.97",
-        "lower_watch": "8189.03",
+        "take_profit": "上方观察位 8679.66 / 下方观察位 8325.61",
+        "stop_loss": "下方观察位 8325.61",
+        "upper_watch": "8679.66",
+        "lower_watch": "8325.61",
         "invalidation": "若价格突破区间且驱动/资金同向，震荡判断失效。",
         "risk_tip": "仅给观察位和失效条件，不构成开平仓指令。",
         "basis": "综合波动、突破、均线和区间测算观察位；共纳入 4 组候选点位，不输出明确交易指令。"
@@ -335,9 +335,9 @@ window.OIL_FUTURES_CONTRACTS = {
       "preclose": "9844",
       "settle": "9897",
       "trade_date": "2026-07-09",
-      "source": "AkShare + 同花顺问财行情skill",
+      "source": "akshare:futures_zh_realtime",
       "note": "OI 用于观察油脂内部轮动和相对强弱切换。",
-      "verification": "价格一致：AkShare 9902 / 行情skill 9902；涨跌幅口径不同：AkShare +0.59% / 行情skill +0.21%",
+      "verification": "行情skill核验：未完成（行情skill未配置 IWENCAI_API_KEY）；当前以 AkShare 为准。",
       "score": {
         "total": 61.0,
         "technical": 65.0,
@@ -410,11 +410,11 @@ window.OIL_FUTURES_CONTRACTS = {
       "high": "9922",
       "low": "9854",
       "preclose": "9839",
-      "settle": "9870",
+      "settle": "9889",
       "trade_date": "2026-07-09",
-      "source": "AkShare + 同花顺问财行情skill",
+      "source": "akshare:futures_zh_realtime",
       "note": "OI 用于观察油脂内部轮动和相对强弱切换。",
-      "verification": "价格一致：AkShare 9892 / 行情skill 9892；涨跌幅口径不同：AkShare +0.54% / 行情skill +0.22%",
+      "verification": "行情skill核验：未完成（行情skill未配置 IWENCAI_API_KEY）；当前以 AkShare 为准。",
       "score": {
         "total": 56.0,
         "technical": 65.0,
@@ -430,15 +430,15 @@ window.OIL_FUTURES_CONTRACTS = {
       "technical_detail": [
         {
           "title": "趋势结构",
-          "text": "现价 9892 对照 MA20 9741.85、MA60 9735.32，当前技术评分为 65，趋势标签为偏多。核心信号为：价格在20日均线上方、均线结构震荡。"
+          "text": "现价 9892 对照 MA20 9739.40、MA60 9741.78，当前技术评分为 65，趋势标签为偏多。核心信号为：价格在20日均线上方、均线结构震荡。"
         },
         {
           "title": "支撑压力",
-          "text": "20日价格区间上沿 10041、下沿 9458；统计通道上轨 9984.28、下轨 9499.42。这些位置决定突破确认和反抽压力。"
+          "text": "20日价格区间上沿 10000、下沿 9458；统计通道上轨 9976.81、下轨 9501.99。这些位置决定突破确认和反抽压力。"
         },
         {
           "title": "波动与执行",
-          "text": "14日平均波动幅度约 140.64，用于衡量波动区间和观察位有效性。综合评分 56 只作多因子结果，技术面不得单独决定总观点。"
+          "text": "14日平均波动幅度约 134.21，用于衡量波动区间和观察位有效性。综合评分 56 只作多因子结果，技术面不得单独决定总观点。"
         }
       ],
       "fundamental_detail": [
@@ -458,10 +458,10 @@ window.OIL_FUTURES_CONTRACTS = {
       "strategy_recommendation": {
         "stance": "分歧震荡",
         "entry": "现价 9892；区间内等待驱动与资金确认",
-        "take_profit": "上方观察位 10121.45 / 下方观察位 9418.98",
-        "stop_loss": "下方观察位 9418.98",
-        "upper_watch": "10121.45",
-        "lower_watch": "9418.98",
+        "take_profit": "上方观察位 10076.77 / 下方观察位 9425.22",
+        "stop_loss": "下方观察位 9425.22",
+        "upper_watch": "10076.77",
+        "lower_watch": "9425.22",
         "invalidation": "若价格突破区间且驱动/资金同向，震荡判断失效。",
         "risk_tip": "仅给观察位和失效条件，不构成开平仓指令。",
         "basis": "综合波动、突破、均线和区间测算观察位；共纳入 4 组候选点位，不输出明确交易指令。"
@@ -487,11 +487,11 @@ window.OIL_FUTURES_CONTRACTS = {
       "high": "3063",
       "low": "3034",
       "preclose": "3051",
-      "settle": "3049",
+      "settle": "3045",
       "trade_date": "2026-07-09",
-      "source": "AkShare + 同花顺问财行情skill",
+      "source": "akshare:futures_zh_realtime",
       "note": "M 用于观察豆系蛋白粕与油脂之间的资金和压榨链条联动。",
-      "verification": "价格一致：AkShare 3052 / 行情skill 3052",
+      "verification": "行情skill核验：未完成（行情skill未配置 IWENCAI_API_KEY）；当前以 AkShare 为准。",
       "score": {
         "total": 59.8,
         "technical": 75.0,
@@ -566,9 +566,9 @@ window.OIL_FUTURES_CONTRACTS = {
       "preclose": "3111",
       "settle": "3107",
       "trade_date": "2026-07-09",
-      "source": "AkShare + 同花顺问财行情skill",
+      "source": "akshare:futures_zh_realtime",
       "note": "M 用于观察豆系蛋白粕与油脂之间的资金和压榨链条联动。",
-      "verification": "价格一致：AkShare 3110 / 行情skill 3110",
+      "verification": "行情skill核验：未完成（行情skill未配置 IWENCAI_API_KEY）；当前以 AkShare 为准。",
       "score": {
         "total": 58.0,
         "technical": 68.0,
@@ -645,7 +645,7 @@ window.OIL_FUTURES_CONTRACTS = {
       "trade_date": "2026-07-09",
       "source": "akshare:futures_zh_realtime",
       "note": "RM 用于观察菜系供需、资金迁移与菜油联动。",
-      "verification": "行情skill核验：未完成（行情skill返回空数据）；当前以 AkShare 为准。",
+      "verification": "行情skill核验：未完成（行情skill未配置 IWENCAI_API_KEY）；当前以 AkShare 为准。",
       "score": {
         "total": 61.0,
         "technical": 75.0,
@@ -722,7 +722,7 @@ window.OIL_FUTURES_CONTRACTS = {
       "trade_date": "2026-07-09",
       "source": "akshare:futures_zh_realtime",
       "note": "RM 用于观察菜系供需、资金迁移与菜油联动。",
-      "verification": "行情skill核验：未完成（行情skill返回空数据）；当前以 AkShare 为准。",
+      "verification": "行情skill核验：未完成（行情skill未配置 IWENCAI_API_KEY）；当前以 AkShare 为准。",
       "score": {
         "total": 55.3,
         "technical": 54.0,
