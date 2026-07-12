@@ -7,6 +7,26 @@ window.OIL_FUTURES_CONTRACTS = {
   "contract_discovery_warnings": [],
   "review_learning_warning": "",
   "review_learning_repeated_errors": {},
+  "market_references": {
+    "malaysia_fcpo": {
+      "label": "马来 BMD FCPO",
+      "location": "马来西亚",
+      "price": "4607",
+      "change": "+1.25%",
+      "unit": "林吉特/吨",
+      "updated_at": "2026-07-08",
+      "source": "tradingview:MYX:FCPO1!"
+    },
+    "india_cpo_spot": {
+      "label": "印度 NCDEX CPO 现货",
+      "location": "Kandla",
+      "price": "1354.10",
+      "change": "-0.18%",
+      "unit": "印度卢比/10公斤",
+      "updated_at": "2026-07-10 15:24",
+      "source": "ncdex:live-spot"
+    }
+  },
   "contracts": [
     {
       "symbol": "P2609",

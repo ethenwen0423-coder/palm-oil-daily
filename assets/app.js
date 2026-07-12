@@ -13,6 +13,16 @@
   const oilFuturesList = document.querySelector("#oil-futures-list");
   const oilFuturesUpdated = document.querySelector("#oil-futures-updated");
   const oilFuturesSource = document.querySelector("#oil-futures-source");
+  const overviewDate = document.querySelector("#overview-date");
+  const overviewDailyTitle = document.querySelector("#overview-daily-title");
+  const overviewDailyLink = document.querySelector("#overview-daily-link");
+  const overviewWeeklyTitle = document.querySelector("#overview-weekly-title");
+  const overviewWeeklyLink = document.querySelector("#overview-weekly-link");
+  const overviewFuturesTitle = document.querySelector("#overview-futures-title");
+  const overviewFuturesStrip = document.querySelector("#overview-futures-strip");
+  const overviewMarketReferences = document.querySelector("#overview-market-references");
+  const sourcesReports = document.querySelector("#sources-reports");
+  const sourcesFutures = document.querySelector("#sources-futures");
   const heroCall = document.querySelector("#hero-call");
   const heroPoints = document.querySelector("#hero-points");
   const detailTitle = document.querySelector("#detail-title");
@@ -405,6 +415,12 @@
     return headline ? `${prefix} ${headline}` : prefix;
   }
 
+  function overviewReportTitle(report) {
+    const title = String(report.title || "").trim() || `${formatShortDate(baseDate(report))}${getKind(report) === "weekly" ? "周报" : "晨报"}`;
+    const headline = displayHeadline(report);
+    return headline ? `${title} ${headline}` : title;
+  }
+
   function reportHref(report) {
     return `report.html?id=${encodeURIComponent(report.date)}`;
   }
@@ -579,12 +595,66 @@
     if (oilFuturesUpdated) {
       oilFuturesUpdated.textContent = data.updated_at ? `更新 ${data.updated_at}` : "等待行情数据";
     }
+    if (overviewFuturesTitle) {
+      overviewFuturesTitle.textContent = data.updated_at ? `更新 ${data.updated_at}` : "等待行情数据";
+    }
     if (oilFuturesSource) {
       oilFuturesSource.textContent = data.source || "数据源等待加载";
     }
+    if (sourcesFutures) {
+      sourcesFutures.textContent = data.source || "油脂主力合约行情等待加载。";
+    }
     if (!contracts.length) {
       oilFuturesList.innerHTML = '<p class="empty">暂无油脂期货主力合约数据。</p>';
+      if (overviewFuturesStrip) overviewFuturesStrip.innerHTML = '<p class="empty">暂无油脂油料合约数据。</p>';
       return;
+    }
+
+    const overviewContracts = contracts.filter((contract) => {
+      const product = String(contract.product || "").toUpperCase();
+      return product === "FCPO" || String(contract.symbol || "").toUpperCase() === "FCPO" || (["P", "Y", "OI"].includes(product) && Number(contract.contract_rank) === 1);
+    });
+    if (overviewFuturesStrip) {
+      overviewFuturesStrip.innerHTML = overviewContracts
+        .map((contract) => {
+          const change = Number.parseFloat(String(contract.change || "").replace("%", ""));
+          const state = change > 0 ? "up" : change < 0 ? "down" : "flat";
+          return `
+            <article class="market-strip-item ${state}">
+              <div>
+                <strong>${escapeHtml(contract.name || contract.product || "合约")}</strong>
+                <span>${escapeHtml(contract.contract || contract.symbol || "")}</span>
+              </div>
+              <b>${escapeHtml(contract.price || "--")}</b>
+              <small>${escapeHtml(contract.change || "--")}</small>
+            </article>
+          `;
+        })
+        .join("");
+    }
+    if (overviewMarketReferences) {
+      const references = data.market_references || {};
+      const items = [references.malaysia_fcpo, references.india_cpo_spot].filter(Boolean);
+      overviewMarketReferences.innerHTML = items.length
+        ? items
+            .map(
+              (reference) => `
+                <article class="market-reference-item">
+                  <div>
+                    <span>${escapeHtml(reference.label || "海外市场")}</span>
+                    <small>${escapeHtml(reference.location || "")}</small>
+                  </div>
+                  <strong>${escapeHtml(reference.price || "待更新")}</strong>
+                  <p>
+                    <b>${escapeHtml(reference.unit || "")}</b>
+                    <em>${escapeHtml(reference.change || "需进一步核验")}</em>
+                  </p>
+                  <small class="market-reference-time">${escapeHtml(reference.updated_at || "待更新")}</small>
+                </article>
+              `,
+            )
+            .join("")
+        : '<p class="empty">海外价格参照待更新。</p>';
     }
     oilFuturesList.innerHTML = `${contracts.map(renderContractCard).join("")}${renderWatchlistCard(contracts, data.watchlist_options)}`;
     bindFuturesWatchlist(contracts);
@@ -644,10 +714,16 @@
     const latestDaily = groups.daily[0] || latest;
     const latestWeekly = groups.weekly[0];
     if (latestDate) latestDate.textContent = latestDaily ? baseDate(latestDaily) : "等待生成";
+    if (overviewDate) overviewDate.textContent = latestDaily ? `更新 ${baseDate(latestDaily)}` : "等待更新";
     if (latestUpdated) {
       const updated = latestDaily?.updated_at || "";
       const time = updated.split(/\s+/)[1];
       latestUpdated.textContent = time ? `${time} 北京时间` : "自动发布准备中";
+    }
+    if (sourcesReports) {
+      sourcesReports.textContent = latestDaily?.updated_at
+        ? `最新日报整理于 ${latestDaily.updated_at}；报告归档按发布日期倒序排列。`
+        : "日报与周报由本地发布流程同步生成。";
     }
     if (latestDaily) {
       const view = getHeroView(latestDaily);
@@ -659,6 +735,12 @@
           .map((point) => `<li>${escapeHtml(point)}</li>`)
           .join("");
       }
+      if (overviewDailyTitle) overviewDailyTitle.textContent = overviewReportTitle(latestDaily);
+      if (overviewDailyLink) overviewDailyLink.href = reportHref(latestDaily);
+    }
+    if (latestWeekly) {
+      if (overviewWeeklyTitle) overviewWeeklyTitle.textContent = overviewReportTitle(latestWeekly);
+      if (overviewWeeklyLink) overviewWeeklyLink.href = reportHref(latestWeekly);
     }
     if (dailyReportLink && latestDaily) dailyReportLink.href = reportHref(latestDaily);
     if (weeklyReportLink && latestWeekly) weeklyReportLink.href = reportHref(latestWeekly);

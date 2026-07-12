@@ -50,6 +50,47 @@
     </header>
 
     <main class="shell newspaper-layout">
+      <nav class="home-anchor-nav" aria-label="首页分区导航">
+        <a href="#overview">今日概览</a>
+        <a href="#reports-panel" data-tab-target="reports-panel">报告归档</a>
+        <a href="#oil-futures-panel" data-tab-target="oil-futures-panel">油脂主力</a>
+        <a href="#sources">数据来源</a>
+      </nav>
+
+      <section id="overview" class="market-brief" aria-labelledby="overview-title">
+        <header class="market-brief-header">
+          <div>
+            <p>油脂油料研究</p>
+            <h2 id="overview-title">今日市场概览</h2>
+          </div>
+          <span id="overview-date">等待更新</span>
+        </header>
+        <div class="brief-report-stack" aria-label="最新研究报告">
+          <article class="brief-report-item">
+            <span>最新晨报</span>
+            <strong id="overview-daily-title">等待生成</strong>
+            <a id="overview-daily-link" href="#recent-title">阅读全文 →</a>
+          </article>
+          <article class="brief-report-item">
+            <span>本周周报</span>
+            <strong id="overview-weekly-title">等待生成</strong>
+            <a id="overview-weekly-link" href="#weekly-title">查看周报 →</a>
+          </article>
+        </div>
+
+        <div class="market-strip-heading">
+          <strong>油脂主力合约表现</strong>
+          <span id="overview-futures-title">等待行情数据</span>
+        </div>
+        <div id="overview-futures-strip" class="market-strip" aria-label="油脂主力合约整体行情"></div>
+
+        <div class="market-reference-heading">
+          <strong>海外价格参照</strong>
+          <span>产地与进口端</span>
+        </div>
+        <div id="overview-market-references" class="market-reference-grid" aria-label="马来与印度棕榈油价格"></div>
+      </section>
+
       <nav class="home-tabs" aria-label="首页内容切换" role="tablist">
         <button class="home-tab active" type="button" data-tab-target="reports-panel">报告归档</button>
         <button class="home-tab" type="button" data-tab-target="oil-futures-panel">油脂主力合约</button>
@@ -103,6 +144,27 @@
             <span>仅作研究跟踪，不构成投资建议。</span>
           </div>
         </section>
+      </section>
+
+      <section id="sources" class="sources-section" aria-labelledby="sources-title">
+        <header class="section-heading">
+          <h2 id="sources-title">数据来源与发布说明</h2>
+          <span>可追溯口径</span>
+        </header>
+        <div class="sources-grid">
+          <article class="source-card">
+            <span>报告数据</span>
+            <p id="sources-reports">日报与周报由本地发布流程同步生成。</p>
+          </article>
+          <article class="source-card">
+            <span>行情数据</span>
+            <p id="sources-futures">油脂主力合约行情等待加载。</p>
+          </article>
+          <article class="source-card">
+            <span>使用边界</span>
+            <p>所有内容仅作研究跟踪，不构成投资建议；交易前需结合实时行情和自身风控。</p>
+          </article>
+        </div>
       </section>
     </main>
 
