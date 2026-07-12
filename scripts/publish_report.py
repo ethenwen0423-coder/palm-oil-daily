@@ -8,6 +8,8 @@ import re
 from datetime import datetime
 from pathlib import Path
 
+from sync_miniprogram_data import publish_dataset
+
 
 ROOT = Path(__file__).resolve().parents[1]
 REPORTS_DIR = ROOT / "reports"
@@ -88,9 +90,10 @@ def main() -> None:
     DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
     payload = json.dumps(reports, ensure_ascii=False, indent=2)
     DATA_FILE.write_text(f"window.PALM_OIL_REPORTS = {payload};\n", encoding="utf-8")
+    publish_dataset("reports", reports)
     version = int(max((path.stat().st_mtime for path in REPORTS_DIR.glob("*.md")), default=datetime.now().timestamp()))
     VERSION_FILE.write_text(f"window.PALM_OIL_DATA_VERSION = '{version}';\n", encoding="utf-8")
-    print(f"published {len(reports)} report(s) to {DATA_FILE}")
+    print(f"published {len(reports)} report(s) to website and mini-program data")
 
 
 if __name__ == "__main__":

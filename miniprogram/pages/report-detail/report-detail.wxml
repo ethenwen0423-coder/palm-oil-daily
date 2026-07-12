@@ -1,0 +1,18 @@
+<view wx:if="{{report}}">
+  <view class="masthead">
+    <view class="kicker">{{report.kindLabel}} · VINSON RESEARCH</view>
+    <view class="title">{{report.displayTitle}}</view>
+    <view class="headline">{{report.displayHeadline}}</view>
+    <view class="meta">最后整理：{{report.updated_at}}</view>
+    <view wx:if="{{offline}}" class="offline">当前展示缓存版本</view>
+  </view>
+  <view class="page-shell">
+    <view class="content card"><rich-text nodes="{{contentHtml}}" selectable></rich-text></view>
+    <view class="actions">
+      <button class="primary-button" bindtap="downloadSource">下载原文</button>
+      <button class="secondary-button" bindtap="copySource">复制原文链接</button>
+    </view>
+    <view class="disclaimer">本报告仅作研究参考，不构成投资建议或交易指令。</view>
+  </view>
+</view>
+<view wx:else class="loading">正在加载报告…</view>

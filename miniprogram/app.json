@@ -1,0 +1,28 @@
+{
+  "pages": [
+    "pages/home/home",
+    "pages/reports/reports",
+    "pages/report-detail/report-detail",
+    "pages/futures/futures"
+  ],
+  "window": {
+    "navigationBarBackgroundColor": "#082f2b",
+    "navigationBarTextStyle": "white",
+    "navigationBarTitleText": "Vinson Research",
+    "backgroundColor": "#f4efe4",
+    "backgroundTextStyle": "dark"
+  },
+  "tabBar": {
+    "color": "#6d756f",
+    "selectedColor": "#0e6b5c",
+    "backgroundColor": "#fffdf7",
+    "borderStyle": "black",
+    "list": [
+      { "pagePath": "pages/home/home", "text": "首页" },
+      { "pagePath": "pages/reports/reports", "text": "报告" },
+      { "pagePath": "pages/futures/futures", "text": "油脂主力" }
+    ]
+  },
+  "sitemapLocation": "sitemap.json",
+  "lazyCodeLoading": "requiredComponents"
+}

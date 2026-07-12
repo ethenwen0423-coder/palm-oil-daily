@@ -38,6 +38,6 @@ if git diff --quiet -- reports data downloads; then
   exit 0
 fi
 
-git add reports data downloads
+git add reports data downloads miniprogram/data
 git commit -m "Update palm oil report"
 git push

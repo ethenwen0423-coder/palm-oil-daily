@@ -1,0 +1,17 @@
+{
+  "appid": "touristappid",
+  "projectname": "vinson-palm-oil-mini-program",
+  "description": "Vinson Research 棕榈油研究小程序",
+  "compileType": "miniprogram",
+  "miniprogramRoot": "./",
+  "setting": {
+    "urlCheck": false,
+    "es6": true,
+    "enhance": true,
+    "postcss": true,
+    "minified": true,
+    "coverView": true
+  },
+  "simulatorType": "wechat",
+  "condition": {}
+}

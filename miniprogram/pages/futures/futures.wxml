@@ -1,0 +1,67 @@
+<view class="market-head">
+  <view class="kicker">OIL FUTURES WATCH</view>
+  <view class="title">油脂期货主力合约</view>
+  <view class="updated">更新 {{updatedAt}}</view>
+  <view wx:if="{{offline}}" class="offline">当前展示缓存行情，下拉可重试</view>
+</view>
+
+<view class="page-shell">
+  <view class="watch-card card">
+    <view class="watch-title">自选合约</view>
+    <view class="watch-controls">
+      <picker mode="selector" range="{{pickerOptions}}" value="{{selectedIndex}}" bindchange="selectWatch">
+        <view class="picker">{{pickerOptions[selectedIndex] || '选择合约'}}⌄</view>
+      </picker>
+      <button class="primary-button confirm" bindtap="confirmWatch">确认</button>
+    </view>
+    <view wx:if="{{watchContract}}" class="watch-result">
+      <text>{{watchContract.name}} {{watchContract.contract}}</text>
+      <text class="{{watchContract.changeClass}}">{{watchContract.price}} · {{watchContract.change}}</text>
+    </view>
+  </view>
+
+  <view class="section-title"><text>合约跟踪</text><text>{{contracts.length}} 个合约</text></view>
+  <view class="contract card" wx:for="{{contracts}}" wx:key="symbol">
+    <view class="contract-summary" bindtap="toggleContract" data-index="{{index}}">
+      <view>
+        <view class="market">{{item.market}} · {{item.contract_label}}</view>
+        <view class="name">{{item.name}} <text>{{item.contract}}</text></view>
+      </view>
+      <view class="quote {{item.changeClass}}">
+        <view>{{item.price}}</view><text>{{item.change}} {{item.direction}}</text>
+      </view>
+    </view>
+    <view class="score-grid">
+      <view><text>综合评分</text><strong>{{item.scoreTotal}}</strong></view>
+      <view><text>行情观点</text><strong>{{item.stance}}</strong></view>
+      <view><text>技术面</text><strong>{{item.technicalScore}}</strong></view>
+      <view><text>基本面</text><strong>{{item.fundamentalScore}}</strong></view>
+    </view>
+    <view wx:if="{{item.expanded}}" class="details">
+      <view class="view-text">{{item.view || item.note}}</view>
+      <view class="detail-group" wx:if="{{item.technical_detail.length}}">
+        <view class="detail-title">技术面详解</view>
+        <view class="detail-row" wx:for="{{item.technical_detail}}" wx:for-item="detail" wx:key="title">
+          <strong>{{detail.title}}</strong><text>{{detail.text}}</text>
+        </view>
+      </view>
+      <view class="detail-group" wx:if="{{item.fundamental_detail.length}}">
+        <view class="detail-title">基本面详解</view>
+        <view class="detail-row" wx:for="{{item.fundamental_detail}}" wx:for-item="detail" wx:key="title">
+          <strong>{{detail.title}}</strong><text>{{detail.text}}</text>
+        </view>
+      </view>
+      <view class="strategy" wx:if="{{item.strategy_recommendation}}">
+        <view class="detail-title">综合策略建议</view>
+        <view><text>参考触发</text><strong>{{item.strategy_recommendation.entry}}</strong></view>
+        <view><text>综合止盈</text><strong>{{item.strategy_recommendation.take_profit}}</strong></view>
+        <view><text>综合止损</text><strong>{{item.strategy_recommendation.stop_loss}}</strong></view>
+        <view class="risk">{{item.strategy_recommendation.risk_tip}}</view>
+      </view>
+      <view class="verification">{{item.verification || item.quality_note}}</view>
+    </view>
+    <view class="expand" bindtap="toggleContract" data-index="{{index}}">{{item.expanded ? '收起详情' : '展开详情'}}</view>
+  </view>
+
+  <view class="source card">数据来源：{{source}}<view>仅作研究跟踪，不构成投资建议。</view></view>
+</view>

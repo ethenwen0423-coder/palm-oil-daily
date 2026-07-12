@@ -1,0 +1,39 @@
+.market-head { background: #082f2b; color: #fff; padding: 46rpx 32rpx 36rpx; }
+.kicker { color: #d5b25a; font-size: 21rpx; letter-spacing: 3rpx; }
+.title { font-family: Georgia, "Songti SC", serif; font-size: 46rpx; font-weight: 700; margin-top: 12rpx; }
+.updated { color: #9bb4ae; font-size: 22rpx; margin-top: 12rpx; }
+.offline { background: #f1d27d; border-radius: 8rpx; color: #503c0c; font-size: 21rpx; margin-top: 18rpx; padding: 9rpx 12rpx; text-align: center; }
+.watch-card { padding: 26rpx; }
+.watch-title { font-weight: 700; }
+.watch-controls { display: grid; gap: 14rpx; grid-template-columns: 1fr 150rpx; margin-top: 18rpx; }
+.picker { background: #f4f1e9; border-radius: 10rpx; padding: 18rpx; }
+.confirm { line-height: 2.25; margin: 0; }
+.watch-result { border-top: 1rpx solid #e2dccf; display: flex; justify-content: space-between; margin-top: 20rpx; padding-top: 18rpx; }
+.contract { margin-bottom: 22rpx; overflow: hidden; padding: 26rpx; }
+.contract-summary { display: flex; justify-content: space-between; }
+.market { color: #0e6b5c; font-size: 21rpx; font-weight: 700; }
+.name { font-family: Georgia, "Songti SC", serif; font-size: 36rpx; font-weight: 700; margin-top: 8rpx; }
+.name text { color: #6f7872; font-size: 24rpx; }
+.quote { text-align: right; }
+.quote view { font-size: 38rpx; font-weight: 700; }
+.quote text { font-size: 23rpx; }
+.score-grid { display: grid; gap: 10rpx; grid-template-columns: 1fr 1fr; margin-top: 24rpx; }
+.score-grid view { background: #f4f1e9; border-radius: 10rpx; padding: 16rpx; }
+.score-grid text, .score-grid strong { display: block; }
+.score-grid text { color: #7a817d; font-size: 20rpx; }
+.score-grid strong { font-size: 25rpx; margin-top: 6rpx; }
+.details { border-top: 1rpx solid #e2dccf; margin-top: 24rpx; padding-top: 22rpx; }
+.view-text { color: #4f5e58; line-height: 1.75; }
+.detail-group, .strategy { margin-top: 26rpx; }
+.detail-title { color: #0b5e52; font-size: 29rpx; font-weight: 700; margin-bottom: 12rpx; }
+.detail-row { border-left: 4rpx solid #d1ab56; margin: 14rpx 0; padding-left: 16rpx; }
+.detail-row strong, .detail-row text { display: block; }
+.detail-row text { color: #626d68; font-size: 24rpx; line-height: 1.65; margin-top: 5rpx; }
+.strategy { background: #eef4f0; border-radius: 12rpx; padding: 20rpx; }
+.strategy > view:not(.detail-title):not(.risk) { display: grid; gap: 12rpx; grid-template-columns: 120rpx 1fr; margin: 12rpx 0; }
+.strategy text { color: #708079; font-size: 22rpx; }
+.strategy strong { font-size: 23rpx; }
+.risk, .verification { color: #858d88; font-size: 21rpx; line-height: 1.6; margin-top: 16rpx; }
+.expand { color: #0e6b5c; font-size: 23rpx; margin-top: 22rpx; text-align: center; }
+.source { color: #747c77; font-size: 21rpx; line-height: 1.65; margin-top: 30rpx; padding: 22rpx; }
+.source view { margin-top: 8rpx; }

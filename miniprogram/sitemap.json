@@ -1,0 +1,4 @@
+{
+  "desc": "Vinson Research 棕榈油研究小程序",
+  "rules": [{ "action": "allow", "page": "*" }]
+}

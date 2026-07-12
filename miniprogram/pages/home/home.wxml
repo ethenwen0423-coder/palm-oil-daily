@@ -1,0 +1,36 @@
+<view class="hero">
+  <view class="brand-kicker">VINSON RESEARCH</view>
+  <view class="brand-title">Palm Oil Intelligence</view>
+  <view class="brand-subtitle">专业棕榈油市场研究</view>
+
+  <view wx:if="{{latest}}" class="view-card">
+    <view class="view-label"><text>今日观点</text><text>★★★★☆</text></view>
+    <view class="view-call">{{latest.displayHeadline}}</view>
+    <view class="view-point" wx:for="{{heroPoints}}" wx:key="*this">• {{item}}</view>
+    <view class="updated">更新 {{latest.updated_at}}</view>
+  </view>
+  <view wx:elif="{{!loading}}" class="empty hero-empty">暂无今日报告</view>
+  <view wx:if="{{offline}}" class="offline">当前展示缓存数据，下拉可重试</view>
+</view>
+
+<view class="page-shell">
+  <view class="quick-grid">
+    <button class="primary-button" bindtap="openReport" data-id="{{latest.date}}" disabled="{{!latest}}">阅读今日晨报</button>
+    <button class="secondary-button" bindtap="openFutures">查看油脂主力</button>
+  </view>
+
+  <view class="section-title"><text>最近一周报告</text><text bindtap="openReports">全部报告 →</text></view>
+  <view class="report-list card">
+    <view wx:for="{{recent}}" wx:key="date" class="report-row" bindtap="openReport" data-id="{{item.date}}">
+      <view class="report-kind">{{item.kindLabel}}</view>
+      <view class="report-main">
+        <view class="report-title">{{item.displayTitle}}</view>
+        <view class="report-headline">{{item.displayHeadline}}</view>
+      </view>
+      <view class="arrow">›</view>
+    </view>
+    <view wx:if="{{!recent.length && !loading}}" class="empty empty-row">暂无报告</view>
+  </view>
+
+  <view class="disclaimer">仅作研究和信息整理，不构成投资建议。</view>
+</view>

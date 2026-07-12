@@ -57,6 +57,12 @@
   - `oil_futures.js` 提供油脂主力合约行情、评分和策略数据。
   - `version.js` 用于控制前端缓存刷新。
 
+## 微信小程序
+
+仓库内的 `miniprogram/` 是与网站功能对齐的原生微信小程序工程，包含今日观点、报告归档、报告详情与原文下载、油脂主力合约和自选合约功能。
+
+小程序通过当前 GitHub Pages 站点在线读取 `data/reports.json` 和 `data/oil_futures.json`，网站每次自动发布时会同步更新这两个接口；随包数据和本地缓存用于断网兜底。导入、正式 AppID 和合法域名配置见 `miniprogram/README.md`。
+
 ## 目录说明
 
 - `index.html`：报告列表首页。

@@ -1,0 +1,11 @@
+.masthead { background: #082f2b; color: #fff; padding: 48rpx 32rpx 38rpx; }
+.kicker { color: #d6b45e; font-size: 21rpx; letter-spacing: 3rpx; }
+.title { font-family: Georgia, "Songti SC", serif; font-size: 48rpx; font-weight: 700; margin-top: 18rpx; }
+.headline { color: #d8e5e1; line-height: 1.6; margin-top: 18rpx; }
+.meta { color: #8eaaa3; font-size: 22rpx; margin-top: 20rpx; }
+.offline { background: #f2d27c; border-radius: 8rpx; color: #4f3a08; display: inline-block; font-size: 20rpx; margin-top: 16rpx; padding: 8rpx 12rpx; }
+.content { padding: 30rpx; }
+.actions { display: grid; gap: 16rpx; grid-template-columns: 1fr 1fr; margin-top: 24rpx; }
+.actions button { margin: 0; }
+.disclaimer { color: #858c87; font-size: 21rpx; padding: 40rpx 12rpx; text-align: center; }
+.loading { color: #7d847f; padding: 160rpx 0; text-align: center; }

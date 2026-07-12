@@ -1,0 +1,18 @@
+page {
+  background: #f4efe4;
+  color: #18302b;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: 28rpx;
+}
+
+.page-shell { padding: 28rpx; }
+.card { background: #fffdf7; border: 1rpx solid #d7d0c0; border-radius: 18rpx; box-shadow: 0 8rpx 28rpx rgba(20, 48, 42, .06); }
+.section-title { display: flex; align-items: baseline; justify-content: space-between; margin: 38rpx 0 18rpx; }
+.section-title text:first-child { font-family: Georgia, "Songti SC", serif; font-size: 38rpx; font-weight: 700; }
+.section-title text:last-child { color: #7c847f; font-size: 22rpx; }
+.empty, .muted { color: #7c847f; }
+.up { color: #bd3d32; }
+.down { color: #16855d; }
+.flat { color: #737b75; }
+.primary-button { background: #0e6b5c; color: #fff; border-radius: 999rpx; font-size: 27rpx; }
+.secondary-button { background: transparent; color: #0e6b5c; border: 1rpx solid #0e6b5c; border-radius: 999rpx; font-size: 27rpx; }

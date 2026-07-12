@@ -14,6 +14,8 @@ import importlib.util
 from pathlib import Path
 from typing import Any
 
+from sync_miniprogram_data import publish_dataset
+
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE_RUNS = ROOT / "source_runs"
@@ -579,6 +581,8 @@ def write_js(payload: dict[str, Any], output: Path) -> None:
     output.parent.mkdir(parents=True, exist_ok=True)
     text = json.dumps(payload, ensure_ascii=False, indent=2)
     output.write_text(f"window.OIL_FUTURES_CONTRACTS = {text};\n", encoding="utf-8")
+    if output.resolve() == OUTPUT.resolve():
+        publish_dataset("oil-futures", payload)
 
 
 def archive_existing_output(output: Path, review_date: str) -> Path | None:

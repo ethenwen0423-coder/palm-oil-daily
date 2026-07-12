@@ -1,0 +1,17 @@
+<view class="page-shell">
+  <view wx:if="{{offline}}" class="offline">当前展示缓存数据</view>
+  <view class="tabs card">
+    <view class="tab {{active === 'recent' ? 'active' : ''}}" data-tab="recent" bindtap="changeTab">全部</view>
+    <view class="tab {{active === 'daily' ? 'active' : ''}}" data-tab="daily" bindtap="changeTab">日报</view>
+    <view class="tab {{active === 'weekly' ? 'active' : ''}}" data-tab="weekly" bindtap="changeTab">周报</view>
+  </view>
+
+  <view class="archive-heading"><text>REPORT ARCHIVE</text><text>{{reports.length}} 篇</text></view>
+  <view class="report-card card" wx:for="{{reports}}" wx:key="date" bindtap="openReport" data-id="{{item.date}}">
+    <view class="meta"><text>{{item.kindLabel}}</text><text>{{item.updated_at}}</text></view>
+    <view class="title">{{item.displayTitle}}</view>
+    <view class="headline">{{item.displayHeadline}}</view>
+    <view class="read">阅读报告 →</view>
+  </view>
+  <view wx:if="{{!reports.length}}" class="empty empty-state">暂无报告</view>
+</view>
