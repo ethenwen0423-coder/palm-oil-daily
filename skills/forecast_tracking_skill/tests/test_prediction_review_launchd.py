@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import shutil
 import subprocess
 import tempfile
@@ -137,6 +138,14 @@ class PredictionReviewLaunchdDryRunTest(unittest.TestCase):
         self.assertIn("validate_forecast.py --forecast", text)
         self.assertIn('latest.get("as_of") == report_date', text)
         self.assertIn("publish_prediction_review.sh", text)
+        weekday_values = [
+            int(value)
+            for value in re.findall(
+                r"<key>Weekday</key><integer>(\d+)</integer>",
+                text,
+            )
+        ]
+        self.assertEqual(weekday_values, [2, 3, 4, 5, 6, 2, 3, 4, 5, 6])
 
     def run_generated_runner(self, review_exit: int) -> list[str]:
         temporary = tempfile.TemporaryDirectory()
