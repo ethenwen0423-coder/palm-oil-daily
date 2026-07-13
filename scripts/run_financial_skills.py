@@ -18,6 +18,26 @@ SOURCE_RUNS = ROOT / "source_runs"
 CONTRACT_SELECTOR_CLI = ROOT / "skills" / "contract_selector_skill" / "scripts" / "select_contracts.py"
 CONTRACT_DISCOVERY_CLI = ROOT / "skills" / "contract_discovery_skill" / "scripts" / "select_contracts.py"
 CONTRACT_DISCOVERY_CURRENT = ROOT / "data" / "contracts" / "current_contracts.json"
+PRIVATE_ENV = Path.home() / "Library" / "Application Support" / "VinsonTesla" / "private.env"
+
+
+def load_private_env() -> None:
+    """Load local secrets for launchd/manual runs without storing them in the repo."""
+    if not PRIVATE_ENV.exists():
+        return
+    for raw_line in PRIVATE_ENV.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("export "):
+            line = line[len("export ") :].strip()
+        key, sep, value = line.partition("=")
+        if not sep:
+            continue
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        if key and value and key not in os.environ:
+            os.environ[key] = value
 
 
 def shlex_join(parts: list[str]) -> str:
@@ -266,6 +286,8 @@ def main() -> int:
         help="Return non-zero if any configured source command fails.",
     )
     args = parser.parse_args()
+
+    load_private_env()
 
     output_dir = SOURCE_RUNS / f"{args.date}-{args.kind}"
     output_dir.mkdir(parents=True, exist_ok=True)

@@ -23,6 +23,13 @@ cat > "$RUNNER" <<RUNNER
 #!/usr/bin/env bash
 set -euo pipefail
 
+PRIVATE_ENV="$SUPPORT_DIR/private.env"
+if [[ -f "\$PRIVATE_ENV" ]]; then
+  set -a
+  source "\$PRIVATE_ENV"
+  set +a
+fi
+
 ROOT="$RUNTIME_ROOT"
 LOG="$SUPPORT_DIR/contract-selector.log"
 
