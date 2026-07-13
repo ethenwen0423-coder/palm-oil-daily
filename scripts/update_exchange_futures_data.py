@@ -137,6 +137,11 @@ def clean_number(value: Any, digits: int = 2) -> float | None:
     return round(number, digits) if number is not None else None
 
 
+def display_number(value: Any) -> str:
+    number = clean_number(value)
+    return str(number) if number is not None else "需进一步核验"
+
+
 def load_technical_helper():
     spec = importlib.util.spec_from_file_location("technical_analysis_helper", TECHNICAL_HELPER)
     if spec is None or spec.loader is None:
@@ -270,7 +275,7 @@ def technical_summary(helper: Any, levels_helper: Any, history: list[dict[str, f
             {"title": "趋势", "text": f"日线趋势判定为{trend}，MA20 {clean_number(ma20)}，MA60 {clean_number(ma60)}。"},
             {"title": "动量", "text": momentum},
             {"title": "波动", "text": f"ATR14 为 {clean_number(atr)}，布林区间 {clean_number(boll.get('lower'))} 至 {clean_number(boll.get('upper'))}。"},
-            {"title": "关键位", "text": f"20日高低区间 {clean_number(max(highs[-20:]))} / {clean_number(min(lows[-20:]))}；局部支撑 {clean_number(nearest_support)}，局部阻力 {clean_number(nearest_resistance)}。"},
+            {"title": "关键位", "text": f"20日高低区间 {display_number(max(highs[-20:]))} / {display_number(min(lows[-20:]))}；局部支撑 {display_number(nearest_support)}，局部阻力 {display_number(nearest_resistance)}。"},
         ],
         "indicators": {
             "MA5": clean_number(ma.get("ma5")), "MA20": clean_number(ma20), "MA60": clean_number(ma60),

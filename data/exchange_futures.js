@@ -1,5 +1,5 @@
 window.EXCHANGE_FUTURES_DATA = {
-  "updated_at": "2026-07-13 14:12",
+  "updated_at": "2026-07-13 14:17",
   "source": "AkShare 实时行情与日线数据；技术指标由 technical-analysis-helper 生成；新闻热点来自最近一次已保存的资讯检索结果。",
   "contracts": [
     {
@@ -7,10 +7,10 @@ window.EXCHANGE_FUTURES_DATA = {
       "product": "花生",
       "exchange": "CZCE",
       "category": "油脂油料",
-      "price": 8420.0,
-      "change_pct": -0.17,
-      "volume": 91365,
-      "open_interest": 178658,
+      "price": 8412.0,
+      "change_pct": -0.26,
+      "volume": 91884,
+      "open_interest": 178578,
       "trade_date": "2026-07-13",
       "technical": {
         "status": "ok",
@@ -20,7 +20,7 @@ window.EXCHANGE_FUTURES_DATA = {
         "details": [
           {
             "title": "趋势",
-            "text": "日线趋势判定为偏多，MA20 8406.9，MA60 8293.33。"
+            "text": "日线趋势判定为偏多，MA20 8406.5，MA60 8293.2。"
           },
           {
             "title": "动量",
@@ -28,22 +28,22 @@ window.EXCHANGE_FUTURES_DATA = {
           },
           {
             "title": "波动",
-            "text": "ATR14 为 82.71，布林区间 8254.51 至 8559.29。"
+            "text": "ATR14 为 82.71，布林区间 8254.21 至 8558.79。"
           },
           {
             "title": "关键位",
-            "text": "20日高低区间 8606.0 / 8278.0；局部支撑 None，局部阻力 None。"
+            "text": "20日高低区间 8606.0 / 8278.0；局部支撑 需进一步核验，局部阻力 需进一步核验。"
           }
         ],
         "indicators": {
-          "MA5": 8395.6,
-          "MA20": 8406.9,
-          "MA60": 8293.33,
-          "MACD": -11.77,
-          "RSI12": 56.58,
-          "KDJ_J": 20.76,
-          "BOLL上轨": 8559.29,
-          "BOLL下轨": 8254.51,
+          "MA5": 8394.0,
+          "MA20": 8406.5,
+          "MA60": 8293.2,
+          "MACD": -12.29,
+          "RSI12": 56.0,
+          "KDJ_J": 17.82,
+          "BOLL上轨": 8558.79,
+          "BOLL下轨": 8254.21,
           "ATR14": 82.71
         },
         "levels": {
@@ -79,10 +79,10 @@ window.EXCHANGE_FUTURES_DATA = {
       "product": "菜油",
       "exchange": "CZCE",
       "category": "油脂油料",
-      "price": 9879.0,
-      "change_pct": -0.29,
-      "volume": 288910,
-      "open_interest": 318460,
+      "price": 9869.0,
+      "change_pct": -0.39,
+      "volume": 292252,
+      "open_interest": 318489,
       "trade_date": "2026-07-13",
       "technical": {
         "status": "ok",
@@ -92,7 +92,7 @@ window.EXCHANGE_FUTURES_DATA = {
         "details": [
           {
             "title": "趋势",
-            "text": "日线趋势判定为偏多，MA20 9738.7，MA60 9756.95。"
+            "text": "日线趋势判定为偏多，MA20 9738.2，MA60 9756.78。"
           },
           {
             "title": "动量",
@@ -100,22 +100,22 @@ window.EXCHANGE_FUTURES_DATA = {
           },
           {
             "title": "波动",
-            "text": "ATR14 为 135.36，布林区间 9514.24 至 9963.16。"
+            "text": "ATR14 为 135.36，布林区间 9515.02 至 9961.38。"
           },
           {
             "title": "关键位",
-            "text": "20日高低区间 9960.0 / 9453.0；局部支撑 9537.0，局部阻力 None。"
+            "text": "20日高低区间 9960.0 / 9453.0；局部支撑 9537.0，局部阻力 需进一步核验。"
           }
         ],
         "indicators": {
-          "MA5": 9844.8,
-          "MA20": 9738.7,
-          "MA60": 9756.95,
-          "MACD": 25.94,
-          "RSI12": 56.73,
-          "KDJ_J": 90.68,
-          "BOLL上轨": 9963.16,
-          "BOLL下轨": 9514.24,
+          "MA5": 9842.8,
+          "MA20": 9738.2,
+          "MA60": 9756.78,
+          "MACD": 25.3,
+          "RSI12": 56.14,
+          "KDJ_J": 88.33,
+          "BOLL上轨": 9961.38,
+          "BOLL下轨": 9515.02,
           "ATR14": 135.36
         },
         "levels": {
@@ -261,10 +261,10 @@ window.EXCHANGE_FUTURES_DATA = {
       "product": "菜粕",
       "exchange": "CZCE",
       "category": "油脂油料",
-      "price": 2307.0,
-      "change_pct": -0.77,
-      "volume": 718333,
-      "open_interest": 731802,
+      "price": 2306.0,
+      "change_pct": -0.82,
+      "volume": 723722,
+      "open_interest": 732649,
       "trade_date": "2026-07-13",
       "technical": {
         "status": "ok",
@@ -274,7 +274,7 @@ window.EXCHANGE_FUTURES_DATA = {
         "details": [
           {
             "title": "趋势",
-            "text": "日线趋势判定为偏多，MA20 2287.15，MA60 2320.53。"
+            "text": "日线趋势判定为偏多，MA20 2287.1，MA60 2320.52。"
           },
           {
             "title": "动量",
@@ -282,7 +282,7 @@ window.EXCHANGE_FUTURES_DATA = {
           },
           {
             "title": "波动",
-            "text": "ATR14 为 39.36，布林区间 2238.4 至 2335.9。"
+            "text": "ATR14 为 39.36，布林区间 2238.44 至 2335.76。"
           },
           {
             "title": "关键位",
@@ -290,14 +290,14 @@ window.EXCHANGE_FUTURES_DATA = {
           }
         ],
         "indicators": {
-          "MA5": 2314.4,
-          "MA20": 2287.15,
-          "MA60": 2320.53,
-          "MACD": 7.12,
-          "RSI12": 48.64,
-          "KDJ_J": 76.66,
-          "BOLL上轨": 2335.9,
-          "BOLL下轨": 2238.4,
+          "MA5": 2314.2,
+          "MA20": 2287.1,
+          "MA60": 2320.52,
+          "MACD": 7.05,
+          "RSI12": 48.49,
+          "KDJ_J": 75.76,
+          "BOLL上轨": 2335.76,
+          "BOLL下轨": 2238.44,
           "ATR14": 39.36
         },
         "levels": {
@@ -340,10 +340,10 @@ window.EXCHANGE_FUTURES_DATA = {
       "product": "PTA",
       "exchange": "CZCE",
       "category": "能化材料",
-      "price": 5614.0,
-      "change_pct": 0.97,
-      "volume": 821845,
-      "open_interest": 982944,
+      "price": 5616.0,
+      "change_pct": 1.01,
+      "volume": 828620,
+      "open_interest": 983677,
       "trade_date": "2026-07-13",
       "technical": {
         "status": "ok",
@@ -353,7 +353,7 @@ window.EXCHANGE_FUTURES_DATA = {
         "details": [
           {
             "title": "趋势",
-            "text": "日线趋势判定为偏空，MA20 5657.0，MA60 6126.13。"
+            "text": "日线趋势判定为偏空，MA20 5657.1，MA60 6126.17。"
           },
           {
             "title": "动量",
@@ -361,22 +361,22 @@ window.EXCHANGE_FUTURES_DATA = {
           },
           {
             "title": "波动",
-            "text": "ATR14 为 152.57，布林区间 5188.84 至 6125.16。"
+            "text": "ATR14 为 152.57，布林区间 5188.97 至 6125.23。"
           },
           {
             "title": "关键位",
-            "text": "20日高低区间 6426.0 / 5294.0；局部支撑 None，局部阻力 6466.0。"
+            "text": "20日高低区间 6426.0 / 5294.0；局部支撑 需进一步核验，局部阻力 6466.0。"
           }
         ],
         "indicators": {
-          "MA5": 5574.8,
-          "MA20": 5657.0,
-          "MA60": 6126.13,
-          "MACD": 27.5,
-          "RSI12": 46.87,
-          "KDJ_J": 79.18,
-          "BOLL上轨": 6125.16,
-          "BOLL下轨": 5188.84,
+          "MA5": 5575.2,
+          "MA20": 5657.1,
+          "MA60": 6126.17,
+          "MACD": 27.63,
+          "RSI12": 46.97,
+          "KDJ_J": 79.62,
+          "BOLL上轨": 6125.23,
+          "BOLL下轨": 5188.97,
           "ATR14": 152.57
         },
         "levels": {
@@ -412,10 +412,10 @@ window.EXCHANGE_FUTURES_DATA = {
       "product": "丙烯",
       "exchange": "CZCE",
       "category": "能化材料",
-      "price": 7209.0,
-      "change_pct": 1.69,
-      "volume": 59150,
-      "open_interest": 21848,
+      "price": 7208.0,
+      "change_pct": 1.68,
+      "volume": 59266,
+      "open_interest": 21861,
       "trade_date": "2026-07-13",
       "technical": {
         "status": "ok",
@@ -425,7 +425,7 @@ window.EXCHANGE_FUTURES_DATA = {
         "details": [
           {
             "title": "趋势",
-            "text": "日线趋势判定为偏多，MA20 7018.25，MA60 7826.98。"
+            "text": "日线趋势判定为偏多，MA20 7018.2，MA60 7826.97。"
           },
           {
             "title": "动量",
@@ -433,21 +433,21 @@ window.EXCHANGE_FUTURES_DATA = {
           },
           {
             "title": "波动",
-            "text": "ATR14 为 215.0，布林区间 6213.08 至 7823.42。"
+            "text": "ATR14 为 215.0，布林区间 6213.08 至 7823.32。"
           },
           {
             "title": "关键位",
-            "text": "20日高低区间 8343.0 / 6445.0；局部支撑 None，局部阻力 8513.0。"
+            "text": "20日高低区间 8343.0 / 6445.0；局部支撑 需进一步核验，局部阻力 8513.0。"
           }
         ],
         "indicators": {
-          "MA5": 7040.0,
-          "MA20": 7018.25,
-          "MA60": 7826.98,
-          "MACD": 79.43,
-          "RSI12": 69.39,
-          "KDJ_J": 101.61,
-          "BOLL上轨": 7823.42,
+          "MA5": 7039.8,
+          "MA20": 7018.2,
+          "MA60": 7826.97,
+          "MACD": 79.36,
+          "RSI12": 69.36,
+          "KDJ_J": 101.47,
+          "BOLL上轨": 7823.32,
           "BOLL下轨": 6213.08,
           "ATR14": 215.0
         },
@@ -484,10 +484,10 @@ window.EXCHANGE_FUTURES_DATA = {
       "product": "二甲苯",
       "exchange": "CZCE",
       "category": "能化材料",
-      "price": 7858.0,
-      "change_pct": 1.5,
-      "volume": 182821,
-      "open_interest": 162249,
+      "price": 7852.0,
+      "change_pct": 1.42,
+      "volume": 184336,
+      "open_interest": 162128,
       "trade_date": "2026-07-13",
       "technical": {
         "status": "ok",
@@ -497,7 +497,7 @@ window.EXCHANGE_FUTURES_DATA = {
         "details": [
           {
             "title": "趋势",
-            "text": "日线趋势判定为偏多，MA20 7825.4，MA60 8606.07。"
+            "text": "日线趋势判定为偏多，MA20 7825.1，MA60 8605.97。"
           },
           {
             "title": "动量",
@@ -505,22 +505,22 @@ window.EXCHANGE_FUTURES_DATA = {
           },
           {
             "title": "波动",
-            "text": "ATR14 为 216.29，布林区间 7162.66 至 8488.14。"
+            "text": "ATR14 为 216.29，布林区间 7162.42 至 8487.78。"
           },
           {
             "title": "关键位",
-            "text": "20日高低区间 8934.0 / 7264.0；局部支撑 None，局部阻力 None。"
+            "text": "20日高低区间 8934.0 / 7264.0；局部支撑 需进一步核验，局部阻力 需进一步核验。"
           }
         ],
         "indicators": {
-          "MA5": 7724.8,
-          "MA20": 7825.4,
-          "MA60": 8606.07,
-          "MACD": 54.27,
-          "RSI12": 50.45,
-          "KDJ_J": 97.8,
-          "BOLL上轨": 8488.14,
-          "BOLL下轨": 7162.66,
+          "MA5": 7723.6,
+          "MA20": 7825.1,
+          "MA60": 8605.97,
+          "MACD": 53.89,
+          "RSI12": 50.22,
+          "KDJ_J": 96.94,
+          "BOLL上轨": 8487.78,
+          "BOLL下轨": 7162.42,
           "ATR14": 216.29
         },
         "levels": {
@@ -556,10 +556,10 @@ window.EXCHANGE_FUTURES_DATA = {
       "product": "尿素",
       "exchange": "CZCE",
       "category": "能化材料",
-      "price": 1735.0,
-      "change_pct": 0.0,
-      "volume": 113105,
-      "open_interest": 288612,
+      "price": 1734.0,
+      "change_pct": -0.06,
+      "volume": 114392,
+      "open_interest": 288181,
       "trade_date": "2026-07-13",
       "technical": {
         "status": "ok",
@@ -569,7 +569,7 @@ window.EXCHANGE_FUTURES_DATA = {
         "details": [
           {
             "title": "趋势",
-            "text": "日线趋势判定为偏空，MA20 1756.4，MA60 1845.18。"
+            "text": "日线趋势判定为偏空，MA20 1756.35，MA60 1845.17。"
           },
           {
             "title": "动量",
@@ -577,22 +577,22 @@ window.EXCHANGE_FUTURES_DATA = {
           },
           {
             "title": "波动",
-            "text": "ATR14 为 23.64，布林区间 1690.35 至 1822.45。"
+            "text": "ATR14 为 23.64，布林区间 1690.23 至 1822.47。"
           },
           {
             "title": "关键位",
-            "text": "20日高低区间 1845.0 / 1705.0；局部支撑 None，局部阻力 1836.0。"
+            "text": "20日高低区间 1845.0 / 1705.0；局部支撑 需进一步核验，局部阻力 1836.0。"
           }
         ],
         "indicators": {
-          "MA5": 1737.2,
-          "MA20": 1756.4,
-          "MA60": 1845.18,
-          "MACD": 2.57,
-          "RSI12": 33.86,
-          "KDJ_J": 66.64,
-          "BOLL上轨": 1822.45,
-          "BOLL下轨": 1690.35,
+          "MA5": 1737.0,
+          "MA20": 1756.35,
+          "MA60": 1845.17,
+          "MACD": 2.51,
+          "RSI12": 33.33,
+          "KDJ_J": 64.51,
+          "BOLL上轨": 1822.47,
+          "BOLL下轨": 1690.23,
           "ATR14": 23.64
         },
         "levels": {
@@ -628,10 +628,10 @@ window.EXCHANGE_FUTURES_DATA = {
       "product": "烧碱",
       "exchange": "CZCE",
       "category": "能化材料",
-      "price": 1913.0,
-      "change_pct": -1.34,
-      "volume": 346380,
-      "open_interest": 269484,
+      "price": 1915.0,
+      "change_pct": -1.24,
+      "volume": 348724,
+      "open_interest": 269156,
       "trade_date": "2026-07-13",
       "technical": {
         "status": "ok",
@@ -641,7 +641,7 @@ window.EXCHANGE_FUTURES_DATA = {
         "details": [
           {
             "title": "趋势",
-            "text": "日线趋势判定为偏空，MA20 1945.9，MA60 2120.35。"
+            "text": "日线趋势判定为偏空，MA20 1946.0，MA60 2120.38。"
           },
           {
             "title": "动量",
@@ -649,22 +649,22 @@ window.EXCHANGE_FUTURES_DATA = {
           },
           {
             "title": "波动",
-            "text": "ATR14 为 36.79，布林区间 1830.78 至 2061.02。"
+            "text": "ATR14 为 36.79，布林区间 1831.0 至 2061.0。"
           },
           {
             "title": "关键位",
-            "text": "20日高低区间 2100.0 / 1871.0；局部支撑 None，局部阻力 2310.0。"
+            "text": "20日高低区间 2100.0 / 1871.0；局部支撑 需进一步核验，局部阻力 2310.0。"
           }
         ],
         "indicators": {
-          "MA5": 1916.0,
-          "MA20": 1945.9,
-          "MA60": 2120.35,
-          "MACD": 10.01,
-          "RSI12": 43.85,
-          "KDJ_J": 66.25,
-          "BOLL上轨": 2061.02,
-          "BOLL下轨": 1830.78,
+          "MA5": 1916.4,
+          "MA20": 1946.0,
+          "MA60": 2120.38,
+          "MACD": 10.14,
+          "RSI12": 44.21,
+          "KDJ_J": 68.63,
+          "BOLL上轨": 2061.0,
+          "BOLL下轨": 1831.0,
           "ATR14": 36.79
         },
         "levels": {
@@ -700,10 +700,10 @@ window.EXCHANGE_FUTURES_DATA = {
       "product": "瓶级聚酯切片",
       "exchange": "CZCE",
       "category": "能化材料",
-      "price": 6878.0,
-      "change_pct": 1.48,
-      "volume": 88832,
-      "open_interest": 48974,
+      "price": 6872.0,
+      "change_pct": 1.39,
+      "volume": 89344,
+      "open_interest": 48922,
       "trade_date": "2026-07-13",
       "technical": {
         "status": "ok",
@@ -713,7 +713,7 @@ window.EXCHANGE_FUTURES_DATA = {
         "details": [
           {
             "title": "趋势",
-            "text": "日线趋势判定为偏多，MA20 6833.3，MA60 7479.23。"
+            "text": "日线趋势判定为偏多，MA20 6833.0，MA60 7479.13。"
           },
           {
             "title": "动量",
@@ -721,22 +721,22 @@ window.EXCHANGE_FUTURES_DATA = {
           },
           {
             "title": "波动",
-            "text": "ATR14 为 179.43，布林区间 6269.91 至 7396.69。"
+            "text": "ATR14 为 179.43，布林区间 6269.71 至 7396.29。"
           },
           {
             "title": "关键位",
-            "text": "20日高低区间 7756.0 / 6388.0；局部支撑 None，局部阻力 None。"
+            "text": "20日高低区间 7756.0 / 6388.0；局部支撑 需进一步核验，局部阻力 需进一步核验。"
           }
         ],
         "indicators": {
-          "MA5": 6756.4,
-          "MA20": 6833.3,
-          "MA60": 7479.23,
-          "MACD": 47.03,
-          "RSI12": 52.55,
-          "KDJ_J": 104.64,
-          "BOLL上轨": 7396.69,
-          "BOLL下轨": 6269.91,
+          "MA5": 6755.2,
+          "MA20": 6833.0,
+          "MA60": 7479.13,
+          "MACD": 46.65,
+          "RSI12": 52.28,
+          "KDJ_J": 103.51,
+          "BOLL上轨": 7396.29,
+          "BOLL下轨": 6269.71,
           "ATR14": 179.43
         },
         "levels": {
@@ -772,10 +772,10 @@ window.EXCHANGE_FUTURES_DATA = {
       "product": "短纤",
       "exchange": "CZCE",
       "category": "能化材料",
-      "price": 7114.0,
-      "change_pct": 1.43,
-      "volume": 164612,
-      "open_interest": 157034,
+      "price": 7110.0,
+      "change_pct": 1.37,
+      "volume": 167669,
+      "open_interest": 156503,
       "trade_date": "2026-07-13",
       "technical": {
         "status": "ok",
@@ -785,7 +785,7 @@ window.EXCHANGE_FUTURES_DATA = {
         "details": [
           {
             "title": "趋势",
-            "text": "日线趋势判定为偏多，MA20 7078.9，MA60 7616.83。"
+            "text": "日线趋势判定为偏多，MA20 7078.7，MA60 7616.77。"
           },
           {
             "title": "动量",
@@ -793,22 +793,22 @@ window.EXCHANGE_FUTURES_DATA = {
           },
           {
             "title": "波动",
-            "text": "ATR14 为 152.43，布林区间 6578.53 至 7579.27。"
+            "text": "ATR14 为 152.43，布林区间 6578.39 至 7579.01。"
           },
           {
             "title": "关键位",
-            "text": "20日高低区间 7850.0 / 6690.0；局部支撑 None，局部阻力 None。"
+            "text": "20日高低区间 7850.0 / 6690.0；局部支撑 需进一步核验，局部阻力 需进一步核验。"
           }
         ],
         "indicators": {
-          "MA5": 6998.8,
-          "MA20": 7078.9,
-          "MA60": 7616.83,
-          "MACD": 37.29,
-          "RSI12": 50.2,
-          "KDJ_J": 106.73,
-          "BOLL上轨": 7579.27,
-          "BOLL下轨": 6578.53,
+          "MA5": 6998.0,
+          "MA20": 7078.7,
+          "MA60": 7616.77,
+          "MACD": 37.04,
+          "RSI12": 50.0,
+          "KDJ_J": 105.85,
+          "BOLL上轨": 7579.01,
+          "BOLL下轨": 6578.39,
           "ATR14": 152.43
         },
         "levels": {
@@ -844,10 +844,10 @@ window.EXCHANGE_FUTURES_DATA = {
       "product": "郑醇",
       "exchange": "CZCE",
       "category": "能化材料",
-      "price": 2536.0,
-      "change_pct": 2.26,
-      "volume": 1081567,
-      "open_interest": 650325,
+      "price": 2538.0,
+      "change_pct": 2.34,
+      "volume": 1087955,
+      "open_interest": 651011,
       "trade_date": "2026-07-13",
       "technical": {
         "status": "ok",
@@ -857,7 +857,7 @@ window.EXCHANGE_FUTURES_DATA = {
         "details": [
           {
             "title": "趋势",
-            "text": "日线趋势判定为偏多，MA20 2511.2，MA60 2776.87。"
+            "text": "日线趋势判定为偏多，MA20 2511.3，MA60 2776.9。"
           },
           {
             "title": "动量",
@@ -865,22 +865,22 @@ window.EXCHANGE_FUTURES_DATA = {
           },
           {
             "title": "波动",
-            "text": "ATR14 为 69.86，布林区间 2189.51 至 2832.89。"
+            "text": "ATR14 为 69.86，布林区间 2189.58 至 2833.02。"
           },
           {
             "title": "关键位",
-            "text": "20日高低区间 3074.0 / 2306.0；局部支撑 None，局部阻力 3045.0。"
+            "text": "20日高低区间 3074.0 / 2306.0；局部支撑 需进一步核验，局部阻力 3045.0。"
           }
         ],
         "indicators": {
-          "MA5": 2455.8,
-          "MA20": 2511.2,
-          "MA60": 2776.87,
-          "MACD": 18.88,
-          "RSI12": 59.85,
-          "KDJ_J": 112.48,
-          "BOLL上轨": 2832.89,
-          "BOLL下轨": 2189.51,
+          "MA5": 2456.2,
+          "MA20": 2511.3,
+          "MA60": 2776.9,
+          "MACD": 19.01,
+          "RSI12": 60.05,
+          "KDJ_J": 113.34,
+          "BOLL上轨": 2833.02,
+          "BOLL下轨": 2189.58,
           "ATR14": 69.86
         },
         "levels": {
@@ -941,7 +941,7 @@ window.EXCHANGE_FUTURES_DATA = {
           },
           {
             "title": "关键位",
-            "text": "20日高低区间 3400.0 / 2880.0；局部支撑 2859.0，局部阻力 None。"
+            "text": "20日高低区间 3400.0 / 2880.0；局部支撑 2859.0，局部阻力 需进一步核验。"
           }
         ],
         "indicators": {
@@ -988,10 +988,10 @@ window.EXCHANGE_FUTURES_DATA = {
       "product": "棉纱",
       "exchange": "CZCE",
       "category": "软商品",
-      "price": 22485.0,
-      "change_pct": -0.22,
-      "volume": 9555,
-      "open_interest": 15066,
+      "price": 22490.0,
+      "change_pct": -0.2,
+      "volume": 9824,
+      "open_interest": 15119,
       "trade_date": "2026-07-13",
       "technical": {
         "status": "ok",
@@ -1001,7 +1001,7 @@ window.EXCHANGE_FUTURES_DATA = {
         "details": [
           {
             "title": "趋势",
-            "text": "日线趋势判定为偏多，MA20 22443.25，MA60 22358.83。"
+            "text": "日线趋势判定为偏多，MA20 22443.5，MA60 22358.92。"
           },
           {
             "title": "动量",
@@ -1009,7 +1009,7 @@ window.EXCHANGE_FUTURES_DATA = {
           },
           {
             "title": "波动",
-            "text": "ATR14 为 250.0，布林区间 22019.22 至 22867.28。"
+            "text": "ATR14 为 250.0，布林区间 22019.36 至 22867.64。"
           },
           {
             "title": "关键位",
@@ -1017,14 +1017,14 @@ window.EXCHANGE_FUTURES_DATA = {
           }
         ],
         "indicators": {
-          "MA5": 22536.0,
-          "MA20": 22443.25,
-          "MA60": 22358.83,
-          "MACD": -9.26,
-          "RSI12": 53.75,
-          "KDJ_J": 23.71,
-          "BOLL上轨": 22867.28,
-          "BOLL下轨": 22019.22,
+          "MA5": 22537.0,
+          "MA20": 22443.5,
+          "MA60": 22358.92,
+          "MACD": -8.94,
+          "RSI12": 53.89,
+          "KDJ_J": 24.54,
+          "BOLL上轨": 22867.64,
+          "BOLL下轨": 22019.36,
           "ATR14": 250.0
         },
         "levels": {
@@ -1062,8 +1062,8 @@ window.EXCHANGE_FUTURES_DATA = {
       "category": "软商品",
       "price": 16075.0,
       "change_pct": -0.31,
-      "volume": 246366,
-      "open_interest": 517203,
+      "volume": 249869,
+      "open_interest": 516666,
       "trade_date": "2026-07-13",
       "technical": {
         "status": "ok",
@@ -1132,10 +1132,10 @@ window.EXCHANGE_FUTURES_DATA = {
       "product": "白糖",
       "exchange": "CZCE",
       "category": "软商品",
-      "price": 5256.0,
-      "change_pct": -0.53,
-      "volume": 288245,
-      "open_interest": 686570,
+      "price": 5250.0,
+      "change_pct": -0.64,
+      "volume": 299398,
+      "open_interest": 686975,
       "trade_date": "2026-07-13",
       "technical": {
         "status": "ok",
@@ -1145,7 +1145,7 @@ window.EXCHANGE_FUTURES_DATA = {
         "details": [
           {
             "title": "趋势",
-            "text": "日线趋势判定为偏空，MA20 5284.5，MA60 5356.9。"
+            "text": "日线趋势判定为偏空，MA20 5284.2，MA60 5356.8。"
           },
           {
             "title": "动量",
@@ -1153,7 +1153,7 @@ window.EXCHANGE_FUTURES_DATA = {
           },
           {
             "title": "波动",
-            "text": "ATR14 为 51.36，布林区间 5205.05 至 5363.95。"
+            "text": "ATR14 为 51.36，布林区间 5204.25 至 5364.15。"
           },
           {
             "title": "关键位",
@@ -1161,14 +1161,14 @@ window.EXCHANGE_FUTURES_DATA = {
           }
         ],
         "indicators": {
-          "MA5": 5283.8,
-          "MA20": 5284.5,
-          "MA60": 5356.9,
-          "MACD": 2.7,
-          "RSI12": 52.75,
-          "KDJ_J": 5.79,
-          "BOLL上轨": 5363.95,
-          "BOLL下轨": 5205.05,
+          "MA5": 5282.6,
+          "MA20": 5284.2,
+          "MA60": 5356.8,
+          "MACD": 2.32,
+          "RSI12": 51.69,
+          "KDJ_J": -0.15,
+          "BOLL上轨": 5364.15,
+          "BOLL下轨": 5204.25,
           "ATR14": 51.36
         },
         "levels": {
@@ -1206,8 +1206,8 @@ window.EXCHANGE_FUTURES_DATA = {
       "category": "软商品",
       "price": 8180.0,
       "change_pct": 0.06,
-      "volume": 80804,
-      "open_interest": 180998,
+      "volume": 82111,
+      "open_interest": 181150,
       "trade_date": "2026-07-13",
       "technical": {
         "status": "ok",
@@ -1229,7 +1229,7 @@ window.EXCHANGE_FUTURES_DATA = {
           },
           {
             "title": "关键位",
-            "text": "20日高低区间 8960.0 / 8125.0；局部支撑 None，局部阻力 None。"
+            "text": "20日高低区间 8960.0 / 8125.0；局部支撑 需进一步核验，局部阻力 需进一步核验。"
           }
         ],
         "indicators": {
@@ -1276,10 +1276,10 @@ window.EXCHANGE_FUTURES_DATA = {
       "product": "鲜苹果",
       "exchange": "CZCE",
       "category": "软商品",
-      "price": 7571.0,
-      "change_pct": -1.85,
-      "volume": 101453,
-      "open_interest": 113492,
+      "price": 7575.0,
+      "change_pct": -1.8,
+      "volume": 101921,
+      "open_interest": 113515,
       "trade_date": "2026-07-13",
       "technical": {
         "status": "ok",
@@ -1289,7 +1289,7 @@ window.EXCHANGE_FUTURES_DATA = {
         "details": [
           {
             "title": "趋势",
-            "text": "日线趋势判定为偏空，MA20 7626.7，MA60 7640.58。"
+            "text": "日线趋势判定为偏空，MA20 7626.9，MA60 7640.65。"
           },
           {
             "title": "动量",
@@ -1297,7 +1297,7 @@ window.EXCHANGE_FUTURES_DATA = {
           },
           {
             "title": "波动",
-            "text": "ATR14 为 139.14，布林区间 7467.21 至 7786.19。"
+            "text": "ATR14 为 139.14，布林区间 7467.69 至 7786.11。"
           },
           {
             "title": "关键位",
@@ -1305,14 +1305,14 @@ window.EXCHANGE_FUTURES_DATA = {
           }
         ],
         "indicators": {
-          "MA5": 7635.4,
-          "MA20": 7626.7,
-          "MA60": 7640.58,
-          "MACD": -1.11,
-          "RSI12": 53.66,
-          "KDJ_J": 7.91,
-          "BOLL上轨": 7786.19,
-          "BOLL下轨": 7467.21,
+          "MA5": 7636.2,
+          "MA20": 7626.9,
+          "MA60": 7640.65,
+          "MACD": -0.85,
+          "RSI12": 53.95,
+          "KDJ_J": 9.35,
+          "BOLL上轨": 7786.11,
+          "BOLL下轨": 7467.69,
           "ATR14": 139.14
         },
         "levels": {
@@ -1348,10 +1348,10 @@ window.EXCHANGE_FUTURES_DATA = {
       "product": "硅铁",
       "exchange": "CZCE",
       "category": "铁合金",
-      "price": 5766.0,
-      "change_pct": -0.45,
-      "volume": 106273,
-      "open_interest": 203533,
+      "price": 5764.0,
+      "change_pct": -0.48,
+      "volume": 107664,
+      "open_interest": 203753,
       "trade_date": "2026-07-13",
       "technical": {
         "status": "ok",
@@ -1361,7 +1361,7 @@ window.EXCHANGE_FUTURES_DATA = {
         "details": [
           {
             "title": "趋势",
-            "text": "日线趋势判定为偏多，MA20 5713.3，MA60 5763.9。"
+            "text": "日线趋势判定为偏多，MA20 5713.2，MA60 5763.87。"
           },
           {
             "title": "动量",
@@ -1369,7 +1369,7 @@ window.EXCHANGE_FUTURES_DATA = {
           },
           {
             "title": "波动",
-            "text": "ATR14 为 63.71，布林区间 5555.93 至 5870.67。"
+            "text": "ATR14 为 63.71，布林区间 5555.96 至 5870.44。"
           },
           {
             "title": "关键位",
@@ -1377,14 +1377,14 @@ window.EXCHANGE_FUTURES_DATA = {
           }
         ],
         "indicators": {
-          "MA5": 5804.4,
-          "MA20": 5713.3,
-          "MA60": 5763.9,
-          "MACD": 19.39,
-          "RSI12": 70.44,
-          "KDJ_J": 66.81,
-          "BOLL上轨": 5870.67,
-          "BOLL下轨": 5555.93,
+          "MA5": 5804.0,
+          "MA20": 5713.2,
+          "MA60": 5763.87,
+          "MACD": 19.26,
+          "RSI12": 70.1,
+          "KDJ_J": 66.01,
+          "BOLL上轨": 5870.44,
+          "BOLL下轨": 5555.96,
           "ATR14": 63.71
         },
         "levels": {
@@ -1422,8 +1422,8 @@ window.EXCHANGE_FUTURES_DATA = {
       "category": "铁合金",
       "price": 5872.0,
       "change_pct": 0.0,
-      "volume": 107240,
-      "open_interest": 452014,
+      "volume": 108465,
+      "open_interest": 452089,
       "trade_date": "2026-07-13",
       "technical": {
         "status": "ok",
@@ -1445,7 +1445,7 @@ window.EXCHANGE_FUTURES_DATA = {
           },
           {
             "title": "关键位",
-            "text": "20日高低区间 6036.0 / 5722.0；局部支撑 None，局部阻力 6016.0。"
+            "text": "20日高低区间 6036.0 / 5722.0；局部支撑 需进一步核验，局部阻力 6016.0。"
           }
         ],
         "indicators": {
@@ -1494,8 +1494,8 @@ window.EXCHANGE_FUTURES_DATA = {
       "category": "黑色建材",
       "price": 955.0,
       "change_pct": -1.04,
-      "volume": 920022,
-      "open_interest": 1879300,
+      "volume": 929061,
+      "open_interest": 1882694,
       "trade_date": "2026-07-13",
       "technical": {
         "status": "ok",
@@ -1517,7 +1517,7 @@ window.EXCHANGE_FUTURES_DATA = {
           },
           {
             "title": "关键位",
-            "text": "20日高低区间 1020.0 / 949.0；局部支撑 None，局部阻力 1057.0。"
+            "text": "20日高低区间 1020.0 / 949.0；局部支撑 需进一步核验，局部阻力 1057.0。"
           }
         ],
         "indicators": {
@@ -1564,10 +1564,10 @@ window.EXCHANGE_FUTURES_DATA = {
       "product": "纯碱",
       "exchange": "CZCE",
       "category": "黑色建材",
-      "price": 1072.0,
-      "change_pct": -1.11,
-      "volume": 519174,
-      "open_interest": 1378661,
+      "price": 1070.0,
+      "change_pct": -1.29,
+      "volume": 550321,
+      "open_interest": 1379769,
       "trade_date": "2026-07-13",
       "technical": {
         "status": "ok",
@@ -1577,7 +1577,7 @@ window.EXCHANGE_FUTURES_DATA = {
         "details": [
           {
             "title": "趋势",
-            "text": "日线趋势判定为偏空，MA20 1111.4，MA60 1179.58。"
+            "text": "日线趋势判定为偏空，MA20 1111.3，MA60 1179.55。"
           },
           {
             "title": "动量",
@@ -1585,22 +1585,22 @@ window.EXCHANGE_FUTURES_DATA = {
           },
           {
             "title": "波动",
-            "text": "ATR14 为 18.93，布林区间 1051.74 至 1171.06。"
+            "text": "ATR14 为 18.93，布林区间 1051.36 至 1171.24。"
           },
           {
             "title": "关键位",
-            "text": "20日高低区间 1177.0 / 1065.0；局部支撑 None，局部阻力 1266.0。"
+            "text": "20日高低区间 1177.0 / 1065.0；局部支撑 需进一步核验，局部阻力 1266.0。"
           }
         ],
         "indicators": {
-          "MA5": 1080.2,
-          "MA20": 1111.4,
-          "MA60": 1179.58,
-          "MACD": -0.64,
-          "RSI12": 29.82,
-          "KDJ_J": 13.24,
-          "BOLL上轨": 1171.06,
-          "BOLL下轨": 1051.74,
+          "MA5": 1079.8,
+          "MA20": 1111.3,
+          "MA60": 1179.55,
+          "MACD": -0.77,
+          "RSI12": 29.31,
+          "KDJ_J": 9.39,
+          "BOLL上轨": 1171.24,
+          "BOLL下轨": 1051.36,
           "ATR14": 18.93
         },
         "levels": {
@@ -1638,8 +1638,8 @@ window.EXCHANGE_FUTURES_DATA = {
       "category": "林木建材",
       "price": 820.0,
       "change_pct": 0.61,
-      "volume": 4378,
-      "open_interest": 11771,
+      "volume": 4428,
+      "open_interest": 11781,
       "trade_date": "2026-07-13",
       "technical": {
         "status": "ok",
@@ -1708,10 +1708,10 @@ window.EXCHANGE_FUTURES_DATA = {
       "product": "纤维板",
       "exchange": "DCE",
       "category": "林木建材",
-      "price": 1317.5,
-      "change_pct": -0.34,
-      "volume": 2558,
-      "open_interest": 9466,
+      "price": 1319.0,
+      "change_pct": -0.23,
+      "volume": 2615,
+      "open_interest": 9484,
       "trade_date": "2026-07-13",
       "technical": {
         "status": "ok",
@@ -1721,7 +1721,7 @@ window.EXCHANGE_FUTURES_DATA = {
         "details": [
           {
             "title": "趋势",
-            "text": "日线趋势判定为偏多，MA20 1310.33，MA60 1310.08。"
+            "text": "日线趋势判定为偏多，MA20 1310.4，MA60 1310.11。"
           },
           {
             "title": "动量",
@@ -1729,7 +1729,7 @@ window.EXCHANGE_FUTURES_DATA = {
           },
           {
             "title": "波动",
-            "text": "ATR14 为 20.43，布林区间 1266.66 至 1353.99。"
+            "text": "ATR14 为 20.43，布林区间 1266.68 至 1354.12。"
           },
           {
             "title": "关键位",
@@ -1737,14 +1737,14 @@ window.EXCHANGE_FUTURES_DATA = {
           }
         ],
         "indicators": {
-          "MA5": 1322.8,
-          "MA20": 1310.33,
-          "MA60": 1310.08,
-          "MACD": 0.62,
-          "RSI12": 51.92,
-          "KDJ_J": 23.35,
-          "BOLL上轨": 1353.99,
-          "BOLL下轨": 1266.66,
+          "MA5": 1323.1,
+          "MA20": 1310.4,
+          "MA60": 1310.11,
+          "MACD": 0.72,
+          "RSI12": 52.53,
+          "KDJ_J": 26.15,
+          "BOLL上轨": 1354.12,
+          "BOLL下轨": 1266.68,
           "ATR14": 20.43
         },
         "levels": {
@@ -1852,10 +1852,10 @@ window.EXCHANGE_FUTURES_DATA = {
       "product": "棕榈",
       "exchange": "DCE",
       "category": "油脂油料",
-      "price": 9246.0,
-      "change_pct": 0.26,
-      "volume": 365817,
-      "open_interest": 485704,
+      "price": 9232.0,
+      "change_pct": 0.11,
+      "volume": 376927,
+      "open_interest": 486190,
       "trade_date": "2026-07-13",
       "technical": {
         "status": "ok",
@@ -1865,7 +1865,7 @@ window.EXCHANGE_FUTURES_DATA = {
         "details": [
           {
             "title": "趋势",
-            "text": "日线趋势判定为偏空，MA20 9287.85，MA60 9487.25。"
+            "text": "日线趋势判定为偏空，MA20 9287.15，MA60 9487.02。"
           },
           {
             "title": "动量",
@@ -1873,7 +1873,7 @@ window.EXCHANGE_FUTURES_DATA = {
           },
           {
             "title": "波动",
-            "text": "ATR14 为 155.57，布林区间 9135.44 至 9440.26。"
+            "text": "ATR14 为 155.57，布林区间 9133.81 至 9440.49。"
           },
           {
             "title": "关键位",
@@ -1881,14 +1881,14 @@ window.EXCHANGE_FUTURES_DATA = {
           }
         ],
         "indicators": {
-          "MA5": 9305.2,
-          "MA20": 9287.85,
-          "MA60": 9487.25,
-          "MACD": 14.36,
-          "RSI12": 45.67,
-          "KDJ_J": 51.42,
-          "BOLL上轨": 9440.26,
-          "BOLL下轨": 9135.44,
+          "MA5": 9302.4,
+          "MA20": 9287.15,
+          "MA60": 9487.02,
+          "MACD": 13.47,
+          "RSI12": 45.05,
+          "KDJ_J": 47.47,
+          "BOLL上轨": 9440.49,
+          "BOLL下轨": 9133.81,
           "ATR14": 155.57
         },
         "levels": {
@@ -1943,10 +1943,10 @@ window.EXCHANGE_FUTURES_DATA = {
       "product": "豆一",
       "exchange": "DCE",
       "category": "油脂油料",
-      "price": 4709.0,
-      "change_pct": -0.8,
-      "volume": 141617,
-      "open_interest": 260984,
+      "price": 4705.0,
+      "change_pct": -0.88,
+      "volume": 145768,
+      "open_interest": 262432,
       "trade_date": "2026-07-13",
       "technical": {
         "status": "ok",
@@ -1956,7 +1956,7 @@ window.EXCHANGE_FUTURES_DATA = {
         "details": [
           {
             "title": "趋势",
-            "text": "日线趋势判定为偏空，MA20 4748.45，MA60 4807.13。"
+            "text": "日线趋势判定为偏空，MA20 4748.25，MA60 4807.07。"
           },
           {
             "title": "动量",
@@ -1964,7 +1964,7 @@ window.EXCHANGE_FUTURES_DATA = {
           },
           {
             "title": "波动",
-            "text": "ATR14 为 60.07，布林区间 4673.08 至 4823.82。"
+            "text": "ATR14 为 60.07，布林区间 4672.42 至 4824.08。"
           },
           {
             "title": "关键位",
@@ -1972,14 +1972,14 @@ window.EXCHANGE_FUTURES_DATA = {
           }
         ],
         "indicators": {
-          "MA5": 4729.8,
-          "MA20": 4748.45,
-          "MA60": 4807.13,
-          "MACD": -3.24,
-          "RSI12": 40.75,
-          "KDJ_J": 5.19,
-          "BOLL上轨": 4823.82,
-          "BOLL下轨": 4673.08,
+          "MA5": 4729.0,
+          "MA20": 4748.25,
+          "MA60": 4807.07,
+          "MACD": -3.49,
+          "RSI12": 40.2,
+          "KDJ_J": 2.4,
+          "BOLL上轨": 4824.08,
+          "BOLL下轨": 4672.42,
           "ATR14": 60.07
         },
         "levels": {
@@ -2022,10 +2022,10 @@ window.EXCHANGE_FUTURES_DATA = {
       "product": "豆二",
       "exchange": "DCE",
       "category": "油脂油料",
-      "price": 3788.0,
-      "change_pct": 0.08,
-      "volume": 120746,
-      "open_interest": 153192,
+      "price": 3787.0,
+      "change_pct": 0.05,
+      "volume": 121673,
+      "open_interest": 153032,
       "trade_date": "2026-07-13",
       "technical": {
         "status": "ok",
@@ -2035,7 +2035,7 @@ window.EXCHANGE_FUTURES_DATA = {
         "details": [
           {
             "title": "趋势",
-            "text": "日线趋势判定为偏多，MA20 3709.25，MA60 3726.53。"
+            "text": "日线趋势判定为偏多，MA20 3709.2，MA60 3726.52。"
           },
           {
             "title": "动量",
@@ -2043,22 +2043,22 @@ window.EXCHANGE_FUTURES_DATA = {
           },
           {
             "title": "波动",
-            "text": "ATR14 为 44.29，布林区间 3606.61 至 3811.89。"
+            "text": "ATR14 为 44.29，布林区间 3606.72 至 3811.68。"
           },
           {
             "title": "关键位",
-            "text": "20日高低区间 3821.0 / 3633.0；局部支撑 3614.0，局部阻力 None。"
+            "text": "20日高低区间 3821.0 / 3633.0；局部支撑 3614.0，局部阻力 需进一步核验。"
           }
         ],
         "indicators": {
-          "MA5": 3788.4,
-          "MA20": 3709.25,
-          "MA60": 3726.53,
-          "MACD": 14.62,
-          "RSI12": 69.92,
-          "KDJ_J": 83.18,
-          "BOLL上轨": 3811.89,
-          "BOLL下轨": 3606.61,
+          "MA5": 3788.2,
+          "MA20": 3709.2,
+          "MA60": 3726.52,
+          "MACD": 14.56,
+          "RSI12": 69.64,
+          "KDJ_J": 82.59,
+          "BOLL上轨": 3811.68,
+          "BOLL下轨": 3606.72,
           "ATR14": 44.29
         },
         "levels": {
@@ -2101,10 +2101,10 @@ window.EXCHANGE_FUTURES_DATA = {
       "product": "豆油",
       "exchange": "DCE",
       "category": "油脂油料",
-      "price": 8567.0,
-      "change_pct": 0.28,
-      "volume": 184707,
-      "open_interest": 586060,
+      "price": 8556.0,
+      "change_pct": 0.15,
+      "volume": 187770,
+      "open_interest": 585934,
       "trade_date": "2026-07-13",
       "technical": {
         "status": "ok",
@@ -2114,7 +2114,7 @@ window.EXCHANGE_FUTURES_DATA = {
         "details": [
           {
             "title": "趋势",
-            "text": "日线趋势判定为偏多，MA20 8436.75，MA60 8485.97。"
+            "text": "日线趋势判定为偏多，MA20 8436.2，MA60 8485.78。"
           },
           {
             "title": "动量",
@@ -2122,7 +2122,7 @@ window.EXCHANGE_FUTURES_DATA = {
           },
           {
             "title": "波动",
-            "text": "ATR14 为 84.21，布林区间 8248.98 至 8624.52。"
+            "text": "ATR14 为 84.21，布林区间 8249.98 至 8622.42。"
           },
           {
             "title": "关键位",
@@ -2130,14 +2130,14 @@ window.EXCHANGE_FUTURES_DATA = {
           }
         ],
         "indicators": {
-          "MA5": 8578.0,
-          "MA20": 8436.75,
-          "MA60": 8485.97,
-          "MACD": 26.5,
-          "RSI12": 68.05,
-          "KDJ_J": 70.48,
-          "BOLL上轨": 8624.52,
-          "BOLL下轨": 8248.98,
+          "MA5": 8575.8,
+          "MA20": 8436.2,
+          "MA60": 8485.78,
+          "MACD": 25.8,
+          "RSI12": 66.53,
+          "KDJ_J": 66.75,
+          "BOLL上轨": 8622.42,
+          "BOLL下轨": 8249.98,
           "ATR14": 84.21
         },
         "levels": {
@@ -2192,10 +2192,10 @@ window.EXCHANGE_FUTURES_DATA = {
       "product": "豆粕",
       "exchange": "DCE",
       "category": "油脂油料",
-      "price": 3057.0,
-      "change_pct": 0.26,
-      "volume": 1104325,
-      "open_interest": 1936212,
+      "price": 3054.0,
+      "change_pct": 0.16,
+      "volume": 1116210,
+      "open_interest": 1935416,
       "trade_date": "2026-07-13",
       "technical": {
         "status": "ok",
@@ -2205,7 +2205,7 @@ window.EXCHANGE_FUTURES_DATA = {
         "details": [
           {
             "title": "趋势",
-            "text": "日线趋势判定为偏多，MA20 2976.8，MA60 2982.4。"
+            "text": "日线趋势判定为偏多，MA20 2976.65，MA60 2982.35。"
           },
           {
             "title": "动量",
@@ -2213,22 +2213,22 @@ window.EXCHANGE_FUTURES_DATA = {
           },
           {
             "title": "波动",
-            "text": "ATR14 为 32.64，布林区间 2890.79 至 3062.81。"
+            "text": "ATR14 为 32.64，布林区间 2891.23 至 3062.07。"
           },
           {
             "title": "关键位",
-            "text": "20日高低区间 3063.0 / 2919.0；局部支撑 2895.0，局部阻力 None。"
+            "text": "20日高低区间 3063.0 / 2919.0；局部支撑 2895.0，局部阻力 需进一步核验。"
           }
         ],
         "indicators": {
-          "MA5": 3046.2,
-          "MA20": 2976.8,
-          "MA60": 2982.4,
-          "MACD": 13.02,
-          "RSI12": 76.65,
-          "KDJ_J": 97.97,
-          "BOLL上轨": 3062.81,
-          "BOLL下轨": 2890.79,
+          "MA5": 3045.6,
+          "MA20": 2976.65,
+          "MA60": 2982.35,
+          "MACD": 12.83,
+          "RSI12": 76.29,
+          "KDJ_J": 95.86,
+          "BOLL上轨": 3062.07,
+          "BOLL下轨": 2891.23,
           "ATR14": 32.64
         },
         "levels": {
@@ -2283,10 +2283,10 @@ window.EXCHANGE_FUTURES_DATA = {
       "product": "PP",
       "exchange": "DCE",
       "category": "能化材料",
-      "price": 7685.0,
-      "change_pct": 1.32,
-      "volume": 696234,
-      "open_interest": 495730,
+      "price": 7681.0,
+      "change_pct": 1.27,
+      "volume": 701293,
+      "open_interest": 496087,
       "trade_date": "2026-07-13",
       "technical": {
         "status": "ok",
@@ -2296,7 +2296,7 @@ window.EXCHANGE_FUTURES_DATA = {
         "details": [
           {
             "title": "趋势",
-            "text": "日线趋势判定为偏多，MA20 7538.1，MA60 8268.47。"
+            "text": "日线趋势判定为偏多，MA20 7537.9，MA60 8268.4。"
           },
           {
             "title": "动量",
@@ -2304,22 +2304,22 @@ window.EXCHANGE_FUTURES_DATA = {
           },
           {
             "title": "波动",
-            "text": "ATR14 为 206.36，布林区间 6750.55 至 8325.65。"
+            "text": "ATR14 为 206.36，布林区间 6750.51 至 8325.29。"
           },
           {
             "title": "关键位",
-            "text": "20日高低区间 8769.0 / 7014.0；局部支撑 None，局部阻力 8944.0。"
+            "text": "20日高低区间 8769.0 / 7014.0；局部支撑 需进一步核验，局部阻力 8944.0。"
           }
         ],
         "indicators": {
-          "MA5": 7540.2,
-          "MA20": 7538.1,
-          "MA60": 8268.47,
-          "MACD": 74.54,
-          "RSI12": 66.92,
-          "KDJ_J": 98.48,
-          "BOLL上轨": 8325.65,
-          "BOLL下轨": 6750.55,
+          "MA5": 7539.4,
+          "MA20": 7537.9,
+          "MA60": 8268.4,
+          "MACD": 74.29,
+          "RSI12": 66.81,
+          "KDJ_J": 97.94,
+          "BOLL上轨": 8325.29,
+          "BOLL下轨": 6750.51,
           "ATR14": 206.36
         },
         "levels": {
@@ -2355,10 +2355,10 @@ window.EXCHANGE_FUTURES_DATA = {
       "product": "PVC",
       "exchange": "DCE",
       "category": "能化材料",
-      "price": 4506.0,
-      "change_pct": -0.62,
-      "volume": 838532,
-      "open_interest": 1226073,
+      "price": 4504.0,
+      "change_pct": -0.66,
+      "volume": 843354,
+      "open_interest": 1226428,
       "trade_date": "2026-07-13",
       "technical": {
         "status": "ok",
@@ -2368,7 +2368,7 @@ window.EXCHANGE_FUTURES_DATA = {
         "details": [
           {
             "title": "趋势",
-            "text": "日线趋势判定为偏多，MA20 4503.85，MA60 4855.18。"
+            "text": "日线趋势判定为偏多，MA20 4503.75，MA60 4855.15。"
           },
           {
             "title": "动量",
@@ -2376,22 +2376,22 @@ window.EXCHANGE_FUTURES_DATA = {
           },
           {
             "title": "波动",
-            "text": "ATR14 为 87.29，布林区间 4293.39 至 4714.31。"
+            "text": "ATR14 为 87.29，布林区间 4293.29 至 4714.21。"
           },
           {
             "title": "关键位",
-            "text": "20日高低区间 4784.0 / 4334.0；局部支撑 None，局部阻力 None。"
+            "text": "20日高低区间 4784.0 / 4334.0；局部支撑 需进一步核验，局部阻力 需进一步核验。"
           }
         ],
         "indicators": {
-          "MA5": 4477.2,
-          "MA20": 4503.85,
-          "MA60": 4855.18,
-          "MACD": 26.05,
-          "RSI12": 51.85,
-          "KDJ_J": 88.72,
-          "BOLL上轨": 4714.31,
-          "BOLL下轨": 4293.39,
+          "MA5": 4476.8,
+          "MA20": 4503.75,
+          "MA60": 4855.15,
+          "MACD": 25.92,
+          "RSI12": 51.61,
+          "KDJ_J": 87.82,
+          "BOLL上轨": 4714.21,
+          "BOLL下轨": 4293.29,
           "ATR14": 87.29
         },
         "levels": {
@@ -2427,10 +2427,10 @@ window.EXCHANGE_FUTURES_DATA = {
       "product": "乙二醇",
       "exchange": "DCE",
       "category": "能化材料",
-      "price": 4372.0,
-      "change_pct": 4.05,
-      "volume": 423448,
-      "open_interest": 309131,
+      "price": 4363.0,
+      "change_pct": 3.83,
+      "volume": 428075,
+      "open_interest": 309948,
       "trade_date": "2026-07-13",
       "technical": {
         "status": "ok",
@@ -2440,7 +2440,7 @@ window.EXCHANGE_FUTURES_DATA = {
         "details": [
           {
             "title": "趋势",
-            "text": "日线趋势判定为偏多，MA20 4158.8，MA60 4532.27。"
+            "text": "日线趋势判定为偏多，MA20 4158.35，MA60 4532.12。"
           },
           {
             "title": "动量",
@@ -2448,22 +2448,22 @@ window.EXCHANGE_FUTURES_DATA = {
           },
           {
             "title": "波动",
-            "text": "ATR14 为 113.43，布林区间 3780.99 至 4536.61。"
+            "text": "ATR14 为 113.43，布林区间 3781.58 至 4535.12。"
           },
           {
             "title": "关键位",
-            "text": "20日高低区间 4764.0 / 3897.0；局部支撑 None，局部阻力 None。"
+            "text": "20日高低区间 4764.0 / 3897.0；局部支撑 需进一步核验，局部阻力 需进一步核验。"
           }
         ],
         "indicators": {
-          "MA5": 4133.8,
-          "MA20": 4158.8,
-          "MA60": 4532.27,
-          "MACD": 39.97,
-          "RSI12": 62.85,
-          "KDJ_J": 142.59,
-          "BOLL上轨": 4536.61,
-          "BOLL下轨": 3780.99,
+          "MA5": 4132.0,
+          "MA20": 4158.35,
+          "MA60": 4532.12,
+          "MACD": 39.4,
+          "RSI12": 62.47,
+          "KDJ_J": 140.14,
+          "BOLL上轨": 4535.12,
+          "BOLL下轨": 3781.58,
           "ATR14": 113.43
         },
         "levels": {
@@ -2499,10 +2499,10 @@ window.EXCHANGE_FUTURES_DATA = {
       "product": "塑料",
       "exchange": "DCE",
       "category": "能化材料",
-      "price": 7319.0,
-      "change_pct": 1.71,
-      "volume": 473484,
-      "open_interest": 410640,
+      "price": 7313.0,
+      "change_pct": 1.63,
+      "volume": 476449,
+      "open_interest": 410847,
       "trade_date": "2026-07-13",
       "technical": {
         "status": "ok",
@@ -2512,7 +2512,7 @@ window.EXCHANGE_FUTURES_DATA = {
         "details": [
           {
             "title": "趋势",
-            "text": "日线趋势判定为偏多，MA20 7119.3，MA60 7745.37。"
+            "text": "日线趋势判定为偏多，MA20 7119.0，MA60 7745.27。"
           },
           {
             "title": "动量",
@@ -2520,22 +2520,22 @@ window.EXCHANGE_FUTURES_DATA = {
           },
           {
             "title": "波动",
-            "text": "ATR14 为 148.43，布林区间 6521.7 至 7716.9。"
+            "text": "ATR14 为 148.43，布林区间 6521.82 至 7716.18。"
           },
           {
             "title": "关键位",
-            "text": "20日高低区间 8052.0 / 6704.0；局部支撑 None，局部阻力 None。"
+            "text": "20日高低区间 8052.0 / 6704.0；局部支撑 需进一步核验，局部阻力 需进一步核验。"
           }
         ],
         "indicators": {
-          "MA5": 7107.6,
-          "MA20": 7119.3,
-          "MA60": 7745.37,
-          "MACD": 65.13,
-          "RSI12": 71.12,
-          "KDJ_J": 116.02,
-          "BOLL上轨": 7716.9,
-          "BOLL下轨": 6521.7,
+          "MA5": 7106.4,
+          "MA20": 7119.0,
+          "MA60": 7745.27,
+          "MACD": 64.74,
+          "RSI12": 70.92,
+          "KDJ_J": 114.98,
+          "BOLL上轨": 7716.18,
+          "BOLL下轨": 6521.82,
           "ATR14": 148.43
         },
         "levels": {
@@ -2571,10 +2571,10 @@ window.EXCHANGE_FUTURES_DATA = {
       "product": "液化石油气",
       "exchange": "DCE",
       "category": "能化材料",
-      "price": 4928.0,
-      "change_pct": 3.83,
-      "volume": 93584,
-      "open_interest": 96510,
+      "price": 4922.0,
+      "change_pct": 3.71,
+      "volume": 94066,
+      "open_interest": 96481,
       "trade_date": "2026-07-13",
       "technical": {
         "status": "ok",
@@ -2584,7 +2584,7 @@ window.EXCHANGE_FUTURES_DATA = {
         "details": [
           {
             "title": "趋势",
-            "text": "日线趋势判定为偏多，MA20 4674.0，MA60 5291.38。"
+            "text": "日线趋势判定为偏多，MA20 4673.7，MA60 5291.28。"
           },
           {
             "title": "动量",
@@ -2592,22 +2592,22 @@ window.EXCHANGE_FUTURES_DATA = {
           },
           {
             "title": "波动",
-            "text": "ATR14 为 143.36，布林区间 4196.96 至 5151.04。"
+            "text": "ATR14 为 143.36，布林区间 4197.32 至 5150.08。"
           },
           {
             "title": "关键位",
-            "text": "20日高低区间 5599.0 / 4341.0；局部支撑 None，局部阻力 None。"
+            "text": "20日高低区间 5599.0 / 4341.0；局部支撑 需进一步核验，局部阻力 需进一步核验。"
           }
         ],
         "indicators": {
-          "MA5": 4691.2,
-          "MA20": 4674.0,
-          "MA60": 5291.38,
-          "MACD": 64.09,
-          "RSI12": 75.5,
-          "KDJ_J": 133.76,
-          "BOLL上轨": 5151.04,
-          "BOLL下轨": 4196.96,
+          "MA5": 4690.0,
+          "MA20": 4673.7,
+          "MA60": 5291.28,
+          "MACD": 63.71,
+          "RSI12": 75.3,
+          "KDJ_J": 132.44,
+          "BOLL上轨": 5150.08,
+          "BOLL下轨": 4197.32,
           "ATR14": 143.36
         },
         "levels": {
@@ -2643,10 +2643,10 @@ window.EXCHANGE_FUTURES_DATA = {
       "product": "纯苯",
       "exchange": "DCE",
       "category": "能化材料",
-      "price": 7111.0,
-      "change_pct": 4.33,
-      "volume": 24358,
-      "open_interest": 15670,
+      "price": 7099.0,
+      "change_pct": 4.15,
+      "volume": 24756,
+      "open_interest": 15683,
       "trade_date": "2026-07-13",
       "technical": {
         "status": "ok",
@@ -2656,7 +2656,7 @@ window.EXCHANGE_FUTURES_DATA = {
         "details": [
           {
             "title": "趋势",
-            "text": "日线趋势判定为偏多，MA20 6643.4，MA60 7398.53。"
+            "text": "日线趋势判定为偏多，MA20 6642.8，MA60 7398.33。"
           },
           {
             "title": "动量",
@@ -2664,22 +2664,22 @@ window.EXCHANGE_FUTURES_DATA = {
           },
           {
             "title": "波动",
-            "text": "ATR14 为 212.71，布林区间 6039.64 至 7247.16。"
+            "text": "ATR14 为 212.71，布林区间 6040.97 至 7244.63。"
           },
           {
             "title": "关键位",
-            "text": "20日高低区间 7428.0 / 6123.0；局部支撑 None，局部阻力 None。"
+            "text": "20日高低区间 7428.0 / 6123.0；局部支撑 需进一步核验，局部阻力 需进一步核验。"
           }
         ],
         "indicators": {
-          "MA5": 6831.8,
-          "MA20": 6643.4,
-          "MA60": 7398.53,
-          "MACD": 109.51,
-          "RSI12": 73.32,
-          "KDJ_J": 106.39,
-          "BOLL上轨": 7247.16,
-          "BOLL下轨": 6039.64,
+          "MA5": 6829.4,
+          "MA20": 6642.8,
+          "MA60": 7398.33,
+          "MACD": 108.74,
+          "RSI12": 73.1,
+          "KDJ_J": 104.93,
+          "BOLL上轨": 7244.63,
+          "BOLL下轨": 6040.97,
           "ATR14": 212.71
         },
         "levels": {
@@ -2715,10 +2715,10 @@ window.EXCHANGE_FUTURES_DATA = {
       "product": "苯乙烯",
       "exchange": "DCE",
       "category": "能化材料",
-      "price": 8034.0,
-      "change_pct": 3.32,
-      "volume": 495390,
-      "open_interest": 245327,
+      "price": 8020.0,
+      "change_pct": 3.14,
+      "volume": 498555,
+      "open_interest": 244774,
       "trade_date": "2026-07-13",
       "technical": {
         "status": "ok",
@@ -2728,7 +2728,7 @@ window.EXCHANGE_FUTURES_DATA = {
         "details": [
           {
             "title": "趋势",
-            "text": "日线趋势判定为偏多，MA20 7581.9，MA60 8530.78。"
+            "text": "日线趋势判定为偏多，MA20 7581.2，MA60 8530.55。"
           },
           {
             "title": "动量",
@@ -2736,22 +2736,22 @@ window.EXCHANGE_FUTURES_DATA = {
           },
           {
             "title": "波动",
-            "text": "ATR14 为 219.29，布林区间 6895.05 至 8268.75。"
+            "text": "ATR14 为 219.29，布林区间 6896.26 至 8266.14。"
           },
           {
             "title": "关键位",
-            "text": "20日高低区间 8555.0 / 7053.0；局部支撑 None，局部阻力 None。"
+            "text": "20日高低区间 8555.0 / 7053.0；局部支撑 需进一步核验，局部阻力 需进一步核验。"
           }
         ],
         "indicators": {
-          "MA5": 7694.6,
-          "MA20": 7581.9,
-          "MA60": 8530.78,
-          "MACD": 117.6,
-          "RSI12": 71.67,
-          "KDJ_J": 124.7,
-          "BOLL上轨": 8268.75,
-          "BOLL下轨": 6895.05,
+          "MA5": 7691.8,
+          "MA20": 7581.2,
+          "MA60": 8530.55,
+          "MACD": 116.7,
+          "RSI12": 71.4,
+          "KDJ_J": 122.91,
+          "BOLL上轨": 8266.14,
+          "BOLL下轨": 6896.26,
           "ATR14": 219.29
         },
         "levels": {
@@ -2789,8 +2789,8 @@ window.EXCHANGE_FUTURES_DATA = {
       "category": "谷物饲料",
       "price": 2309.0,
       "change_pct": -0.09,
-      "volume": 702491,
-      "open_interest": 959753,
+      "volume": 705681,
+      "open_interest": 959115,
       "trade_date": "2026-07-13",
       "technical": {
         "status": "ok",
@@ -2859,10 +2859,10 @@ window.EXCHANGE_FUTURES_DATA = {
       "product": "玉米淀粉",
       "exchange": "DCE",
       "category": "谷物饲料",
-      "price": 2684.0,
-      "change_pct": -0.33,
-      "volume": 167719,
-      "open_interest": 231104,
+      "price": 2682.0,
+      "change_pct": -0.41,
+      "volume": 169072,
+      "open_interest": 230451,
       "trade_date": "2026-07-13",
       "technical": {
         "status": "ok",
@@ -2872,7 +2872,7 @@ window.EXCHANGE_FUTURES_DATA = {
         "details": [
           {
             "title": "趋势",
-            "text": "日线趋势判定为偏空，MA20 2707.55，MA60 2727.08。"
+            "text": "日线趋势判定为偏空，MA20 2707.45，MA60 2727.05。"
           },
           {
             "title": "动量",
@@ -2880,7 +2880,7 @@ window.EXCHANGE_FUTURES_DATA = {
           },
           {
             "title": "波动",
-            "text": "ATR14 为 24.36，布林区间 2668.74 至 2746.36。"
+            "text": "ATR14 为 24.36，布林区间 2668.37 至 2746.53。"
           },
           {
             "title": "关键位",
@@ -2888,14 +2888,14 @@ window.EXCHANGE_FUTURES_DATA = {
           }
         ],
         "indicators": {
-          "MA5": 2692.8,
-          "MA20": 2707.55,
-          "MA60": 2727.08,
-          "MACD": -3.11,
-          "RSI12": 42.77,
-          "KDJ_J": -9.13,
-          "BOLL上轨": 2746.36,
-          "BOLL下轨": 2668.74,
+          "MA5": 2692.4,
+          "MA20": 2707.45,
+          "MA60": 2727.05,
+          "MACD": -3.24,
+          "RSI12": 42.29,
+          "KDJ_J": -12.2,
+          "BOLL上轨": 2746.53,
+          "BOLL下轨": 2668.37,
           "ATR14": 24.36
         },
         "levels": {
@@ -3003,10 +3003,10 @@ window.EXCHANGE_FUTURES_DATA = {
       "product": "生猪",
       "exchange": "DCE",
       "category": "软商品",
-      "price": 12050.0,
-      "change_pct": -3.21,
-      "volume": 190055,
-      "open_interest": 206194,
+      "price": 12045.0,
+      "change_pct": -3.25,
+      "volume": 191090,
+      "open_interest": 206256,
       "trade_date": "2026-07-13",
       "technical": {
         "status": "ok",
@@ -3016,7 +3016,7 @@ window.EXCHANGE_FUTURES_DATA = {
         "details": [
           {
             "title": "趋势",
-            "text": "日线趋势判定为偏空，MA20 12076.75，MA60 12208.67。"
+            "text": "日线趋势判定为偏空，MA20 12076.5，MA60 12208.58。"
           },
           {
             "title": "动量",
@@ -3024,7 +3024,7 @@ window.EXCHANGE_FUTURES_DATA = {
           },
           {
             "title": "波动",
-            "text": "ATR14 为 231.79，布林区间 11598.48 至 12555.02。"
+            "text": "ATR14 为 231.79，布林区间 11598.17 至 12554.83。"
           },
           {
             "title": "关键位",
@@ -3032,14 +3032,14 @@ window.EXCHANGE_FUTURES_DATA = {
           }
         ],
         "indicators": {
-          "MA5": 12227.0,
-          "MA20": 12076.75,
-          "MA60": 12208.67,
-          "MACD": 18.1,
-          "RSI12": 55.38,
-          "KDJ_J": -14.59,
-          "BOLL上轨": 12555.02,
-          "BOLL下轨": 11598.48,
+          "MA5": 12226.0,
+          "MA20": 12076.5,
+          "MA60": 12208.58,
+          "MACD": 17.78,
+          "RSI12": 55.17,
+          "KDJ_J": -15.38,
+          "BOLL上轨": 12554.83,
+          "BOLL下轨": 11598.17,
           "ATR14": 231.79
         },
         "levels": {
@@ -3075,10 +3075,10 @@ window.EXCHANGE_FUTURES_DATA = {
       "product": "鸡蛋",
       "exchange": "DCE",
       "category": "软商品",
-      "price": 4537.0,
-      "change_pct": -2.18,
-      "volume": 610953,
-      "open_interest": 410389,
+      "price": 4533.0,
+      "change_pct": -2.26,
+      "volume": 621294,
+      "open_interest": 410779,
       "trade_date": "2026-07-13",
       "technical": {
         "status": "ok",
@@ -3088,7 +3088,7 @@ window.EXCHANGE_FUTURES_DATA = {
         "details": [
           {
             "title": "趋势",
-            "text": "日线趋势判定为偏多，MA20 4403.95，MA60 4151.35。"
+            "text": "日线趋势判定为偏多，MA20 4403.75，MA60 4151.28。"
           },
           {
             "title": "动量",
@@ -3096,22 +3096,22 @@ window.EXCHANGE_FUTURES_DATA = {
           },
           {
             "title": "波动",
-            "text": "ATR14 为 95.86，布林区间 4210.28 至 4597.62。"
+            "text": "ATR14 为 95.86，布林区间 4210.66 至 4596.84。"
           },
           {
             "title": "关键位",
-            "text": "20日高低区间 4639.0 / 4173.0；局部支撑 None，局部阻力 None。"
+            "text": "20日高低区间 4639.0 / 4173.0；局部支撑 需进一步核验，局部阻力 需进一步核验。"
           }
         ],
         "indicators": {
-          "MA5": 4510.2,
-          "MA20": 4403.95,
-          "MA60": 4151.35,
-          "MACD": 6.02,
-          "RSI12": 73.19,
-          "KDJ_J": 62.2,
-          "BOLL上轨": 4597.62,
-          "BOLL下轨": 4210.28,
+          "MA5": 4509.4,
+          "MA20": 4403.75,
+          "MA60": 4151.28,
+          "MACD": 5.77,
+          "RSI12": 72.96,
+          "KDJ_J": 60.76,
+          "BOLL上轨": 4596.84,
+          "BOLL下轨": 4210.66,
           "ATR14": 95.86
         },
         "levels": {
@@ -3147,10 +3147,10 @@ window.EXCHANGE_FUTURES_DATA = {
       "product": "焦炭",
       "exchange": "DCE",
       "category": "黑色建材",
-      "price": 1861.5,
-      "change_pct": -2.69,
-      "volume": 45753,
-      "open_interest": 61505,
+      "price": 1862.5,
+      "change_pct": -2.64,
+      "volume": 46176,
+      "open_interest": 61588,
       "trade_date": "2026-07-13",
       "technical": {
         "status": "ok",
@@ -3160,7 +3160,7 @@ window.EXCHANGE_FUTURES_DATA = {
         "details": [
           {
             "title": "趋势",
-            "text": "日线趋势判定为偏空，MA20 1972.8，MA60 1900.67。"
+            "text": "日线趋势判定为偏空，MA20 1972.85，MA60 1900.69。"
           },
           {
             "title": "动量",
@@ -3168,22 +3168,22 @@ window.EXCHANGE_FUTURES_DATA = {
           },
           {
             "title": "波动",
-            "text": "ATR14 为 49.86，布林区间 1840.97 至 2104.63。"
+            "text": "ATR14 为 49.86，布林区间 1841.19 至 2104.51。"
           },
           {
             "title": "关键位",
-            "text": "20日高低区间 2130.5 / 1884.0；局部支撑 None，局部阻力 None。"
+            "text": "20日高低区间 2130.5 / 1884.0；局部支撑 需进一步核验，局部阻力 需进一步核验。"
           }
         ],
         "indicators": {
-          "MA5": 1930.0,
-          "MA20": 1972.8,
-          "MA60": 1900.67,
-          "MACD": -12.03,
-          "RSI12": 36.56,
-          "KDJ_J": -18.63,
-          "BOLL上轨": 2104.63,
-          "BOLL下轨": 1840.97,
+          "MA5": 1930.2,
+          "MA20": 1972.85,
+          "MA60": 1900.69,
+          "MACD": -11.97,
+          "RSI12": 36.68,
+          "KDJ_J": -17.61,
+          "BOLL上轨": 2104.51,
+          "BOLL下轨": 1841.19,
           "ATR14": 49.86
         },
         "levels": {
@@ -3219,10 +3219,10 @@ window.EXCHANGE_FUTURES_DATA = {
       "product": "焦煤",
       "exchange": "DCE",
       "category": "黑色建材",
-      "price": 1238.5,
-      "change_pct": -1.51,
-      "volume": 569884,
-      "open_interest": 455642,
+      "price": 1236.5,
+      "change_pct": -1.67,
+      "volume": 573887,
+      "open_interest": 455790,
       "trade_date": "2026-07-13",
       "technical": {
         "status": "ok",
@@ -3232,7 +3232,7 @@ window.EXCHANGE_FUTURES_DATA = {
         "details": [
           {
             "title": "趋势",
-            "text": "日线趋势判定为偏空，MA20 1284.83，MA60 1285.03。"
+            "text": "日线趋势判定为偏空，MA20 1284.72，MA60 1285.0。"
           },
           {
             "title": "动量",
@@ -3240,22 +3240,22 @@ window.EXCHANGE_FUTURES_DATA = {
           },
           {
             "title": "波动",
-            "text": "ATR14 为 31.79，布林区间 1207.93 至 1361.72。"
+            "text": "ATR14 为 31.79，布林区间 1207.58 至 1361.87。"
           },
           {
             "title": "关键位",
-            "text": "20日高低区间 1408.5 / 1225.5；局部支撑 None，局部阻力 1294.5。"
+            "text": "20日高低区间 1408.5 / 1225.5；局部支撑 需进一步核验，局部阻力 1294.5。"
           }
         ],
         "indicators": {
-          "MA5": 1275.7,
-          "MA20": 1284.83,
-          "MA60": 1285.03,
-          "MACD": -2.2,
-          "RSI12": 48.28,
-          "KDJ_J": -7.94,
-          "BOLL上轨": 1361.72,
-          "BOLL下轨": 1207.93,
+          "MA5": 1275.3,
+          "MA20": 1284.72,
+          "MA60": 1285.0,
+          "MACD": -2.33,
+          "RSI12": 47.8,
+          "KDJ_J": -11.05,
+          "BOLL上轨": 1361.87,
+          "BOLL下轨": 1207.58,
           "ATR14": 31.79
         },
         "levels": {
@@ -3293,8 +3293,8 @@ window.EXCHANGE_FUTURES_DATA = {
       "category": "黑色建材",
       "price": 746.5,
       "change_pct": -0.67,
-      "volume": 191503,
-      "open_interest": 564563,
+      "volume": 193226,
+      "open_interest": 563785,
       "trade_date": "2026-07-13",
       "technical": {
         "status": "ok",
@@ -3316,7 +3316,7 @@ window.EXCHANGE_FUTURES_DATA = {
           },
           {
             "title": "关键位",
-            "text": "20日高低区间 774.0 / 728.5；局部支撑 None，局部阻力 771.5。"
+            "text": "20日高低区间 774.0 / 728.5；局部支撑 需进一步核验，局部阻力 771.5。"
           }
         ],
         "indicators": {
