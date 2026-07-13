@@ -551,7 +551,8 @@
       label: contract.symbol,
       name: contract.name,
       contract: contract.contract,
-    }))).filter((item) => item.value);
+      rank: contract.contract_rank,
+    }))).filter((item) => item.value && item.rank != null && item.rank !== 1);
     return `
       <article class="futures-card futures-watch-card">
         <div class="futures-card-top">
@@ -560,6 +561,7 @@
             <h3>自选合约 <span>关注</span></h3>
           </div>
         </div>
+        <p class="futures-watch-hint">主视图仅展示主力合约；如需查看次主力或其他已收录合约，请自行选择具体合约后确认。</p>
         <div class="futures-watch-controls">
           <select id="futures-watch-select" aria-label="合约简称">
             <option value="">选择合约</option>
@@ -592,6 +594,7 @@
     if (!oilFuturesList) return;
     const data = window.OIL_FUTURES_CONTRACTS || {};
     const contracts = Array.isArray(data.contracts) ? data.contracts : [];
+    const mainContracts = contracts.filter((contract) => contract.contract_rank === 1 || contract.symbol === "FCPO");
     if (oilFuturesUpdated) {
       oilFuturesUpdated.textContent = data.updated_at ? `更新 ${data.updated_at}` : "等待行情数据";
     }
@@ -604,12 +607,11 @@
     if (sourcesFutures) {
       sourcesFutures.textContent = data.source || "油脂主力合约行情等待加载。";
     }
-    if (!contracts.length) {
+    if (!mainContracts.length) {
       oilFuturesList.innerHTML = '<p class="empty">暂无油脂期货主力合约数据。</p>';
       if (overviewFuturesStrip) overviewFuturesStrip.innerHTML = '<p class="empty">暂无油脂油料合约数据。</p>';
       return;
     }
-
     const overviewContracts = contracts.filter((contract) => {
       const product = String(contract.product || "").toUpperCase();
       return product === "FCPO" || String(contract.symbol || "").toUpperCase() === "FCPO" || (["P", "Y", "OI"].includes(product) && Number(contract.contract_rank) === 1);
@@ -656,7 +658,7 @@
             .join("")
         : '<p class="empty">海外价格参照待更新。</p>';
     }
-    oilFuturesList.innerHTML = `${contracts.map(renderContractCard).join("")}${renderWatchlistCard(contracts, data.watchlist_options)}`;
+    oilFuturesList.innerHTML = `${mainContracts.map(renderContractCard).join("")}${renderWatchlistCard(contracts, data.watchlist_options)}`;
     bindFuturesWatchlist(contracts);
   }
 

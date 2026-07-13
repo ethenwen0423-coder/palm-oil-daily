@@ -1302,6 +1302,12 @@ select {
   align-content: start;
 }
 
+.futures-watch-hint {
+  color: rgba(244, 248, 242, 0.72);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
 .futures-watch-controls {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
