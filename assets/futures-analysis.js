@@ -22,6 +22,10 @@
     return `<ul class="hotspot-list">${items.map((item) => `<li><span>${escapeHtml(item.date)} · ${escapeHtml(item.source)}</span>${item.url ? `<a href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(item.title)}</a>` : `<strong>${escapeHtml(item.title)}</strong>`}</li>`).join("")}</ul>`;
   }
 
+  function renderDetailList(items, className) {
+    return `<div class="${className}">${items.map((item) => `<section><strong>${escapeHtml(item.title)}</strong><span>${escapeHtml(item.text)}</span></section>`).join("")}</div>`;
+  }
+
   function renderAnalysis(contract) {
     const technical = contract.technical || {};
     const indicators = technical.indicators || {};
@@ -37,12 +41,13 @@
           <header><p>技术面</p><h3>${escapeHtml(technical.trend || "需进一步核验")}</h3></header>
           <p>${escapeHtml(technical.summary)}</p>
           <dl class="indicator-grid">${Object.entries(indicators).map(([name, value]) => `<div><dt>${escapeHtml(name)}</dt><dd>${formatNumber(value)}</dd></div>`).join("")}</dl>
-          <div class="analysis-levels"><span>20日高：<b>${formatNumber(levels["20日高"])}</b></span><span>20日低：<b>${formatNumber(levels["20日低"])}</b></span></div>
+          <div class="analysis-levels">${Object.entries(levels).map(([name, value]) => `<span>${escapeHtml(name)}：<b>${formatNumber(value)}</b></span>`).join("")}</div>
+          ${renderDetailList(technical.details || [], "technical-detail-list")}
         </section>
         <section class="analysis-panel">
-          <header><p>基本面</p><h3>${escapeHtml(contract.category)}</h3></header>
+          <header><p>基本面</p><h3>${escapeHtml(contract.fundamental?.category || contract.category)}</h3></header>
           <p>${escapeHtml(contract.fundamental?.summary)}</p>
-          <div class="fundamental-framework"><strong>研究框架</strong><span>${escapeHtml(contract.fundamental?.framework)}</span></div>
+          ${renderDetailList(contract.fundamental?.factors || [], "fundamental-detail-list")}
           <div class="hotspot-section"><strong>新闻热点</strong>${renderNews(contract.news_hotspots || [])}</div>
         </section>
       </div>

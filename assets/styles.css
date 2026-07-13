@@ -248,6 +248,35 @@ body.futures-analysis-page {
   font-size: 0.88rem;
 }
 
+.technical-detail-list,
+.fundamental-detail-list {
+  display: grid;
+  gap: 0;
+  margin-top: 18px;
+  border-top: 1px solid rgba(220, 240, 213, 0.16);
+}
+
+.technical-detail-list section,
+.fundamental-detail-list section {
+  display: grid;
+  gap: 4px;
+  padding: 13px 0;
+  border-bottom: 1px solid rgba(220, 240, 213, 0.12);
+}
+
+.technical-detail-list strong,
+.fundamental-detail-list strong {
+  color: #9edb9b;
+  font-size: 0.82rem;
+}
+
+.technical-detail-list span,
+.fundamental-detail-list span {
+  color: rgba(244, 248, 242, 0.74);
+  font-size: 0.88rem;
+  line-height: 1.65;
+}
+
 .fundamental-framework { display: grid; gap: 4px; padding: 14px 0; border-top: 1px solid rgba(220, 240, 213, 0.16); }
 .fundamental-framework strong,
 .hotspot-section > strong { color: #9edb9b; }
