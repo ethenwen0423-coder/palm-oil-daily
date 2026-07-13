@@ -173,6 +173,17 @@ Return one table for all contracts:
 
 Then return tab-ready JSON fields for each contract.
 
+## Readability Requirements
+
+The tab explanation should read like a short analyst note, not a raw indicator dump.
+
+- Technical detail must explain price position, range, and volatility in plain language.
+- Fundamental detail must separate external linkage from domestic background pressure.
+- Do not repeat the same conclusion in multiple sentences.
+- Avoid stiff wording such as only listing `MA20 / MA60 / score / signal`.
+- Every detail block should answer: what is observed, why it matters, and why it cannot alone decide the final view.
+- Keep the same JSON fields and card count so the frontend remains stable.
+
 ## Hard Rules
 
 - Do not let technical analysis independently decide the final view.

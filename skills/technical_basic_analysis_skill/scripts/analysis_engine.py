@@ -102,6 +102,56 @@ def pct_text(value: float | None) -> str:
     return f"{sign}{value:.2f}%"
 
 
+def score_reading(score: Any) -> str:
+    value = as_float(score)
+    if value is None:
+        return "数据需进一步核验"
+    if value >= 65:
+        return "偏强"
+    if value <= 40:
+        return "偏弱"
+    if value >= 55:
+        return "中性略强"
+    if value <= 45:
+        return "中性略弱"
+    return "中性"
+
+
+def unique_phrases(items: list[str]) -> list[str]:
+    seen: set[str] = set()
+    result: list[str] = []
+    for item in items:
+        text = str(item).strip(" ；。")
+        if text and text not in seen:
+            seen.add(text)
+            result.append(text)
+    return result
+
+
+def readable_note(note: str) -> str:
+    parts = unique_phrases([part for part in str(note or "").split("；")])
+    if not parts:
+        return "暂无足够强的新增基本面变量"
+    if len(parts) == 1:
+        return parts[0]
+    return "；".join(parts[:3])
+
+
+def sentence(text: str) -> str:
+    clean = str(text or "").strip()
+    if not clean:
+        return ""
+    return clean if clean.endswith(("。", "！", "？")) else f"{clean}。"
+
+
+def trend_reading(trend: str) -> str:
+    if trend == "偏多":
+        return "价格相对均线和区间位置偏强，但仍需要外盘驱动和资金配合确认延续性"
+    if trend == "偏空":
+        return "价格对均线支撑的依赖减弱，下方区间有效性需要继续观察"
+    return "价格仍在区间内反复，技术面更多说明节奏而不是方向结论"
+
+
 def last(values: list[float | None]) -> float | None:
     for value in reversed(values):
         if value is not None:
@@ -466,7 +516,8 @@ def nested_price(snapshot: dict[str, Any] | None, section: str, key: str) -> str
 
 def build_technical_detail(price: float | None, tech: dict[str, Any], total_score: float) -> list[dict[str, str]]:
     levels = tech.get("levels", {})
-    signals = "、".join(tech.get("signals") or []) or "暂无明确技术信号"
+    signal_items = unique_phrases([str(item) for item in tech.get("signals") or []])
+    signals = "、".join(signal_items) if signal_items else "暂无明确技术信号"
     ma20 = fmt_number(levels.get("ma20"))
     ma60 = fmt_number(levels.get("ma60"))
     high20 = fmt_number(levels.get("donchian20_high"))
@@ -477,24 +528,33 @@ def build_technical_detail(price: float | None, tech: dict[str, Any], total_scor
     trend = tech.get("trend", "震荡")
     price_text = fmt_number(price)
     if price is None:
-        position = "价格缺失，技术结构需进一步核验。"
+        position = "最新价缺失，无法判断价格相对均线和区间的位置，技术结构需进一步核验。"
     else:
         position = (
-            f"现价 {price_text} 对照 MA20 {ma20}、MA60 {ma60}，当前技术评分为 {fmt_number(tech.get('score'))}，"
-            f"趋势标签为{trend}。核心信号为：{signals}。"
+            f"现价 {price_text} 先看与 MA20 {ma20}、MA60 {ma60} 的相对位置，"
+            f"技术评分 {fmt_number(tech.get('score'))}，读数为{score_reading(tech.get('score'))}。"
+            f"{trend_reading(str(trend))}；主要信号是：{signals}。"
         )
     return [
         {
-            "title": "趋势结构",
+            "title": "价格位置",
             "text": position,
         },
         {
-            "title": "支撑压力",
-            "text": f"20日价格区间上沿 {high20}、下沿 {low20}；统计通道上轨 {boll_upper}、下轨 {boll_lower}。这些位置决定突破确认和反抽压力。",
+            "title": "关键区间",
+            "text": (
+                f"上方先观察20日区间上沿 {high20} 和统计通道上轨 {boll_upper}，"
+                f"下方关注20日区间下沿 {low20} 和统计通道下轨 {boll_lower}。"
+                "这些位置用于判断突破或回落是否有效，不直接等同于开平仓点位。"
+            ),
         },
         {
-            "title": "波动与执行",
-            "text": f"14日平均波动幅度约 {atr}，用于衡量波动区间和观察位有效性。综合评分 {fmt_number(total_score)} 只作多因子结果，技术面不得单独决定总观点。",
+            "title": "波动节奏",
+            "text": (
+                f"14日平均波动幅度约 {atr}，说明观察位需要给盘中噪音留出空间。"
+                f"综合评分 {fmt_number(total_score)} 来自技术、基本面、驱动和资金共同作用，"
+                "技术面只负责描述位置和节奏，不能单独决定总观点。"
+            ),
         },
     ]
 
@@ -508,17 +568,35 @@ def build_fundamental_detail(spec: dict[str, Any], snapshot: dict[str, Any] | No
     rapeseed_inventory = nested_price(snapshot, "inventory", "rapeseed_oil_inventory")
     soy_palm_spread = nested_price(snapshot, "spread", "soybean_palm_spread")
     if key == "palm_oil":
-        inventory_text = f"棕榈油库存 {palm_inventory}，豆棕价差 {soy_palm_spread}。库存偏高会压制单边上行，价差偏低则仍支撑P相对强弱。"
-        linkage_text = f"FCPO涨跌幅 {fcpo_change} 是P的外盘弹性来源，CBOT豆油 {cbot_change} 影响油脂板块共振。"
+        inventory_text = (
+            f"国内背景看两点：棕榈油库存 {palm_inventory}，豆棕价差 {soy_palm_spread}。"
+            "库存偏高会限制单边上行弹性，价差变化则决定P相对Y/OI是继续强，还是转为板块跟随。"
+        )
+        linkage_text = (
+            f"P的外盘弹性主要来自FCPO（{fcpo_change}），CBOT豆油（{cbot_change}）决定油脂板块共振强度。"
+            "两者同向时，内盘更容易形成顺畅传导；若背离，盘面通常更偏震荡。"
+        )
     elif key == "soybean_oil":
-        inventory_text = f"豆油库存 {soybean_inventory}，豆棕价差 {soy_palm_spread}。库存高位会限制豆油独立上攻，价差变化决定对P的拖累或托底。"
-        linkage_text = f"CBOT豆油涨跌幅 {cbot_change} 是Y的主要外盘锚，FCPO {fcpo_change} 影响油脂整体风险偏好。"
+        inventory_text = (
+            f"国内背景看豆油库存 {soybean_inventory} 和豆棕价差 {soy_palm_spread}。"
+            "库存偏高时，Y独立上攻需要更强外盘或资金配合；价差变化会影响它对P的拖累或托底。"
+        )
+        linkage_text = (
+            f"Y首先锚定CBOT豆油（{cbot_change}），同时受FCPO（{fcpo_change}）影响油脂整体风险偏好。"
+            "如果CBOT强而FCPO弱，Y可能强于P，但板块趋势会更不顺。"
+        )
     elif key == "rapeseed_oil":
-        inventory_text = f"菜油库存 {rapeseed_inventory}，豆棕价差 {soy_palm_spread}。菜油更偏油脂内部轮动，若库存压力不缓解，追涨持续性受限。"
-        linkage_text = f"CBOT豆油 {cbot_change} 和FCPO {fcpo_change} 共同决定油脂共振强度，OI当前更多看相对强弱切换。"
+        inventory_text = (
+            f"菜油库存 {rapeseed_inventory}，豆棕价差 {soy_palm_spread}。"
+            "OI更容易体现油脂内部轮动，若库存压力没有缓解，单独走强的持续性需要打折。"
+        )
+        linkage_text = (
+            f"OI没有单一外盘锚，更多看CBOT豆油（{cbot_change}）和FCPO（{fcpo_change}）共同带来的板块方向。"
+            "外盘共振越强，菜油相对强弱切换越容易被资金放大。"
+        )
     else:
-        inventory_text = "外盘参考合约暂缺国内库存、基差与价差的可比口径，基本面评分按中性处理。"
-        linkage_text = f"外盘涨跌幅用于观察情绪传导：FCPO {fcpo_change}，CBOT豆油 {cbot_change}。"
+        inventory_text = "外盘参考合约暂缺国内库存、基差与价差的可比口径，基本面评分按中性背景处理。"
+        linkage_text = f"外盘涨跌幅主要用于观察情绪传导：FCPO {fcpo_change}，CBOT豆油 {cbot_change}。"
     return [
         {
             "title": "外盘联动",
@@ -530,7 +608,11 @@ def build_fundamental_detail(spec: dict[str, Any], snapshot: dict[str, Any] | No
         },
         {
             "title": "评分解释",
-            "text": f"基本面评分 {fmt_number(score)}。本轮纳入的可核验因子为：{note}；库存、基差、进口利润、压榨利润只作背景压力，非24小时信息不得作为今日主线加减分。",
+            "text": (
+                f"基本面评分 {fmt_number(score)}，读数为{score_reading(score)}。"
+                f"本轮可核验依据是：{readable_note(note)}。"
+                "库存、基差、进口利润、压榨利润只作为背景压力；除非24小时内有新增更新，否则不作为今日主驱动。"
+            ),
         },
     ]
 
@@ -764,18 +846,24 @@ def build_market_view(
     signals = "、".join(tech.get("signals") or [])
     trend = tech.get("trend", "震荡")
     if stance in ("偏多", "震荡偏强"):
-        tone = "当前驱动与资金偏强"
+        tone = "驱动与资金对价格更友好"
     elif stance in ("偏空", "震荡偏弱"):
-        tone = "当前驱动与资金偏弱"
+        tone = "驱动与资金对价格形成压力"
     elif stance == "分歧震荡":
-        tone = "当前信号分歧，按震荡处理"
+        tone = "各类信号并不一致，暂按分歧震荡处理"
     else:
-        tone = "当前行情偏震荡，等待驱动确认"
+        tone = "当前行情缺少单边确认，仍需要等待新增驱动"
     detail = f"技术面显示{trend}"
     if signals:
-        detail += f"（{signals}）"
-    learning_text = f"复盘提示：{learning_warning}。" if learning_warning else ""
-    return f"{name}{tone}，总观点为{stance}，置信度{confidence}；{detail}。基本面背景：{fundamental_note}。驱动：{driver_note}。资金：{money_note}。冲突提示：{warning}。{learning_text}"
+        detail += f"，主要信号为{signals}"
+    warning_text = "暂未看到需要明显降级的冲突信号" if warning == "暂无明显冲突信号" else warning
+    learning_text = f"复盘提示：{sentence(learning_warning)}" if learning_warning else ""
+    return (
+        f"{name}当前观点为{stance}，置信度{confidence}。"
+        f"核心原因是：{tone}；{detail}。"
+        f"基本面背景看{readable_note(fundamental_note)}；驱动看{readable_note(driver_note)}；资金看{readable_note(money_note)}。"
+        f"需要降级看待的地方：{sentence(warning_text)}{learning_text}"
+    )
 
 
 def analyze_contract(item: dict[str, Any]) -> dict[str, Any]:
