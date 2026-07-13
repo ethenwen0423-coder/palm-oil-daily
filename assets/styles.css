@@ -42,6 +42,236 @@ body.detail-page {
   color: #1f2937;
 }
 
+body.futures-analysis-page {
+  min-height: 100vh;
+  background: #07120d;
+  color: #f4f8f2;
+}
+
+.futures-page-header {
+  border-bottom: 1px solid rgba(220, 240, 213, 0.18);
+  background: #0b2018;
+}
+
+.futures-page-nav,
+.futures-page-footer > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 18px 0;
+  color: rgba(244, 248, 242, 0.64);
+  font-size: 0.84rem;
+  font-weight: 760;
+}
+
+.futures-back {
+  color: #9edb9b;
+  text-decoration: none;
+}
+
+.futures-page-intro {
+  padding: 52px 0 48px;
+}
+
+.futures-page-intro p,
+.contract-picker > div > p,
+.analysis-head p,
+.analysis-panel header p {
+  margin: 0;
+  color: #9edb9b;
+  font-size: 0.76rem;
+  font-weight: 900;
+}
+
+.futures-page-intro h1 {
+  margin: 7px 0 10px;
+  color: #ffffff;
+  font-size: clamp(2rem, 5vw, 3.6rem);
+  letter-spacing: 0;
+}
+
+.futures-page-intro > span {
+  color: rgba(244, 248, 242, 0.72);
+  font-size: 1rem;
+}
+
+.futures-analysis-layout {
+  display: grid;
+  gap: 22px;
+  padding: 30px 0 50px;
+}
+
+.contract-picker,
+.analysis-head,
+.analysis-panel {
+  border: 1px solid rgba(220, 240, 213, 0.18);
+  background: rgba(13, 33, 27, 0.94);
+}
+
+.contract-picker {
+  display: grid;
+  grid-template-columns: minmax(190px, 0.7fr) minmax(0, 1.6fr);
+  gap: 22px 30px;
+  align-items: end;
+  padding: 22px;
+}
+
+.contract-picker h2,
+.analysis-head h2,
+.analysis-panel h3 {
+  margin: 4px 0 0;
+  color: #ffffff;
+  font-size: 1.3rem;
+}
+
+.contract-picker-controls {
+  display: grid;
+  grid-template-columns: minmax(135px, 0.55fr) minmax(180px, 1.35fr) auto;
+  gap: 12px;
+}
+
+.contract-picker label {
+  display: grid;
+  gap: 6px;
+  color: rgba(244, 248, 242, 0.6);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.contract-picker select,
+.contract-picker button {
+  min-width: 0;
+  min-height: 44px;
+  border: 1px solid rgba(220, 240, 213, 0.22);
+  background: #07120d;
+  color: #ffffff;
+  padding: 0 12px;
+  font: inherit;
+}
+
+.contract-picker button {
+  align-self: end;
+  border-color: #9edb9b;
+  background: #9edb9b;
+  color: #07120d;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.contract-picker-note {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: rgba(244, 248, 242, 0.66);
+  font-size: 0.86rem;
+}
+
+.contract-analysis-result {
+  min-height: 280px;
+}
+
+.analysis-empty {
+  display: grid;
+  min-height: 280px;
+  place-items: center;
+  border: 1px dashed rgba(220, 240, 213, 0.24);
+  color: rgba(244, 248, 242, 0.6);
+}
+
+.analysis-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 26px;
+}
+
+.analysis-head h2 {
+  font-size: clamp(1.5rem, 3vw, 2.2rem);
+}
+
+.analysis-head h2 span {
+  color: #9edb9b;
+}
+
+.analysis-head small {
+  display: block;
+  margin-top: 8px;
+  color: rgba(244, 248, 242, 0.58);
+}
+
+.analysis-price {
+  display: grid;
+  align-content: start;
+  justify-items: end;
+}
+
+.analysis-price strong {
+  color: #ffffff;
+  font-size: clamp(2rem, 5vw, 3.4rem);
+  line-height: 1;
+}
+
+.analysis-price span { font-weight: 900; }
+.analysis-price.up span { color: #9edb9b; }
+.analysis-price.down span { color: #e19b86; }
+.analysis-price.flat span { color: #f1c96b; }
+
+.analysis-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  margin-top: 1px;
+  background: rgba(220, 240, 213, 0.14);
+}
+
+.analysis-panel { padding: 24px; }
+.analysis-panel > p { color: rgba(244, 248, 242, 0.78); line-height: 1.75; }
+
+.indicator-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  margin: 20px 0 0;
+  background: rgba(220, 240, 213, 0.14);
+}
+
+.indicator-grid div { padding: 11px; background: #091b14; }
+.indicator-grid dt { color: rgba(244, 248, 242, 0.56); font-size: 0.75rem; font-weight: 800; }
+.indicator-grid dd { margin: 3px 0 0; color: #ffffff; font-weight: 850; }
+
+.analysis-levels,
+.fundamental-framework {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 20px;
+  margin-top: 16px;
+  color: rgba(244, 248, 242, 0.72);
+  font-size: 0.88rem;
+}
+
+.fundamental-framework { display: grid; gap: 4px; padding: 14px 0; border-top: 1px solid rgba(220, 240, 213, 0.16); }
+.fundamental-framework strong,
+.hotspot-section > strong { color: #9edb9b; }
+
+.hotspot-section { margin-top: 10px; padding-top: 14px; border-top: 1px solid rgba(220, 240, 213, 0.16); }
+.hotspot-list { display: grid; gap: 12px; margin: 12px 0 0; padding: 0; list-style: none; }
+.hotspot-list li { display: grid; gap: 2px; }
+.hotspot-list span { color: rgba(244, 248, 242, 0.53); font-size: 0.76rem; }
+.hotspot-list a, .hotspot-list strong { color: #ffffff; font-size: 0.9rem; line-height: 1.5; }
+.hotspot-list a { text-decoration-color: rgba(158, 219, 155, 0.6); }
+.analysis-muted, .analysis-quality { color: rgba(244, 248, 242, 0.58); font-size: 0.86rem; }
+.analysis-quality { margin: 1px 0 0; padding: 14px 18px; border-left: 3px solid #f1c96b; background: rgba(241, 201, 107, 0.08); }
+
+.futures-page-footer { border-top: 1px solid rgba(220, 240, 213, 0.14); }
+
+@media (max-width: 760px) {
+  .futures-page-intro { padding: 38px 0; }
+  .contract-picker, .contract-picker-controls, .analysis-columns { grid-template-columns: 1fr; }
+  .analysis-head { align-items: flex-start; flex-direction: column; }
+  .analysis-price { justify-items: start; }
+  .indicator-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .futures-page-nav, .futures-page-footer > div { align-items: flex-start; flex-direction: column; }
+}
+
 .shell {
   width: min(1120px, calc(100% - 40px));
   margin: 0 auto;
