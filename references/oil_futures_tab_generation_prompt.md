@@ -10,13 +10,15 @@
 4. 把 `current_contracts.json` 中全部 rank=1 主力和 rank=2 次主力合约作为今天分析入口，不得只取 rank=1。
 5. 读取最近 5 次 `data/review/learning_notes/*.json`，如存在连续同类偏差，生成观点时必须提示近期模型容易低估/高估的因素。
 6. 按 master analytic flow 调用 `skills/technical_basic_analysis_skill/SKILL.md`。
-6. 使用 `技术面25% + 基本面25% + 驱动30% + 资金20%` 计算每个油脂相关主力合约的综合评分。
-7. 使用 `skills/master_analytic_skill/scripts/analyze_contracts.py` 调用分支 skill。
-8. 分支 skill 使用 `skills/technical_basic_analysis_skill/scripts/analysis_engine.py` 生成技术评分、基本面评分、驱动评分、资金评分、当前行情观点、观察位和失效条件。
-9. 策略区只输出上方观察位、下方观察位、失效条件和风险提示，不输出明确交易指令。
-10. 技术面、基本面、驱动、资金必须分别说明评分依据。
-11. 必须生成 `watchlist_options`，值列表使用每个被发现的具体合约代码，供页面自选合约卡片确认后刷新展示。
-12. 缺失或无法核验的数据必须写 `需进一步核验`。
+7. 使用 `技术面25% + 基本面25% + 驱动30% + 资金20%` 计算每个油脂相关主力合约的综合评分。
+8. 使用 `skills/master_analytic_skill/scripts/analyze_contracts.py` 调用分支 skill。
+9. 分支 skill 使用 `skills/technical_basic_analysis_skill/scripts/analysis_engine.py` 生成技术评分、基本面评分、驱动评分、资金评分、当前行情观点、观察位和失效条件。
+10. 策略区只输出上方观察位、下方观察位、失效条件和风险提示，不输出明确交易指令。
+11. 技术面、基本面、驱动、资金必须分别说明评分依据。
+12. 主视图只展示 `rank=1` 的国内主力合约，并保留唯一外盘参考 FCPO；`rank=2` 等非主力合约不得直接渲染为主卡片。
+13. 必须生成 `watchlist_options`，值列表只使用被发现的非主力具体合约代码，供用户自行选择合约并确认后刷新展示；页面必须注明查看其他合约请自行选择。
+14. 写入 `data/oil_futures.js` 前必须运行 `skills/data_quality_gate_skill/scripts/validate_data.py --oil-futures 临时输出 --strict`；关键数据失败时停止更新。
+15. 缺失或无法核验的数据必须写 `需进一步核验`。
 
 默认国内合约来自 `contract_discovery_skill` 的当月流动性排序：
 

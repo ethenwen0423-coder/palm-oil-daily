@@ -1,6 +1,6 @@
 ---
 name: daily-review-skill
-description: Daily review and self-improvement skill for oil-futures main-contract analytics. Use after market close or before refreshing the oil-futures tab when Codex needs to compare yesterday's P/Y/OI views with today's actual market action, classify HIT/PARTIAL/MISS, attribute errors, write learning_notes.json, and produce improvement suggestions without automatically changing scoring weights or rules.
+description: Daily review and self-improvement skill for oil-futures main-contract analytics. Use only after market close when Codex needs to compare the frozen morning P/Y/OI views with same-day actual market action, classify HIT/PARTIAL/MISS, attribute errors, write learning notes, and produce improvement suggestions without automatically changing scoring weights or rules.
 ---
 
 # Skill: daily_review_skill
@@ -15,7 +15,12 @@ Covered contracts:
 - Y
 - OI
 
+Identify each reviewed main contract by `product` plus `contract_rank == 1`.
+Never match the product code against `symbol`, because symbols contain the delivery month (for example `P2609`).
+
 This skill does not write morning reports, does not generate titles, and does not permanently change scoring weights.
+
+Production execution is owned exclusively by `scripts/review_prediction.py`. Morning report publishing, oil-futures tab refreshes, and intraday refreshes must not invoke this skill. The night review entry first archives the morning tab, then generates and strictly validates the same-date actual snapshot before calling `daily_review.py`.
 
 ## Fixed Workflow
 
@@ -48,6 +53,8 @@ This skill does not write morning reports, does not generate titles, and does no
 5. If `MISS`, attribute the error.
 6. Write `data/review/daily/YYYY-MM-DD.json`.
 7. Output review result and improvement suggestions.
+
+If any P/Y/OI rank-1 contract is missing, write `status: REVIEW_FAILED`, return a non-zero exit code, and prohibit downstream reports from claiming there were no repeated errors.
 
 ## Hit Rules
 

@@ -9,10 +9,12 @@ import os
 import re
 import subprocess
 import sys
-from datetime import datetime
+import tempfile
+from datetime import datetime, timedelta
 import importlib.util
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from sync_miniprogram_data import publish_dataset
 
@@ -20,17 +22,38 @@ from sync_miniprogram_data import publish_dataset
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE_RUNS = ROOT / "source_runs"
 OUTPUT = ROOT / "data" / "oil_futures.js"
-REVIEW_DAILY_DIR = ROOT / "data" / "review" / "daily"
-REVIEW_SNAPSHOT_DIR = ROOT / "data" / "review" / "snapshots"
 HITHINK_CLI = Path.home() / ".codex" / "skills" / "hithink-market-query" / "scripts" / "cli.py"
 MASTER_ANALYTIC_CLI = ROOT / "skills" / "master_analytic_skill" / "scripts" / "analyze_contracts.py"
-DAILY_REVIEW_CLI = ROOT / "skills" / "daily_review_skill" / "scripts" / "daily_review.py"
 REVIEW_MEMORY = ROOT / "skills" / "daily_review_skill" / "scripts" / "review_memory.py"
 CONTRACT_SELECTOR_CLI = ROOT / "skills" / "contract_selector_skill" / "scripts" / "select_contracts.py"
 CONTRACT_DISCOVERY_CLI = ROOT / "skills" / "contract_discovery_skill" / "scripts" / "select_contracts.py"
 CONTRACT_DISCOVERY_CURRENT = ROOT / "data" / "contracts" / "current_contracts.json"
+DATA_QUALITY_GATE_CLI = ROOT / "skills" / "data_quality_gate_skill" / "scripts" / "validate_data.py"
+FORECAST_RECORDER_CLI = ROOT / "skills" / "forecast_tracking_skill" / "scripts" / "record_forecast.py"
+FORECAST_DAILY_DIR = ROOT / "data" / "forecast" / "daily"
+PRIVATE_ENV = Path.home() / "Library" / "Application Support" / "VinsonTesla" / "private.env"
+SHANGHAI = ZoneInfo("Asia/Shanghai")
 PRICE_TOLERANCE = 2.0
 PCT_TOLERANCE = 0.25
+
+
+def load_private_env() -> None:
+    """Load local secrets for launchd/manual runs without storing them in the repo."""
+    if not PRIVATE_ENV.exists():
+        return
+    for raw_line in PRIVATE_ENV.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("export "):
+            line = line[len("export ") :].strip()
+        key, sep, value = line.partition("=")
+        if not sep:
+            continue
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        if key and value and key not in os.environ:
+            os.environ[key] = value
 
 DOMESTIC = [
     {
@@ -162,8 +185,11 @@ def direction(change_pct: Any) -> str:
     return "→"
 
 
-def latest_market_snapshot() -> tuple[dict[str, Any] | None, Path | None]:
-    candidates = sorted(SOURCE_RUNS.glob("*/raw/futures_market_data.json"), reverse=True)
+def latest_market_snapshot(report_date: str | None = None) -> tuple[dict[str, Any] | None, Path | None]:
+    if report_date:
+        candidates = [SOURCE_RUNS / f"{report_date}-daily" / "raw" / "futures_market_data.json"]
+    else:
+        candidates = sorted(SOURCE_RUNS.glob("*/raw/futures_market_data.json"), reverse=True)
     for path in candidates:
         try:
             return json.loads(path.read_text(encoding="utf-8")), path
@@ -400,6 +426,7 @@ def call_master_analysis(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 def hithink_contract(contract: str) -> dict[str, Any]:
+    load_private_env()
     if not HITHINK_CLI.exists():
         return {"status": "missing", "message": "行情skill脚本不存在"}
     if not os.environ.get("IWENCAI_API_KEY"):
@@ -547,13 +574,22 @@ def merge_domestic(
 def merge_external(spec: dict[str, str], snapshot: dict[str, Any] | None, review_learning: dict[str, Any] | None = None) -> dict[str, Any]:
     record = (snapshot or {}).get("external", {}).get(spec["key"], {})
     analysis = call_master_analysis({"spec": spec, "source": record, "snapshot": {**(snapshot or {}), "review_learning": review_learning or {}}, "external": True})
+    change_basis = str(record.get("change_basis") or record.get("basis") or "")
+    basis_is_clear = any(word in change_basis.lower() for word in ["previous close", "settlement", "open", "昨收", "结算", "开盘"])
+    display_change = fmt_pct(record.get("change_pct"))
+    verification = "外盘只展示与棕榈油最相关的 FCPO；暂不使用同花顺问财核验，以公开外盘数据源为准。"
+    if spec.get("symbol") == "FCPO" and not basis_is_clear:
+        display_change = "需进一步核验"
+        verification = "FCPO涨跌幅口径未明确说明相对昨收、开盘或结算价；涨跌幅已降级为需进一步核验。"
     return {
         "symbol": spec["symbol"],
+        "product": spec["symbol"],
         "name": spec["name"],
         "market": spec["market"],
         "contract": record.get("contract") or spec["symbol"],
         "price": fmt_number(record.get("price")),
-        "change": fmt_pct(record.get("change_pct")),
+        "change": display_change,
+        "change_basis": change_basis or "需进一步核验",
         "volume": fmt_lots(record.get("volume")),
         "open_interest": fmt_lots(record.get("open_interest")),
         "direction": direction(record.get("change_pct")),
@@ -565,7 +601,7 @@ def merge_external(spec: dict[str, str], snapshot: dict[str, Any] | None, review
         "trade_date": record.get("published_at", "")[:10] or record.get("fetched_at", "")[:10],
         "source": record.get("source") or "需进一步核验",
         "note": spec["note"],
-        "verification": "外盘只展示与棕榈油最相关的 FCPO；暂不使用同花顺问财核验，以公开外盘数据源为准。",
+        "verification": verification,
         "score": analysis.get("score"),
         "view": analysis.get("view"),
         "technical_detail": analysis.get("technical_detail", []),
@@ -577,36 +613,166 @@ def merge_external(spec: dict[str, str], snapshot: dict[str, Any] | None, review
     }
 
 
-def write_js(payload: dict[str, Any], output: Path) -> None:
+def market_reference(label: str, location: str, record: dict[str, Any] | None) -> dict[str, str]:
+    source = record or {}
+    return {
+        "label": label,
+        "location": location,
+        "price": fmt_number(source.get("price")) if source.get("status") == "ok" else "待更新",
+        "change": fmt_pct(source.get("change_pct")) if source.get("status") == "ok" else "需进一步核验",
+        "unit": str(source.get("unit") or ""),
+        "updated_at": str(source.get("published_at") or source.get("fetched_at") or "待更新"),
+        "source": str(source.get("source") or "需进一步核验"),
+    }
+
+
+def build_market_references(snapshot: dict[str, Any] | None) -> dict[str, dict[str, str]]:
+    external = (snapshot or {}).get("external", {})
+    return {
+        "malaysia_fcpo": market_reference("马来 BMD FCPO", "马来西亚", external.get("bmd_palm_oil")),
+        "india_cpo_spot": market_reference("印度 NCDEX CPO 现货", "Kandla", external.get("india_cpo_spot")),
+    }
+
+
+def write_js(payload: dict[str, Any], output: Path, publish: bool = True) -> None:
     output.parent.mkdir(parents=True, exist_ok=True)
     text = json.dumps(payload, ensure_ascii=False, indent=2)
     output.write_text(f"window.OIL_FUTURES_CONTRACTS = {text};\n", encoding="utf-8")
-    if output.resolve() == OUTPUT.resolve():
+    if publish and output.resolve() == OUTPUT.resolve():
         publish_dataset("oil-futures", payload)
 
 
-def archive_existing_output(output: Path, review_date: str) -> Path | None:
-    if output.resolve() != OUTPUT.resolve() or not output.exists() or output.stat().st_size == 0:
-        return None
-    REVIEW_SNAPSHOT_DIR.mkdir(parents=True, exist_ok=True)
-    target = REVIEW_SNAPSHOT_DIR / f"{review_date}-previous-oil_futures.js"
-    target.write_text(output.read_text(encoding="utf-8"), encoding="utf-8")
+def run_data_quality_gate(path: Path) -> None:
+    if not DATA_QUALITY_GATE_CLI.exists():
+        raise RuntimeError("data_quality_gate_skill 缺失，停止发布以避免未校验数据上线")
+    result = subprocess.run(
+        [sys.executable, str(DATA_QUALITY_GATE_CLI), "--oil-futures", str(path), "--strict"],
+        cwd=str(ROOT),
+        text=True,
+        capture_output=True,
+        timeout=30,
+        check=False,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(result.stdout.strip() or result.stderr.strip() or "data_quality_gate_skill 校验失败")
+
+
+def run_manifest_quality_gate(path: Path) -> None:
+    if not DATA_QUALITY_GATE_CLI.exists():
+        raise RuntimeError("data_quality_gate_skill 缺失，停止发布以避免未校验数据上线")
+    result = subprocess.run(
+        [sys.executable, str(DATA_QUALITY_GATE_CLI), "--manifest", str(path), "--strict"],
+        cwd=str(ROOT),
+        text=True,
+        capture_output=True,
+        timeout=30,
+        check=False,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(result.stdout.strip() or result.stderr.strip() or "source manifest 数据质量门失败")
+
+
+def normalize_shanghai_timestamp(value: Any, field: str, report_date: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise RuntimeError(f"缺少可验证的 {field}，停止发布")
+    try:
+        parsed = datetime.fromisoformat(value.strip())
+    except ValueError as exc:
+        raise RuntimeError(f"{field} 不是有效 ISO-8601 时间：{value!r}") from exc
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=SHANGHAI)
+    if parsed.utcoffset() != timedelta(hours=8):
+        raise RuntimeError(f"{field} 必须属于 Asia/Shanghai（+08:00）")
+    if parsed.date().isoformat() != report_date:
+        raise RuntimeError(f"{field} 日期与 report-date 不一致")
+    return parsed.isoformat(timespec="seconds")
+
+
+def load_forecast_time_metadata(report_date: str) -> dict[str, Any]:
+    manifest_path = SOURCE_RUNS / f"{report_date}-daily" / "manifest.json"
+    raw_path = SOURCE_RUNS / f"{report_date}-daily" / "raw" / "futures_market_data.json"
+    if not manifest_path.exists():
+        raise RuntimeError(f"缺少晨报 source manifest：{manifest_path}")
+    if not raw_path.exists():
+        raise RuntimeError(f"缺少晨报行情时间截面：{raw_path}")
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        raw_snapshot = json.loads(raw_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise RuntimeError(f"晨报时间截面元数据无法读取：{exc}") from exc
+    if manifest.get("date") != report_date or manifest.get("kind") != "daily":
+        raise RuntimeError("source manifest 的 date/kind 与日报不一致")
+    if raw_snapshot.get("date") != report_date:
+        raise RuntimeError("futures_market_data.json 的 date 与日报不一致")
+    generated_at = normalize_shanghai_timestamp(manifest.get("generated_at"), "manifest.generated_at", report_date)
+    cutoff_at = normalize_shanghai_timestamp(raw_snapshot.get("timestamp"), "raw.futures_market_data.timestamp", report_date)
+    generated = datetime.fromisoformat(generated_at)
+    cutoff = datetime.fromisoformat(cutoff_at)
+    if generated > cutoff + timedelta(minutes=5):
+        raise RuntimeError("manifest.generated_at 晚于数据截止时点超过 5 分钟，停止预测冻结")
+    return {
+        "report_date": report_date,
+        "generated_at": generated_at,
+        "cutoff_at": cutoff_at,
+        "timezone": "Asia/Shanghai",
+        "quality_status": "unverified",
+        "manifest": str(manifest_path.relative_to(ROOT)),
+        "market_snapshot": str(raw_path.relative_to(ROOT)),
+    }
+
+
+def validate_forecast_time_arguments(
+    metadata: dict[str, Any], generated_at: str | None, cutoff_at: str | None
+) -> None:
+    if not generated_at or not cutoff_at:
+        raise RuntimeError("正式日报发布必须显式提供 --generated-at 和 --cutoff-at")
+    if generated_at != metadata["generated_at"]:
+        raise RuntimeError("--generated-at 与 source manifest 的可验证时间不一致")
+    if cutoff_at != metadata["cutoff_at"]:
+        raise RuntimeError("--cutoff-at 与 futures_market_data 时间截面不一致")
+
+
+def write_forecast_time_metadata(metadata: dict[str, Any]) -> Path:
+    report_date = str(metadata["report_date"])
+    target = SOURCE_RUNS / f"{report_date}-daily" / "forecast_time_metadata.json"
+    target.parent.mkdir(parents=True, exist_ok=True)
+    payload = {**metadata, "quality_status": "ok"}
+    temporary_path: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            "w", encoding="utf-8", dir=target.parent, prefix=f".{target.name}.", suffix=".tmp", delete=False
+        ) as temporary:
+            temporary_path = Path(temporary.name)
+            json.dump(payload, temporary, ensure_ascii=False, sort_keys=True, indent=2)
+            temporary.write("\n")
+        os.replace(temporary_path, target)
+        temporary_path = None
+    finally:
+        if temporary_path is not None:
+            temporary_path.unlink(missing_ok=True)
     return target
 
 
-def run_daily_review(previous: Path | None, current: Path, review_date: str) -> str:
-    if previous is None or not DAILY_REVIEW_CLI.exists() or current.resolve() != OUTPUT.resolve():
-        return ""
+def run_forecast_recorder(temp_oil_futures: Path, metadata: dict[str, Any]) -> dict[str, Any]:
+    if not FORECAST_RECORDER_CLI.exists():
+        raise RuntimeError("forecast_tracking_skill 缺失，停止日报发布")
+    forecast_path = FORECAST_DAILY_DIR / f"{metadata['report_date']}.json"
     result = subprocess.run(
         [
             sys.executable,
-            str(DAILY_REVIEW_CLI),
-            "--previous",
-            str(previous),
-            "--current",
-            str(current),
-            "--date",
-            review_date,
+            str(FORECAST_RECORDER_CLI),
+            "--oil-futures",
+            str(temp_oil_futures),
+            "--forecast",
+            str(forecast_path),
+            "--report-date",
+            str(metadata["report_date"]),
+            "--generated-at",
+            str(metadata["generated_at"]),
+            "--cutoff-at",
+            str(metadata["cutoff_at"]),
+            "--quality-gate-status",
+            "ok",
         ],
         cwd=str(ROOT),
         text=True,
@@ -615,20 +781,129 @@ def run_daily_review(previous: Path | None, current: Path, review_date: str) -> 
         check=False,
     )
     if result.returncode != 0:
-        return f"daily_review_skill failed: {result.stderr.strip() or result.stdout.strip()}"
+        raise RuntimeError(result.stdout.strip() or result.stderr.strip() or "预测冻结失败")
     try:
         payload = json.loads(result.stdout)
-    except json.JSONDecodeError:
-        return "daily_review_skill returned non-JSON output"
-    return f"daily_review_skill wrote {payload.get('learning_notes_path', 'learning notes')}"
+    except json.JSONDecodeError as exc:
+        raise RuntimeError("预测冻结器返回了非 JSON 输出") from exc
+    if payload.get("status") != "ok":
+        raise RuntimeError(f"预测冻结失败：{payload}")
+    return payload
+
+
+def validate_freeze_and_publish(
+    payload: dict[str, Any], output: Path, metadata: dict[str, Any]
+) -> dict[str, Any]:
+    temp_output = output.with_name(".oil_futures.quality-check.tmp.js")
+    try:
+        write_js(payload, temp_output, publish=False)
+        run_data_quality_gate(temp_output)
+        forecast_result = run_forecast_recorder(temp_output, metadata)
+        write_forecast_time_metadata(metadata)
+        write_js(payload, output)
+        return forecast_result
+    finally:
+        temp_output.unlink(missing_ok=True)
+
+
+def validate_actual_snapshot_payload(payload: dict[str, Any], snapshot_date: str) -> None:
+    """Require one same-day rank-1 P/Y/OI record before retaining an actual snapshot."""
+    try:
+        datetime.strptime(snapshot_date, "%Y-%m-%d")
+    except ValueError as exc:
+        raise RuntimeError("--snapshot-date 必须为有效 YYYY-MM-DD 日期") from exc
+    contracts = payload.get("contracts")
+    if not isinstance(contracts, list):
+        raise RuntimeError("actual snapshot 缺少 contracts 数组")
+    tracked = {"P", "Y", "OI"}
+    selected: dict[str, dict[str, Any]] = {}
+    for contract in contracts:
+        if not isinstance(contract, dict) or contract.get("product") not in tracked:
+            continue
+        try:
+            rank = int(contract.get("contract_rank"))
+        except (TypeError, ValueError):
+            continue
+        if rank == 1:
+            product = str(contract["product"])
+            if product in selected:
+                raise RuntimeError(f"actual snapshot 存在重复 rank=1 合约：{product}")
+            selected[product] = contract
+    missing = sorted(tracked - set(selected))
+    if missing:
+        raise RuntimeError(f"actual snapshot 缺少 rank=1 合约：{', '.join(missing)}")
+    for product, contract in selected.items():
+        if contract.get("trade_date") != snapshot_date:
+            raise RuntimeError(f"actual snapshot {product} trade_date 与 --snapshot-date 不一致")
+        for field, alternatives in {
+            "close": ("price", "close"),
+            "previous_close": ("preclose", "previous_close"),
+            "high": ("high",),
+            "low": ("low",),
+        }.items():
+            value = next((contract.get(name) for name in alternatives if contract.get(name) is not None), None)
+            if as_float(value) is None:
+                raise RuntimeError(f"actual snapshot {product}.{field} 缺失或非数值")
+
+
+def write_actual_snapshot_atomically(payload: dict[str, Any], output: Path, snapshot_date: str) -> None:
+    """Validate a non-publishing actual snapshot before atomically replacing its target."""
+    if output.resolve() == OUTPUT.resolve():
+        raise RuntimeError("actual-snapshot 模式禁止写入正式 data/oil_futures.js")
+    validate_actual_snapshot_payload(payload, snapshot_date)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    temporary_path: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            "w", encoding="utf-8", dir=output.parent, prefix=f".{output.name}.", suffix=".tmp", delete=False
+        ) as temporary:
+            temporary_path = Path(temporary.name)
+        write_js(payload, temporary_path, publish=False)
+        run_data_quality_gate(temporary_path)
+        os.replace(temporary_path, output)
+        temporary_path = None
+    finally:
+        if temporary_path is not None:
+            temporary_path.unlink(missing_ok=True)
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Update static oil futures contract data.")
     parser.add_argument("--output", type=Path, default=OUTPUT)
+    parser.add_argument("--report-date")
+    parser.add_argument("--generated-at")
+    parser.add_argument("--cutoff-at")
+    parser.add_argument("--print-time-metadata", action="store_true")
+    parser.add_argument("--mode", choices=("publish", "actual-snapshot"), default="publish")
+    parser.add_argument("--snapshot-date")
     args = parser.parse_args()
 
-    snapshot, snapshot_path = latest_market_snapshot()
+    if args.print_time_metadata:
+        if not args.report_date:
+            parser.error("--print-time-metadata requires --report-date")
+        print(json.dumps(load_forecast_time_metadata(args.report_date), ensure_ascii=False, sort_keys=True))
+        return 0
+
+    if args.mode == "actual-snapshot":
+        if not args.snapshot_date:
+            parser.error("--mode actual-snapshot requires --snapshot-date")
+        if any([args.report_date, args.generated_at, args.cutoff_at]):
+            parser.error("actual-snapshot mode does not accept forecast-freezing time arguments")
+        if args.output.resolve() == OUTPUT.resolve():
+            parser.error("actual-snapshot mode requires a non-official --output path")
+    elif args.snapshot_date:
+        parser.error("--snapshot-date is only valid with --mode actual-snapshot")
+
+    freeze_forecast = args.mode == "publish" and any([args.report_date, args.generated_at, args.cutoff_at])
+    metadata: dict[str, Any] | None = None
+    if freeze_forecast:
+        if not args.report_date:
+            parser.error("forecast freezing requires --report-date")
+        metadata = load_forecast_time_metadata(args.report_date)
+        validate_forecast_time_arguments(metadata, args.generated_at, args.cutoff_at)
+        run_manifest_quality_gate(SOURCE_RUNS / f"{args.report_date}-daily" / "manifest.json")
+
+    snapshot, snapshot_path = latest_market_snapshot(args.report_date if freeze_forecast else None)
     review_learning = recent_review_learning()
     discovery = load_contract_discovery()
     ak = load_akshare()
@@ -645,7 +920,6 @@ def main() -> int:
         source_note += f"：{snapshot_path.relative_to(ROOT)}"
     source_note += "；国内合约名单先由 contract_selector_skill 选择，再由 contract_discovery_skill 按当月实时成交量、持仓量、成交额排序生成，外盘仅展示与棕榈油最相关的 FCPO；内盘具体合约与日线缺口由 AkShare 补充，并用同花顺问财行情skill交叉验证"
     now = datetime.now()
-    review_date = now.strftime("%Y-%m-%d")
     payload = {
         "updated_at": now.strftime("%Y-%m-%d %H:%M"),
         "source": source_note,
@@ -655,6 +929,7 @@ def main() -> int:
         "contract_discovery_warnings": discovery.get("warnings", []),
         "review_learning_warning": review_learning.get("warning", ""),
         "review_learning_repeated_errors": review_learning.get("repeated_errors", {}),
+        "market_references": build_market_references(snapshot),
         "contracts": contracts,
         "watchlist_options": [
             {
@@ -674,16 +949,41 @@ def main() -> int:
             for contract in contracts
         ],
     }
-    previous_output = archive_existing_output(args.output, review_date)
-    write_js(payload, args.output)
-    review_note = run_daily_review(previous_output, args.output, review_date)
+    if args.output.resolve() == OUTPUT.resolve():
+        if metadata is None:
+            tmp_output = OUTPUT.with_name(".oil_futures.quality-check.tmp.js")
+            try:
+                write_js(payload, tmp_output, publish=False)
+                run_data_quality_gate(tmp_output)
+            finally:
+                tmp_output.unlink(missing_ok=True)
+            write_js(payload, args.output)
+            forecast_result = None
+        else:
+            forecast_result = validate_freeze_and_publish(payload, args.output, metadata)
+    else:
+        if args.mode == "actual-snapshot":
+            write_actual_snapshot_atomically(payload, args.output, str(args.snapshot_date))
+        else:
+            write_js(payload, args.output, publish=False)
+            run_data_quality_gate(args.output)
+        try:
+            display_path = args.output.relative_to(ROOT)
+        except ValueError:
+            display_path = args.output
+        print(f"updated {display_path} with {len(contracts)} contracts")
+        return 0
+
     try:
         display_path = args.output.relative_to(ROOT)
     except ValueError:
         display_path = args.output
     print(f"updated {display_path} with {len(contracts)} contracts")
-    if review_note:
-        print(review_note)
+    if forecast_result is not None:
+        print(
+            f"forecast frozen for {metadata['report_date']}"
+            + (" (already_exists)" if forecast_result.get("already_exists") else "")
+        )
     return 0
 
 

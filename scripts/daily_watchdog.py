@@ -60,17 +60,15 @@ def report_is_published(report_date: str) -> bool:
     return not any(word in content for word in forbidden)
 
 
-def load_automation_prompt() -> tuple[str, str]:
+def load_automation_prompt() -> str:
     if not AUTOMATION_FILE.exists():
         raise FileNotFoundError(f"missing automation config: {AUTOMATION_FILE}")
     text = AUTOMATION_FILE.read_text(encoding="utf-8")
     prompt_match = re.search(r'^prompt\s*=\s*"(?P<value>(?:\\.|[^"])*)"', text, re.M | re.S)
-    model_match = re.search(r'^model\s*=\s*"(?P<value>[^"]+)"', text, re.M)
     if not prompt_match:
         raise ValueError(f"missing prompt in automation config: {AUTOMATION_FILE}")
     prompt = json.loads(f'"{prompt_match.group("value")}"')
-    model = model_match.group("value") if model_match else "gpt-5.5"
-    return prompt, model
+    return prompt
 
 
 def acquire_lock() -> bool:
@@ -99,7 +97,7 @@ def release_lock() -> None:
 
 
 def run_backfill(report_date: str, dry_run: bool) -> int:
-    prompt, model = load_automation_prompt()
+    prompt = load_automation_prompt()
     backfill_prompt = f"""
 这是棕榈油每日晨报的兜底补跑任务。
 
@@ -107,8 +105,9 @@ def run_backfill(report_date: str, dry_run: bool) -> int:
 
 请严格按原日报自动任务执行，但使用固定报告日期 {report_date}，不要改成其他日期。
 必须先运行 git pull --ff-only。
-必须先读取并调用 skills/master_report_skill/SKILL.md，按 market_data_skill、oil_report_freshness、report_writer_skill、headline_skill、report_quality_gate 顺序调度。
+必须先读取并调用 skills/master_report_skill/SKILL.md，按 market_data_skill、data_quality_gate_skill、oil_report_freshness、report_writer_skill、headline_skill、report_quality_gate 顺序调度。
 必须调用 scripts/run_financial_skills.py 并读取 source_runs/{report_date}-daily/manifest.json。
+必须运行 python3 skills/data_quality_gate_skill/scripts/validate_data.py --manifest source_runs/{report_date}-daily/manifest.json --strict；未通过时停止发布。
 必须调用 skills/oil-report-freshness/SKILL.md 后再进入正文写作和标题生成。
 必须调用 skills/report_writer_skill/SKILL.md 生成正文；正文必须回答为什么、排序驱动、写清传导链、区分预期与现实、说明失效条件和置信度，且不得增加报告篇幅。
 必须调用 skills/daily_review_skill/scripts/review_memory.py 的 load_recent_reviews(days=30)，只读取 data/review/daily/ 最近30天每日复盘，并可读取 data/review/latest_review.json 摘要；若发现连续错误类型，只能在当日报告中降低相关因素主导性或增加风险提示，不得未经人工确认永久修改参数，不得加载30天以前的每日明细。
@@ -137,8 +136,6 @@ def run_backfill(report_date: str, dry_run: bool) -> int:
         "exec",
         "--cd",
         str(ROOT),
-        "--model",
-        model,
         "--sandbox",
         "danger-full-access",
         "--dangerously-bypass-approvals-and-sandbox",

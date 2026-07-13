@@ -19,6 +19,15 @@ DEFAULT_OUTPUT_DIR = DAILY_REVIEW_DIR
 TRACKED = {"P", "Y", "OI"}
 
 
+def save_review(review: dict[str, Any], output_dir: Path) -> dict[str, Any]:
+    if output_dir.resolve() == DAILY_REVIEW_DIR.resolve():
+        return save_today_review(review)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    target = output_dir / f"{review['date']}.json"
+    target.write_text(json.dumps(review, ensure_ascii=False, indent=2), encoding="utf-8")
+    return {"saved": str(target), "retained_count": 1, "deleted": [], "warnings": []}
+
+
 def as_float(value: Any) -> float | None:
     if value in (None, "", "-", "需进一步核验"):
         return None
@@ -48,11 +57,18 @@ def load_js_payload(path: Path) -> dict[str, Any]:
 
 
 def contract_map(payload: dict[str, Any]) -> dict[str, dict[str, Any]]:
-    return {
-        str(item.get("symbol")): item
-        for item in payload.get("contracts", [])
-        if str(item.get("symbol")) in TRACKED
-    }
+    """Return the rank-1 contract for each tracked product."""
+    contracts: dict[str, dict[str, Any]] = {}
+    for item in payload.get("contracts", []):
+        product = str(item.get("product") or "").upper()
+        rank = item.get("contract_rank")
+        try:
+            rank = int(rank)
+        except (TypeError, ValueError):
+            continue
+        if product in TRACKED and rank == 1:
+            contracts[product] = item
+    return contracts
 
 
 def upper_lower(previous: dict[str, Any]) -> tuple[float | None, float | None]:
@@ -244,9 +260,31 @@ def run_review(previous_path: Path, current_path: Path, date: str, output_dir: P
     rows: list[dict[str, Any]] = []
     learning: list[dict[str, Any]] = []
     all_errors: list[str] = []
-    for symbol in sorted(TRACKED):
-        prev = previous.get(symbol)
-        cur = current.get(symbol)
+    missing = sorted(product for product in TRACKED if product not in previous or product not in current)
+    if missing:
+        failure = {
+            "date": date,
+            "status": "REVIEW_FAILED",
+            "review_result": [],
+            "error_type": ["主力合约复盘数据缺失"],
+            "suggested_improvement": [],
+            "whether_update_rule": False,
+            "human_approval_required": True,
+            "failure_reason": f"缺少主力合约复盘数据：{', '.join(missing)}",
+            "missing_products": missing,
+            "review_markdown": "## 昨日判断复盘\n\nREVIEW_FAILED：主力合约复盘数据不完整，禁止生成正常复盘结论。",
+            "learning_notes": [],
+        }
+        memory_result = save_review(failure, output_dir)
+        return {
+            **failure,
+            "learning_notes_path": str(ROOT / memory_result["saved"]),
+            "review_memory": memory_result,
+        }
+
+    for product in sorted(TRACKED):
+        prev = previous[product]
+        cur = current[product]
         if not prev or not cur:
             continue
         score = prev.get("score", {}) or {}
@@ -259,7 +297,9 @@ def run_review(previous_path: Path, current_path: Path, date: str, output_dir: P
         actual_result = f"{cur.get('change', '需进一步核验')}，高 {cur.get('high', '需进一步核验')} / 低 {cur.get('low', '需进一步核验')} / 收 {cur.get('price', '需进一步核验')}"
         rows.append(
             {
-                "contract": symbol,
+                "contract": str(cur.get("contract") or cur.get("symbol") or product),
+                "product": product,
+                "contract_rank": 1,
                 "previous_view": stance,
                 "actual_result": actual_result,
                 "hit_status": hit_status,
@@ -289,6 +329,7 @@ def run_review(previous_path: Path, current_path: Path, date: str, output_dir: P
     output_dir.mkdir(parents=True, exist_ok=True)
     review_payload = {
         "date": date,
+        "status": "OK",
         "review_result": rows,
         "error_type": sorted(set(all_errors)),
         "suggested_improvement": suggestions,
@@ -297,7 +338,7 @@ def run_review(previous_path: Path, current_path: Path, date: str, output_dir: P
         "review_markdown": review_markdown(rows, suggestions),
         "learning_notes": learning,
     }
-    memory_result = save_today_review(review_payload)
+    memory_result = save_review(review_payload, output_dir)
     return {
         **review_payload,
         "learning_notes_path": str(ROOT / memory_result["saved"]),
@@ -314,7 +355,7 @@ def main() -> int:
     args = parser.parse_args()
     result = run_review(args.previous, args.current, args.date, args.output_dir)
     print(json.dumps(result, ensure_ascii=False, indent=2))
-    return 0
+    return 2 if result.get("status") == "REVIEW_FAILED" else 0
 
 
 if __name__ == "__main__":

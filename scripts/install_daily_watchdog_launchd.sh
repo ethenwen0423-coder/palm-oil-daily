@@ -6,7 +6,7 @@ RUNTIME_ROOT="${PALM_OIL_AUTOMATION_ROOT:-$HOME/Sites/palm-oil-daily}"
 PLIST="$HOME/Library/LaunchAgents/com.vinsontesla.palm-oil-daily-watchdog.plist"
 SUPPORT_DIR="$HOME/Library/Application Support/VinsonTesla"
 RUNNER="$SUPPORT_DIR/palm-oil-daily-watchdog.sh"
-CODEX_BIN="/Applications/ChatGPT.app/Contents/Resources/codex"
+CODEX_BIN="/Applications/Codex.app/Contents/Resources/codex"
 
 mkdir -p "$HOME/Library/LaunchAgents"
 mkdir -p "$SUPPORT_DIR"
@@ -23,6 +23,13 @@ fi
 cat > "$RUNNER" <<RUNNER
 #!/usr/bin/env bash
 set -euo pipefail
+
+PRIVATE_ENV="$SUPPORT_DIR/private.env"
+if [[ -f "\$PRIVATE_ENV" ]]; then
+  set -a
+  source "\$PRIVATE_ENV"
+  set +a
+fi
 
 ROOT="$RUNTIME_ROOT"
 REPORT_DATE="\$(TZ=Asia/Shanghai date +%F)"
@@ -56,6 +63,7 @@ PROMPT='这是棕榈油每日晨报的 macOS 系统级调度任务。当前任�
 
 printf '%s\n' "\$PROMPT" | "$CODEX_BIN" exec \\
   --cd "\$ROOT" \\
+  --model gpt-5.5 \\
   --sandbox danger-full-access \\
   --dangerously-bypass-approvals-and-sandbox \\
   -

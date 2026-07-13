@@ -3,3 +3,6 @@ __pycache__/
 .env
 source_runs/
 logs/
+data/forecast/daily/*.json
+!data/forecast/daily/.gitkeep
+data/review/runtime_snapshots/

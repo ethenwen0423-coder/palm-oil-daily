@@ -11,13 +11,14 @@
 
 Master Skill 调度规则：
 1. 正式生成报告前必须先读取并执行 skills/master_report_skill/SKILL.md。
-2. 必须按 master_report_skill 固定顺序执行：market_data_skill → oil_report_freshness → report_writer_skill → headline_skill → report_quality_gate。
+2. 必须按 master_report_skill 固定顺序执行：market_data_skill → data_quality_gate_skill → oil_report_freshness → report_writer_skill → headline_skill → report_quality_gate。
 3. 当前项目中尚未单独落地的子 Skill 只保留接口，不伪造实现；但必须完成下列现有映射。
 4. market_data_skill 当前由 python3 scripts/run_financial_skills.py、source_runs/$REPORT_DATE-weekend/manifest.json 和 raw/ 原始结果承担；必须记录数据时间、来源、失败项和替代来源。
-5. oil_report_freshness 当前由 skills/oil-report-freshness/SKILL.md 承担；必须输出新增驱动、主线建议、延续性背景、风险因素、不允许作为主线的信息、待核验信息、信息新鲜度表。周报可以覆盖本周信息，但周一开盘主线与标题依据仍必须优先来自最近24小时或周末新增的可核验信息。
-6. report_writer_skill 当前由 skills/report_writer_skill/SKILL.md 承担正文研究质量控制，并以 skills/vinson-research-writing/SKILL.md 及其 checklist/terminology/examples/anti_patterns 作为通用写作规范；正文只能使用 market_data_skill 和 oil_report_freshness 治理后的内容。
-7. headline_skill 当前由 skills/title-generation/SKILL.md 和 skills/title-quality-gate/SKILL.md 共同承担；标题只能基于 oil_report_freshness 的新增驱动和主线建议生成，不得新增正文中没有的观点。
-8. report_quality_gate 当前保留接口，由 vinson-research-writing checklist、title-quality-gate、信息来源与核验说明、oil_report_freshness 禁用项共同完成最终一致性检查；不得新增观点、伪造来源或覆盖前面 Skill 的职责。
+5. data_quality_gate_skill 当前由 skills/data_quality_gate_skill/SKILL.md 和 scripts/validate_data.py 承担；关键行情、合约、日期、单位、来源冲突、FCPO口径和库存/出口/产量统计日期未通过时停止发布。
+6. oil_report_freshness 当前由 skills/oil-report-freshness/SKILL.md 承担；必须输出新增驱动、主线建议、延续性背景、风险因素、不允许作为主线的信息、待核验信息、信息新鲜度表。周报可以覆盖本周信息，但周一开盘主线与标题依据仍必须优先来自最近24小时或周末新增的可核验信息。
+7. report_writer_skill 当前由 skills/report_writer_skill/SKILL.md 承担正文研究质量控制，并以 skills/vinson-research-writing/SKILL.md 及其 checklist/terminology/examples/anti_patterns 作为通用写作规范；正文只能使用 market_data_skill 和 oil_report_freshness 治理后的内容。
+8. headline_skill 当前由 skills/title-generation/SKILL.md 和 skills/title-quality-gate/SKILL.md 共同承担；标题只能基于 oil_report_freshness 的新增驱动和主线建议生成，不得新增正文中没有的观点。
+9. report_quality_gate 当前保留接口，由 data_quality_gate_skill、vinson-research-writing checklist、title-quality-gate、信息来源与核验说明、oil_report_freshness 禁用项共同完成最终一致性检查；不得新增观点、伪造来源或覆盖前面 Skill 的职责。
 
 Writing Skill 规则：
 1. 正式写作前必须先读取并调用 skills/report_writer_skill/SKILL.md。
@@ -47,15 +48,16 @@ Writing Skill 规则：
 1. 先运行 git pull --ff-only，确保本地站点仓库是最新。
 2. 使用 Asia/Shanghai 当前日期作为 REPORT_DATE，先执行：python3 scripts/run_financial_skills.py --date "$REPORT_DATE" --kind weekend --timeout 90。
 3. 执行后必须读取 source_runs/$REPORT_DATE-weekend/manifest.json，并打开 raw/ 目录中的原始结果文件。该 manifest 是本次金融 skill 调用审计记录，保存在本地，不发布到网站。
-4. 必须把以下成功调用结果用于正文判断：futures-oil-daily、东方财富妙想资讯(mx-search)、妙想结构化数据(mx-data)、问财行情(hithink-market-query)、研报搜索(report-search)。大宗商品分析为框架型 skill，需按其供需、库存、期限结构、季节性、宏观验证框架交叉印证。
-5. 若某项 status 不是 ok，必须在“信息来源与核验说明”中列出：哪个 skill 失败、失败原因、是否切换到其他方式获取同等数据、替代来源名称。不得写“未调用”来替代实际状态。
-6. 若单个 skill 失败，跳过该 skill，改用 MPOB、MPOA、ITS、GAPKI、USDA、CME、ICE、DCE、东方财富行情、问财、期货公司研报、Reuters 或 Wind 可访问口径等替代来源获取同类数据，并注明替代核验状态。
-7. 若 manifest 缺失或全部金融数据源失败，停止发布正式周报，只记录失败原因。
-8. futures-oil-daily 生成的辅助稿如含“待补充/待分析/待判断/待填充/待评价/N/A”等占位词，不得直接复制进正式报告；只能使用其原始数据和可核验结论。
-9. 运行 report_writer 前必须完成 master_report_skill 调度和 oil-report-freshness 信息治理；如果 freshness 输出 `需要report_writer重新生成对应段落`，必须重写对应段落后再发布。
-10. 运行 headline_skill 前必须确认 report_writer 已完成正文草稿，headline_skill 不得新增正文中没有的观点。
-11. 运行 report_quality_gate 接口检查标题、正文、来源、时效性一致后，才允许发布。
-12. 正式报告不得出现“未实际调用”“当前环境未暴露调用入口”“这是测试报告”“排版调试样稿”等文字。
+4. 必须运行 `python3 skills/data_quality_gate_skill/scripts/validate_data.py --manifest source_runs/$REPORT_DATE-weekend/manifest.json --strict`；未通过时停止正式发布，只记录失败原因。
+5. 必须把以下成功调用结果用于正文判断：futures-oil-daily、东方财富妙想资讯(mx-search)、妙想结构化数据(mx-data)、问财行情(hithink-market-query)、研报搜索(report-search)。大宗商品分析为框架型 skill，需按其供需、库存、期限结构、季节性、宏观验证框架交叉印证。
+6. 若某项 status 不是 ok，必须在“信息来源与核验说明”中列出：哪个 skill 失败、失败原因、是否切换到其他方式获取同等数据、替代来源名称。不得写“未调用”来替代实际状态。
+7. 若单个 skill 失败，跳过该 skill，改用 MPOB、MPOA、ITS、GAPKI、USDA、CME、ICE、DCE、东方财富行情、问财、期货公司研报、Reuters 或 Wind 可访问口径等替代来源获取同类数据，并注明替代核验状态。
+8. 若 manifest 缺失或全部金融数据源失败，停止发布正式周报，只记录失败原因。
+9. futures-oil-daily 生成的辅助稿如含“待补充/待分析/待判断/待填充/待评价/N/A”等占位词，不得直接复制进正式报告；只能使用其原始数据和可核验结论。
+10. 运行 report_writer 前必须完成 master_report_skill 调度和 oil-report-freshness 信息治理；如果 freshness 输出 `需要report_writer重新生成对应段落`，必须重写对应段落后再发布。
+11. 运行 headline_skill 前必须确认 report_writer 已完成正文草稿，headline_skill 不得新增正文中没有的观点。
+12. 运行 report_quality_gate 接口检查标题、正文、来源、时效性一致后，才允许发布。
+13. 正式报告不得出现“未实际调用”“当前环境未暴露调用入口”“这是测试报告”“排版调试样稿”等文字。
 
 相关油脂覆盖规则：
 1. 周报以棕榈油为主线，但必须系统覆盖豆油、菜油两个相关油脂品种。
