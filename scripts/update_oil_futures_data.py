@@ -34,6 +34,7 @@ FORECAST_DAILY_DIR = ROOT / "data" / "forecast" / "daily"
 PRIVATE_ENV = Path.home() / "Library" / "Application Support" / "VinsonTesla" / "private.env"
 SHANGHAI = ZoneInfo("Asia/Shanghai")
 PRICE_TOLERANCE = 2.0
+PRICE_REL_TOLERANCE = 0.002
 PCT_TOLERANCE = 0.25
 
 
@@ -491,7 +492,10 @@ def verification_note(ak_source: dict[str, Any], hithink: dict[str, Any]) -> str
 
     if ak_price is None or hithink_price is None:
         notes.append("价格缺少一侧数据，需进一步核验")
-    elif abs(ak_price - hithink_price) <= PRICE_TOLERANCE:
+    elif abs(ak_price - hithink_price) <= max(
+        PRICE_TOLERANCE,
+        min(abs(ak_price), abs(hithink_price)) * PRICE_REL_TOLERANCE,
+    ):
         notes.append(f"价格一致：AkShare {raw_number(ak_price)} / 行情skill {raw_number(hithink_price)}")
     else:
         notes.append(f"价格不一致：AkShare {raw_number(ak_price)} / 行情skill {raw_number(hithink_price)}")

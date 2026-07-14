@@ -141,9 +141,12 @@ def validate_contract(item: dict[str, Any], base: datetime, errors: list[str], w
     elif is_critical_rank:
         add_issue(warnings, f"{label} 缺少昨收或涨跌幅，无法做公式复核")
 
-    if "价格不一致" in verification or "涨跌幅口径不同" in verification:
+    if "价格不一致" in verification:
         add_issue(errors if is_critical_rank else warnings, f"{label} 跨来源行情冲突超过容差")
         downgraded.append(f"{label}.source_conflict")
+    elif "涨跌幅口径不同" in verification:
+        add_issue(warnings, f"{label} 跨来源涨跌幅基准不同，已保留主行情源口径")
+        downgraded.append(f"{label}.change_basis")
 
     if product == "FCPO" or symbol.startswith("FCPO"):
         basis_text = " ".join([verification, str(item.get("note") or ""), str(item.get("change_basis") or ""), source])
