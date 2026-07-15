@@ -1,5 +1,5 @@
 module.exports = {
-  "updated_at": "2026-07-15 08:26",
+  "updated_at": "2026-07-15 08:28",
   "source": "futures-oil-daily 最新快照：source_runs/2026-07-15-daily/raw/futures_market_data.json；国内合约名单先由 contract_selector_skill 选择，再由 contract_discovery_skill 按当月实时成交量、持仓量、成交额排序生成，外盘仅展示与棕榈油最相关的 FCPO；内盘具体合约与日线缺口由 AkShare 补充，并用同花顺问财行情skill交叉验证",
   "contract_selector_skill": "contract_selector_skill",
   "contract_discovery_skill": "contract_discovery_skill",
