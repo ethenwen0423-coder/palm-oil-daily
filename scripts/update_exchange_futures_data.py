@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate DCE/CZCE main-contract analysis data for the static research page."""
+"""Generate five-exchange main-contract analysis data for the static research page."""
 
 from __future__ import annotations
 
@@ -28,7 +28,14 @@ LEVELS_HELPER = Path.home() / ".openclaw" / "workspace" / "skills" / "technical-
 NEWS_GLOB = ROOT / "source_runs" / "*" / "raw" / "mx_search_news.json"
 SINA_DAILY_URL = "https://stock2.finance.sina.com.cn/futures/api/jsonp.php/var_V21052021_4_12=/InnerFuturesNewService.getDailyKLine"
 
-EXCHANGE_LABELS = {"大连商品交易所": "DCE", "郑州商品交易所": "CZCE"}
+EXCHANGE_LABELS = {
+    "大连商品交易所": "DCE",
+    "郑州商品交易所": "CZCE",
+    "上海期货交易所": "SHFE",
+    "广州期货交易所": "GFEX",
+    "中国金融期货交易所": "CFFEX",
+}
+REQUIRED_COMPLETE_EXCHANGES = {"SHFE", "GFEX", "CFFEX"}
 
 CATEGORY_RULES = {
     "油脂油料": {"棕榈", "豆二", "豆粕", "豆油", "豆一", "菜油", "菜籽", "菜粕", "花生"},
@@ -36,6 +43,14 @@ CATEGORY_RULES = {
     "软商品": {"白糖", "棉花", "棉纱", "鲜苹果", "红枣", "鸡蛋", "生猪"},
     "黑色建材": {"铁矿石", "焦炭", "焦煤", "动力煤", "玻璃", "纯碱"},
     "能化材料": {"PVC", "塑料", "PP", "乙二醇", "苯乙烯", "液化石油气", "纯苯", "PTA", "郑醇", "尿素", "短纤", "烧碱", "二甲苯", "瓶级聚酯切片", "丙烯"},
+    "能源化工": {"燃油", "原油", "橡胶", "沥青", "20号胶", "低硫燃料油", "丁二烯橡胶"},
+    "有色金属": {"沪铝", "沪锌", "沪铜", "沪铅", "沪锡", "沪镍", "国际铜", "氧化铝", "铸造铝合金期货"},
+    "贵金属": {"黄金", "白银", "铂", "钯"},
+    "黑色金属": {"螺纹钢", "线材", "热轧卷板", "不锈钢"},
+    "造纸航运": {"纸浆", "胶版印刷纸期货", "集运指数(欧线)期货"},
+    "新能源材料": {"工业硅", "碳酸锂", "多晶硅"},
+    "股指期货": {"沪深300指数期货", "上证50指数期货", "中证500指数期货", "中证1000股指期货"},
+    "利率期货": {"2年期国债期货", "5年期国债期货", "10年期国债期货"},
 }
 
 FUNDAMENTAL_GROUPS = [
@@ -120,6 +135,78 @@ FUNDAMENTAL_GROUPS = [
             ("现货与交割", "核验港口现货报价、区域价差、仓单与交割标准；流动性偏低时更需关注期现可交易性。"),
         ],
     ),
+    (
+        {"工业硅", "碳酸锂", "多晶硅"},
+        "新能源材料",
+        [
+            ("供给与产能", "跟踪新增产能、装置检修、产区开工与交割品供应，区分名义产能和有效产量。"),
+            ("下游需求", "工业硅关注有机硅与铝合金，多晶硅关注硅片排产，碳酸锂关注动力与储能电池需求。"),
+            ("库存与成本", "核验仓单、社会库存、生产成本和现货升贴水；高库存阶段需警惕盘面反弹持续性。"),
+        ],
+    ),
+    (
+        {"黄金", "白银", "铂", "钯"},
+        "贵金属",
+        [
+            ("宏观定价", "跟踪实际利率、美元、通胀预期与央行政策，识别金融属性对贵金属价格的主导程度。"),
+            ("供需结构", "白银、铂、钯需同时跟踪矿端供给、汽车与光伏等工业需求以及回收供应。"),
+            ("内外盘价差", "核验人民币汇率、进口窗口、国内外价差和交割库存，避免把汇率变化误判为单边驱动。"),
+        ],
+    ),
+    (
+        {"沪铝", "沪锌", "沪铜", "沪铅", "沪锡", "沪镍", "国际铜", "氧化铝", "铸造铝合金期货"},
+        "有色金属",
+        [
+            ("矿端与冶炼", "跟踪矿山供应、加工费、冶炼检修与新增产能，评估原料约束向精炼端的传导。"),
+            ("需求", "观察电网、地产、汽车、家电和新能源订单，结合下游开工判断消费强弱。"),
+            ("库存与价差", "核验交易所与社会库存、现货升贴水、进口盈亏和月差，判断去库是否得到现货确认。"),
+        ],
+    ),
+    (
+        {"燃油", "原油", "橡胶", "沥青", "20号胶", "低硫燃料油", "丁二烯橡胶"},
+        "能源化工",
+        [
+            ("成本与供应", "跟踪国际原油、炼厂开工、装置检修、产区天气和进口到港，判断成本与供给弹性。"),
+            ("下游需求", "观察航运、道路施工、轮胎与汽车产业链开工，区分季节性需求与订单趋势。"),
+            ("库存与裂解", "核验港口和厂库库存、现货基差、裂解价差及内外盘窗口，判断产业利润传导。"),
+        ],
+    ),
+    (
+        {"螺纹钢", "线材", "热轧卷板", "不锈钢"},
+        "黑色金属",
+        [
+            ("供给", "跟踪钢厂利润、高炉与电炉开工、产量及检修，判断供给收缩是否兑现。"),
+            ("需求", "观察地产、基建、制造业和出口订单，结合表观消费与成交验证需求强度。"),
+            ("库存与成本", "核验社库、厂库、原料成本、现货基差与卷螺价差，评估利润和库存压力。"),
+        ],
+    ),
+    (
+        {"纸浆", "胶版印刷纸期货", "集运指数(欧线)期货"},
+        "造纸航运",
+        [
+            ("供给", "纸浆与纸品关注海外发运、进口到港和产线开工；集运指数关注运力投放与航线扰动。"),
+            ("需求", "跟踪纸厂排产、出版包装需求、欧洲贸易与旺季订舱，确认终端改善能否持续。"),
+            ("库存与现货", "核验港口库存、厂库、现货报价、运价指数和基差，注意不同交割口径的可比性。"),
+        ],
+    ),
+    (
+        {"沪深300指数期货", "上证50指数期货", "中证500指数期货", "中证1000股指期货"},
+        "股指期货",
+        [
+            ("指数与风格", "跟踪标的指数、权重行业、大小盘风格和盈利预期，判断期指走势对应的现货驱动。"),
+            ("资金与基差", "观察成交持仓、期现基差、移仓换月、ETF资金和北向相关资金线索。"),
+            ("宏观与政策", "结合增长、流动性、风险偏好与政策预期，避免仅凭单一技术指标判断股指方向。"),
+        ],
+    ),
+    (
+        {"2年期国债期货", "5年期国债期货", "10年期国债期货"},
+        "利率期货",
+        [
+            ("利率环境", "跟踪资金利率、央行操作、存单与国债收益率曲线，判断期限结构变化。"),
+            ("基本面", "结合增长、通胀、财政供给与信贷数据，评估债券定价的宏观方向。"),
+            ("基差与交割", "核验可交割券、转换因子、基差、IRR与跨期价差，关注移仓和交割月影响。"),
+        ],
+    ),
 ]
 
 
@@ -142,8 +229,18 @@ def display_number(value: Any) -> str:
     return str(number) if number is not None else "需进一步核验"
 
 
+def resolve_helper(primary: Path, script_name: str) -> Path:
+    """Prefer the configured helper path, with the active Codex skills directory as fallback."""
+    candidates = [primary, Path.home() / ".codex" / "skills" / "technical-analysis-helper" / "scripts" / script_name]
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    return primary
+
+
 def load_technical_helper():
-    spec = importlib.util.spec_from_file_location("technical_analysis_helper", TECHNICAL_HELPER)
+    helper_path = resolve_helper(TECHNICAL_HELPER, "calculate_indicators.py")
+    spec = importlib.util.spec_from_file_location("technical_analysis_helper", helper_path)
     if spec is None or spec.loader is None:
         raise RuntimeError("technical-analysis-helper 不可用")
     module = importlib.util.module_from_spec(spec)
@@ -152,7 +249,8 @@ def load_technical_helper():
 
 
 def load_levels_helper():
-    spec = importlib.util.spec_from_file_location("technical_levels_helper", LEVELS_HELPER)
+    helper_path = resolve_helper(LEVELS_HELPER, "identify_levels.py")
+    spec = importlib.util.spec_from_file_location("technical_levels_helper", helper_path)
     if spec is None or spec.loader is None:
         raise RuntimeError("technical-analysis-helper 支撑阻力模块不可用")
     module = importlib.util.module_from_spec(spec)
@@ -375,12 +473,15 @@ def build_contracts() -> list[dict[str, Any]]:
     helper = load_technical_helper()
     levels_helper = load_levels_helper()
     symbols = ak.futures_symbol_mark()
-    symbols = symbols[symbols["exchange"].isin(EXCHANGE_LABELS)]
+    symbols = symbols[symbols["exchange"].isin(EXCHANGE_LABELS)].copy()
     news = latest_news()
     fallback = previous_contracts()
     contracts = []
-    for _, item in symbols.iterrows():
+    total_products = len(symbols)
+    for index, (_, item) in enumerate(symbols.iterrows(), start=1):
         product_name = str(item["symbol"])
+        exchange_code = EXCHANGE_LABELS[str(item["exchange"])]
+        print(f"[{index}/{total_products}] {exchange_code} {product_name}", flush=True)
         quotes = None
         for attempt in range(3):
             try:
@@ -421,7 +522,7 @@ def build_contracts() -> list[dict[str, Any]]:
         contracts.append({
             "symbol": symbol,
             "product": product_name,
-            "exchange": EXCHANGE_LABELS[str(item["exchange"])],
+            "exchange": exchange_code,
             "category": category,
             "price": clean_number(price),
             "change_pct": percent_change(main.get("trade"), main.get("preclose")),
@@ -433,6 +534,16 @@ def build_contracts() -> list[dict[str, Any]]:
             "news_hotspots": headlines,
             "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。",
         })
+    expected = {
+        (EXCHANGE_LABELS[str(item["exchange"])], str(item["symbol"]))
+        for _, item in symbols.iterrows()
+        if EXCHANGE_LABELS[str(item["exchange"])] in REQUIRED_COMPLETE_EXCHANGES
+    }
+    actual = {(str(item["exchange"]), str(item["product"])) for item in contracts}
+    missing = sorted(expected - actual)
+    if missing:
+        missing_text = "、".join(f"{exchange}:{product}" for exchange, product in missing)
+        raise RuntimeError(f"主力合约列表不完整，拒绝覆盖输出：{missing_text}")
     return sorted(contracts, key=lambda item: (item["exchange"], item["category"], item["product"]))
 
 

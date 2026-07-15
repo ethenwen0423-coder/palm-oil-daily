@@ -6,6 +6,8 @@
   const confirm = document.querySelector("#contract-confirm");
   const result = document.querySelector("#contract-analysis-result");
   const source = document.querySelector("#futures-data-source");
+  const pickerNote = document.querySelector("#contract-picker-note");
+  const exchangeNames = { DCE: "大商所", CZCE: "郑商所", SHFE: "上期所", GFEX: "广期所", CFFEX: "中金所" };
 
   const escapeHtml = (value) => String(value ?? "需进一步核验").replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[char]);
   const formatNumber = (value) => typeof value === "number" ? value.toLocaleString("zh-CN", { maximumFractionDigits: 2 }) : "需进一步核验";
@@ -14,7 +16,20 @@
   function populateContracts() {
     const exchange = exchangeFilter.value;
     const options = contracts.filter((item) => exchange === "all" || item.exchange === exchange);
-    contractSelect.innerHTML = `<option value="">选择具体主力合约</option>${options.map((item) => `<option value="${escapeHtml(item.symbol)}">${escapeHtml(item.exchange)} · ${escapeHtml(item.product)} ${escapeHtml(item.symbol)}</option>`).join("")}`;
+    const groups = options.reduce((result, item) => {
+      (result[item.exchange] ||= []).push(item);
+      return result;
+    }, {});
+    const groupedOptions = Object.entries(groups).map(([exchangeCode, items]) => `
+      <optgroup label="${escapeHtml(exchangeNames[exchangeCode] || exchangeCode)} · ${items.length} 个品种">
+        ${items.map((item) => `<option value="${escapeHtml(item.symbol)}">${escapeHtml(item.product)} ${escapeHtml(item.symbol)}</option>`).join("")}
+      </optgroup>
+    `).join("");
+    contractSelect.innerHTML = `<option value="">选择具体主力合约</option>${groupedOptions}`;
+    if (pickerNote) {
+      const scope = exchange === "all" ? "五大交易所" : (exchangeNames[exchange] || exchange);
+      pickerNote.textContent = `${scope}当前收录 ${options.length} 个品种主力合约；按实时成交量、持仓量排序选取。`;
+    }
   }
 
   function renderNews(items) {
