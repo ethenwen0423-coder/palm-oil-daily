@@ -1,6 +1,6 @@
 module.exports = {
-  "updated_at": "2026-07-15 08:42",
-  "source": "futures-oil-daily 最新快照：source_runs/2026-07-15-daily/raw/futures_market_data.json；国内合约名单先由 contract_selector_skill 选择，再由 contract_discovery_skill 按当月实时成交量、持仓量、成交额排序生成，外盘仅展示与棕榈油最相关的 FCPO；内盘具体合约与日线缺口由 AkShare 补充，并用同花顺问财行情skill交叉验证",
+  "updated_at": "2026-07-15 22:48",
+  "source": "futures-oil-daily 最新快照：source_runs/2026-07-15-daily/raw/futures_market_data.json；国内合约名单先由 contract_selector_skill 选择，再由 contract_discovery_skill 按当月实时成交量、持仓量、成交额排序生成，海外产地盘展示马来 BMD FCPO 与印尼 ICDX CPOTR；内盘具体合约与日线缺口由 AkShare 补充，并用同花顺问财行情skill交叉验证",
   "contract_selector_skill": "contract_selector_skill",
   "contract_discovery_skill": "contract_discovery_skill",
   "contract_discovery_month": "2026-07",
@@ -25,6 +25,15 @@ module.exports = {
       "unit": "印度卢比/10公斤",
       "updated_at": "2026-07-14T15:21",
       "source": "ncdex:live-spot"
+    },
+    "indonesia_cpotr": {
+      "label": "印尼 ICDX CPOTR",
+      "location": "雅加达",
+      "price": "16075",
+      "change": "+0.19%",
+      "unit": "印尼盾/公斤",
+      "updated_at": "2026-07-14",
+      "source": "ICDX 官方历史价格接口"
     }
   },
   "contracts": [
@@ -866,6 +875,83 @@ module.exports = {
         "stop_loss": "下方观察位 4475.29",
         "upper_watch": "4644.71",
         "lower_watch": "4475.29",
+        "invalidation": "若价格突破区间且驱动/资金同向，震荡判断失效。",
+        "risk_tip": "仅给观察位和失效条件，不构成开平仓指令。",
+        "basis": "综合波动、突破、均线和区间测算观察位；共纳入 4 组候选点位，不输出明确交易指令。"
+      },
+      "analysis_skill": "master_analytic_skill",
+      "child_skill": "technical_basic_analysis_skill",
+      "quality_note": "动态驱动评分、观点置信度、冲突提示与观察位已通过skill质量检查"
+    },
+    {
+      "symbol": "CPOTR",
+      "product": "CPOTR",
+      "name": "印尼棕榈油",
+      "market": "ICDX",
+      "contract": "CPOTR JUL26",
+      "price": "16075",
+      "unit": "印尼盾/公斤",
+      "change": "+0.19%",
+      "change_basis": "vs_previous_settlement_ydsp",
+      "volume": "108 手",
+      "open_interest": "需进一步核验",
+      "direction": "↑",
+      "open": "16075",
+      "high": "16075",
+      "low": "16075",
+      "preclose": "16045",
+      "settle": "16075",
+      "trade_date": "2026-07-14",
+      "source": "ICDX 官方历史价格接口",
+      "note": "CPOTR 是印尼 ICDX 原棕榈油期货，以印尼盾/公斤报价，用于对照印尼产地价格发现。",
+      "verification": "ICDX CPOTR价格来自交易所官方历史价格接口；涨跌幅相对前结算价YDSP计算。",
+      "score": {
+        "total": 55.7,
+        "technical": 56,
+        "fundamental": 50.0,
+        "driver": 63.5,
+        "money_flow": 50.7,
+        "stance": "震荡",
+        "weights": "技术面25% / 基本面25% / 驱动30% / 资金20%",
+        "view_confidence": "中",
+        "contradiction_warning": "暂无明显冲突信号"
+      },
+      "view": "印尼棕榈油当前观点为震荡，置信度中。核心原因是：当前行情缺少单边确认，仍需要等待新增驱动；技术面显示偏多，主要信号为外盘参考合约，技术历史样本不足。基本面背景看外盘参考合约，国内基本面因子不直接套用；驱动看FCPO-0.68%（24小时新增）；CBOT豆油+0.51%（24小时新增）；美豆-0.64%（24小时新增）；资金看当日涨跌幅+0.19%；成交量变化需进一步核验；持仓变化需进一步核验。需要降级看待的地方：暂未看到需要明显降级的冲突信号。",
+      "technical_detail": [
+        {
+          "title": "价格位置",
+          "text": "现价 16075 先看与 MA20 需进一步核验、MA60 需进一步核验 的相对位置，技术评分 需进一步核验，读数为数据需进一步核验。价格相对均线和区间位置偏强，但仍需要外盘驱动和资金配合确认延续性；主要信号是：外盘参考合约，技术历史样本不足。"
+        },
+        {
+          "title": "关键区间",
+          "text": "上方先观察20日区间上沿 需进一步核验 和统计通道上轨 需进一步核验，下方关注20日区间下沿 需进一步核验 和统计通道下轨 需进一步核验。这些位置用于判断突破或回落是否有效，不直接等同于开平仓点位。"
+        },
+        {
+          "title": "波动节奏",
+          "text": "14日平均波动幅度约 160.75，说明观察位需要给盘中噪音留出空间。综合评分 55.70 来自技术、基本面、驱动和资金共同作用，技术面只负责描述位置和节奏，不能单独决定总观点。"
+        }
+      ],
+      "fundamental_detail": [
+        {
+          "title": "外盘联动",
+          "text": "外盘涨跌幅主要用于观察情绪传导：FCPO -0.68%，CBOT豆油 +0.51%。"
+        },
+        {
+          "title": "库存与价差",
+          "text": "外盘参考合约暂缺国内库存、基差与价差的可比口径，基本面评分按中性背景处理。"
+        },
+        {
+          "title": "评分解释",
+          "text": "基本面评分 50，读数为中性。本轮可核验依据是：外盘参考合约，国内基本面因子不直接套用。库存、基差、进口利润、压榨利润只作为背景压力；除非24小时内有新增更新，否则不作为今日主驱动。"
+        }
+      ],
+      "strategy_recommendation": {
+        "stance": "震荡",
+        "entry": "现价 16075；区间内等待驱动与资金确认",
+        "take_profit": "上方观察位 16424.15 / 下方观察位 15725.85",
+        "stop_loss": "下方观察位 15725.85",
+        "upper_watch": "16424.15",
+        "lower_watch": "15725.85",
         "invalidation": "若价格突破区间且驱动/资金同向，震荡判断失效。",
         "risk_tip": "仅给观察位和失效条件，不构成开平仓指令。",
         "basis": "综合波动、突破、均线和区间测算观察位；共纳入 4 组候选点位，不输出明确交易指令。"

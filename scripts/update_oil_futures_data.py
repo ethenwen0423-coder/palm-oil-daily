@@ -10,6 +10,8 @@ import re
 import subprocess
 import sys
 import tempfile
+import urllib.error
+import urllib.request
 from datetime import datetime, timedelta
 import importlib.util
 from pathlib import Path
@@ -36,6 +38,7 @@ SHANGHAI = ZoneInfo("Asia/Shanghai")
 PRICE_TOLERANCE = 2.0
 PRICE_REL_TOLERANCE = 0.002
 PCT_TOLERANCE = 0.25
+ICDX_CPOTR_API = "https://www.icdx.co.id/cms/api/table-price-all/get"
 
 
 def load_private_env() -> None:
@@ -106,6 +109,13 @@ EXTERNAL = [
         "name": "马棕油",
         "market": "BMD",
         "note": "FCPO 是棕榈油最直接的外盘参考，只用于观察产地盘面对 P 的传导。",
+    },
+    {
+        "key": "indonesia_cpotr",
+        "symbol": "CPOTR",
+        "name": "印尼棕榈油",
+        "market": "ICDX",
+        "note": "CPOTR 是印尼 ICDX 原棕榈油期货，以印尼盾/公斤报价，用于对照印尼产地价格发现。",
     },
 ]
 
@@ -184,6 +194,106 @@ def direction(change_pct: Any) -> str:
     if number < 0:
         return "↓"
     return "→"
+
+
+def contract_month(value: Any) -> datetime | None:
+    match = re.fullmatch(r"([A-Z]{3})(\d{2})", str(value or "").upper())
+    if not match:
+        return None
+    try:
+        return datetime.strptime(f"{match.group(1)}{match.group(2)}", "%b%y")
+    except ValueError:
+        return None
+
+
+def fetch_icdx_cpotr(reference_time: datetime | None = None) -> dict[str, Any]:
+    """Fetch the latest actively traded CPOTR contract from the official ICDX API."""
+    now = reference_time or datetime.now(SHANGHAI)
+    filters = [
+        {"key": "product", "value": "CPOTR"},
+        {"key": "MONTH(date) = ?", "value": str(now.month), "type": "raw_equal"},
+        {"key": "YEAR(date) = ?", "value": str(now.year), "type": "raw_equal"},
+    ]
+    request = urllib.request.Request(
+        ICDX_CPOTR_API,
+        data=json.dumps({"filters": filters}).encode("utf-8"),
+        headers={
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "Referer": "https://www.icdx.co.id/historical-price/detail",
+            "User-Agent": "Mozilla/5.0",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+    except (OSError, urllib.error.URLError, json.JSONDecodeError) as exc:
+        return {
+            "status": "missing",
+            "source": "ICDX 官方历史价格接口",
+            "fetched_at": now.isoformat(timespec="seconds"),
+            "error": f"ICDX CPOTR 官方行情请求失败：{exc}",
+        }
+
+    rows = payload.get("data") if isinstance(payload, dict) else None
+    candidates = [
+        row
+        for row in rows or []
+        if isinstance(row, dict)
+        and str(row.get("Symbol") or "").upper() == "CPOTR"
+        and as_float(row.get("LastPrice") if row.get("LastPrice") not in (None, "") else row.get("SettlementPrice")) is not None
+        and str(row.get("date") or "")
+    ]
+    if not candidates:
+        return {
+            "status": "missing",
+            "source": "ICDX 官方历史价格接口",
+            "fetched_at": now.isoformat(timespec="seconds"),
+            "error": "ICDX CPOTR 官方接口未返回可用价格",
+        }
+
+    latest_date = max(str(row["date"]) for row in candidates)
+    latest_rows = [row for row in candidates if str(row["date"]) == latest_date]
+
+    def row_priority(row: dict[str, Any]) -> tuple[int, int, float]:
+        volume = as_int(row.get("VolumeTraded")) or 0
+        has_last = 1 if as_float(row.get("LastPrice")) is not None else 0
+        expiry = contract_month(row.get("Contract"))
+        expiry_order = -expiry.timestamp() if expiry is not None else float("-inf")
+        return (volume, has_last, expiry_order)
+
+    selected = max(latest_rows, key=row_priority)
+    last_price = as_float(selected.get("LastPrice"))
+    settlement = as_float(selected.get("SettlementPrice"))
+    previous_settlement = as_float(selected.get("YDSP"))
+    price = last_price if last_price is not None else settlement
+    change_pct = None
+    if price is not None and previous_settlement not in (None, 0):
+        change_pct = (price - previous_settlement) / previous_settlement * 100
+    return {
+        "name": "ICDX CPOTR",
+        "status": "ok",
+        "source": "ICDX 官方历史价格接口",
+        "source_url": "https://www.icdx.co.id/historical-price/detail",
+        "fetched_at": now.isoformat(timespec="seconds"),
+        "published_at": latest_date,
+        "price": price,
+        "change": price - previous_settlement if price is not None and previous_settlement is not None else None,
+        "change_pct": change_pct,
+        "change_basis": "vs_previous_settlement_ydsp",
+        "contract": f"CPOTR {str(selected.get('Contract') or '').upper()}".strip(),
+        "open": as_float(selected.get("OpeningPrice")),
+        "high": as_float(selected.get("HighPrice")),
+        "low": as_float(selected.get("LowPrice")),
+        "close": previous_settlement,
+        "settle": settlement,
+        "volume": as_int(selected.get("VolumeTraded")),
+        "open_interest": as_int(selected.get("OpenInterest")),
+        "unit": "印尼盾/公斤",
+        "location": "ICDX Jakarta",
+        "price_type": "last" if last_price is not None else "settlement",
+    }
 
 
 def latest_market_snapshot(report_date: str | None = None) -> tuple[dict[str, Any] | None, Path | None]:
@@ -588,10 +698,12 @@ def merge_external(spec: dict[str, str], snapshot: dict[str, Any] | None, review
     change_basis = str(record.get("change_basis") or record.get("basis") or "")
     basis_is_clear = any(word in change_basis.lower() for word in ["previous close", "settlement", "open", "昨收", "结算", "开盘"])
     display_change = fmt_pct(record.get("change_pct"))
-    verification = "外盘只展示与棕榈油最相关的 FCPO；暂不使用同花顺问财核验，以公开外盘数据源为准。"
+    verification = "海外产地价格使用交易所或公开行情源，仅作棕榈油跨市场参考。"
     if spec.get("symbol") == "FCPO" and not basis_is_clear:
         display_change = "需进一步核验"
         verification = "FCPO涨跌幅口径未明确说明相对昨收、开盘或结算价；涨跌幅已降级为需进一步核验。"
+    elif spec.get("symbol") == "CPOTR":
+        verification = "ICDX CPOTR价格来自交易所官方历史价格接口；涨跌幅相对前结算价YDSP计算。"
     return {
         "symbol": spec["symbol"],
         "product": spec["symbol"],
@@ -599,6 +711,7 @@ def merge_external(spec: dict[str, str], snapshot: dict[str, Any] | None, review
         "market": spec["market"],
         "contract": record.get("contract") or spec["symbol"],
         "price": fmt_number(record.get("price")),
+        "unit": str(record.get("unit") or ""),
         "change": display_change,
         "change_basis": change_basis or "需进一步核验",
         "volume": fmt_lots(record.get("volume")),
@@ -608,7 +721,7 @@ def merge_external(spec: dict[str, str], snapshot: dict[str, Any] | None, review
         "high": fmt_number(record.get("high")),
         "low": fmt_number(record.get("low")),
         "preclose": fmt_number(record.get("close")),
-        "settle": "需进一步核验",
+        "settle": fmt_number(record.get("settle")),
         "trade_date": record.get("published_at", "")[:10] or record.get("fetched_at", "")[:10],
         "source": record.get("source") or "需进一步核验",
         "note": spec["note"],
@@ -641,6 +754,7 @@ def build_market_references(snapshot: dict[str, Any] | None) -> dict[str, dict[s
     external = (snapshot or {}).get("external", {})
     return {
         "malaysia_fcpo": market_reference("马来 BMD FCPO", "马来西亚", external.get("bmd_palm_oil")),
+        "indonesia_cpotr": market_reference("印尼 ICDX CPOTR", "雅加达", external.get("indonesia_cpotr")),
         "india_cpo_spot": market_reference("印度 NCDEX CPO 现货", "Kandla", external.get("india_cpo_spot")),
     }
 
@@ -651,6 +765,39 @@ def write_js(payload: dict[str, Any], output: Path, publish: bool = True) -> Non
     output.write_text(f"window.OIL_FUTURES_CONTRACTS = {text};\n", encoding="utf-8")
     if publish and output.resolve() == OUTPUT.resolve():
         publish_dataset("oil-futures", payload)
+
+
+def load_js_payload(path: Path) -> dict[str, Any]:
+    text = path.read_text(encoding="utf-8").strip()
+    prefix = "window.OIL_FUTURES_CONTRACTS ="
+    if text.startswith(prefix):
+        text = text[len(prefix) :].strip().removesuffix(";")
+    payload = json.loads(text)
+    if not isinstance(payload, dict):
+        raise RuntimeError(f"{path} 不是有效的油脂行情数据对象")
+    return payload
+
+
+def update_external_contract_only(payload: dict[str, Any], spec: dict[str, str], snapshot: dict[str, Any], review_learning: dict[str, Any]) -> dict[str, Any]:
+    contract = merge_external(spec, snapshot, review_learning)
+    contracts = [item for item in payload.get("contracts", []) if str(item.get("symbol") or "").upper() != spec["symbol"]]
+    contracts.append(contract)
+    payload["contracts"] = contracts
+
+    references = dict(payload.get("market_references") or {})
+    references["indonesia_cpotr"] = market_reference(
+        "印尼 ICDX CPOTR",
+        "雅加达",
+        snapshot.get("external", {}).get("indonesia_cpotr"),
+    )
+    payload["market_references"] = references
+
+    source = str(payload.get("source") or "")
+    old_note = "外盘仅展示与棕榈油最相关的 FCPO"
+    new_note = "海外产地盘展示马来 BMD FCPO 与印尼 ICDX CPOTR"
+    payload["source"] = source.replace(old_note, new_note) if old_note in source else f"{source}；{new_note}".lstrip("；")
+    payload["updated_at"] = datetime.now(SHANGHAI).strftime("%Y-%m-%d %H:%M")
+    return payload
 
 
 def run_data_quality_gate(path: Path) -> None:
@@ -954,6 +1101,7 @@ def main() -> int:
     parser.add_argument("--print-time-metadata", action="store_true")
     parser.add_argument("--mode", choices=("publish", "actual-snapshot"), default="publish")
     parser.add_argument("--snapshot-date")
+    parser.add_argument("--external-only", choices=("CPOTR",), help="只刷新指定海外合约，保留现有国内合约数据")
     args = parser.parse_args()
 
     if args.print_time_metadata:
@@ -971,6 +1119,9 @@ def main() -> int:
             parser.error("actual-snapshot mode requires a non-official --output path")
     elif args.snapshot_date:
         parser.error("--snapshot-date is only valid with --mode actual-snapshot")
+
+    if args.external_only and any([args.report_date, args.generated_at, args.cutoff_at, args.snapshot_date, args.mode != "publish"]):
+        parser.error("--external-only cannot be combined with snapshot or forecast-freezing arguments")
 
     if args.mode == "actual-snapshot":
         try:
@@ -996,7 +1147,25 @@ def main() -> int:
         run_manifest_quality_gate(SOURCE_RUNS / f"{args.report_date}-daily" / "manifest.json")
 
     snapshot, snapshot_path = latest_market_snapshot(args.report_date if freeze_forecast else None)
+    snapshot = dict(snapshot or {})
+    snapshot["external"] = {
+        **(snapshot.get("external") or {}),
+        "indonesia_cpotr": fetch_icdx_cpotr(),
+    }
     review_learning = recent_review_learning()
+    if args.external_only:
+        spec = next(item for item in EXTERNAL if item["symbol"] == args.external_only)
+        payload = update_external_contract_only(load_js_payload(args.output), spec, snapshot, review_learning)
+        tmp_output = OUTPUT.with_name(".oil_futures.quality-check.tmp.js")
+        try:
+            write_js(payload, tmp_output, publish=False)
+            run_data_quality_gate(tmp_output)
+        finally:
+            tmp_output.unlink(missing_ok=True)
+        write_js(payload, args.output, publish=args.output.resolve() == OUTPUT.resolve())
+        print(f"updated {args.output.relative_to(ROOT)} with {args.external_only} only")
+        return 0
+
     discovery = load_contract_discovery()
     ak = load_akshare()
     discovery_products = discovery.get("products", {}) if isinstance(discovery, dict) else {}
@@ -1010,7 +1179,7 @@ def main() -> int:
     source_note = "futures-oil-daily 最新快照"
     if snapshot_path:
         source_note += f"：{snapshot_path.relative_to(ROOT)}"
-    source_note += "；国内合约名单先由 contract_selector_skill 选择，再由 contract_discovery_skill 按当月实时成交量、持仓量、成交额排序生成，外盘仅展示与棕榈油最相关的 FCPO；内盘具体合约与日线缺口由 AkShare 补充，并用同花顺问财行情skill交叉验证"
+    source_note += "；国内合约名单先由 contract_selector_skill 选择，再由 contract_discovery_skill 按当月实时成交量、持仓量、成交额排序生成，海外产地盘展示马来 BMD FCPO 与印尼 ICDX CPOTR；内盘具体合约与日线缺口由 AkShare 补充，并用同花顺问财行情skill交叉验证"
     now = datetime.now()
     payload = {
         "updated_at": now.strftime("%Y-%m-%d %H:%M"),

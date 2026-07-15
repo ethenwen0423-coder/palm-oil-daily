@@ -518,7 +518,10 @@
         ${renderDirection(contract.direction)}
       </div>
       <div class="futures-price-row">
-        <strong>${escapeHtml(contract.price || "需进一步核验")}</strong>
+        <div class="futures-price-value">
+          <strong>${escapeHtml(contract.price || "需进一步核验")}</strong>
+          ${contract.unit ? `<small>${escapeHtml(contract.unit)}</small>` : ""}
+        </div>
         <span>${escapeHtml(contract.change || "需进一步核验")}</span>
       </div>
       <dl class="futures-score">
@@ -599,7 +602,9 @@
     if (!oilFuturesList) return;
     const data = window.OIL_FUTURES_CONTRACTS || {};
     const contracts = Array.isArray(data.contracts) ? data.contracts : [];
-    const mainContracts = contracts.filter((contract) => contract.contract_rank === 1 || contract.symbol === "FCPO");
+    const mainContracts = contracts.filter(
+      (contract) => contract.contract_rank === 1 || ["FCPO", "CPOTR"].includes(String(contract.symbol || "").toUpperCase()),
+    );
     if (oilFuturesUpdated) {
       oilFuturesUpdated.textContent = data.updated_at ? `更新 ${data.updated_at}` : "等待行情数据";
     }
@@ -619,7 +624,7 @@
     }
     const overviewContracts = contracts.filter((contract) => {
       const product = String(contract.product || "").toUpperCase();
-      return product === "FCPO" || String(contract.symbol || "").toUpperCase() === "FCPO" || (["P", "Y", "OI"].includes(product) && Number(contract.contract_rank) === 1);
+      return ["FCPO", "CPOTR"].includes(product) || ["FCPO", "CPOTR"].includes(String(contract.symbol || "").toUpperCase()) || (["P", "Y", "OI"].includes(product) && Number(contract.contract_rank) === 1);
     });
     if (overviewFuturesStrip) {
       overviewFuturesStrip.innerHTML = overviewContracts
@@ -641,7 +646,7 @@
     }
     if (overviewMarketReferences) {
       const references = data.market_references || {};
-      const items = [references.malaysia_fcpo, references.india_cpo_spot].filter(Boolean);
+      const items = [references.malaysia_fcpo, references.indonesia_cpotr, references.india_cpo_spot].filter(Boolean);
       overviewMarketReferences.innerHTML = items.length
         ? items
             .map(
