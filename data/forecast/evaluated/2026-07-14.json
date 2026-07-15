@@ -1,0 +1,185 @@
+{
+  "evaluation_status": "evaluated",
+  "records": [
+    {
+      "calibration_status": "uncalibrated_baseline",
+      "confidence": "low",
+      "contract": "P2609",
+      "contract_rank": 1,
+      "cutoff_at": "2026-07-14T09:45:09+08:00",
+      "evaluation": {
+        "actual": {
+          "close": 9351.0,
+          "high": 9374.0,
+          "low": 9194.0,
+          "previous_close": 9212.0,
+          "return_pct": 1.508901,
+          "trade_date": "2026-07-14"
+        },
+        "actual_class": "up",
+        "brier_score": 0.486667,
+        "close_in_expected_range": true,
+        "direction_hit": false,
+        "evaluated_at": "2026-07-15T16:31:11+08:00",
+        "full_session_in_expected_range": true,
+        "invalidation_evaluation_status": "not_evaluable",
+        "invalidation_triggered": null,
+        "outcome_rule_version": "outcome-v1-fixed-0.30pct",
+        "predicted_class": "range",
+        "threshold_pct": 0.3,
+        "threshold_source": "fixed_baseline"
+      },
+      "evaluation_status": "evaluated",
+      "expected_range": {
+        "lower": 8941.46,
+        "upper": 9556.54
+      },
+      "forecast_id": "2026-07-14-P2609-oil-forecast-v1",
+      "generated_at": "2026-07-14T09:45:26+08:00",
+      "horizon": "same_trade_day_close",
+      "invalidation": {
+        "price": null,
+        "text": "若价格突破区间且驱动/资金同向，震荡判断失效。"
+      },
+      "outcome_rule_version": "outcome-v1-fixed-0.30pct",
+      "probabilities": {
+        "down": 0.1,
+        "range": 0.8,
+        "up": 0.1
+      },
+      "probability_mapping_version": "score-map-v1",
+      "product": "P",
+      "report_date": "2026-07-14",
+      "source_confidence": "低",
+      "source_score": {
+        "driver": 67.0,
+        "fundamental": 47.0,
+        "money_flow": 47.5,
+        "technical": 35.0,
+        "total": 50.1
+      },
+      "stance": "分歧震荡"
+    },
+    {
+      "calibration_status": "uncalibrated_baseline",
+      "confidence": "low",
+      "contract": "Y2609",
+      "contract_rank": 1,
+      "cutoff_at": "2026-07-14T09:45:09+08:00",
+      "evaluation": {
+        "actual": {
+          "close": 8608.0,
+          "high": 8614.0,
+          "low": 8557.0,
+          "previous_close": 8568.0,
+          "return_pct": 0.466853,
+          "trade_date": "2026-07-14"
+        },
+        "actual_class": "up",
+        "brier_score": 0.486667,
+        "close_in_expected_range": true,
+        "direction_hit": false,
+        "evaluated_at": "2026-07-15T16:31:11+08:00",
+        "full_session_in_expected_range": true,
+        "invalidation_evaluation_status": "not_evaluable",
+        "invalidation_triggered": null,
+        "outcome_rule_version": "outcome-v1-fixed-0.30pct",
+        "predicted_class": "range",
+        "threshold_pct": 0.3,
+        "threshold_source": "fixed_baseline"
+      },
+      "evaluation_status": "evaluated",
+      "expected_range": {
+        "lower": 8221.91,
+        "upper": 8705.09
+      },
+      "forecast_id": "2026-07-14-Y2609-oil-forecast-v1",
+      "generated_at": "2026-07-14T09:45:26+08:00",
+      "horizon": "same_trade_day_close",
+      "invalidation": {
+        "price": null,
+        "text": "若价格突破区间且驱动/资金同向，震荡判断失效。"
+      },
+      "outcome_rule_version": "outcome-v1-fixed-0.30pct",
+      "probabilities": {
+        "down": 0.1,
+        "range": 0.8,
+        "up": 0.1
+      },
+      "probability_mapping_version": "score-map-v1",
+      "product": "Y",
+      "report_date": "2026-07-14",
+      "source_confidence": "低",
+      "source_score": {
+        "driver": 63.9,
+        "fundamental": 47.0,
+        "money_flow": 40.9,
+        "technical": 65.0,
+        "total": 55.4
+      },
+      "stance": "分歧震荡"
+    },
+    {
+      "calibration_status": "uncalibrated_baseline",
+      "confidence": "medium",
+      "contract": "OI2609",
+      "contract_rank": 1,
+      "cutoff_at": "2026-07-14T09:45:09+08:00",
+      "evaluation": {
+        "actual": {
+          "close": 9944.0,
+          "high": 9967.0,
+          "low": 9880.0,
+          "previous_close": 9875.0,
+          "return_pct": 0.698734,
+          "trade_date": "2026-07-14"
+        },
+        "actual_class": "up",
+        "brier_score": 0.486667,
+        "close_in_expected_range": true,
+        "direction_hit": false,
+        "evaluated_at": "2026-07-15T16:31:11+08:00",
+        "full_session_in_expected_range": true,
+        "invalidation_evaluation_status": "not_evaluable",
+        "invalidation_triggered": null,
+        "outcome_rule_version": "outcome-v1-fixed-0.30pct",
+        "predicted_class": "range",
+        "threshold_pct": 0.3,
+        "threshold_source": "fixed_baseline"
+      },
+      "evaluation_status": "evaluated",
+      "expected_range": {
+        "lower": 9431.54,
+        "upper": 10054.66
+      },
+      "forecast_id": "2026-07-14-OI2609-oil-forecast-v1",
+      "generated_at": "2026-07-14T09:45:26+08:00",
+      "horizon": "same_trade_day_close",
+      "invalidation": {
+        "price": null,
+        "text": "若价格突破区间且驱动/资金同向，震荡判断失效。"
+      },
+      "outcome_rule_version": "outcome-v1-fixed-0.30pct",
+      "probabilities": {
+        "down": 0.1,
+        "range": 0.8,
+        "up": 0.1
+      },
+      "probability_mapping_version": "score-map-v1",
+      "product": "OI",
+      "report_date": "2026-07-14",
+      "source_confidence": "中",
+      "source_score": {
+        "driver": 63.6,
+        "fundamental": 47.0,
+        "money_flow": 45.5,
+        "technical": 65.0,
+        "total": 56.2
+      },
+      "stance": "震荡"
+    }
+  ],
+  "report_date": "2026-07-14",
+  "schema_version": "forecast-schema-v1",
+  "timezone": "Asia/Shanghai"
+}

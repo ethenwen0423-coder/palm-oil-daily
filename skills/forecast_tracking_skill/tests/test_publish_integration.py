@@ -146,6 +146,52 @@ class UpdateForecastPublishTest(unittest.TestCase):
             publisher.assert_not_called()
             recorder.assert_not_called()
 
+    def test_actual_snapshot_uses_exact_frozen_contracts_without_discovery_or_analysis(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            forecast_dir = root / "data" / "forecast" / "daily"
+            forecast_dir.mkdir(parents=True)
+            (forecast_dir / "2026-07-14.json").write_text(
+                json.dumps(
+                    {
+                        "records": [
+                            {"product": product, "contract": f"{product}2609", "contract_rank": 1}
+                            for product in ("P", "Y", "OI")
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            def quote(_ak, _variety, contract):
+                return {
+                    "contract": contract,
+                    "price": 101,
+                    "change_pct": 1,
+                    "open": 100,
+                    "high": 102,
+                    "low": 99,
+                    "preclose": 100,
+                    "volume": 10,
+                    "open_interest": 20,
+                    "tradedate": "2026-07-14",
+                    "source": "fixture",
+                }
+
+            with (
+                mock.patch.object(update, "FORECAST_DAILY_DIR", forecast_dir),
+                mock.patch.object(update, "load_akshare", return_value=object()),
+                mock.patch.object(update, "ak_realtime_contract", side_effect=quote),
+                mock.patch.object(update, "run_contract_selector") as selector,
+                mock.patch.object(update, "call_master_analysis") as analysis,
+                mock.patch.object(update, "hithink_contract") as hithink,
+            ):
+                payload = update.build_actual_snapshot_payload("2026-07-14")
+            self.assertEqual([row["contract"] for row in payload["contracts"]], ["P2609", "Y2609", "OI2609"])
+            selector.assert_not_called()
+            analysis.assert_not_called()
+            hithink.assert_not_called()
+
     def test_morning_publish_module_has_no_daily_review_hook(self) -> None:
         self.assertFalse(hasattr(update, "run_daily_review"))
         self.assertFalse(hasattr(update, "archive_existing_output"))
@@ -211,6 +257,9 @@ class DeployReportTest(unittest.TestCase):
                 if [[ "${FAIL_MANIFEST:-0}" == "1" && "$1" == "skills/data_quality_gate_skill/scripts/validate_data.py" && "$*" == *"--manifest"* ]]; then
                   exit 7
                 fi
+                if [[ "${FAIL_FEEDBACK:-0}" == "1" && "$1" == "skills/forecast_tracking_skill/scripts/validate_report_feedback.py" ]]; then
+                  exit 8
+                fi
                 if [[ "${FAIL_UPDATE:-0}" == "1" && "$1" == "scripts/update_oil_futures_data.py" ]]; then
                   exit 9
                 fi
@@ -275,6 +324,14 @@ class DeployReportTest(unittest.TestCase):
         self.assertNotIn("git add", calls)
         self.assertNotIn("git commit", calls)
         self.assertNotIn("git push", calls)
+
+    def test_feedback_gate_failure_stops_before_forecast_update(self) -> None:
+        result, calls = self.run_deploy("reports/2026-07-14.md", FAIL_FEEDBACK="1")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("validate_report_feedback.py", calls)
+        self.assertNotIn("update_oil_futures_data.py", calls)
+        self.assertNotIn("scripts/publish_report.py", calls)
+        self.assertNotIn("git add", calls)
 
 
 if __name__ == "__main__":

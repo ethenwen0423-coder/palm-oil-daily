@@ -64,11 +64,14 @@ class ReviewPipelineTest(unittest.TestCase):
             "forecast": root / "data" / "forecast" / "daily",
             "evaluated": root / "data" / "forecast" / "evaluated",
             "metrics": root / "data" / "forecast" / "metrics",
+            "feedback_dir": root / "data" / "forecast" / "feedback",
+            "feedback": root / "data" / "forecast" / "feedback" / "latest.json",
             "latest": root / "data" / "review" / "latest_review.json",
             "update_script": root / "update.py",
             "review_script": root / "daily_review.py",
             "evaluate_script": root / "evaluate.py",
             "metrics_script": root / "metrics.py",
+            "feedback_script": root / "feedback.py",
             "prune_script": root / "prune.py",
         }
         paths["official"].parent.mkdir(parents=True)
@@ -76,7 +79,7 @@ class ReviewPipelineTest(unittest.TestCase):
         paths["forecast"].mkdir(parents=True)
         if create_forecast:
             (paths["forecast"] / f"{self.date}.json").write_text("{}", encoding="utf-8")
-        for key in ("update_script", "review_script", "evaluate_script", "metrics_script", "prune_script"):
+        for key in ("update_script", "review_script", "evaluate_script", "metrics_script", "feedback_script", "prune_script"):
             paths[key].write_text("# fixture", encoding="utf-8")
         stack = ExitStack()
         self.addCleanup(stack.close)
@@ -88,11 +91,14 @@ class ReviewPipelineTest(unittest.TestCase):
             ("FORECAST_DIR", paths["forecast"]),
             ("EVALUATED_DIR", paths["evaluated"]),
             ("METRICS_DIR", paths["metrics"]),
+            ("FEEDBACK_DIR", paths["feedback_dir"]),
+            ("FEEDBACK_PATH", paths["feedback"]),
             ("LATEST_REVIEW", paths["latest"]),
             ("UPDATE_SCRIPT", paths["update_script"]),
             ("REVIEW_SCRIPT", paths["review_script"]),
             ("EVALUATE_SCRIPT", paths["evaluate_script"]),
             ("METRICS_SCRIPT", paths["metrics_script"]),
+            ("FEEDBACK_SCRIPT", paths["feedback_script"]),
             ("PRUNE_SCRIPT", paths["prune_script"]),
         ):
             stack.enter_context(mock.patch.object(review_prediction, name, value))
@@ -136,6 +142,12 @@ class ReviewPipelineTest(unittest.TestCase):
                 for name in ("latest.json", "20d.json", "60d.json"):
                     (output_dir / name).write_text("{}\n", encoding="utf-8")
                 return completed(0, {"status": "ok"})
+            if script == paths["feedback_script"]:
+                events.append("feedback")
+                output = Path(command[command.index("--output") + 1])
+                output.parent.mkdir(parents=True, exist_ok=True)
+                output.write_text('{"schema_version":"forecast-generation-feedback-v1"}\n', encoding="utf-8")
+                return completed(0, {"status": "ok", "feedback_status": "observe_only"})
             if script == paths["prune_script"]:
                 events.append("cleanup")
                 if cleanup_failure:
@@ -150,10 +162,11 @@ class ReviewPipelineTest(unittest.TestCase):
         events: list[str] = []
         with mock.patch.object(review_prediction, "run_command", side_effect=self.successful_runner(paths, events)):
             result = review_prediction.run_review_pipeline(self.date)
-        self.assertEqual(events, ["actual", "daily_review", "evaluate", "metrics", "cleanup"])
+        self.assertEqual(events, ["actual", "daily_review", "evaluate", "metrics", "feedback", "cleanup"])
         self.assertEqual(result["status"], "ok")
         self.assertEqual(result["evaluated_forecast_path"], f"data/forecast/evaluated/{self.date}.json")
         self.assertEqual(len(result["metrics_paths"]), 3)
+        self.assertEqual(result["generation_feedback_path"], "data/forecast/feedback/latest.json")
         self.assertEqual((paths["snapshots"] / f"{self.date}-previous-oil_futures.js").read_text(encoding="utf-8"), "morning-tab")
 
     def test_missing_forecast_stops_before_snapshot(self) -> None:
@@ -163,6 +176,15 @@ class ReviewPipelineTest(unittest.TestCase):
                 review_prediction.run_review_pipeline(self.date)
         self.assertEqual(raised.exception.stage, "forecast_missing")
         run.assert_not_called()
+
+    def test_existing_morning_archive_is_preserved_for_later_backfill(self) -> None:
+        paths = self.environment()
+        target = paths["snapshots"] / f"{self.date}-previous-oil_futures.js"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text("original-morning", encoding="utf-8")
+        paths["official"].write_text("newer-tab", encoding="utf-8")
+        review_prediction.archive_morning_tab(target)
+        self.assertEqual(target.read_text(encoding="utf-8"), "original-morning")
 
     def test_actual_failure_stops_all_downstream(self) -> None:
         paths = self.environment()
@@ -268,7 +290,7 @@ class ReviewPipelineTest(unittest.TestCase):
             review_prediction.run_review_pipeline(self.date)
             second = json.loads((paths["evaluated"] / f"{self.date}.json").read_text(encoding="utf-8"))
         self.assertEqual(first, second)
-        self.assertEqual(events, ["actual", "daily_review", "evaluate", "metrics", "cleanup"] * 2)
+        self.assertEqual(events, ["actual", "daily_review", "evaluate", "metrics", "feedback", "cleanup"] * 2)
 
     def test_non_trading_day_outputs_valid_json(self) -> None:
         output = io.StringIO()

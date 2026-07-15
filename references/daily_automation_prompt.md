@@ -10,15 +10,16 @@
 
 Master Skill 调度规则：
 1. 正式生成报告前必须先读取并执行 skills/master_report_skill/SKILL.md。
-2. 必须按 master_report_skill 固定顺序执行：market_data_skill → data_quality_gate_skill → oil_report_freshness → report_writer_skill → headline_skill → report_quality_gate → forecast_tracking_skill（发布前冻结审计）。
+2. 必须按 master_report_skill 固定顺序执行：market_data_skill → data_quality_gate_skill → forecast_generation_feedback → oil_report_freshness → report_writer_skill → headline_skill → report_quality_gate → forecast_tracking_skill（发布前冻结审计）。
 3. 当前项目中尚未单独落地的子 Skill 只保留接口，不伪造实现；但必须完成下列现有映射。
 4. market_data_skill 当前由 python3 scripts/run_financial_skills.py、source_runs/$REPORT_DATE-daily/manifest.json 和 raw/ 原始结果承担；必须记录数据时间、来源、失败项和替代来源。
 5. data_quality_gate_skill 当前由 skills/data_quality_gate_skill/SKILL.md 和 scripts/validate_data.py 承担；必须校验最新价、昨结、涨跌幅、合约月份、日期时区、来源冲突、FCPO口径和库存/出口/产量统计日期，关键数据失败时停止正式发布。
 6. oil_report_freshness 当前由 skills/oil-report-freshness/SKILL.md 承担；必须输出今日新增驱动、今日主线建议、延续性背景、风险因素、不允许作为主线的信息、待核验信息、信息新鲜度表。
 7. report_writer_skill 当前由 skills/report_writer_skill/SKILL.md 承担正文研究质量控制，并以 skills/vinson-research-writing/SKILL.md 及其 checklist/terminology/examples/anti_patterns 作为通用写作规范；正文只能使用 market_data_skill 和 oil_report_freshness 治理后的内容。
 8. headline_skill 当前由 skills/title-generation/SKILL.md 和 skills/title-quality-gate/SKILL.md 共同承担；标题只能基于 oil_report_freshness 的今日新增驱动和今日主线建议生成，不得新增正文中没有的观点。
-9. report_quality_gate 当前保留接口，由 data_quality_gate_skill、vinson-research-writing checklist、title-quality-gate、信息来源与核验说明、oil_report_freshness 禁用项共同完成最终一致性检查；不得新增观点、伪造来源或覆盖前面 Skill 的职责。
-10. forecast_tracking_skill 是发布前审计层，不参与观点、标题、评分或正文决策；只能在数据质量门通过后，从临时结构化 oil_futures 数据冻结 P/Y/OI 的 rank=1 预测。冻结失败时停止正式发布，不得从 Markdown 或未来、收盘、发布后数据回填预测。
+9. forecast_generation_feedback 由 `build_generation_feedback.py` 生成，只使用截至上一交易日的滚动预测指标和每日复盘；它只能下调或限制今日置信度、降低低命中率品种的主线等级、补充反向情景，不得替代今日行情或自动上调置信度。
+10. report_quality_gate 由 data_quality_gate_skill、`validate_report_feedback.py`、vinson-research-writing checklist、title-quality-gate、信息来源与核验说明、oil_report_freshness 禁用项共同完成最终一致性检查；预测校准约束未落实时停止发布。
+11. forecast_tracking_skill 的冻结步骤仍是发布前审计层，不使用当日未来、收盘或发布后数据；但其上一交易日复盘产出的 generation feedback 必须参与下一次报告生成和质量门控。
 
 Writing Skill 规则：
 1. 正式写作前必须先读取并调用 skills/report_writer_skill/SKILL.md。
@@ -36,12 +37,13 @@ Writing Skill 规则：
 13. Writing Skill 只用于提升结构、表达、可读性和机构研究风格，不得改变数据来源、业务逻辑或交易策略。
 
 Daily Review 学习规则：
-1. 每天生成晨报前必须通过 skills/daily_review_skill/scripts/review_memory.py 的 load_recent_reviews(days=30) 只读取 data/review/daily/ 最近30天每日复盘；如果 data/review/latest_review.json 存在，也可以读取摘要。不得读取30天以前的每日明细。
+1. 每天生成晨报前必须先运行：`python3 skills/forecast_tracking_skill/scripts/build_generation_feedback.py --metrics data/forecast/metrics/latest.json --review-dir data/review/daily --output data/forecast/feedback/latest.json --as-of "$REPORT_DATE"`，再完整读取 `data/forecast/feedback/latest.json`。随后通过 skills/daily_review_skill/scripts/review_memory.py 的 load_recent_reviews(days=30) 读取最近30天每日复盘；不得读取30天以前的每日明细。
 2. 每天生成晨报和刷新 tab 页前必须先调用 `skills/contract_selector_skill/SKILL.md`，运行 `python3 skills/contract_selector_skill/scripts/select_contracts.py` 刷新 `data/contracts/current_contracts.json`，再读取该文件作为 P/Y/OI/M/RM 的当月分析合约名单。日报和 tab 页的选择合约分析必须包含 contract_selector_skill 输出的全部合约；rank=1 作为主叙事合约，rank=2 作为换月、资金迁移、跨期强弱和流动性分析合约，不得在分析入口丢弃。
-3. 若最近复盘出现连续同类错误，正文必须提示“近期模型容易低估/高估某因素”，并在【今日交易重点】【开盘推演】或【风险提示】中降低相关因素单独主导性或增加风险提示。
-4. 允许的调整只限于当日文字层面的风险提示、置信度下调、主线降级或情景推演补充；不得未经人工确认永久修改评分权重、参数或策略规则。
-5. 如果最近30天复盘或 latest_review 显示是否需要人工确认 human_approval_required=true，报告只能写成“需人工确认的改进建议”，不得写成已生效规则。
-6. 如果没有最近30天复盘，写作流程继续，但不得伪造复盘结论。
+3. 必须逐字写入 generation feedback 的 `required_report_disclosures` 到【信息来源与核验说明】；若某品种触发 `downgrade_directional_claim`，不得把该品种单独设为今日主线，且【今日观点】置信度不得超过 `core_view_confidence_cap_stars`。
+4. 若最近复盘出现连续同类错误，正文必须提示“近期模型容易低估/高估某因素”，并在【今日交易重点】【开盘推演】或【风险提示】中降低相关因素单独主导性或增加风险提示。
+5. 允许的调整只限于当日文字层面的风险提示、置信度下调、主线降级或情景推演补充；不得未经人工确认永久修改评分权重、参数或策略规则。
+6. 如果 generation feedback 或最近复盘显示 human_approval_required=true，报告只能写成“需人工确认的改进建议”，不得写成已生效规则。
+7. 如果没有有效历史样本，必须如实写入“暂无已评估历史样本”或“样本不足”，不得伪造复盘结论，也不得声称准确率正在提升。
 
 
 
@@ -65,8 +67,9 @@ Daily Review 学习规则：
 10. 运行 report_writer 前必须完成 master_report_skill 调度、data_quality_gate_skill 确定性校验和 oil-report-freshness 信息治理；如果 freshness 输出 `需要report_writer重新生成对应段落`，必须重写对应段落后再发布。
 11. 运行 headline_skill 前必须确认 report_writer 已完成正文草稿，headline_skill 不得新增正文中没有的观点。
 12. 运行 report_quality_gate 接口检查标题、正文、来源、时效性一致后，才允许发布。
-13. 正式报告不得出现“未实际调用”“当前环境未暴露调用入口”“这是测试报告”“排版调试样稿”等文字。
-14. 调用 deploy_report.sh 前必须确认 source_runs/$REPORT_DATE-daily/manifest.json 与 raw/futures_market_data.json 的时间字段存在；部署脚本会将 manifest.generated_at 与 raw timestamp 作为可验证的 generated-at/cutoff-at。质量门通过后冻结预测，冻结失败则停止发布。
+13. 日报发布前必须运行 `python3 skills/forecast_tracking_skill/scripts/validate_report_feedback.py --report "reports/$REPORT_DATE.md" --feedback data/forecast/feedback/latest.json --report-date "$REPORT_DATE"`；未通过时停止发布并按错误重写正文。
+14. 正式报告不得出现“未实际调用”“当前环境未暴露调用入口”“这是测试报告”“排版调试样稿”等文字。
+15. 调用 deploy_report.sh 前必须确认 source_runs/$REPORT_DATE-daily/manifest.json 与 raw/futures_market_data.json 的时间字段存在；部署脚本会将 manifest.generated_at 与 raw timestamp 作为可验证的 generated-at/cutoff-at。质量门通过后冻结预测，冻结失败则停止发布。
 
 标题规则：
 1. 报告正文一级标题必须控制在15个字以内，格式用“MM月DD日晨报”，例如“06月29日晨报”。

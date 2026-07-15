@@ -24,11 +24,14 @@ DAILY_REVIEW_DIR = ROOT / "data" / "review" / "daily"
 FORECAST_DIR = ROOT / "data" / "forecast" / "daily"
 EVALUATED_DIR = ROOT / "data" / "forecast" / "evaluated"
 METRICS_DIR = ROOT / "data" / "forecast" / "metrics"
+FEEDBACK_DIR = ROOT / "data" / "forecast" / "feedback"
+FEEDBACK_PATH = FEEDBACK_DIR / "latest.json"
 LATEST_REVIEW = ROOT / "data" / "review" / "latest_review.json"
 UPDATE_SCRIPT = ROOT / "scripts" / "update_oil_futures_data.py"
 REVIEW_SCRIPT = ROOT / "skills" / "daily_review_skill" / "scripts" / "daily_review.py"
 EVALUATE_SCRIPT = ROOT / "skills" / "forecast_tracking_skill" / "scripts" / "evaluate_forecast.py"
 METRICS_SCRIPT = ROOT / "skills" / "forecast_tracking_skill" / "scripts" / "build_metrics.py"
+FEEDBACK_SCRIPT = ROOT / "skills" / "forecast_tracking_skill" / "scripts" / "build_generation_feedback.py"
 PRUNE_SCRIPT = ROOT / "skills" / "forecast_tracking_skill" / "scripts" / "prune_forecast_artifacts.py"
 TRACKED_PRODUCTS = {"P", "Y", "OI"}
 OIL_FUTURES_PREFIX = re.compile(r"^\s*window\.OIL_FUTURES_CONTRACTS\s*=\s*", re.DOTALL)
@@ -106,6 +109,8 @@ def _write_text_atomically(path: Path, text: str) -> None:
 
 
 def archive_morning_tab(target: Path) -> None:
+    if target.exists() and target.stat().st_size > 0:
+        return
     if not OFFICIAL_TAB.exists() or OFFICIAL_TAB.stat().st_size == 0:
         raise StageFailure("actual_snapshot", "缺少 data/oil_futures.js，无法归档晨报判断")
     _write_text_atomically(target, OFFICIAL_TAB.read_text(encoding="utf-8"))
@@ -198,6 +203,7 @@ def run_review_pipeline(review_date: str) -> dict[str, Any]:
         "daily_review": REVIEW_SCRIPT,
         "forecast_evaluation": EVALUATE_SCRIPT,
         "metrics": METRICS_SCRIPT,
+        "generation_feedback": FEEDBACK_SCRIPT,
     }
     for stage, script in required_scripts.items():
         if not script.exists():
@@ -207,6 +213,7 @@ def run_review_pipeline(review_date: str) -> dict[str, Any]:
     DAILY_REVIEW_DIR.mkdir(parents=True, exist_ok=True)
     EVALUATED_DIR.mkdir(parents=True, exist_ok=True)
     METRICS_DIR.mkdir(parents=True, exist_ok=True)
+    FEEDBACK_DIR.mkdir(parents=True, exist_ok=True)
     archive_morning_tab(previous_path)
 
     actual = run_stage(
@@ -290,6 +297,27 @@ def run_review_pipeline(review_date: str) -> dict[str, Any]:
     if metrics_payload.get("status") != "ok" or any(not path.exists() for path in metrics_paths):
         raise StageFailure("metrics", "统计器未生成latest/20d/60d完整输出")
 
+    feedback = run_stage(
+        [
+            sys.executable,
+            str(FEEDBACK_SCRIPT),
+            "--metrics",
+            str(METRICS_DIR / "latest.json"),
+            "--review-dir",
+            str(DAILY_REVIEW_DIR),
+            "--output",
+            str(FEEDBACK_PATH),
+            "--as-of",
+            review_date,
+        ],
+        "generation_feedback",
+    )
+    if feedback.returncode != 0:
+        raise StageFailure("generation_feedback", _command_reason(feedback, "生成校准上下文失败"))
+    feedback_payload = _parse_json_output(feedback, "generation_feedback")
+    if feedback_payload.get("status") != "ok" or not FEEDBACK_PATH.exists():
+        raise StageFailure("generation_feedback", "未生成有效的报告校准上下文")
+
     warnings: list[str] = []
     cleanup_status = "ok"
     if not PRUNE_SCRIPT.exists():
@@ -334,8 +362,10 @@ def run_review_pipeline(review_date: str) -> dict[str, Any]:
         "daily_review_path": _relative(daily_review_path),
         "evaluated_forecast_path": _relative(evaluated_path),
         "metrics_paths": [_relative(path) for path in metrics_paths],
+        "generation_feedback_path": _relative(FEEDBACK_PATH),
         "evaluation_status": "evaluated",
         "metrics_status": "ok",
+        "generation_feedback_status": feedback_payload.get("feedback_status"),
         "cleanup_status": cleanup_status,
         "warnings": warnings,
         "learning_notes_path": review_payload.get("learning_notes_path"),

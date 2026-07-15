@@ -7,7 +7,7 @@ description: Define and validate structured daily P/Y/OI main-contract forecast 
 
 ## Purpose
 
-This skill establishes the fixed, machine-readable lifecycle for daily oil-futures forecasts. It freezes an existing structured morning view, evaluates it against the same contract's after-close snapshot, and builds version-isolated internal metrics. It does not generate a market view, update a score, write a report, or change publishing content.
+This skill establishes the fixed, machine-readable lifecycle for daily oil-futures forecasts. It freezes an existing structured morning view, evaluates it against the same contract's after-close snapshot, builds version-isolated internal metrics, and converts only prior evaluated results into conservative constraints for the next report. It does not invent a market view, update permanent scores, or use same-day future data.
 
 Daily files are stored at:
 
@@ -128,6 +128,32 @@ For a China-futures trading day it runs, in order:
 3. run the legacy `daily_review_skill`;
 4. evaluate the frozen forecast into `data/forecast/evaluated/YYYY-MM-DD.json`;
 5. build `data/forecast/metrics/latest.json`, `20d.json`, and `60d.json` with `--as-of YYYY-MM-DD`.
+6. build `data/forecast/feedback/latest.json`, which becomes an input to the next report generation and its quality gate.
+
+## Generation Feedback and Quality Gate
+
+Before each daily report is written, rebuild the feedback context for that report date:
+
+```bash
+python3 skills/forecast_tracking_skill/scripts/build_generation_feedback.py \
+  --metrics data/forecast/metrics/latest.json \
+  --review-dir data/review/daily \
+  --output data/forecast/feedback/latest.json \
+  --as-of YYYY-MM-DD
+```
+
+The first five valid trade days are observation-only. Once at least five valid days exist, the context may only cap confidence, downgrade a low-accuracy product from being the sole mainline, or require broader scenarios. It never boosts confidence and never changes score weights, probability mappings, or strategy parameters. Every exact sentence in `required_report_disclosures` must appear in `信息来源与核验说明`.
+
+Before publication run:
+
+```bash
+python3 skills/forecast_tracking_skill/scripts/validate_report_feedback.py \
+  --report reports/YYYY-MM-DD.md \
+  --feedback data/forecast/feedback/latest.json \
+  --report-date YYYY-MM-DD
+```
+
+Missing disclosures, stale feedback, a future-dated metric, or a core-view confidence above the calculated cap blocks publication.
 
 The actual snapshot is accepted only when each P/Y/OI rank-1 record has a matching `trade_date` and numeric close, previous close, high, and low. Structured evaluation still matches by exact `product + contract`, never by current rank alone. Evaluation failure blocks metrics; metrics failure retains the already validated evaluated file. Identical evaluated output is idempotent and is not overwritten. After metrics succeed, the entry runs `prune_forecast_artifacts.py --apply`; cleanup failures are warnings and do not downgrade a successful evaluation.
 
@@ -147,4 +173,4 @@ The installer blocks a dirty worktree and requires explicit confirmation that ev
 
 ## Boundaries
 
-Do not use this skill to invent predictions, influence scoring or report prose, read future data, or rewrite frozen forecasts. Morning freezing is a pre-publish audit layer; after-close evaluation and metrics are invoked only by `scripts/review_prediction.py`. Do not install or modify scheduling from this skill.
+Do not use this skill to invent predictions, influence permanent scoring, read future data, or rewrite frozen forecasts. Prior-result feedback may influence only the next report's confidence, mainline priority, invalidation scenarios, and disclosure as defined above. Morning freezing is a pre-publish audit layer; after-close evaluation, metrics, and feedback persistence are invoked only by `scripts/review_prediction.py`. Do not install or modify scheduling from this skill.

@@ -1,18 +1,101 @@
 {
-  "date": "2026-07-08",
-  "status": "ok",
-  "previous_snapshot": "/Users/ethen/Sites/palm-oil-daily/data/review/snapshots/2026-07-08-previous-oil_futures.js",
-  "current_snapshot": "/Users/ethen/Sites/palm-oil-daily/data/review/snapshots/2026-07-08-actual-oil_futures.js",
-  "learning_notes_path": "/Users/ethen/Sites/palm-oil-daily/data/review/daily/2026-07-08.json",
+  "actual_snapshot_path": "data/review/runtime_snapshots/2026-07-15-actual-oil_futures.js",
+  "cleanup_status": "ok",
+  "daily_review_path": "data/review/daily/2026-07-15.json",
+  "date": "2026-07-15",
+  "error_type": [],
+  "evaluated_forecast_path": "data/forecast/evaluated/2026-07-15.json",
+  "evaluation_status": "evaluated",
+  "forecast_path": "data/forecast/daily/2026-07-15.json",
+  "generation_feedback_path": "data/forecast/feedback/latest.json",
+  "generation_feedback_status": "observe_only",
+  "human_approval_required": false,
+  "learning_notes_path": "/Users/ethen/Sites/palm-oil-daily/data/review/daily/2026-07-15.json",
+  "metrics_paths": [
+    "data/forecast/metrics/latest.json",
+    "data/forecast/metrics/20d.json",
+    "data/forecast/metrics/60d.json"
+  ],
+  "metrics_status": "ok",
   "review_memory": {
-    "saved": "data/review/daily/2026-07-08.json",
-    "retained_count": 3,
     "deleted": [],
+    "retained_count": 6,
+    "saved": "data/review/daily/2026-07-15.json",
     "warnings": []
   },
-  "review_result": [],
-  "error_type": [],
+  "review_result": [
+    {
+      "actual_market": {
+        "change_pct": -0.08045052292839903,
+        "close": 9936.0,
+        "high": 9960.0,
+        "intraday_direction": "down",
+        "low": 9913.0,
+        "open": 9944.0,
+        "open_interest_change": 0.6338158299969202,
+        "volume_change": 161.44121915820028,
+        "whether_break_lower": false,
+        "whether_break_upper": false,
+        "whether_close_above_upper": false,
+        "whether_close_below_lower": false
+      },
+      "actual_result": "-0.08045052292839903，高 9960.0 / 低 9913.0 / 收 9936.0",
+      "contract": "OI2609",
+      "contract_rank": 1,
+      "error_type": [],
+      "hit_status": "HIT",
+      "previous_view": "震荡",
+      "product": "OI"
+    },
+    {
+      "actual_market": {
+        "change_pct": -0.769971126082772,
+        "close": 9279.0,
+        "high": 9371.0,
+        "intraday_direction": "down",
+        "low": 9249.0,
+        "open": 9370.0,
+        "open_interest_change": -0.23870691500749303,
+        "volume_change": 188.33354430379748,
+        "whether_break_lower": false,
+        "whether_break_upper": false,
+        "whether_close_above_upper": false,
+        "whether_close_below_lower": false
+      },
+      "actual_result": "-0.769971126082772，高 9371.0 / 低 9249.0 / 收 9279.0",
+      "contract": "P2609",
+      "contract_rank": 1,
+      "error_type": [],
+      "hit_status": "HIT",
+      "previous_view": "分歧震荡",
+      "product": "P"
+    },
+    {
+      "actual_market": {
+        "change_pct": -0.11617100371747212,
+        "close": 8598.0,
+        "high": 8624.0,
+        "intraday_direction": "down",
+        "low": 8574.0,
+        "open": 8598.0,
+        "open_interest_change": -1.152506963788301,
+        "volume_change": 159.1275,
+        "whether_break_lower": false,
+        "whether_break_upper": false,
+        "whether_close_above_upper": false,
+        "whether_close_below_lower": false
+      },
+      "actual_result": "-0.11617100371747212，高 8624.0 / 低 8574.0 / 收 8598.0",
+      "contract": "Y2609",
+      "contract_rank": 1,
+      "error_type": [],
+      "hit_status": "HIT",
+      "previous_view": "震荡",
+      "product": "Y"
+    }
+  ],
+  "status": "ok",
   "suggested_improvement": [],
-  "whether_update_rule": false,
-  "human_approval_required": false
+  "warnings": [],
+  "whether_update_rule": false
 }

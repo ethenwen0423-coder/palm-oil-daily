@@ -204,6 +204,23 @@ class PublishPredictionReviewTest(unittest.TestCase):
         self.assertIn(f"add -- {deleted}", calls)
         self.assertEqual(payload["committed_files"], [deleted])
 
+    def test_generation_feedback_is_allowlisted(self) -> None:
+        candidate = "data/forecast/feedback/latest.json"
+        root, log, env = self.fixture(
+            FAKE_STATUS_ENTRIES=f"?? {candidate}",
+            FAKE_STAGED_AFTER=candidate,
+        )
+        result, payload = self.run_script(
+            root,
+            env,
+            "--publish",
+            "--confirm-persistence-reviewed",
+            "--date",
+            self.date,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(payload["committed_files"], [candidate])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -29,6 +29,7 @@ class PredictionReviewLaunchdDryRunTest(unittest.TestCase):
             "scripts/review_prediction.py",
             "skills/forecast_tracking_skill/scripts/evaluate_forecast.py",
             "skills/forecast_tracking_skill/scripts/build_metrics.py",
+            "skills/forecast_tracking_skill/scripts/build_generation_feedback.py",
             "skills/forecast_tracking_skill/scripts/validate_forecast.py",
             "skills/forecast_tracking_skill/scripts/prune_forecast_artifacts.py",
             "scripts/publish_prediction_review.sh",
@@ -41,6 +42,7 @@ class PredictionReviewLaunchdDryRunTest(unittest.TestCase):
             "data/forecast/daily",
             "data/forecast/evaluated",
             "data/forecast/metrics",
+            "data/forecast/feedback",
             "data/review/daily",
             "data/review/snapshots",
         ):
@@ -106,6 +108,7 @@ class PredictionReviewLaunchdDryRunTest(unittest.TestCase):
             "scripts/review_prediction.py",
             "skills/forecast_tracking_skill/scripts/evaluate_forecast.py",
             "skills/forecast_tracking_skill/scripts/build_metrics.py",
+            "skills/forecast_tracking_skill/scripts/build_generation_feedback.py",
         ):
             with self.subTest(missing=missing):
                 repo, _, launchctl_log, env = self.make_fixture()
@@ -137,6 +140,7 @@ class PredictionReviewLaunchdDryRunTest(unittest.TestCase):
         self.assertIn('RUN_SLOT" == "15:40', text)
         self.assertIn("validate_forecast.py --forecast", text)
         self.assertIn('latest.get("as_of") == report_date', text)
+        self.assertIn('feedback.get("as_of") == report_date', text)
         self.assertIn("publish_prediction_review.sh", text)
         weekday_values = [
             int(value)

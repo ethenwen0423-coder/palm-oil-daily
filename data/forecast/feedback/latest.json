@@ -1,0 +1,61 @@
+{
+  "as_of": "2026-07-15",
+  "consecutive_error_streaks": {},
+  "core_view_confidence_cap": "uncapped",
+  "core_view_confidence_cap_stars": 5,
+  "generation_rules": [
+    "历史结果只能降低或限制今日置信度，不能替代今日行情，也不能自动提高置信度。",
+    "低命中率品种不得单独成为今日主线；必须写明反向情景和失效条件。",
+    "不得自动修改永久评分权重、概率映射或策略参数。"
+  ],
+  "high_confidence_history": {
+    "directional_accuracy": null,
+    "sample_count": 0
+  },
+  "human_approval_required": false,
+  "metrics_as_of": "2026-07-15",
+  "minimum_active_trade_days": 5,
+  "products": {
+    "OI": {
+      "action": "observe_only",
+      "close_range_coverage": 1.0,
+      "directional_accuracy": 0.5,
+      "max_confidence": "uncapped",
+      "max_confidence_stars": 5,
+      "miss_rate": 0.0,
+      "product": "OI",
+      "reasons": [],
+      "sample_count": 2
+    },
+    "P": {
+      "action": "observe_only",
+      "close_range_coverage": 1.0,
+      "directional_accuracy": 0.0,
+      "max_confidence": "uncapped",
+      "max_confidence_stars": 5,
+      "miss_rate": 0.0,
+      "product": "P",
+      "reasons": [],
+      "sample_count": 2
+    },
+    "Y": {
+      "action": "observe_only",
+      "close_range_coverage": 1.0,
+      "directional_accuracy": 0.5,
+      "max_confidence": "uncapped",
+      "max_confidence_stars": 5,
+      "miss_rate": 0.0,
+      "product": "Y",
+      "reasons": [],
+      "sample_count": 2
+    }
+  },
+  "required_report_disclosures": [
+    "预测校准：当前仅有2个有效交易日样本，样本不足，仅作观察，不据此调整今日方向。"
+  ],
+  "schema_version": "forecast-generation-feedback-v1",
+  "source_metrics": "data/forecast/metrics/latest.json",
+  "status": "observe_only",
+  "valid_trade_day_count": 2,
+  "version_key": "score-map-v1|outcome-v1-fixed-0.30pct"
+}

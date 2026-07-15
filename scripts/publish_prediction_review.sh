@@ -46,6 +46,7 @@ ALLOWED_PATHS=(
   "data/forecast/metrics/latest.json"
   "data/forecast/metrics/20d.json"
   "data/forecast/metrics/60d.json"
+  "data/forecast/feedback/latest.json"
   "data/review/daily/"
   "data/review/latest_review.json"
 )
@@ -155,7 +156,7 @@ is_allowed() {
     data/forecast/evaluated/*|data/review/daily/*)
       return 0
       ;;
-    data/forecast/metrics/latest.json|data/forecast/metrics/20d.json|data/forecast/metrics/60d.json|data/review/latest_review.json)
+    data/forecast/metrics/latest.json|data/forecast/metrics/20d.json|data/forecast/metrics/60d.json|data/forecast/feedback/latest.json|data/review/latest_review.json)
       return 0
       ;;
     *)
@@ -167,7 +168,7 @@ is_allowed() {
 is_date_candidate() {
   local path="$1"
   case "$path" in
-    "data/forecast/evaluated/$REPORT_DATE.json"|"data/review/daily/$REPORT_DATE.json"|data/forecast/metrics/latest.json|data/forecast/metrics/20d.json|data/forecast/metrics/60d.json|data/review/latest_review.json)
+    "data/forecast/evaluated/$REPORT_DATE.json"|"data/review/daily/$REPORT_DATE.json"|data/forecast/metrics/latest.json|data/forecast/metrics/20d.json|data/forecast/metrics/60d.json|data/forecast/feedback/latest.json|data/review/latest_review.json)
       return 0
       ;;
     *)
@@ -206,6 +207,7 @@ collect_preflight() {
       data/forecast/metrics/latest.json \
       data/forecast/metrics/20d.json \
       data/forecast/metrics/60d.json \
+      data/forecast/feedback/latest.json \
       data/review/daily \
       data/review/latest_review.json
   )

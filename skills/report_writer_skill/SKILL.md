@@ -41,8 +41,11 @@ Before writing, use only:
 1. `market_data_skill` output or equivalent called data source results.
 2. `oil_report_freshness` governed output.
 3. Existing report structure requirements.
+4. `data/forecast/feedback/latest.json`, generated before writing from prior evaluated forecasts and recent daily reviews.
 
 Do not re-upgrade old news, weekly inventory, old policy, old research reports, or unverifiable rumors into today's driver.
+
+Apply forecast feedback conservatively: it may cap confidence, downgrade a repeatedly weak product from the mainline, or require an extra invalidation scenario. It must never replace current market evidence, boost confidence, or silently change permanent scoring rules. Copy every `required_report_disclosures` sentence exactly into `信息来源与核验说明` so the deterministic publication gate can verify the feedback was used.
 
 ## Writing Algorithm
 

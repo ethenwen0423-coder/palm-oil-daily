@@ -50,6 +50,12 @@ for report_path in "${changed_reports[@]}"; do
     manifest="source_runs/${report_date}-daily/manifest.json"
   fi
   python3 skills/data_quality_gate_skill/scripts/validate_data.py --manifest "$manifest" --strict
+  if [[ "$report_file" != *-weekend.md ]]; then
+    python3 skills/forecast_tracking_skill/scripts/validate_report_feedback.py \
+      --report "$report_path" \
+      --feedback data/forecast/feedback/latest.json \
+      --report-date "$report_date"
+  fi
 done
 
 update_oil_futures_tab=false

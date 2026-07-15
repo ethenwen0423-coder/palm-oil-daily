@@ -318,8 +318,9 @@ def ak_realtime_contract(ak: Any, variety: str, preferred_contract: str | None =
             return None
         if preferred_contract:
             selected_rows = rows[rows["symbol"].astype(str).str.upper() == preferred_contract.upper()]
-            if not selected_rows.empty:
-                rows = selected_rows
+            if selected_rows.empty:
+                return None
+            rows = selected_rows
         rows = rows.sort_values(by="volume", ascending=False)
         row = rows.iloc[0]
         trade = as_float(row.get("trade"))
@@ -345,15 +346,21 @@ def ak_realtime_contract(ak: Any, variety: str, preferred_contract: str | None =
         return None
 
 
-def ak_daily_contract(ak: Any, contract: str) -> dict[str, Any] | None:
+def ak_daily_contract(ak: Any, contract: str, target_date: str | None = None) -> dict[str, Any] | None:
     if ak is None:
         return None
     try:
         df = ak.futures_zh_daily_sina(symbol=contract)
         if df is None or len(df) == 0:
             return None
-        row = df.iloc[-1]
-        previous = df.iloc[-2] if len(df) >= 2 else None
+        selected_index = len(df) - 1
+        if target_date is not None:
+            matches = [index for index, value in enumerate(df["date"]) if str(value)[:10] == target_date]
+            if not matches:
+                return None
+            selected_index = matches[-1]
+        row = df.iloc[selected_index]
+        previous = df.iloc[selected_index - 1] if selected_index >= 1 else None
         close = as_float(row.get("close"))
         prev_close = as_float(previous.get("close")) if previous is not None else None
         change_pct = None
@@ -871,6 +878,73 @@ def write_actual_snapshot_atomically(payload: dict[str, Any], output: Path, snap
             temporary_path.unlink(missing_ok=True)
 
 
+def build_actual_snapshot_payload(snapshot_date: str) -> dict[str, Any]:
+    """Fetch only the exact frozen P/Y/OI contracts; avoid discovery and report analysis."""
+    forecast_path = FORECAST_DAILY_DIR / f"{snapshot_date}.json"
+    try:
+        forecast = json.loads(forecast_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise RuntimeError(f"无法读取冻结预测 {forecast_path}: {exc}") from exc
+    records = forecast.get("records") if isinstance(forecast, dict) else None
+    if not isinstance(records, list):
+        raise RuntimeError("冻结预测缺少 records")
+    frozen: dict[str, str] = {}
+    for record in records:
+        if not isinstance(record, dict) or record.get("product") not in {"P", "Y", "OI"}:
+            continue
+        if record.get("contract_rank") != 1 or not concrete_contract(record.get("contract")):
+            continue
+        product = str(record["product"])
+        if product in frozen:
+            raise RuntimeError(f"冻结预测存在重复 rank=1 合约：{product}")
+        frozen[product] = str(record["contract"])
+    missing = sorted({"P", "Y", "OI"} - set(frozen))
+    if missing:
+        raise RuntimeError(f"冻结预测缺少 rank=1 合约：{', '.join(missing)}")
+
+    ak = load_akshare()
+    if ak is None:
+        raise RuntimeError("AkShare 不可用，无法生成收盘实际快照")
+    contracts: list[dict[str, Any]] = []
+    for product in ("P", "Y", "OI"):
+        spec = next(item for item in DOMESTIC if item["symbol"] == product)
+        contract = frozen[product]
+        realtime = ak_realtime_contract(ak, spec["ak_realtime"], contract)
+        daily = None
+        if realtime is None or str(realtime.get("tradedate") or "")[:10] != snapshot_date:
+            daily = ak_daily_contract(ak, contract, snapshot_date)
+        source = realtime if realtime and str(realtime.get("tradedate") or "")[:10] == snapshot_date else daily
+        if source is None or str(source.get("tradedate") or "")[:10] != snapshot_date:
+            raise RuntimeError(f"{contract} 缺少 {snapshot_date} 同日收盘行情")
+        contracts.append(
+            {
+                "symbol": contract,
+                "product": product,
+                "name": spec["name"],
+                "market": spec["market"],
+                "contract": contract,
+                "contract_rank": 1,
+                "contract_label": "主力",
+                "price": source.get("price"),
+                "change": source.get("change_pct"),
+                "open": source.get("open"),
+                "high": source.get("high"),
+                "low": source.get("low"),
+                "preclose": source.get("preclose"),
+                "settle": source.get("settle"),
+                "volume": source.get("volume"),
+                "open_interest": source.get("open_interest"),
+                "trade_date": snapshot_date,
+                "source": source.get("source") or "AkShare",
+            }
+        )
+    return {
+        "updated_at": datetime.now(SHANGHAI).isoformat(timespec="minutes"),
+        "source": "冻结预测同合约收盘快照；仅用于内部复盘，不参与晨报生成",
+        "contracts": contracts,
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Update static oil futures contract data.")
     parser.add_argument("--output", type=Path, default=OUTPUT)
@@ -897,6 +971,20 @@ def main() -> int:
             parser.error("actual-snapshot mode requires a non-official --output path")
     elif args.snapshot_date:
         parser.error("--snapshot-date is only valid with --mode actual-snapshot")
+
+    if args.mode == "actual-snapshot":
+        try:
+            payload = build_actual_snapshot_payload(str(args.snapshot_date))
+            write_actual_snapshot_atomically(payload, args.output, str(args.snapshot_date))
+        except RuntimeError as exc:
+            print(json.dumps({"status": "blocked", "stage": "actual_snapshot", "reason": str(exc)}, ensure_ascii=False, sort_keys=True), file=sys.stderr)
+            return 2
+        try:
+            display_path = args.output.relative_to(ROOT)
+        except ValueError:
+            display_path = args.output
+        print(json.dumps({"status": "ok", "output": str(display_path), "contract_count": 3}, ensure_ascii=False, sort_keys=True))
+        return 0
 
     freeze_forecast = args.mode == "publish" and any([args.report_date, args.generated_at, args.cutoff_at])
     metadata: dict[str, Any] | None = None
@@ -966,11 +1054,8 @@ def main() -> int:
         else:
             forecast_result = validate_freeze_and_publish(payload, args.output, metadata)
     else:
-        if args.mode == "actual-snapshot":
-            write_actual_snapshot_atomically(payload, args.output, str(args.snapshot_date))
-        else:
-            write_js(payload, args.output, publish=False)
-            run_data_quality_gate(args.output)
+        write_js(payload, args.output, publish=False)
+        run_data_quality_gate(args.output)
         try:
             display_path = args.output.relative_to(ROOT)
         except ValueError:

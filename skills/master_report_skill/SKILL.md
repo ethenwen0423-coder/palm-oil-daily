@@ -16,11 +16,12 @@ master_report_skill 是油脂晨报生成流程的总控调度 Skill。
 每次生成油脂晨报时，必须按以下顺序执行：
 1. market_data_skill
 2. data_quality_gate_skill
-3. oil_report_freshness
-4. report_writer_skill
-5. headline_skill
-6. report_quality_gate
-7. forecast_tracking_skill（仅发布前冻结审计）
+3. forecast_generation_feedback（只读取此前已评估结果）
+4. oil_report_freshness
+5. report_writer_skill
+6. headline_skill
+7. report_quality_gate
+8. forecast_tracking_skill（当日发布前冻结审计）
 如果当前项目中没有某个 Skill，先保留接口说明，不要伪造实现。
 ---
 ## 三、各 Skill 职责
@@ -96,12 +97,14 @@ master_report_skill 是油脂晨报生成流程的总控调度 Skill。
 ---
 ### 7. forecast_tracking_skill
 负责：
+- 将上一交易日及更早的滚动指标和每日复盘转成 `data/forecast/feedback/latest.json`，供下一次生成保守校准
+- generation feedback 只能限制置信度、降级低命中率主线或要求补充失效情景，不能替代当日数据或提高置信度
 - 在 data_quality_gate_skill 已通过且最终发布前，从通过质量门的临时结构化 oil_futures 数据冻结预测
 - 只记录 P、Y、OI 中 `contract_rank == 1` 的合约
 - 保存报告日期、可验证的数据截止时间、概率、区间、置信度和版本字段，供后续审计
 - 预测冻结失败时阻止日报正式发布
 不得负责：
-- 参与观点、标题、评分或报告正文决策
+- 自动提高观点置信度或永久修改评分权重、概率映射和策略参数
 - 从 Markdown 报告解析预测
 - 使用盘中未来数据、收盘数据或发布后数据回填晨报预测
 ---

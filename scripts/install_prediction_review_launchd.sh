@@ -38,12 +38,14 @@ DEPENDENCIES=(
   "scripts/review_prediction.py"
   "skills/forecast_tracking_skill/scripts/evaluate_forecast.py"
   "skills/forecast_tracking_skill/scripts/build_metrics.py"
+  "skills/forecast_tracking_skill/scripts/build_generation_feedback.py"
   "skills/forecast_tracking_skill/scripts/validate_forecast.py"
   "skills/forecast_tracking_skill/scripts/prune_forecast_artifacts.py"
   "scripts/publish_prediction_review.sh"
   "data/forecast/daily"
   "data/forecast/evaluated"
   "data/forecast/metrics"
+  "data/forecast/feedback"
   "data/review/daily"
 )
 PERSISTENT_OUTPUTS=(
@@ -51,6 +53,7 @@ PERSISTENT_OUTPUTS=(
   "data/forecast/metrics/latest.json"
   "data/forecast/metrics/20d.json"
   "data/forecast/metrics/60d.json"
+  "data/forecast/feedback/latest.json"
   "data/review/daily/YYYY-MM-DD.json"
   "data/review/latest_review.json"
 )
@@ -186,16 +189,18 @@ cd "$ROOT"
 if [[ "$RUN_SLOT" == "15:40" ]]; then
   EVALUATED="data/forecast/evaluated/$REPORT_DATE.json"
   LATEST="data/forecast/metrics/latest.json"
-  if [[ -s "$EVALUATED" && -s "$LATEST" ]] \
+  FEEDBACK="data/forecast/feedback/latest.json"
+  if [[ -s "$EVALUATED" && -s "$LATEST" && -s "$FEEDBACK" ]] \
     && python3 skills/forecast_tracking_skill/scripts/validate_forecast.py --forecast "$EVALUATED" >/dev/null 2>&1 \
-    && python3 - "$EVALUATED" "$LATEST" "$REPORT_DATE" <<'PY'
+    && python3 - "$EVALUATED" "$LATEST" "$FEEDBACK" "$REPORT_DATE" <<'PY'
 import json
 import sys
 from pathlib import Path
 
 evaluated = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
 latest = json.loads(Path(sys.argv[2]).read_text(encoding="utf-8"))
-report_date = sys.argv[3]
+feedback = json.loads(Path(sys.argv[3]).read_text(encoding="utf-8"))
+report_date = sys.argv[4]
 records = evaluated.get("records")
 valid = (
     evaluated.get("report_date") == report_date
@@ -205,6 +210,9 @@ valid = (
     and latest.get("schema_version") == "forecast-metrics-v1"
     and latest.get("as_of") == report_date
     and isinstance(latest.get("versions"), dict)
+    and feedback.get("schema_version") == "forecast-generation-feedback-v1"
+    and feedback.get("as_of") == report_date
+    and isinstance(feedback.get("required_report_disclosures"), list)
 )
 raise SystemExit(0 if valid else 1)
 PY
