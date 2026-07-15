@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>油脂主力 | Palm Oil Intelligence</title>
+    <meta name="description" content="棕榈油、豆油、菜油与外盘油脂主力合约研究跟踪。" />
+    <meta name="theme-color" content="#071712" />
+    <link rel="icon" href="data:," />
+    <script>
+      window.PALM_OIL_CACHE_BUST = Date.now();
+      document.write('<link rel="stylesheet" href="assets/styles.css?v=' + window.PALM_OIL_CACHE_BUST + '" />');
+    </script>
+  </head>
+  <body class="section-page oil-futures-page">
+    <header class="section-page-header">
+      <div class="shell">
+        <nav class="section-page-nav" aria-label="页面导航">
+          <a class="section-page-brand" href="index.html">
+            <span>Vinson Research</span>
+            <strong>Palm Oil Intelligence</strong>
+          </a>
+          <div>
+            <a href="reports.html">历史报告</a>
+            <a class="active" href="oil-futures.html">油脂主力</a>
+            <a href="futures.html">全品种分析</a>
+          </div>
+        </nav>
+        <div class="section-page-intro">
+          <p>Oils Futures Desk</p>
+          <h1>油脂主力</h1>
+          <span>主力合约、外盘参照与可选合约集中展示，首页不再承载行情明细。</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="shell section-page-main">
+      <section class="newspaper-section futures-section" aria-labelledby="oil-futures-title">
+        <header class="section-heading futures-heading">
+          <div>
+            <h2 id="oil-futures-title">油脂期货主力合约</h2>
+            <span id="oil-futures-updated">等待行情数据</span>
+          </div>
+        </header>
+        <div id="oil-futures-list" class="futures-grid"></div>
+        <div class="futures-footnote">
+          <span id="oil-futures-source">数据源等待加载</span>
+          <span>仅作研究跟踪，不构成投资建议。</span>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer section-page-footer">
+      <div class="shell footer-inner">
+        <div><strong>Vinson Research</strong><span>Palm Oil Intelligence</span></div>
+        <p>仅作研究和信息整理，不构成投资建议。</p>
+      </div>
+    </footer>
+
+    <script>
+      document.write('<script src="data/oil_futures.js?v=' + window.PALM_OIL_CACHE_BUST + '"><\/script>');
+    </script>
+    <script>
+      document.write('<script src="assets/app.js?v=' + window.PALM_OIL_CACHE_BUST + '"><\/script>');
+    </script>
+  </body>
+</html>

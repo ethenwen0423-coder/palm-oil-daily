@@ -26,7 +26,6 @@
     <header class="hero">
       <div class="shell hero-shell">
         <div class="hero-brand" aria-label="Vinson Research Palm Oil Intelligence">
-          <span class="brand-signal" aria-hidden="true"><i></i><i></i><i></i></span>
           <div>
             <p>Vinson Research</p>
             <h1>Palm Oil Intelligence</h1>
@@ -55,9 +54,9 @@
           </div>
 
           <div class="hero-actions" aria-label="报告入口">
-            <a id="daily-report-link" class="hero-button hero-button-primary" href="#recent-title">阅读今日晨报 <span aria-hidden="true">↗</span></a>
-            <a id="weekly-report-link" class="hero-button hero-button-secondary" href="#weekly-title">查看本周周报 <span aria-hidden="true">→</span></a>
-            <a class="hero-button hero-button-secondary" href="#oil-futures-panel" data-tab-target="oil-futures-panel">查看油脂主力 <span aria-hidden="true">→</span></a>
+            <a id="daily-report-link" class="hero-button hero-button-primary" href="reports.html">阅读今日晨报 <span aria-hidden="true">↗</span></a>
+            <a id="weekly-report-link" class="hero-button hero-button-secondary" href="reports.html">查看本周周报 <span aria-hidden="true">→</span></a>
+            <a class="hero-button hero-button-secondary" href="oil-futures.html">查看油脂主力 <span aria-hidden="true">→</span></a>
             <a class="hero-button hero-button-secondary" href="futures.html">全品种主力分析 <span aria-hidden="true">→</span></a>
           </div>
         </aside>
@@ -75,8 +74,8 @@
         <strong><span aria-hidden="true"></span> Market Intelligence</strong>
         <div>
           <a href="#overview">今日概览</a>
-          <a href="#reports-panel" data-tab-target="reports-panel">报告归档</a>
-          <a href="#oil-futures-panel" data-tab-target="oil-futures-panel">油脂主力</a>
+          <a href="reports.html">报告归档</a>
+          <a href="oil-futures.html">油脂主力</a>
           <a href="futures.html">全品种分析</a>
           <a href="#sources">数据来源</a>
         </div>
@@ -94,81 +93,45 @@
           <article class="brief-report-item">
             <span>最新晨报</span>
             <strong id="overview-daily-title">等待生成</strong>
-            <a id="overview-daily-link" href="#recent-title">阅读全文 →</a>
+            <a id="overview-daily-link" href="reports.html">阅读全文 →</a>
           </article>
           <article class="brief-report-item">
             <span>本周周报</span>
             <strong id="overview-weekly-title">等待生成</strong>
-            <a id="overview-weekly-link" href="#weekly-title">查看周报 →</a>
+            <a id="overview-weekly-link" href="reports.html">查看周报 →</a>
           </article>
         </div>
 
-        <div class="market-strip-heading">
-          <strong>油脂主力合约表现</strong>
-          <span id="overview-futures-title">等待行情数据</span>
-        </div>
-        <div id="overview-futures-strip" class="market-strip" aria-label="油脂主力合约整体行情"></div>
-
-        <div class="market-reference-heading">
-          <strong>海外价格参照</strong>
-          <span>产地与进口端</span>
-        </div>
-        <div id="overview-market-references" class="market-reference-grid" aria-label="马来与印度棕榈油价格"></div>
       </section>
 
-      <nav class="home-tabs" aria-label="首页内容切换" role="tablist">
-        <button class="home-tab active" type="button" data-tab-target="reports-panel">报告归档</button>
-        <button class="home-tab" type="button" data-tab-target="oil-futures-panel">油脂主力合约</button>
-      </nav>
-
-      <section id="reports-panel" class="tab-panel active" aria-label="报告归档">
-        <section class="newspaper-section recent-section" aria-labelledby="recent-title">
-          <header class="section-heading">
-            <h2 id="recent-title">最近一周报告</h2>
-            <span>按时间排序</span>
-          </header>
-          <div id="recent-list" class="report-link-list recent-list"></div>
-        </section>
-
-        <section class="archive-area" aria-label="过往报告归档">
-          <div class="archive-divider">
-            <span>过往报告归档</span>
+      <section class="research-entries" aria-labelledby="research-entries-title">
+        <header class="research-entries-heading">
+          <div>
+            <p>Research Modules</p>
+            <h2 id="research-entries-title">进入独立研究页面</h2>
           </div>
-
-          <div class="archive-grid">
-            <section class="newspaper-section archive-section" aria-labelledby="daily-title">
-              <header class="section-heading">
-                <h2 id="daily-title">日报</h2>
-                <span>每日晨报</span>
-              </header>
-              <div id="daily-list" class="report-link-list"></div>
-            </section>
-
-            <section class="newspaper-section archive-section" aria-labelledby="weekly-title">
-              <header class="section-heading">
-                <h2 id="weekly-title">周报</h2>
-                <span>周度研判</span>
-              </header>
-              <div id="weekly-list" class="report-link-list compact"></div>
-            </section>
-          </div>
-        </section>
-      </section>
-
-      <section id="oil-futures-panel" class="tab-panel" aria-labelledby="oil-futures-title">
-        <section class="newspaper-section futures-section">
-          <header class="section-heading futures-heading">
-            <div>
-              <h2 id="oil-futures-title">油脂期货主力合约</h2>
-              <span id="oil-futures-updated">等待行情数据</span>
-            </div>
-          </header>
-          <div id="oil-futures-list" class="futures-grid"></div>
-          <div class="futures-footnote">
-            <span id="oil-futures-source">数据源等待加载</span>
-            <span>仅作研究跟踪，不构成投资建议。</span>
-          </div>
-        </section>
+          <span>首页只保留最新观点与快捷入口</span>
+        </header>
+        <div class="research-entry-grid">
+          <a class="research-entry-card" href="reports.html">
+            <span>01 / Reports</span>
+            <strong>历史报告</strong>
+            <p>按时间查看每日晨报、周报与最近一周研究。</p>
+            <b>打开报告归档 →</b>
+          </a>
+          <a class="research-entry-card" href="oil-futures.html">
+            <span>02 / Oils</span>
+            <strong>油脂主力</strong>
+            <p>集中查看棕榈油、豆油、菜油及外盘主力数据。</p>
+            <b>打开油脂主力 →</b>
+          </a>
+          <a class="research-entry-card" href="futures.html">
+            <span>03 / Futures</span>
+            <strong>全品种分析</strong>
+            <p>进入更完整的期货主力合约与技术分析页面。</p>
+            <b>打开全品种分析 →</b>
+          </a>
+        </div>
       </section>
 
       <section id="sources" class="sources-section" aria-labelledby="sources-title">
@@ -183,7 +146,7 @@
           </article>
           <article class="source-card">
             <span>行情数据</span>
-            <p id="sources-futures">油脂主力合约行情等待加载。</p>
+            <p id="sources-futures">油脂主力合约在独立页面同步展示交易所与外盘数据。</p>
           </article>
           <article class="source-card">
             <span>使用边界</span>
@@ -202,9 +165,6 @@
 
     <script>
       document.write('<script src="data/reports.js?v=' + window.PALM_OIL_CACHE_BUST + '"><\/script>');
-    </script>
-    <script>
-      document.write('<script src="data/oil_futures.js?v=' + window.PALM_OIL_CACHE_BUST + '"><\/script>');
     </script>
     <script>
       document.write('<script src="assets/app.js?v=' + window.PALM_OIL_CACHE_BUST + '"><\/script>');

@@ -360,11 +360,16 @@
       .split(/[；;。]/)
       .map((part) => part.trim())
       .filter(Boolean);
-    const main = (parts[0] || headline)
+    let main = (parts[0] || headline)
       .replace(/\s+/g, " ")
       .replace(/^P\s*主力/, "P主力")
       .trim();
-    const secondary = parts.slice(1);
+    let secondary = parts.slice(1).filter((part) => !/^(置信度|评级)/.test(part));
+    if (main.length > 18 && /，/.test(main)) {
+      const commaParts = main.split(/，/).map((part) => part.trim()).filter(Boolean);
+      main = commaParts.shift() || main;
+      secondary = [...commaParts, ...secondary];
+    }
     if (!secondary.length && /，/.test(main)) {
       const commaParts = main.split(/，/).map((part) => part.trim()).filter(Boolean);
       return {
@@ -707,7 +712,6 @@
   }
 
   function renderIndex() {
-    if (!dailyList || !weeklyList) return;
     const latest = reports[0];
     const groups = {
       daily: reports.filter((report) => getKind(report) === "daily").sort((left, right) => reportTime(right) - reportTime(left)),
@@ -748,6 +752,7 @@
     if (weeklyReportLink && latestWeekly) weeklyReportLink.href = reportHref(latestWeekly);
 
     function renderGroup(target, items, emptyText, className = "report-link") {
+      if (!target) return;
       if (!items.length) {
         target.innerHTML = `<p class="empty">${escapeHtml(emptyText)}</p>`;
         return;
