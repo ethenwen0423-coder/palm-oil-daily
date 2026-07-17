@@ -13,49 +13,49 @@
     "sample_count": 0
   },
   "human_approval_required": false,
-  "metrics_as_of": "2026-07-16",
+  "metrics_as_of": "2026-07-17",
   "minimum_active_trade_days": 5,
   "products": {
     "OI": {
       "action": "observe_only",
       "close_range_coverage": 1.0,
-      "directional_accuracy": 0.333333,
+      "directional_accuracy": 0.25,
       "max_confidence": "uncapped",
       "max_confidence_stars": 5,
       "miss_rate": 0.0,
       "product": "OI",
       "reasons": [],
-      "sample_count": 3
+      "sample_count": 4
     },
     "P": {
       "action": "observe_only",
       "close_range_coverage": 1.0,
-      "directional_accuracy": 0.0,
+      "directional_accuracy": 0.25,
       "max_confidence": "uncapped",
       "max_confidence_stars": 5,
       "miss_rate": 0.0,
       "product": "P",
       "reasons": [],
-      "sample_count": 3
+      "sample_count": 4
     },
     "Y": {
       "action": "observe_only",
       "close_range_coverage": 1.0,
-      "directional_accuracy": 0.333333,
+      "directional_accuracy": 0.25,
       "max_confidence": "uncapped",
       "max_confidence_stars": 5,
       "miss_rate": 0.0,
       "product": "Y",
       "reasons": [],
-      "sample_count": 3
+      "sample_count": 4
     }
   },
   "required_report_disclosures": [
-    "预测校准：当前仅有3个有效交易日样本，样本不足，仅作观察，不据此调整今日方向。"
+    "预测校准：当前仅有4个有效交易日样本，样本不足，仅作观察，不据此调整今日方向。"
   ],
   "schema_version": "forecast-generation-feedback-v1",
   "source_metrics": "data/forecast/metrics/latest.json",
   "status": "observe_only",
-  "valid_trade_day_count": 3,
+  "valid_trade_day_count": 4,
   "version_key": "score-map-v1|outcome-v1-fixed-0.30pct"
 }
