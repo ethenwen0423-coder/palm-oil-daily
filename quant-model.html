@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>量化模型建议 | Vinson Research</title>
+    <meta name="description" content="选择油脂油料合约和持仓状态，获取布林带与 RSI 量化模型建议。" />
+    <link rel="icon" href="data:," />
+    <script>
+      window.QUANT_MODEL_CACHE_BUST = Date.now();
+      document.write('<link rel="stylesheet" href="assets/styles.css?v=' + window.QUANT_MODEL_CACHE_BUST + '" />');
+    </script>
+  </head>
+  <body class="quant-page">
+    <header class="quant-header">
+      <div class="shell quant-header-inner">
+        <a class="quant-back" href="index.html">← 返回研究首页</a>
+        <div class="quant-brand">Vinson Research <span>Quant Lab</span></div>
+      </div>
+    </header>
+
+    <main>
+      <section class="quant-hero">
+        <div class="shell quant-hero-grid">
+          <div class="quant-intro">
+            <p class="quant-eyebrow">成熟策略·按规则执行</p>
+            <h1>量化模型建议</h1>
+            <p>选择合约与当前持仓，模型将根据最新完整日线输出观望、开仓、持有或离场建议。</p>
+            <div class="quant-model-badge">
+              <span>当前模型</span>
+              <strong>布林中轨 + RSI 背离</strong>
+              <small>MA20 进场 · RSI 止盈 · MA6 止损</small>
+            </div>
+          </div>
+
+          <form id="quant-form" class="quant-form" novalidate>
+            <div class="quant-form-heading">
+              <span>01</span>
+              <div>
+                <strong>输入当前状态</strong>
+                <small>三步即可生成建议</small>
+              </div>
+            </div>
+
+            <label class="quant-field">
+              <span>选择合约</span>
+              <select id="contract-select" name="contract" required>
+                <option value="">读取合约列表…</option>
+              </select>
+              <small id="contract-scope">主力与次主力合约</small>
+            </label>
+
+            <fieldset class="quant-field quant-position-field">
+              <legend>持仓方向</legend>
+              <div class="quant-segmented">
+                <label><input type="radio" name="position" value="flat" checked /><span>未开仓</span></label>
+                <label><input type="radio" name="position" value="long" /><span>持有多单</span></label>
+                <label><input type="radio" name="position" value="short" /><span>持有空单</span></label>
+              </div>
+            </fieldset>
+
+            <label class="quant-field">
+              <span>入场点位 <em id="entry-required">未开仓时无需填写</em></span>
+              <input id="entry-price" name="entryPrice" type="number" min="0" step="1" inputmode="decimal" placeholder="例如：9200" disabled />
+            </label>
+
+            <p id="form-error" class="quant-form-error" role="alert"></p>
+            <button class="quant-submit" type="submit">确认并生成建议 <span>→</span></button>
+          </form>
+        </div>
+      </section>
+
+      <section id="quant-result-section" class="shell quant-result-section" aria-live="polite">
+        <div class="quant-result-empty">
+          <span>02</span>
+          <strong>等待生成量化建议</strong>
+          <p>完成上方输入后，这里将展示当前指令、执行时间、止盈止损与模型依据。</p>
+        </div>
+      </section>
+
+      <section class="shell quant-method">
+        <div>
+          <p class="quant-eyebrow">模型说明</p>
+          <h2>策略如何做出决策</h2>
+        </div>
+        <ol>
+          <li><span>01</span><strong>趋势确认</strong><p>收盘穿越 MA20 后，于次交易日开盘执行方向信号。</p></li>
+          <li><span>02</span><strong>背离止盈</strong><p>价格创 20 日新高/新低，RSI 未同步确认时全部止盈。</p></li>
+          <li><span>03</span><strong>非对称风控</strong><p>多单采用 0.75 ATR 激活后的两日 MA6 止损，空单采用一日 MA6 止损。</p></li>
+        </ol>
+      </section>
+    </main>
+
+    <footer class="quant-footer">
+      <div class="shell">
+        <p>信号仅作量化研究跟踪，不保证未来表现，不构成个人化投资建议。</p>
+        <a href="index.html">查看市场研究 →</a>
+      </div>
+    </footer>
+
+    <script>
+      document.write('<script src="data/quant_model_signals.js?v=' + window.QUANT_MODEL_CACHE_BUST + '"><\/script>');
+      document.write('<script src="assets/quant-model.js?v=' + window.QUANT_MODEL_CACHE_BUST + '"><\/script>');
+    </script>
+  </body>
+</html>
