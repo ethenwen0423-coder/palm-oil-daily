@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>场外结构建议 | Vinson Research</title>
+    <meta name="description" content="结合最新期货行情、技术位、保值目标与成本偏好，生成场外期权结构及询价参考点位。" />
+    <link rel="icon" href="data:," />
+    <script>
+      window.OTC_CACHE_BUST = Date.now();
+      document.write('<link rel="stylesheet" href="assets/styles.css?v=' + window.OTC_CACHE_BUST + '" />');
+    </script>
+  </head>
+  <body class="otc-page">
+    <header class="quant-header">
+      <div class="shell quant-header-inner">
+        <a class="quant-back" href="index.html">← 返回研究首页</a>
+        <div class="quant-brand">Vinson Research <span>OTC Structuring</span></div>
+      </div>
+    </header>
+
+    <main>
+      <section class="otc-hero">
+        <div class="shell otc-hero-grid">
+          <div class="otc-intro">
+            <p class="otc-eyebrow">行情驱动 · 风险目标优先</p>
+            <h1>场外结构<br />如何选择</h1>
+            <p>先明确采购、库存或双边波动风险，再用最新完整行情的趋势、置信度、支撑压力与波动幅度匹配结构和询价点位。</p>
+            <div class="otc-data-status">
+              <span>当前行情</span>
+              <strong id="otc-data-date">读取中…</strong>
+              <small id="otc-data-source">等待行情数据</small>
+            </div>
+          </div>
+
+          <form id="otc-form" class="otc-form" novalidate>
+            <div class="otc-form-heading">
+              <span>01</span>
+              <div>
+                <strong>定义风险目标</strong>
+                <small>三项输入生成结构建议</small>
+              </div>
+            </div>
+
+            <label class="otc-field">
+              <span>选择标的合约</span>
+              <select id="otc-contract" name="contract" required>
+                <option value="">读取合约列表…</option>
+              </select>
+              <small id="otc-contract-note">主力与次主力合约</small>
+            </label>
+
+            <fieldset class="otc-field">
+              <legend>你的核心目标</legend>
+              <div class="otc-choice-grid objective-grid">
+                <label><input type="radio" name="objective" value="procurement" checked /><span><strong>采购防涨</strong><small>控制未来采购成本上行</small></span></label>
+                <label><input type="radio" name="objective" value="inventory" /><span><strong>库存防跌</strong><small>保护库存或销售利润</small></span></label>
+                <label><input type="radio" name="objective" value="two_sided" /><span><strong>双边波动</strong><small>重大事件前控制两端风险</small></span></label>
+              </div>
+            </fieldset>
+
+            <fieldset class="otc-field">
+              <legend>成本与保护偏好</legend>
+              <div class="otc-choice-grid cost-grid">
+                <label><input type="radio" name="cost" value="protection" /><span><strong>保护优先</strong><small>接受明确权利金</small></span></label>
+                <label><input type="radio" name="cost" value="balanced" checked /><span><strong>成本平衡</strong><small>用价差降低权利金</small></span></label>
+                <label><input type="radio" name="cost" value="low_cost" /><span><strong>低成本</strong><small>接受额外履约约束</small></span></label>
+              </div>
+            </fieldset>
+
+            <p id="otc-form-error" class="otc-form-error" role="alert"></p>
+            <button class="otc-submit" type="submit">生成结构与点位 <span>→</span></button>
+          </form>
+        </div>
+      </section>
+
+      <section id="otc-result" class="shell otc-result" aria-live="polite">
+        <div class="otc-result-empty">
+          <span>02</span>
+          <strong>等待生成结构建议</strong>
+          <p>完成上方选择后，这里将展示行情判断、推荐结构、各腿询价参考点位与结构风险。</p>
+        </div>
+      </section>
+
+      <section class="shell otc-guide" aria-labelledby="otc-guide-title">
+        <header>
+          <p class="otc-eyebrow">Selection Framework</p>
+          <h2 id="otc-guide-title">先匹配风险，再讨论收益</h2>
+          <p>同一个行情判断，对采购企业和库存持有者的正确结构可能完全相反。</p>
+        </header>
+        <div class="otc-guide-grid">
+          <article><span>01 / Procurement</span><h3>采购成本怕上涨</h3><p>优先看涨期权或看涨价差。价差可降低权利金，但高执行价以上的保护会封顶。</p></article>
+          <article><span>02 / Inventory</span><h3>库存价值怕下跌</h3><p>优先看跌期权或看跌价差。领口可用卖出看涨的权利金补贴保护成本，但会限制上涨收益。</p></article>
+          <article><span>03 / Two-sided</span><h3>事件前怕大幅波动</h3><p>优先纯买方的跨式/宽跨式或双向价差。缺少隐含波动率和正式报价时，不自动推荐裸卖波动。</p></article>
+        </div>
+      </section>
+
+      <section class="shell otc-boundary">
+        <div>
+          <span>使用边界</span>
+          <p>页面点位来自期货行情与技术分析，不含场外报价中的隐含波动率、权利金、期限、名义本金、敲入敲出方式及信用条款。正式成交前必须向合格交易对手询价并核对最大损失。</p>
+        </div>
+        <div>
+          <span>默认禁区</span>
+          <p>低置信、行情过期或未完成交叉核验时，不把雪球、累计、敲入放大、裸卖期权等路径依赖或潜在杠杆结构作为默认建议。</p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="quant-footer">
+      <div class="shell">
+        <p>仅作企业风险管理与结构研究参考，不构成投资建议、报价或交易要约。</p>
+        <a href="oil-futures.html">查看行情依据 →</a>
+      </div>
+    </footer>
+
+    <script>document.write('<script src="data/oil_futures.js?v=' + window.OTC_CACHE_BUST + '"><\/script>');</script>
+    <script>document.write('<script src="assets/otc-structure.js?v=' + window.OTC_CACHE_BUST + '"><\/script>');</script>
+  </body>
+</html>
