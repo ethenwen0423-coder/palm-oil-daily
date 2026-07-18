@@ -1,7 +1,18 @@
 (function () {
   const dataset = window.QUANT_MODEL_SIGNALS || {};
-  const contracts = Array.isArray(dataset.contracts) ? dataset.contracts : [];
+  const models = Array.isArray(dataset.models) && dataset.models.length
+    ? dataset.models.filter((item) => item.status === "active")
+    : dataset.model ? [dataset.model] : [];
+  const requestedModelId = new URLSearchParams(window.location.search).get("model");
+  let activeModelId = requestedModelId || dataset.default_model_id || models[0]?.id || "";
+  let contracts = [];
   const form = document.querySelector("#quant-form");
+  const modelSelect = document.querySelector("#model-select");
+  const modelStatus = document.querySelector("#model-status");
+  const modelDetailLink = document.querySelector("#model-detail-link");
+  const activeModelName = document.querySelector("#active-model-name");
+  const activeModelSummary = document.querySelector("#active-model-summary");
+  const activeModelDetailLink = document.querySelector("#active-model-detail-link");
   const contractSelect = document.querySelector("#contract-select");
   const contractScope = document.querySelector("#contract-scope");
   const entryPrice = document.querySelector("#entry-price");
@@ -26,6 +37,20 @@
 
   function selectedPosition() {
     return form.querySelector('input[name="position"]:checked')?.value || "flat";
+  }
+
+  function currentModel() {
+    return models.find((item) => item.id === activeModelId) || models[0] || dataset.model || {};
+  }
+
+  function contractsForModel(modelId) {
+    const grouped = dataset.model_contracts || {};
+    const selected = grouped[modelId];
+    return Array.isArray(selected)
+      ? selected
+      : modelId === (dataset.model?.id || activeModelId) && Array.isArray(dataset.contracts)
+        ? dataset.contracts
+        : [];
   }
 
   function actionText(action) {
@@ -121,6 +146,7 @@
     const performance = positionPerformance(Number(market.close), price, position);
     const generated = dataset.generated_at ? new Date(dataset.generated_at).toLocaleString("zh-CN", { hour12: false }) : "待更新";
     const overdue = signal.execution_window === "missed";
+    const model = currentModel();
     resultSection.innerHTML = `
       <article class="quant-result-card ${actionTone(signal.action)}">
         <header class="quant-result-header">
@@ -156,7 +182,8 @@
         </div>
 
         <footer class="quant-result-footer">
-          <p><strong>数据来源</strong> ${escapeHtml(contract.data_source || signal.data_source || "AkShare 国内期货日线")} · 标的：${escapeHtml(contract.symbol)} · 模型 skill：${escapeHtml(dataset.model?.skill || "generate-oilseed-trade-signal")}</p>
+          <p><strong>模型</strong> ${escapeHtml(model.name || "待核验")} · <a href="quant-model-detail.html?model=${encodeURIComponent(model.id || "")}">查看策略详情</a></p>
+          <p><strong>数据来源</strong> ${escapeHtml(contract.data_source || signal.data_source || "AkShare 国内期货日线")} · 标的：${escapeHtml(contract.symbol)} · 模型 skill：${escapeHtml(model.skill || "generate-oilseed-trade-signal")}</p>
           <p><strong>更新时间</strong> ${escapeHtml(generated)} · 回测单边成本假设 0.04%</p>
           <p>本结果为策略信号，不保证未来表现，不构成个人化投资建议。</p>
         </footer>
@@ -176,6 +203,46 @@
       .join("");
   }
 
+  function emptyResult() {
+    resultSection.innerHTML = `
+      <div class="quant-result-empty">
+        <span>02</span>
+        <strong>等待生成量化建议</strong>
+        <p>完成上方输入后，这里将展示所选模型的当前指令、执行时间、止盈止损与模型依据。</p>
+      </div>`;
+  }
+
+  function activateModel(modelId, resetResult = true) {
+    const model = models.find((item) => item.id === modelId) || models[0];
+    if (!model) return;
+    activeModelId = model.id;
+    contracts = contractsForModel(activeModelId);
+    modelSelect.value = activeModelId;
+    activeModelName.textContent = model.short_name || model.name || "未命名模型";
+    activeModelSummary.textContent = model.summary || "策略说明待补充";
+    modelStatus.textContent = `${model.status_label || "已启用"} · ${model.timeframe || "周期待核验"} · v${model.version || "1.0"}`;
+    const detailHref = `quant-model-detail.html?model=${encodeURIComponent(activeModelId)}`;
+    modelDetailLink.href = detailHref;
+    activeModelDetailLink.href = detailHref;
+    populateContracts();
+    contractScope.textContent = "主力与次主力合约";
+    if (resetResult) emptyResult();
+  }
+
+  function populateModels() {
+    if (!models.length) {
+      modelSelect.innerHTML = '<option value="">暂无已启用模型</option>';
+      modelSelect.disabled = true;
+      contractSelect.disabled = true;
+      formError.textContent = "量化模型数据不足。";
+      return;
+    }
+    modelSelect.innerHTML = models
+      .map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.name || item.id)}</option>`)
+      .join("");
+    activateModel(activeModelId, false);
+  }
+
   function updatePositionInput() {
     const position = selectedPosition();
     const needsEntry = position !== "flat";
@@ -186,6 +253,7 @@
   }
 
   form.addEventListener("change", (event) => {
+    if (event.target === modelSelect) activateModel(modelSelect.value);
     if (event.target.name === "position") updatePositionInput();
     if (event.target === contractSelect) {
       const contract = contracts.find((item) => item.symbol === contractSelect.value);
@@ -214,6 +282,6 @@
     renderResult(contract, position, price);
   });
 
-  populateContracts();
+  populateModels();
   updatePositionInput();
 })();

@@ -28,8 +28,9 @@
             <p>选择合约与当前持仓，模型将根据最新完整日线输出观望、开仓、持有或离场建议。</p>
             <div class="quant-model-badge">
               <span>当前模型</span>
-              <strong>布林中轨 + RSI 背离</strong>
-              <small>MA20 进场 · RSI 止盈 · MA6 止损</small>
+              <strong id="active-model-name">读取模型…</strong>
+              <small id="active-model-summary">正在加载策略规则</small>
+              <a id="active-model-detail-link" href="quant-model-detail.html">查看完整策略 →</a>
             </div>
           </div>
 
@@ -38,9 +39,17 @@
               <span>01</span>
               <div>
                 <strong>输入当前状态</strong>
-                <small>三步即可生成建议</small>
+                <small>选择模型与当前持仓后生成建议</small>
               </div>
             </div>
+
+            <label class="quant-field">
+              <span>选择模型</span>
+              <select id="model-select" name="model" required>
+                <option value="">读取模型列表…</option>
+              </select>
+              <small class="quant-model-field-note"><span id="model-status">只展示已启用模型</span><a id="model-detail-link" href="quant-model-detail.html">策略详情 →</a></small>
+            </label>
 
             <label class="quant-field">
               <span>选择合约</span>
@@ -74,7 +83,7 @@
         <div class="quant-result-empty">
           <span>02</span>
           <strong>等待生成量化建议</strong>
-          <p>完成上方输入后，这里将展示当前指令、执行时间、止盈止损与模型依据。</p>
+          <p>完成上方输入后，这里将展示所选模型的当前指令、执行时间、止盈止损与模型依据。</p>
         </div>
       </section>
 

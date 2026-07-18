@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>模型策略详情 | Vinson Research</title>
+    <meta name="description" content="查看量化模型的适用范围、入场、止盈、止损与执行规则。" />
+    <link rel="icon" href="data:," />
+    <script>
+      window.QUANT_DETAIL_CACHE_BUST = Date.now();
+      document.write('<link rel="stylesheet" href="assets/styles.css?v=' + window.QUANT_DETAIL_CACHE_BUST + '" />');
+    </script>
+  </head>
+  <body class="quant-page quant-detail-page">
+    <header class="quant-header">
+      <div class="shell quant-header-inner">
+        <a class="quant-back" href="quant-model.html">← 返回模型建议</a>
+        <div class="quant-brand">Vinson Research <span>Model Library</span></div>
+      </div>
+    </header>
+
+    <main>
+      <section class="quant-detail-hero">
+        <div class="shell quant-detail-hero-grid">
+          <div>
+            <p class="quant-eyebrow">量化模型库·可追溯规则</p>
+            <span id="detail-model-status" class="quant-detail-status">读取模型…</span>
+            <h1 id="detail-model-name">模型策略详情</h1>
+            <p id="detail-model-summary">正在加载策略逻辑。</p>
+          </div>
+          <label class="quant-detail-model-picker">
+            <span>切换模型</span>
+            <select id="detail-model-select">
+              <option value="">读取模型列表…</option>
+            </select>
+          </label>
+        </div>
+      </section>
+
+      <section class="shell quant-detail-facts" aria-label="模型基本信息">
+        <div><span>时间周期</span><strong id="detail-timeframe">--</strong></div>
+        <div><span>成熟验证标的</span><strong id="detail-validated-instrument">--</strong></div>
+        <div><span>执行成本假设</span><strong id="detail-cost">--</strong></div>
+        <div><span>计算 Skill</span><strong id="detail-skill">--</strong></div>
+      </section>
+
+      <section class="shell quant-detail-body">
+        <aside class="quant-detail-aside">
+          <p class="quant-eyebrow">适用范围</p>
+          <div id="detail-universe" class="quant-detail-tags"></div>
+          <p id="detail-validation-note" class="quant-detail-note"></p>
+          <a id="detail-use-link" class="quant-detail-use" href="quant-model.html">使用该模型生成建议 →</a>
+        </aside>
+
+        <div>
+          <header class="quant-detail-section-heading">
+            <p class="quant-eyebrow">策略流程</p>
+            <h2>模型如何从行情得出指令</h2>
+          </header>
+          <div id="detail-rules" class="quant-rule-grid"></div>
+        </div>
+      </section>
+
+      <section class="shell quant-detail-risk">
+        <span>风险与边界</span>
+        <p id="detail-risk-notice">模型风险说明待加载。</p>
+      </section>
+    </main>
+
+    <footer class="quant-footer">
+      <div class="shell">
+        <p>策略说明与实际信号共用同一模型注册数据。</p>
+        <a href="quant-model.html">返回量化建议 →</a>
+      </div>
+    </footer>
+
+    <script>
+      document.write('<script src="data/quant_model_signals.js?v=' + window.QUANT_DETAIL_CACHE_BUST + '"><\/script>');
+      document.write('<script src="assets/quant-model-detail.js?v=' + window.QUANT_DETAIL_CACHE_BUST + '"><\/script>');
+    </script>
+  </body>
+</html>
