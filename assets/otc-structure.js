@@ -3,6 +3,7 @@
   const contracts = Array.isArray(dataset.contracts) ? dataset.contracts : [];
   const form = document.querySelector("#otc-form");
   const contractSelect = document.querySelector("#otc-contract");
+  const cadenceSelect = document.querySelector("#otc-cadence");
   const contractNote = document.querySelector("#otc-contract-note");
   const dataDate = document.querySelector("#otc-data-date");
   const dataSource = document.querySelector("#otc-data-source");
@@ -100,132 +101,234 @@
     return form.querySelector(`input[name="${name}"]:checked`)?.value || "";
   }
 
-  function leg(action, option, strike, note) {
-    return { action, option, strike, note };
+  function parameter(label, name, value, note) {
+    return { label, name, value, note };
   }
 
-  function recommendation(contract, objective, cost, technical) {
+  function recommendation(contract, objective, cost, cadence, technical) {
     const direction = directionOf(contract);
     const stance = contract.score?.stance || "需进一步核验";
     const confidence = contract.score?.view_confidence || "需进一步核验";
     const lowConfidence = confidence === "低" || /分歧/.test(stance);
+    const downgraded = lowConfidence && cost === "leveraged";
+    const appliedCost = downgraded ? "one_x" : cost;
+    const catalogueAdjusted = objective === "inventory" && cadence === "daily" && appliedCost === "leveraged";
     const p = technical;
     let name = "";
+    let structureType = "";
+    let sourcePage = "";
+    let settlement = "";
     let summary = "";
     let tradeoff = "";
-    let legs = [];
+    let risk = "";
+    let parameters = [];
+    let blocked = false;
 
-    if (objective === "procurement") {
-      if (cost === "protection") {
-        name = "买入香草看涨期权";
-        const strike = direction === "bullish" ? p.atm : p.resistance1;
-        legs = [leg("买入", "看涨期权", strike, "建立采购成本上限；下跌时仍可按更低现货价格采购")];
-        summary = "纯买方保护，适合把最大损失限定为已付权利金。";
-        tradeoff = "保护不封顶，但初始权利金通常高于价差结构。";
-      } else if (cost === "low_cost") {
-        name = "采购领口（买涨 + 卖跌）";
-        legs = [
-          leg("买入", "看涨期权", p.resistance1, "限制价格向上突破后的采购成本"),
-          leg("卖出", "看跌期权", p.support1, "用权利金补贴买涨成本；跌破后可能承担采购义务"),
-        ];
-        summary = "用下方采购承诺换取较低的上行保护成本。";
-        tradeoff = "价格跌破卖出看跌执行价时，可能必须按约定价采购。";
+    if (cadence === "spread") {
+      name = "价差宝 / 月差宝（待补数据）";
+      structureType = "跨品种或跨期价差期权";
+      sourcePage = "19-22";
+      settlement = "到期结算";
+      summary = "附件要求先定义价差配比、方向与执行价；当前页面只有单合约行情，不能可靠推导价差点位。";
+      tradeoff = "补齐两腿历史序列、相关性、期限匹配和流动性后，才可判断卖看涨或卖看跌。";
+      risk = "价差方向错误时可能产生线性亏损，跨品种价差还存在相关性和流动性突变。";
+      blocked = true;
+      parameters = [
+        parameter("01", "价差标的", "需进一步核验", "例如 OI-Y、近月-远月；必须先确定吨数配比"),
+        parameter("02", "当前价差", "需进一步核验", "不能用两个单腿技术位直接相减代替"),
+        parameter("03", "方向", "需进一步核验", "加工费保值、建仓或移仓对应的方向不同"),
+        parameter("04", "期限", "20-30 个交易日", "附件示例期限，当前仍需重新询价"),
+      ];
+    } else if (objective === "procurement" && cadence === "daily") {
+      if (appliedCost === "one_x") {
+        name = direction === "bullish" ? "累进宝4.0 Plus" : "累进宝3.0";
+        structureType = direction === "bullish" ? "线性熔断累计 Plus" : "线性累计";
+        sourcePage = direction === "bullish" ? "10" : "3";
+        settlement = "每日观察、逐日结算";
+        summary = direction === "bullish"
+          ? "适合每日采购且希望大涨时获得线性补贴并提前结束；下方仅按 1 倍承接采购。"
+          : "适合每日有真实采购计划、希望震荡区间内线性降低成本，并在支撑位按 1 倍采购。";
+        tradeoff = direction === "bullish" ? "熔断后产品提前结束；最后一日下破下方价可能形成全部剩余数量多单。" : "涨破上沿后当日无收益，无法提供足额大涨保护。";
+        risk = "跌破下方价会产生期权亏损或按下方价建立多单，必须由真实采购流量承接。";
+      } else if (appliedCost === "bounded") {
+        name = "累进宝1.0";
+        structureType = "固定赔付累计（带敲出）";
+        sourcePage = "1";
+        settlement = "每日观察、逐日结算";
+        summary = "适合宽幅震荡中的每日采购：区间内拿固定补贴，下方按 1 倍低位采购，上方当日无损益。";
+        tradeoff = "固定补贴需正式询价；大涨超过上沿时没有进一步采购保护。";
+        risk = "跌破下方价会产生现金亏损或形成多单，并可能触发保证金追加。";
       } else {
-        name = "看涨价差";
-        const buyStrike = direction === "bullish" ? p.atm : p.resistance1;
-        legs = [
-          leg("买入", "较低执行价看涨", buyStrike, "从该点位开始获得上涨保护"),
-          leg("卖出", "较高执行价看涨", p.resistance2, "降低权利金，同时封顶更高价格区间的保护"),
+        name = direction === "bullish" ? "累进宝3.0 Plus" : "累进宝1.0 Plus";
+        structureType = direction === "bullish" ? "增强线性累计" : "增强固定赔付累计";
+        sourcePage = direction === "bullish" ? "9" : "7";
+        settlement = "每日观察、逐日结算";
+        summary = "区间内获得补贴，大涨获得线性补贴；下破下方价时按附件示例形成 2 倍多单。";
+        tradeoff = "上行保护更强，但以下方 2 倍采购义务交换，不能脱离现货采购能力使用。";
+        risk = "大跌时产生 2 倍亏损或 2 倍多单，并可能显著追保。";
+      }
+      parameters = [
+        parameter("01", "入场参考", p.price, "当前期货价，仅作为结构锚点"),
+        parameter("02", "下方价", p.support1, "近端技术支撑；下破后可能产生多单或亏损"),
+        parameter("03", "上方价", p.resistance2, "远端压力位；决定补贴封顶或熔断位置"),
+        parameter("04", "建议观察", "20 个交易日 · 每日", "沿用附件示例期限，正式期限需结合采购计划"),
+      ];
+    } else if (objective === "procurement") {
+      if (appliedCost === "one_x") {
+        name = "采省易1.0";
+        structureType = "领式看涨";
+        sourcePage = "14";
+        settlement = "到期结算";
+        summary = "适合担心大涨、但愿意在支撑位采购的企业；上涨超过上方价获得完整保护，下方按 1 倍低价采购。";
+        tradeoff = "零权利金来自让渡下方继续下跌后的低价采购收益。";
+        risk = "跌破下方价会产生现金亏损或形成 1 倍多单，并可能追保。";
+      } else if (appliedCost === "bounded") {
+        name = "采省易3.0";
+        structureType = "海鸥看涨";
+        sourcePage = "16";
+        settlement = "到期结算";
+        summary = "适合震荡向上、希望低成本保护一段上涨区间并在下方 1 倍采购。";
+        tradeoff = "上涨保护有最大额度；超过上方保护区间后不再增加补偿。";
+        risk = "跌破下方价会让渡更低现货采购收益，大涨时保护程度有限。";
+      } else {
+        name = "采省易2.0";
+        structureType = "比例领式看涨";
+        sourcePage = "15";
+        settlement = "到期结算";
+        summary = "上涨从入场价开始完整保护，下跌有安全垫；跌破下方价按附件示例形成 2 倍多单。";
+        tradeoff = "以 2 倍低位采购义务交换零权利金和完整上涨保护。";
+        risk = "低于下方价时产生 2 倍亏损或 2 倍多单，仅适合有足量采购能力的用户。";
+      }
+      parameters = [
+        parameter("01", "入场参考", p.price, "当前期货价，仅作为结构锚点"),
+        parameter("02", "下方履约价", p.support1, "技术支撑；对应低位采购或现金结算"),
+        parameter("03", appliedCost === "leveraged" ? "上涨保护起点" : "上方保护价", appliedCost === "leveraged" ? p.atm : p.resistance2, appliedCost === "bounded" ? "海鸥结构的保护上限需结合报价确定" : "上破后开始获得采购保护"),
+        parameter("04", "建议期限", "20 个交易日", "沿用附件示例，需匹配实际采购日期"),
+      ];
+    } else if (objective === "inventory" && cadence === "daily") {
+      if (appliedCost === "one_x") {
+        name = "惠鑫保1.0";
+        structureType = "香草累计（客户买入累沽）";
+        sourcePage = "23";
+        settlement = "每日观察、期初支付权利金";
+        summary = "适合持续销售并希望每日完整获得执行价以下跌幅保护，同时保留现货上涨收益。";
+        tradeoff = "需要期初支付总权利金；高于执行价时每日损失对应权利金。";
+        risk = "不追保、最大期权损失为已付权利金，但提前平仓会损耗剩余权利金。";
+        parameters = [
+          parameter("01", "执行价参考", p.atm, "接近当前价；正式权利金需询价"),
+          parameter("02", "盈亏平衡", "需询权利金", "执行价减去单日权利金"),
+          parameter("03", "每日数量", "匹配销售计划", "每日数量之和不得超过可销售现货"),
+          parameter("04", "建议观察", "15-20 个交易日 · 每日", "按实际销售日历设置"),
         ];
-        summary = "适合预期温和上涨或希望用可控成本防范采购价上行。";
-        tradeoff = "超过高执行价后的新增上涨不再获得额外补偿。";
+      } else {
+        name = "惠鑫保2.0";
+        structureType = "鲨鱼鳍累计（客户买入累沽）";
+        sourcePage = "24-25";
+        settlement = "每日观察、期初支付权利金";
+        summary = "适合震荡偏弱中的短周期库存套保：区间内获得下跌保护，跌破障碍后提前结束并退还未观察权利金。";
+        tradeoff = "权利金较低，但真正大跌跌破障碍后，剩余库存将失去保护。";
+        risk = "障碍触发后的后续现货跌幅完全暴露，必须预先准备替代套保方案。";
+        parameters = [
+          parameter("01", "执行价参考", p.atm, "接近当前价，区间内逐日保护"),
+          parameter("02", "障碍价参考", p.support2, "远端支撑；跌破后产品提前终止"),
+          parameter("03", "权利金", "需正式询价", "附件历史示例不得沿用"),
+          parameter("04", "建议观察", "15 个交易日 · 每日", "短周期使用，需准备障碍触发后的替代策略"),
+        ];
       }
     } else if (objective === "inventory") {
-      if (cost === "protection") {
-        name = "买入香草看跌期权";
-        const strike = direction === "bearish" ? p.atm : p.support1;
-        legs = [leg("买入", "看跌期权", strike, "建立库存价值下限，同时保留上涨收益")];
-        summary = "纯买方保护，适合明确限制库存跌价风险。";
-        tradeoff = "保护不封底，但需承担确定的权利金成本。";
-      } else if (cost === "low_cost") {
-        name = "库存领口（买跌 + 卖涨）";
-        legs = [
-          leg("买入", "看跌期权", p.support1, "跌破支撑后保护库存价值"),
-          leg("卖出", "看涨期权", p.resistance1, "用权利金补贴保护成本，但限制上涨收益"),
-        ];
-        summary = "用部分上涨空间换取较低的库存保护成本。";
-        tradeoff = "超过卖出看涨执行价后的库存增值收益会受限。";
+      if (appliedCost === "one_x") {
+        name = "期现易1.0";
+        structureType = "领式看跌";
+        sourcePage = "11";
+        settlement = "到期结算";
+        summary = "适合担心库存大跌、同时愿意在压力位高价销售或开 1 倍空单的企业。";
+        tradeoff = "下方特定点位以下完整保护，但上涨超过上方价后让渡现货收益。";
+        risk = "持续大涨会形成亏损或空单，并可能追加保证金。";
+      } else if (appliedCost === "bounded") {
+        name = "期现易3.0";
+        structureType = "海鸥看跌";
+        sourcePage = "13";
+        settlement = "到期结算";
+        summary = "适合震荡向下、希望零成本保护一段跌幅并在上方 1 倍高位销售。";
+        tradeoff = "下跌保护有最大额度；深跌时套保效果减弱。";
+        risk = "涨破上方价会让渡现货上涨收益；深跌超过保护区间后重新暴露。";
       } else {
-        name = "看跌价差";
-        const buyStrike = direction === "bearish" ? p.atm : p.support1;
-        legs = [
-          leg("买入", "较高执行价看跌", buyStrike, "从该点位开始获得下跌保护"),
-          leg("卖出", "较低执行价看跌", p.support2, "降低权利金，同时封顶深跌区间的保护"),
-        ];
-        summary = "适合预期温和下跌或希望用可控成本保护库存价值。";
-        tradeoff = "低执行价以下的新增跌幅不再获得额外补偿。";
+        name = "期现易2.0";
+        structureType = "比例领式看跌";
+        sourcePage = "12";
+        settlement = "到期结算";
+        summary = "下跌从入场价开始完整保护，上涨至上方价后按附件示例形成 2 倍空单。";
+        tradeoff = "以 2 倍高位销售义务交换零权利金和完整下跌保护。";
+        risk = "大涨时产生 2 倍亏损或 2 倍空单，仅适合有足量现货可销售的用户。";
       }
-    } else if (cost === "protection") {
-      name = "买入宽跨式";
-      legs = [
-        leg("买入", "看跌期权", p.support1, "价格向下突破时提供保护"),
-        leg("买入", "看涨期权", p.resistance1, "价格向上突破时提供保护"),
+      parameters = [
+        parameter("01", "入场参考", p.price, "当前期货价，仅作为结构锚点"),
+        parameter("02", appliedCost === "leveraged" ? "下跌保护起点" : "下方保护价", appliedCost === "leveraged" ? p.atm : p.support1, appliedCost === "bounded" ? "海鸥结构最大保护额需结合报价确定" : "下破后开始保护库存价值"),
+        parameter("03", "上方履约价", p.resistance2, "远端压力；对应销售或空单点位"),
+        parameter("04", "建议期限", "20 个交易日", "沿用附件示例，需匹配实际销售日期"),
       ];
-      summary = "适合事件前担心大幅波动、但方向尚不确定的情形。";
-      tradeoff = "需要支付两腿权利金；行情停留区间内时可能损失全部权利金。";
-    } else if (cost === "balanced") {
-      name = "双向价差组合";
-      legs = [
-        leg("买入", "看跌期权", p.support1, "建立下方第一层保护"),
-        leg("卖出", "更低执行价看跌", p.support2, "降低下方保护成本"),
-        leg("买入", "看涨期权", p.resistance1, "建立上方第一层保护"),
-        leg("卖出", "更高执行价看涨", p.resistance2, "降低上方保护成本"),
-      ];
-      summary = "用四腿结构控制双向尾部风险，并限制总权利金。";
-      tradeoff = "两端保护均有封顶，需确认每一腿期限与名义本金完全一致。";
     } else {
-      name = "暂缓低成本卖权结构";
-      legs = [leg("等待", "补充正式询价", null, "先获取隐含波动率、期限、权利金和最大损失，再决定是否引入卖方腿")];
-      summary = "双边风险下，低成本通常意味着卖出期权或路径依赖，不适合仅凭方向数据自动下结论。";
-      tradeoff = "当前不给出累计、敲入或裸卖结构点位；需进一步核验。";
+      const useAirbag = direction === "bullish" && !lowConfidence && appliedCost !== "one_x";
+      name = useAirbag ? "气囊宝" : "惠增收";
+      structureType = useAirbag ? "安全气囊（正向）" : "反比例领式看涨";
+      sourcePage = useAirbag ? "18" : "17";
+      settlement = useAirbag ? "到期结算、观察障碍" : "每日观察、逐日结算";
+      summary = useAirbag
+        ? "适合筑底偏强阶段，希望参与上涨但在障碍未触发时保留下跌安全垫。"
+        : "适合已有现货库存、预期震荡或小幅反弹：下跌期权端不亏，小涨增强，大涨在更高价套保。";
+      tradeoff = useAirbag ? "一旦观察期内触碰下方障碍，产品转为 100% 期货多头损益。" : "不是完整库存套保；下跌风险仍由现货承担，大涨超过盈亏平衡点后产生期权亏损。";
+      risk = useAirbag ? "障碍具有路径依赖，触碰后安全垫失效，并可能追保。" : "必须匹配现货多头；无现货时该结构可能变成方向性风险敞口。";
+      parameters = useAirbag ? [
+        parameter("01", "入场参考", p.price, "当前期货价"),
+        parameter("02", "下方障碍", p.support2, "远端支撑；触碰后转为 100% 多头参与"),
+        parameter("03", "未触碰参与率", "需正式询价", "附件示例参与率不可直接沿用"),
+        parameter("04", "建议期限", "20 个交易日", "障碍观察方式需写入确认书"),
+      ] : [
+        parameter("01", "入场参考", p.price, "必须有对应现货库存"),
+        parameter("02", "上方价", p.resistance1, "小涨收益开始回落的位置"),
+        parameter("03", "盈亏平衡参考", p.resistance2, "大涨后可能形成高位空单"),
+        parameter("04", "建议观察", "20 个交易日 · 每日", "每日数量需匹配库存销售节奏"),
+      ];
     }
 
     if (lowConfidence) {
-      summary += " 当前观点置信度偏低，建议把点位仅用于多家交易对手询价比较。";
+      summary += " 当前观点置信度偏低，点位仅用于多家交易对手询价比较。";
     }
-    return { name, summary, tradeoff, legs, direction, stance, confidence, lowConfidence };
+    return { name, structureType, sourcePage, settlement, summary, tradeoff, risk, parameters, direction, stance, confidence, lowConfidence, downgraded, catalogueAdjusted, blocked };
   }
 
   function directionLabel(value) {
     return { bullish: "偏强", bearish: "偏弱", neutral: "震荡/方向不明" }[value] || "需进一步核验";
   }
 
-  function render(contract, objective, cost) {
+  function render(contract, objective, cost, cadence) {
     const technical = technicalSnapshot(contract);
-    const advice = recommendation(contract, objective, cost, technical);
+    const advice = recommendation(contract, objective, cost, cadence, technical);
     const age = ageInDays(contract.trade_date || dataset.updated_at);
     const warnings = [];
+    warnings.push("产品结构依据附件 2024-10-09 版本；附件历史报价、权利金和保证金不得直接用于当前交易。");
     if (age === null || age > 3) warnings.push("行情时间超过 3 个自然日，所有点位需进一步核验后再询价。");
     if (/未完成|未配置|待核验/.test(String(contract.verification || ""))) warnings.push("行情交叉核验未完成，当前以页面记录的主数据源为准。");
-    if (advice.lowConfidence) warnings.push("综合观点为分歧或低置信，不建议使用敲入放大、累计或裸卖期权结构。");
+    if (advice.lowConfidence) warnings.push("综合观点为分歧或低置信：累计结构仅限真实产业流量，禁止脱离现货做方向性放大。");
+    if (advice.downgraded) warnings.push("因行情低置信，已将“增强型”自动降级为 1 倍产品，不输出 2 倍比例领式或 Plus 累计。");
+    if (advice.catalogueAdjusted) warnings.push("附件未提供 2 倍每日累沽产品；模型按产品库边界改用惠鑫保2.0的障碍降本方案，不虚构杠杆版本。");
+    if (advice.blocked) warnings.push("当前缺少价差序列与配比数据，候选产品不等于可执行建议，点位需进一步核验。");
     const updated = dataset.updated_at || contract.trade_date || "需进一步核验";
-    const legs = advice.legs.map((item, index) => `
+    const parameters = advice.parameters.map((item) => `
       <article class="otc-leg-card">
-        <span>${String(index + 1).padStart(2, "0")} · ${escapeHtml(item.action)}</span>
-        <h3>${escapeHtml(item.option)}</h3>
-        <strong>${item.strike === null ? "需进一步核验" : format(item.strike)}</strong>
+        <span>${escapeHtml(item.label)} · 结构参数</span>
+        <h3>${escapeHtml(item.name)}</h3>
+        <strong>${typeof item.value === "number" ? format(item.value) : escapeHtml(item.value)}</strong>
         <p>${escapeHtml(item.note)}</p>
       </article>`).join("");
-    const warningHtml = warnings.length
-      ? `<div class="otc-warning"><strong>数据与风险提示</strong><ul>${warnings.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></div>`
-      : `<div class="otc-ready">行情时效通过页面规则检查；执行价仍需结合正式场外报价确认。</div>`;
+    const warningHtml = `<div class="otc-warning"><strong>模型与数据提示</strong><ul>${warnings.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></div>`;
     result.innerHTML = `
       <article class="otc-result-card">
         <header class="otc-result-header">
           <div>
-            <span>${escapeHtml(contract.name)} ${escapeHtml(contract.symbol)} · ${escapeHtml(contract.contract_label || "外盘参考")}</span>
+            <span>${escapeHtml(contract.name)} ${escapeHtml(contract.symbol)} · 附件第 ${escapeHtml(advice.sourcePage)} 页</span>
             <h2>${escapeHtml(advice.name)}</h2>
-            <p>${escapeHtml(advice.summary)}</p>
+            <p>${escapeHtml(advice.structureType)} · ${escapeHtml(advice.summary)}</p>
           </div>
           <div class="otc-result-date"><span>行情日期</span><strong>${escapeHtml(contract.trade_date || updated)}</strong><small>${escapeHtml(advice.stance)} · 置信度${escapeHtml(advice.confidence)}</small></div>
         </header>
@@ -242,19 +345,19 @@
         </div>
 
         <section class="otc-legs">
-          <header><span>询价参考点位</span><p>场外执行价可定制；页面按技术位取整，不代表可成交报价。</p></header>
-          <div class="otc-leg-grid">${legs}</div>
+          <header><span>产品参数与询价参考</span><p>点位按技术位取整；权利金、赔付额、保证金与参与率必须重新询价。</p></header>
+          <div class="otc-leg-grid">${parameters}</div>
         </section>
 
         <div class="otc-decision-grid">
-          <section><span>为什么是这个结构</span><p>${escapeHtml(advice.summary)}</p></section>
+          <section><span>为什么是这个产品</span><p>${escapeHtml(advice.summary)}</p></section>
           <section><span>核心取舍</span><p>${escapeHtml(advice.tradeoff)}</p></section>
-          <section><span>观点失效条件</span><p>${escapeHtml(contract.strategy_recommendation?.invalidation || "需进一步核验")}</p></section>
-          <section><span>询价必须补齐</span><p>期限、名义本金、结算标的、执行方式、隐含波动率、权利金、保证金/授信、最大损失与提前终止条款。</p></section>
+          <section><span>产品特有风险</span><p>${escapeHtml(advice.risk)}</p></section>
+          <section><span>结算与询价</span><p>${escapeHtml(advice.settlement)}；必须补齐名义数量、权利金/固定赔付、保证金、观察方式、敲入敲出、现金或建仓结算和提前终止条款。</p></section>
         </div>
 
         <footer class="otc-result-footer">
-          <p>技术依据：${escapeHtml(contract.child_skill || contract.analysis_skill || "technical-analysis-helper")} · ATR/波动幅度 ${format(technical.atr, 2)}</p>
+          <p>产品依据：《商品类产品化宣传单页-20241009》附件第 ${escapeHtml(advice.sourcePage)} 页 · 技术依据：${escapeHtml(contract.child_skill || contract.analysis_skill || "technical-analysis-helper")} · ATR ${format(technical.atr, 2)}</p>
           <p>数据更新时间：${escapeHtml(updated)} · ${escapeHtml(contract.source || dataset.source || "来源需进一步核验")}</p>
         </footer>
       </article>`;
@@ -295,7 +398,7 @@
       return;
     }
     formError.textContent = "";
-    render(contract, selected("objective"), selected("cost"));
+    render(contract, selected("objective"), selected("cost"), cadenceSelect.value);
   });
 
   populate();

@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>场外结构建议 | Vinson Research</title>
-    <meta name="description" content="结合最新期货行情、技术位、保值目标与成本偏好，生成场外期权结构及询价参考点位。" />
+    <meta name="description" content="依据商品场外期权产品手册，结合最新期货行情、产业目标、业务节奏与风险约束，匹配产品结构及询价参考点位。" />
     <link rel="icon" href="data:," />
     <script>
       window.OTC_CACHE_BUST = Date.now();
@@ -23,9 +23,9 @@
       <section class="otc-hero">
         <div class="shell otc-hero-grid">
           <div class="otc-intro">
-            <p class="otc-eyebrow">行情驱动 · 风险目标优先</p>
+            <p class="otc-eyebrow">附件产品库 · 行情驱动匹配</p>
             <h1>场外结构<br />如何选择</h1>
-            <p>先明确采购、库存或双边波动风险，再用最新完整行情的趋势、置信度、支撑压力与波动幅度匹配结构和询价点位。</p>
+            <p>依据《商品类产品化宣传单页》中的累进宝、采省易、期现易、惠鑫保等结构，先匹配产业场景，再用最新行情判断适用模型与询价点位。</p>
             <div class="otc-data-status">
               <span>当前行情</span>
               <strong id="otc-data-date">读取中…</strong>
@@ -38,7 +38,7 @@
               <span>01</span>
               <div>
                 <strong>定义风险目标</strong>
-                <small>三项输入生成结构建议</small>
+                <small>四项输入生成附件产品建议</small>
               </div>
             </div>
 
@@ -50,21 +50,31 @@
               <small id="otc-contract-note">主力与次主力合约</small>
             </label>
 
+            <label class="otc-field">
+              <span>业务结算节奏</span>
+              <select id="otc-cadence" name="cadence" required>
+                <option value="single" selected>阶段套保 / 到期一次结算</option>
+                <option value="daily">每日采购或销售 / 逐日结算</option>
+                <option value="spread">跨品种价差或月间移仓</option>
+              </select>
+              <small>每日流量优先匹配累计结构；价差策略需要独立价差数据</small>
+            </label>
+
             <fieldset class="otc-field">
               <legend>你的核心目标</legend>
               <div class="otc-choice-grid objective-grid">
                 <label><input type="radio" name="objective" value="procurement" checked /><span><strong>采购防涨</strong><small>控制未来采购成本上行</small></span></label>
                 <label><input type="radio" name="objective" value="inventory" /><span><strong>库存防跌</strong><small>保护库存或销售利润</small></span></label>
-                <label><input type="radio" name="objective" value="two_sided" /><span><strong>双边波动</strong><small>重大事件前控制两端风险</small></span></label>
+                <label><input type="radio" name="objective" value="enhancement" /><span><strong>库存增收</strong><small>优化现货收益或低风险观点</small></span></label>
               </div>
             </fieldset>
 
             <fieldset class="otc-field">
-              <legend>成本与保护偏好</legend>
+              <legend>可接受的风险约束</legend>
               <div class="otc-choice-grid cost-grid">
-                <label><input type="radio" name="cost" value="protection" /><span><strong>保护优先</strong><small>接受明确权利金</small></span></label>
-                <label><input type="radio" name="cost" value="balanced" checked /><span><strong>成本平衡</strong><small>用价差降低权利金</small></span></label>
-                <label><input type="radio" name="cost" value="low_cost" /><span><strong>低成本</strong><small>接受额外履约约束</small></span></label>
+                <label><input type="radio" name="cost" value="one_x" checked /><span><strong>1 倍匹配</strong><small>不接受双倍敲入数量</small></span></label>
+                <label><input type="radio" name="cost" value="bounded" /><span><strong>成本平衡</strong><small>接受保护封顶或障碍失效</small></span></label>
+                <label><input type="radio" name="cost" value="leveraged" /><span><strong>增强型</strong><small>可接受累计或 2 倍履约</small></span></label>
               </div>
             </fieldset>
 
@@ -78,31 +88,34 @@
         <div class="otc-result-empty">
           <span>02</span>
           <strong>等待生成结构建议</strong>
-          <p>完成上方选择后，这里将展示行情判断、推荐结构、各腿询价参考点位与结构风险。</p>
+          <p>完成上方选择后，这里将展示行情判断、附件产品型号、询价参考点位与产品特有风险。</p>
         </div>
       </section>
 
       <section class="shell otc-guide" aria-labelledby="otc-guide-title">
         <header>
-          <p class="otc-eyebrow">Selection Framework</p>
-          <h2 id="otc-guide-title">先匹配风险，再讨论收益</h2>
-          <p>同一个行情判断，对采购企业和库存持有者的正确结构可能完全相反。</p>
+          <p class="otc-eyebrow">Product Map · 2024-10-09</p>
+          <h2 id="otc-guide-title">附件产品结构地图</h2>
+          <p>产品名称来自附件；页面只负责匹配，不复用附件中的历史示例报价。</p>
         </header>
         <div class="otc-guide-grid">
-          <article><span>01 / Procurement</span><h3>采购成本怕上涨</h3><p>优先看涨期权或看涨价差。价差可降低权利金，但高执行价以上的保护会封顶。</p></article>
-          <article><span>02 / Inventory</span><h3>库存价值怕下跌</h3><p>优先看跌期权或看跌价差。领口可用卖出看涨的权利金补贴保护成本，但会限制上涨收益。</p></article>
-          <article><span>03 / Two-sided</span><h3>事件前怕大幅波动</h3><p>优先纯买方的跨式/宽跨式或双向价差。缺少隐含波动率和正式报价时，不自动推荐裸卖波动。</p></article>
+          <article><span>01 / Daily Buy</span><h3>累进宝系列</h3><p>面向每日采购与低位建仓。1.0-5.0 及 Plus 在固定赔付、线性收益、熔断敲出和下方履约数量上不同。</p></article>
+          <article><span>02 / Buy Hedge</span><h3>采省易 1.0-3.0</h3><p>一次性采购套保：领式看涨、比例领式看涨和海鸥看涨，分别对应 1 倍、2 倍和保护封顶取舍。</p></article>
+          <article><span>03 / Sell Hedge</span><h3>期现易 1.0-3.0</h3><p>库存或销售套保：领式看跌、比例领式看跌和海鸥看跌；上涨端可能形成高位空单。</p></article>
+          <article><span>04 / Daily Sell</span><h3>惠鑫保 1.0/2.0</h3><p>持续销售的每日保护：香草累计提供完整下跌保护；鲨鱼鳍累计更便宜，但跌破障碍后提前终止。</p></article>
+          <article><span>05 / Enhancement</span><h3>惠增收 / 气囊宝</h3><p>用于现货库存收益增强或筑底阶段参与；必须匹配现货头寸并单独检查路径依赖风险。</p></article>
+          <article><span>06 / Relative Value</span><h3>价差宝 / 月差宝</h3><p>服务加工费、跨品种套利和移仓；只有取得价差序列、配比和流动性数据后才输出点位。</p></article>
         </div>
       </section>
 
       <section class="shell otc-boundary">
         <div>
           <span>使用边界</span>
-          <p>页面点位来自期货行情与技术分析，不含场外报价中的隐含波动率、权利金、期限、名义本金、敲入敲出方式及信用条款。正式成交前必须向合格交易对手询价并核对最大损失。</p>
+          <p>结构定义依据附件 2024-10-09 版本，页面点位来自当前期货行情与技术分析。附件中的 RB/M 历史示例报价不会被当作当前报价使用。</p>
         </div>
         <div>
           <span>默认禁区</span>
-          <p>低置信、行情过期或未完成交叉核验时，不把雪球、累计、敲入放大、裸卖期权等路径依赖或潜在杠杆结构作为默认建议。</p>
+          <p>低置信、行情过期或未完成交叉核验时，不默认推荐 2 倍比例领式、Plus 累计或价差卖权；累计结构必须有真实逐日采购/销售流量承接。</p>
         </div>
       </section>
     </main>
