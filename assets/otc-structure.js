@@ -54,10 +54,6 @@
     return Math.round(value / increment) * increment;
   }
 
-  function unique(values) {
-    return [...new Set(values.filter(Number.isFinite))];
-  }
-
   function technicalSnapshot(contract) {
     const price = number(contract.price);
     const trend = textOf(contract, 0);
@@ -72,18 +68,43 @@
     const atr = capture(volatility, /波动幅度约\s*([\d,.]+)/) || (price ? price * 0.02 : null);
     const upperWatch = number(contract.strategy_recommendation?.upper_watch);
     const lowerWatch = number(contract.strategy_recommendation?.lower_watch);
-    const candidates = unique([ma20, ma60, rangeHigh, rangeLow, channelHigh, channelLow, upperWatch, lowerWatch]);
-    const below = candidates.filter((item) => item < price).sort((a, b) => b - a);
-    const above = candidates.filter((item) => item > price).sort((a, b) => a - b);
-    let support1 = below[0] || price - atr;
-    let support2 = below.find((item) => item < support1 - atr * 0.35) || lowerWatch || price - atr * 2;
-    let resistance1 = above[0] || price + atr;
-    let resistance2 = above.find((item) => item > resistance1 + atr * 0.35) || upperWatch || price + atr * 2;
-    support1 = roundStrike(support1, contract);
-    support2 = roundStrike(Math.min(support2, support1 - tradingIncrement(contract)), contract);
-    resistance1 = roundStrike(resistance1, contract);
-    resistance2 = roundStrike(Math.max(resistance2, resistance1 + tradingIncrement(contract)), contract);
-    return { price, atm: roundStrike(price, contract), ma20, ma60, atr, support1, support2, resistance1, resistance2 };
+    const candidates = [
+      { value: ma20, source: "MA20" },
+      { value: ma60, source: "MA60" },
+      { value: rangeHigh, source: "20日区间上沿" },
+      { value: rangeLow, source: "20日区间下沿" },
+      { value: channelHigh, source: "统计通道上轨" },
+      { value: channelLow, source: "统计通道下轨" },
+      { value: upperWatch, source: "综合上方观察位" },
+      { value: lowerWatch, source: "综合下方观察位" },
+    ].filter((item) => Number.isFinite(item.value));
+    const below = candidates.filter((item) => item.value < price).sort((a, b) => b.value - a.value);
+    const above = candidates.filter((item) => item.value > price).sort((a, b) => a.value - b.value);
+    const support1Candidate = below[0] || { value: price - atr, source: "ATR 1倍动态支撑" };
+    const support2Candidate = below.find((item) => item.value < support1Candidate.value - atr * 0.35)
+      || (Number.isFinite(lowerWatch) ? { value: lowerWatch, source: "综合下方观察位" } : { value: price - atr * 2, source: "ATR 2倍动态支撑" });
+    const resistance1Candidate = above[0] || { value: price + atr, source: "ATR 1倍动态压力" };
+    const resistance2Candidate = above.find((item) => item.value > resistance1Candidate.value + atr * 0.35)
+      || (Number.isFinite(upperWatch) ? { value: upperWatch, source: "综合上方观察位" } : { value: price + atr * 2, source: "ATR 2倍动态压力" });
+    const support1 = roundStrike(support1Candidate.value, contract);
+    const support2 = roundStrike(Math.min(support2Candidate.value, support1 - tradingIncrement(contract)), contract);
+    const resistance1 = roundStrike(resistance1Candidate.value, contract);
+    const resistance2 = roundStrike(Math.max(resistance2Candidate.value, resistance1 + tradingIncrement(contract)), contract);
+    return {
+      price,
+      atm: roundStrike(price, contract),
+      ma20,
+      ma60,
+      atr,
+      support1,
+      support2,
+      resistance1,
+      resistance2,
+      support1Source: support1Candidate.source,
+      support2Source: support2Candidate.source,
+      resistance1Source: resistance1Candidate.source,
+      resistance2Source: resistance2Candidate.source,
+    };
   }
 
   function directionOf(contract) {
@@ -100,6 +121,77 @@
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     return Math.floor((today - marketDate) / 86400000);
+  }
+
+  function parseDate(dateText) {
+    const match = String(dateText || "").match(/(\d{4})-(\d{2})-(\d{2})/);
+    if (!match) return null;
+    return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  }
+
+  function isoDate(date) {
+    if (!(date instanceof Date) || Number.isNaN(date.getTime())) return "需进一步核验";
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
+
+  function nextWeekday(date) {
+    const result = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    while (result.getDay() === 0 || result.getDay() === 6) result.setDate(result.getDate() + 1);
+    return result;
+  }
+
+  function addBusinessDays(start, count) {
+    const result = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+    let remaining = Math.max(0, count);
+    while (remaining > 0) {
+      result.setDate(result.getDate() + 1);
+      if (result.getDay() !== 0 && result.getDay() !== 6) remaining -= 1;
+    }
+    return result;
+  }
+
+  function observationPlan(contract, family, lowConfidence, technical) {
+    const atrPct = technical.price && technical.atr ? technical.atr / technical.price * 100 : null;
+    let days;
+    let reason;
+    if (family === "airbag") {
+      if (lowConfidence || atrPct === null || atrPct >= 1.5) {
+        days = 20;
+        reason = "气囊到期结算且当前置信度/波动约束偏高，采用约1个月窗口";
+      } else if (atrPct >= 1) {
+        days = 25;
+        reason = "波动适中，适度延长期限以平衡安全垫和参与率";
+      } else {
+        days = 30;
+        reason = "波动偏低，延长期限以改善安全垫与参与率报价";
+      }
+    } else if (lowConfidence || (atrPct !== null && atrPct >= 2)) {
+      days = 10;
+      reason = "观点低置信或波动偏高，缩短风险暴露窗口";
+    } else if (atrPct !== null && atrPct < 1) {
+      days = 20;
+      reason = "波动偏低，延长观察以覆盖有效价格区间";
+    } else {
+      days = 15;
+      reason = "置信度与波动处于中档，采用中等观察窗口";
+    }
+    const marketDate = parseDate(contract.trade_date || dataset.updated_at);
+    if (!marketDate) return { days, range: "需进一步核验", note: `${days}个交易日；${reason}，但行情日期不可解析。` };
+    let start = new Date(marketDate.getFullYear(), marketDate.getMonth(), marketDate.getDate() + 1);
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    if (start < today) start = today;
+    start = nextWeekday(start);
+    const end = addBusinessDays(start, days - 1);
+    const atrText = atrPct === null ? "ATR占比需进一步核验" : `ATR/价格 ${atrPct.toFixed(2)}%`;
+    return {
+      days,
+      range: `${isoDate(start)} 至 ${isoDate(end)}`,
+      note: `${days}个交易日；${reason}（${atrText}）。按工作日初算，交易所休市日顺延。`,
+    };
   }
 
   function selected(name) {
@@ -130,6 +222,7 @@
     const appliedCost = downgraded ? "one_x" : cost;
     const catalogueAdjusted = !phoenix && !airbag && objective === "inventory" && cadence === "daily" && appliedCost === "leveraged";
     const p = technical;
+    const schedule = observationPlan(contract, family, lowConfidence, technical);
     let name = "";
     let structureType = "";
     let sourcePage = "";
@@ -166,11 +259,11 @@
       risk = `该结构为 R5 高风险产品，可能承担无限风险敞口；敲入会集中形成${quantity}的${isBuy ? "多头" : "空头"}远期头寸，需准备保证金并以现货流量承接。`;
       parameters = [
         parameter("01", "入场参考", p.atm, "按当前价取整，仅作为询价锚点"),
-        parameter("02", "敲入障碍", knockIn, `${isBuy ? "下方" : "上方"}技术位；触发后结构终止并形成远期头寸`),
-        parameter("03", "敲出障碍", knockOut, `${isBuy ? "上方" : "下方"}技术位；触发后结构终止`),
+        parameter("02", "敲入障碍", knockIn, `${isBuy ? "下方" : "上方"}技术位，依据${isBuy ? p.support1Source : p.resistance1Source}；触发后结构终止并形成远期头寸`),
+        parameter("03", "敲出障碍", knockOut, `${isBuy ? "上方" : "下方"}技术位，依据${isBuy ? p.resistance1Source : p.support1Source}；触发后结构终止`),
         parameter("04", "敲入建仓", `${leverage} · 敲入价`, `${quantity}；不采用等间隔建仓`),
         parameter("05", "敲出收益", knockOutPayoff, "票息、增强参与率和保证金均需重新询价"),
-        parameter("06", "建议观察", "30 个交易日 · 每日", "每日名义数量必须匹配真实采购或销售计划"),
+        parameter("06", "建议观察日期", schedule.range, `${schedule.note} 每日名义数量必须匹配真实采购或销售计划。`),
       ];
     } else if (airbag) {
       const isPositive = objective === "procurement";
@@ -198,12 +291,12 @@
       risk = `障碍具有路径依赖：任一日收盘触及即失效并形成 1 倍${isPositive ? "多头" : "空头"}远期；安全垫内提前平仓仍可能亏损，不利波动即使尚未敲入也可能追保。`;
       parameters = [
         parameter("01", "入场参考", p.atm, "按当前价取整，仅作为结构锚点"),
-        parameter("02", "收益行权价", strike, enhanced ? "采用虚值行权，换取更高参与率或安全垫" : "默认平值；可在正式询价时调整"),
-        parameter("03", "敲入障碍", knockIn, `${isPositive ? "下方" : "上方"}远端技术位；每日收盘观察，触及即转远期`),
+        parameter("02", "收益行权价", strike, enhanced ? `采用${isPositive ? p.resistance1Source : p.support1Source}附近虚值行权，换取更高参与率或安全垫` : "当前价附近平值；可在正式询价时调整"),
+        parameter("03", "敲入障碍", knockIn, `${isPositive ? "下方" : "上方"}远端技术位，依据${isPositive ? p.support2Source : p.resistance2Source}；每日收盘观察，触及即转远期`),
         parameter("04", "敲入建仓价", buildPrice, buildOptimized ? "靠近障碍，降低敲入时浮亏" : "默认按入场参考建仓"),
-        parameter("05", "收益封顶", cap, enhanced ? "以收益上限换取更高参与率" : "标准版本保留有利方向收益空间"),
+        parameter("05", "收益封顶", cap, enhanced ? `依据${isPositive ? p.resistance2Source : p.support2Source}设置收益上限，换取更高参与率` : "标准版本保留有利方向收益空间"),
         parameter("06", "未敲入参与率", participation, "参与率与安全垫此消彼长，必须重新询价"),
-        parameter("07", "建议期限", "1 个月以上", "到期结算；附件提示过短期限通常难以获得合适报价"),
+        parameter("07", "建议观察日期", schedule.range, schedule.note),
         parameter("08", "名义与保证金", "1 倍 · 需测算", "拉长期限不增加观察数量，但不利波动可能追保"),
       ];
     } else if (cadence === "spread") {
@@ -219,7 +312,7 @@
         parameter("01", "价差标的", "需进一步核验", "例如 OI-Y、近月-远月；必须先确定吨数配比"),
         parameter("02", "当前价差", "需进一步核验", "不能用两个单腿技术位直接相减代替"),
         parameter("03", "方向", "需进一步核验", "加工费保值、建仓或移仓对应的方向不同"),
-        parameter("04", "期限", "20-30 个交易日", "附件示例期限，当前仍需重新询价"),
+        parameter("04", "观察日期", "需进一步核验", "补齐两腿价差序列后，再按当时波动率生成实际起止日期"),
       ];
     } else if (objective === "procurement" && cadence === "daily") {
       if (appliedCost === "one_x") {
@@ -245,15 +338,15 @@
         structureType = direction === "bullish" ? "增强线性累计" : "增强固定赔付累计";
         sourcePage = direction === "bullish" ? "9" : "7";
         settlement = "每日观察、逐日结算";
-        summary = "区间内获得补贴，大涨获得线性补贴；下破下方价时按附件示例形成 2 倍多单。";
+        summary = "区间内获得补贴，大涨获得线性补贴；下破下方价时按产品条款形成 2 倍多单。";
         tradeoff = "上行保护更强，但以下方 2 倍采购义务交换，不能脱离现货采购能力使用。";
         risk = "大跌时产生 2 倍亏损或 2 倍多单，并可能显著追保。";
       }
       parameters = [
         parameter("01", "入场参考", p.price, "当前期货价，仅作为结构锚点"),
-        parameter("02", "下方价", p.support1, "近端技术支撑；下破后可能产生多单或亏损"),
-        parameter("03", "上方价", p.resistance2, "远端压力位；决定补贴封顶或熔断位置"),
-        parameter("04", "建议观察", "20 个交易日 · 每日", "沿用附件示例期限，正式期限需结合采购计划"),
+        parameter("02", "下方价", p.support1, `依据${p.support1Source}；下破后可能产生多单或亏损`),
+        parameter("03", "上方价", p.resistance2, `依据${p.resistance2Source}；决定补贴封顶或熔断位置`),
+        parameter("04", "建议观察日期", schedule.range, `${schedule.note} 每日数量需匹配采购计划。`),
       ];
     } else if (objective === "procurement") {
       if (appliedCost === "one_x") {
@@ -277,15 +370,15 @@
         structureType = "比例领式看涨";
         sourcePage = "15";
         settlement = "到期结算";
-        summary = "上涨从入场价开始完整保护，下跌有安全垫；跌破下方价按附件示例形成 2 倍多单。";
+        summary = "上涨从入场价开始完整保护，下跌有安全垫；跌破下方价时按产品条款形成 2 倍多单。";
         tradeoff = "以 2 倍低位采购义务交换零权利金和完整上涨保护。";
         risk = "低于下方价时产生 2 倍亏损或 2 倍多单，仅适合有足量采购能力的用户。";
       }
       parameters = [
         parameter("01", "入场参考", p.price, "当前期货价，仅作为结构锚点"),
-        parameter("02", "下方履约价", p.support1, "技术支撑；对应低位采购或现金结算"),
-        parameter("03", appliedCost === "leveraged" ? "上涨保护起点" : "上方保护价", appliedCost === "leveraged" ? p.atm : p.resistance2, appliedCost === "bounded" ? "海鸥结构的保护上限需结合报价确定" : "上破后开始获得采购保护"),
-        parameter("04", "建议期限", "20 个交易日", "沿用附件示例，需匹配实际采购日期"),
+        parameter("02", "下方履约价", p.support1, `依据${p.support1Source}；对应低位采购或现金结算`),
+        parameter("03", appliedCost === "leveraged" ? "上涨保护起点" : "上方保护价", appliedCost === "leveraged" ? p.atm : p.resistance2, appliedCost === "bounded" ? `上方保护参考${p.resistance2Source}，海鸥最大保护额需正式询价` : `依据${p.resistance2Source}；上破后开始获得采购保护`),
+        parameter("04", "建议观察日期", schedule.range, `${schedule.note} 起止日期需匹配实际采购计划。`),
       ];
     } else if (objective === "inventory" && cadence === "daily") {
       if (appliedCost === "one_x") {
@@ -300,7 +393,7 @@
           parameter("01", "执行价参考", p.atm, "接近当前价；正式权利金需询价"),
           parameter("02", "盈亏平衡", "需询权利金", "执行价减去单日权利金"),
           parameter("03", "每日数量", "匹配销售计划", "每日数量之和不得超过可销售现货"),
-          parameter("04", "建议观察", "15-20 个交易日 · 每日", "按实际销售日历设置"),
+          parameter("04", "建议观察日期", schedule.range, `${schedule.note} 每日数量需匹配销售计划。`),
         ];
       } else {
         name = "惠鑫保2.0";
@@ -312,9 +405,9 @@
         risk = "障碍触发后的后续现货跌幅完全暴露，必须预先准备替代套保方案。";
         parameters = [
           parameter("01", "执行价参考", p.atm, "接近当前价，区间内逐日保护"),
-          parameter("02", "障碍价参考", p.support2, "远端支撑；跌破后产品提前终止"),
+          parameter("02", "障碍价参考", p.support2, `依据${p.support2Source}；跌破后产品提前终止`),
           parameter("03", "权利金", "需正式询价", "附件历史示例不得沿用"),
-          parameter("04", "建议观察", "15 个交易日 · 每日", "短周期使用，需准备障碍触发后的替代策略"),
+          parameter("04", "建议观察日期", schedule.range, `${schedule.note} 需准备障碍触发后的替代策略。`),
         ];
       }
     } else if (objective === "inventory") {
@@ -339,15 +432,15 @@
         structureType = "比例领式看跌";
         sourcePage = "12";
         settlement = "到期结算";
-        summary = "下跌从入场价开始完整保护，上涨至上方价后按附件示例形成 2 倍空单。";
+        summary = "下跌从入场价开始完整保护，上涨至上方价后按产品条款形成 2 倍空单。";
         tradeoff = "以 2 倍高位销售义务交换零权利金和完整下跌保护。";
         risk = "大涨时产生 2 倍亏损或 2 倍空单，仅适合有足量现货可销售的用户。";
       }
       parameters = [
         parameter("01", "入场参考", p.price, "当前期货价，仅作为结构锚点"),
-        parameter("02", appliedCost === "leveraged" ? "下跌保护起点" : "下方保护价", appliedCost === "leveraged" ? p.atm : p.support1, appliedCost === "bounded" ? "海鸥结构最大保护额需结合报价确定" : "下破后开始保护库存价值"),
-        parameter("03", "上方履约价", p.resistance2, "远端压力；对应销售或空单点位"),
-        parameter("04", "建议期限", "20 个交易日", "沿用附件示例，需匹配实际销售日期"),
+        parameter("02", appliedCost === "leveraged" ? "下跌保护起点" : "下方保护价", appliedCost === "leveraged" ? p.atm : p.support1, appliedCost === "bounded" ? `下方保护参考${p.support1Source}，海鸥最大保护额需正式询价` : `依据${p.support1Source}；下破后开始保护库存价值`),
+        parameter("03", "上方履约价", p.resistance2, `依据${p.resistance2Source}；对应销售或空单点位`),
+        parameter("04", "建议观察日期", schedule.range, `${schedule.note} 起止日期需匹配实际销售计划。`),
       ];
     } else {
       const useAirbag = direction === "bullish" && !lowConfidence && appliedCost !== "one_x";
@@ -362,14 +455,14 @@
       risk = useAirbag ? "障碍具有路径依赖，触碰后安全垫失效，并可能追保。" : "必须匹配现货多头；无现货时该结构可能变成方向性风险敞口。";
       parameters = useAirbag ? [
         parameter("01", "入场参考", p.price, "当前期货价"),
-        parameter("02", "下方障碍", p.support2, "远端支撑；触碰后转为 100% 多头参与"),
+        parameter("02", "下方障碍", p.support2, `依据${p.support2Source}；触碰后转为 100% 多头参与`),
         parameter("03", "未触碰参与率", "需正式询价", "附件示例参与率不可直接沿用"),
-        parameter("04", "建议期限", "20 个交易日", "障碍观察方式需写入确认书"),
+        parameter("04", "建议观察日期", schedule.range, `${schedule.note} 障碍观察方式需写入确认书。`),
       ] : [
         parameter("01", "入场参考", p.price, "必须有对应现货库存"),
-        parameter("02", "上方价", p.resistance1, "小涨收益开始回落的位置"),
-        parameter("03", "盈亏平衡参考", p.resistance2, "大涨后可能形成高位空单"),
-        parameter("04", "建议观察", "20 个交易日 · 每日", "每日数量需匹配库存销售节奏"),
+        parameter("02", "上方价", p.resistance1, `依据${p.resistance1Source}；小涨收益开始回落的位置`),
+        parameter("03", "盈亏平衡参考", p.resistance2, `依据${p.resistance2Source}；大涨后可能形成高位空单`),
+        parameter("04", "建议观察日期", schedule.range, `${schedule.note} 每日数量需匹配库存销售节奏。`),
       ];
     }
 
@@ -437,7 +530,7 @@
         </div>
 
         <section class="otc-legs">
-          <header><span>产品参数与询价参考</span><p>点位按技术位取整；权利金、赔付额、保证金与参与率必须重新询价。</p></header>
+          <header><span>产品参数与询价参考</span><p>点位依据 ${escapeHtml(contract.trade_date || updated)} 的均线、20日区间、统计通道与 ATR 动态取整；观察日期按置信度和波动动态生成。</p></header>
           <div class="otc-leg-grid">${parameters}</div>
         </section>
 
