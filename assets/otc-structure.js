@@ -7,6 +7,8 @@
   const familySelect = document.querySelector("#otc-family");
   const phoenixSuitability = document.querySelector("#otc-phoenix-suitability");
   const r5Confirm = document.querySelector("#otc-r5-confirm");
+  const airbagSuitability = document.querySelector("#otc-airbag-suitability");
+  const airbagRiskConfirm = document.querySelector("#otc-airbag-risk-confirm");
   const contractNote = document.querySelector("#otc-contract-note");
   const dataDate = document.querySelector("#otc-data-date");
   const dataSource = document.querySelector("#otc-data-source");
@@ -123,9 +125,10 @@
     const confidence = contract.score?.view_confidence || "需进一步核验";
     const lowConfidence = confidence === "低" || /分歧/.test(stance);
     const phoenix = family === "phoenix";
+    const airbag = family === "airbag";
     const downgraded = lowConfidence && (cost === "leveraged" || (phoenix && cost !== "one_x"));
     const appliedCost = downgraded ? "one_x" : cost;
-    const catalogueAdjusted = !phoenix && objective === "inventory" && cadence === "daily" && appliedCost === "leveraged";
+    const catalogueAdjusted = !phoenix && !airbag && objective === "inventory" && cadence === "daily" && appliedCost === "leveraged";
     const p = technical;
     let name = "";
     let structureType = "";
@@ -168,6 +171,40 @@
         parameter("04", "敲入建仓", `${leverage} · 敲入价`, `${quantity}；不采用等间隔建仓`),
         parameter("05", "敲出收益", knockOutPayoff, "票息、增强参与率和保证金均需重新询价"),
         parameter("06", "建议观察", "30 个交易日 · 每日", "每日名义数量必须匹配真实采购或销售计划"),
+      ];
+    } else if (airbag) {
+      const isPositive = objective === "procurement";
+      const side = isPositive ? "正向" : "反向";
+      const knockIn = isPositive ? p.support2 : p.resistance2;
+      const enhanced = appliedCost === "leveraged";
+      const buildOptimized = appliedCost === "bounded";
+      const strike = enhanced ? (isPositive ? p.resistance1 : p.support1) : p.atm;
+      const cap = enhanced ? (isPositive ? p.resistance2 : p.support2) : "不设封顶";
+      const buildPrice = buildOptimized ? (isPositive ? p.support1 : p.resistance1) : p.atm;
+      const participation = enhanced ? "正式询价（可高于 100%）" : "正式询价（通常低于 100%）";
+      const variant = enhanced ? "虚值行权 + 收益封顶" : buildOptimized ? "敲入建仓价优化" : "标准无封顶";
+      name = `${side}气囊宝1.0`;
+      structureType = `${side}安全气囊 · ${variant} · 1 倍名义`;
+      sourcePage = "气囊宝1.0结构定义（2025-06）";
+      settlement = "到期结算；每日收盘观察敲入，敲入即终止并转成远期";
+      summary = isPositive
+        ? "适合真实采购或做多套保：未敲入时保留下方安全垫并按参与率获得上涨收益；任一日收盘触及下方障碍后，立即转成约定建仓价的远期多头。"
+        : "适合库存或做空套保：未敲入时保留上方安全垫并按参与率获得下跌收益；任一日收盘触及上方障碍后，立即转成约定建仓价的远期空头。";
+      tradeoff = enhanced
+        ? "通过虚值行权价和收益封顶换取更高参与率，但大行情收益被封顶，越早提前平仓折损通常越明显。"
+        : buildOptimized
+          ? "把敲入建仓价调近障碍以减少敲入时浮亏，但参与率或安全垫通常会下降。"
+          : "看对方向只能按折扣参与收益；换来观察期内未敲入时的不利方向安全垫。";
+      risk = `障碍具有路径依赖：任一日收盘触及即失效并形成 1 倍${isPositive ? "多头" : "空头"}远期；安全垫内提前平仓仍可能亏损，不利波动即使尚未敲入也可能追保。`;
+      parameters = [
+        parameter("01", "入场参考", p.atm, "按当前价取整，仅作为结构锚点"),
+        parameter("02", "收益行权价", strike, enhanced ? "采用虚值行权，换取更高参与率或安全垫" : "默认平值；可在正式询价时调整"),
+        parameter("03", "敲入障碍", knockIn, `${isPositive ? "下方" : "上方"}远端技术位；每日收盘观察，触及即转远期`),
+        parameter("04", "敲入建仓价", buildPrice, buildOptimized ? "靠近障碍，降低敲入时浮亏" : "默认按入场参考建仓"),
+        parameter("05", "收益封顶", cap, enhanced ? "以收益上限换取更高参与率" : "标准版本保留有利方向收益空间"),
+        parameter("06", "未敲入参与率", participation, "参与率与安全垫此消彼长，必须重新询价"),
+        parameter("07", "建议期限", "1 个月以上", "到期结算；附件提示过短期限通常难以获得合适报价"),
+        parameter("08", "名义与保证金", "1 倍 · 需测算", "拉长期限不增加观察数量，但不利波动可能追保"),
       ];
     } else if (cadence === "spread") {
       name = "价差宝 / 月差宝（待补数据）";
@@ -314,7 +351,7 @@
       ];
     } else {
       const useAirbag = direction === "bullish" && !lowConfidence && appliedCost !== "one_x";
-      name = useAirbag ? "气囊宝" : "惠增收";
+      name = useAirbag ? "正向气囊宝1.0" : "惠增收";
       structureType = useAirbag ? "安全气囊（正向）" : "反比例领式看涨";
       sourcePage = useAirbag ? "18" : "17";
       settlement = useAirbag ? "到期结算、观察障碍" : "每日观察、逐日结算";
@@ -339,7 +376,7 @@
     if (lowConfidence) {
       summary += " 当前观点置信度偏低，点位仅用于多家交易对手询价比较。";
     }
-    return { name, structureType, sourcePage, settlement, summary, tradeoff, risk, parameters, direction, stance, confidence, lowConfidence, downgraded, catalogueAdjusted, blocked, phoenix };
+    return { name, structureType, sourcePage, settlement, summary, tradeoff, risk, parameters, direction, stance, confidence, lowConfidence, downgraded, catalogueAdjusted, blocked, phoenix, airbag };
   }
 
   function directionLabel(value) {
@@ -353,13 +390,19 @@
     const warnings = [];
     warnings.push(advice.phoenix
       ? "凤凰累计只抽象使用结构定义；内部资料的历史报价、权利金和保证金不会在页面展示或用于当前交易。"
-      : "产品结构依据附件 2024-10-09 版本；附件历史报价、权利金和保证金不得直接用于当前交易。");
+      : advice.airbag
+        ? "气囊宝1.0只抽象使用结构定义；内部资料的历史参与率、保证金和示例点位不会在页面展示或用于当前交易。"
+        : "产品结构依据附件 2024-10-09 版本；附件历史报价、权利金和保证金不得直接用于当前交易。");
     if (age === null || age > 3) warnings.push("行情时间超过 3 个自然日，所有点位需进一步核验后再询价。");
     if (/未完成|未配置|待核验/.test(String(contract.verification || ""))) warnings.push("行情交叉核验未完成，当前以页面记录的主数据源为准。");
-    if (advice.lowConfidence) warnings.push("综合观点为分歧或低置信：累计结构仅限真实产业流量，禁止脱离现货做方向性放大。");
-    if (advice.downgraded && !advice.phoenix) warnings.push("因行情低置信，已将“增强型”自动降级为 1 倍产品，不输出 2 倍比例领式或 Plus 累计。");
+    if (advice.lowConfidence) warnings.push(advice.airbag
+      ? "综合观点为分歧或低置信：气囊点位只用于询价比较，必须由真实采购或库存敞口承接。"
+      : "综合观点为分歧或低置信：累计结构仅限真实产业流量，禁止脱离现货做方向性放大。");
+    if (advice.downgraded && !advice.phoenix && !advice.airbag) warnings.push("因行情低置信，已将“增强型”自动降级为 1 倍产品，不输出 2 倍比例领式或 Plus 累计。");
     if (advice.phoenix) warnings.push("已按 R5 产品处理：必须完成交易对手适当性、压力测试和保证金评估；敲入或敲出后头寸均结束。");
     if (advice.phoenix && advice.downgraded) warnings.push("凤凰结构已降至 1.0；当前低置信行情不自动输出覆盖全部数量的 2.0 或 2 倍的 3.0-6.0。");
+    if (advice.airbag) warnings.push("气囊宝1.0不是每日结算累计：仅每日收盘观察障碍；未敲入时到期结算，敲入时立即转成约定价格远期。");
+    if (advice.airbag && advice.downgraded) warnings.push("因行情低置信，已取消虚值行权与收益封顶的参与率增强组合，降为标准无封顶版本。");
     if (advice.catalogueAdjusted) warnings.push("附件未提供 2 倍每日累沽产品；模型按产品库边界改用惠鑫保2.0的障碍降本方案，不虚构杠杆版本。");
     if (advice.blocked) warnings.push("当前缺少价差序列与配比数据，候选产品不等于可执行建议，点位需进一步核验。");
     const updated = dataset.updated_at || contract.trade_date || "需进一步核验";
@@ -375,7 +418,7 @@
       <article class="otc-result-card">
         <header class="otc-result-header">
           <div>
-            <span>${escapeHtml(contract.name)} ${escapeHtml(contract.symbol)} · ${advice.phoenix ? escapeHtml(advice.sourcePage) : `附件第 ${escapeHtml(advice.sourcePage)} 页`}</span>
+            <span>${escapeHtml(contract.name)} ${escapeHtml(contract.symbol)} · ${advice.phoenix || advice.airbag ? escapeHtml(advice.sourcePage) : `附件第 ${escapeHtml(advice.sourcePage)} 页`}</span>
             <h2>${escapeHtml(advice.name)}</h2>
             <p>${escapeHtml(advice.structureType)} · ${escapeHtml(advice.summary)}</p>
           </div>
@@ -406,7 +449,7 @@
         </div>
 
         <footer class="otc-result-footer">
-          <p>产品依据：${advice.phoenix ? "凤凰累计结构定义（2025-02-27；未公开内部报价）" : `《商品类产品化宣传单页-20241009》附件第 ${escapeHtml(advice.sourcePage)} 页`} · 技术依据：${escapeHtml(contract.child_skill || contract.analysis_skill || "technical-analysis-helper")} · ATR ${format(technical.atr, 2)}</p>
+          <p>产品依据：${advice.phoenix ? "凤凰累计结构定义（2025-02-27；未公开内部报价）" : advice.airbag ? "气囊宝1.0结构定义（2025-06；未公开内部报价）" : `《商品类产品化宣传单页-20241009》附件第 ${escapeHtml(advice.sourcePage)} 页`} · 技术依据：${escapeHtml(contract.child_skill || contract.analysis_skill || "technical-analysis-helper")} · ATR ${format(technical.atr, 2)}</p>
           <p>数据更新时间：${escapeHtml(updated)} · ${escapeHtml(contract.source || dataset.source || "来源需进一步核验")}</p>
         </footer>
       </article>`;
@@ -440,9 +483,13 @@
 
   function syncFamilyFields() {
     const phoenixSelected = familySelect.value === "phoenix";
+    const airbagSelected = familySelect.value === "airbag";
     phoenixSuitability.hidden = !phoenixSelected;
+    airbagSuitability.hidden = !airbagSelected;
     if (phoenixSelected && cadenceSelect.value !== "daily") cadenceSelect.value = "daily";
+    if (airbagSelected && cadenceSelect.value !== "single") cadenceSelect.value = "single";
     if (!phoenixSelected) r5Confirm.checked = false;
+    if (!airbagSelected) airbagRiskConfirm.checked = false;
     formError.textContent = "";
   }
 
@@ -474,6 +521,24 @@
       formError.textContent = "请先确认交易主体已完成 R5 适当性核验。";
       resetResult(formError.textContent);
       r5Confirm.focus();
+      return;
+    }
+    if (family === "airbag" && cadenceSelect.value !== "single") {
+      formError.textContent = "气囊宝1.0必须选择“阶段套保 / 到期一次结算”；每日仅观察敲入障碍。";
+      resetResult(formError.textContent);
+      cadenceSelect.focus();
+      return;
+    }
+    if (family === "airbag" && objective === "enhancement") {
+      formError.textContent = "气囊宝1.0需要明确正向采购或反向库存/销售方向，不能按无方向的“库存增收”输出。";
+      resetResult(formError.textContent);
+      form.querySelector('input[name="objective"][value="procurement"]').focus();
+      return;
+    }
+    if (family === "airbag" && !airbagRiskConfirm.checked) {
+      formError.textContent = "请先确认已理解气囊宝的路径依赖、转远期和追保风险。";
+      resetResult(formError.textContent);
+      airbagRiskConfirm.focus();
       return;
     }
     formError.textContent = "";

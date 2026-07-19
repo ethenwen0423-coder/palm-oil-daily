@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>场外结构建议 | Vinson Research</title>
-    <meta name="description" content="依据商品场外期权产品手册与凤凰累计结构定义，结合最新期货行情、产业目标、业务节奏与风险约束，匹配产品结构及询价参考点位。" />
+    <meta name="description" content="依据商品场外期权产品手册、凤凰累计与气囊宝1.0结构定义，结合最新期货行情、产业目标、业务节奏与风险约束，匹配产品结构及询价参考点位。" />
     <link rel="icon" href="data:," />
     <script>
       window.OTC_CACHE_BUST = Date.now();
@@ -25,7 +25,7 @@
           <div class="otc-intro">
             <p class="otc-eyebrow">附件产品库 · 行情驱动匹配</p>
             <h1>场外结构<br />如何选择</h1>
-            <p>依据商品场外期权产品手册与凤凰累计结构定义，先匹配产业场景和适当性，再用最新行情判断适用模型与询价点位。</p>
+            <p>依据商品场外期权产品手册、凤凰累计与气囊宝1.0结构定义，先匹配产业场景和适当性，再用最新行情判断适用模型与询价点位。</p>
             <div class="otc-data-status">
               <span>当前行情</span>
               <strong id="otc-data-date">读取中…</strong>
@@ -65,9 +65,10 @@
               <select id="otc-family" name="family" required>
                 <option value="auto" selected>自动匹配（默认产品库）</option>
                 <option value="standard">现有产品库</option>
+                <option value="airbag">气囊宝1.0（正向 / 反向）</option>
                 <option value="phoenix">凤凰累计 1.0-6.0（R5）</option>
               </select>
-              <small>凤凰累计只面向合格 R5 用户，并要求真实逐日采购或销售流量</small>
+              <small>气囊宝强调安全垫与路径风险；凤凰累计只面向合格 R5 用户</small>
             </label>
 
             <fieldset class="otc-field">
@@ -84,6 +85,14 @@
               <label class="otc-confirm">
                 <input id="otc-r5-confirm" name="r5Confirm" type="checkbox" />
                 <span><strong>已完成 R5 适当性核验</strong><small>确认交易主体可参与 R5 产品，并具备与敲入远期头寸匹配的现货流量和保证金能力</small></span>
+              </label>
+            </fieldset>
+
+            <fieldset id="otc-airbag-suitability" class="otc-field otc-suitability" hidden>
+              <legend>气囊宝风险承接确认</legend>
+              <label class="otc-confirm">
+                <input id="otc-airbag-risk-confirm" name="airbagRiskConfirm" type="checkbox" />
+                <span><strong>已确认路径依赖与追保能力</strong><small>任一观察日收盘触及障碍，气囊立即终止并转成约定建仓价的远期；即使仍在安全垫内，也可能因不利波动产生追保</small></span>
               </label>
             </fieldset>
 
@@ -121,20 +130,21 @@
           <article><span>02 / Buy Hedge</span><h3>采省易 1.0-3.0</h3><p>一次性采购套保：领式看涨、比例领式看涨和海鸥看涨，分别对应 1 倍、2 倍和保护封顶取舍。</p></article>
           <article><span>03 / Sell Hedge</span><h3>期现易 1.0-3.0</h3><p>库存或销售套保：领式看跌、比例领式看跌和海鸥看跌；上涨端可能形成高位空单。</p></article>
           <article><span>04 / Daily Sell</span><h3>惠鑫保 1.0/2.0</h3><p>持续销售的每日保护：香草累计提供完整下跌保护；鲨鱼鳍累计更便宜，但跌破障碍后提前终止。</p></article>
-          <article><span>05 / Enhancement</span><h3>惠增收 / 气囊宝</h3><p>用于现货库存收益增强或筑底阶段参与；必须匹配现货头寸并单独检查路径依赖风险。</p></article>
+          <article><span>05 / Enhancement</span><h3>惠增收</h3><p>用于已有现货库存的收益增强；必须匹配现货头寸，避免结构变成无现货承接的方向性风险。</p></article>
           <article><span>06 / Relative Value</span><h3>价差宝 / 月差宝</h3><p>服务加工费、跨品种套利和移仓；只有取得价差序列、配比和流动性数据后才输出点位。</p></article>
           <article><span>07 / Phoenix Accumulator · R5</span><h3>凤凰累计 1.0-6.0</h3><p>敲入或敲出即终止。1/2.0 为 1 倍基础型，3/5.0 为 2 倍线性增强，4/6.0 为 2 倍固定增强；全部数量与等间隔建仓风险更高。</p></article>
+          <article><span>08 / Directional Cushion</span><h3>气囊宝1.0</h3><p>正向参与上涨、反向参与下跌；每日收盘观察敲入但到期结算。可配置收益封顶、虚值行权价或更接近障碍的敲入建仓价。</p></article>
         </div>
       </section>
 
       <section class="shell otc-boundary">
         <div>
           <span>使用边界</span>
-          <p>结构定义依据 2024-10-09 产品手册与 2025-02-27 凤凰累计结构资料，页面点位来自当前期货行情与技术分析。任何历史示例报价均不会被当作当前报价使用。</p>
+          <p>结构定义依据 2024-10-09 产品手册、2025-02-27 凤凰累计和 2025-06 气囊宝1.0资料，页面点位来自当前期货行情与技术分析。任何历史示例报价均不会被当作当前报价使用。</p>
         </div>
         <div>
           <span>默认禁区</span>
-          <p>低置信、行情过期或未完成交叉核验时，不默认推荐 2 倍比例领式、Plus 累计或价差卖权；凤凰累计必须显式选择并通过 R5 核验，5/6.0 不自动推荐。</p>
+          <p>低置信、行情过期或未完成交叉核验时，不默认推荐 2 倍比例领式、Plus 累计、气囊参与率增强或价差卖权；凤凰累计必须显式选择并通过 R5 核验，5/6.0 不自动推荐。</p>
         </div>
       </section>
     </main>
