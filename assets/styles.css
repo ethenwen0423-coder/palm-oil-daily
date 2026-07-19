@@ -180,6 +180,33 @@
 
 .otc-choice-grid input:checked + span strong { color: #754b18; }
 
+.otc-suitability {
+  border: 1px solid #d7b67f;
+  background: #fff8eb;
+  padding: 14px;
+}
+
+.otc-suitability[hidden] { display: none; }
+
+.otc-confirm {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 11px;
+  align-items: start;
+  cursor: pointer;
+}
+
+.otc-confirm input {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  accent-color: #9b6b2c;
+}
+
+.otc-confirm span { display: grid; gap: 3px; }
+.otc-confirm strong { color: #5e421e; font-size: 0.8rem; }
+.otc-confirm small { color: #7d6c55; font-size: 0.69rem; line-height: 1.45; }
+
 .otc-form-error {
   min-height: 1.4em;
   margin: 12px 0 0;

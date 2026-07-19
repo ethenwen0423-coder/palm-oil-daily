@@ -4,6 +4,9 @@
   const form = document.querySelector("#otc-form");
   const contractSelect = document.querySelector("#otc-contract");
   const cadenceSelect = document.querySelector("#otc-cadence");
+  const familySelect = document.querySelector("#otc-family");
+  const phoenixSuitability = document.querySelector("#otc-phoenix-suitability");
+  const r5Confirm = document.querySelector("#otc-r5-confirm");
   const contractNote = document.querySelector("#otc-contract-note");
   const dataDate = document.querySelector("#otc-data-date");
   const dataSource = document.querySelector("#otc-data-source");
@@ -105,14 +108,24 @@
     return { label, name, value, note };
   }
 
-  function recommendation(contract, objective, cost, cadence, technical) {
+  function resetResult(message) {
+    result.innerHTML = `
+      <div class="otc-result-empty">
+        <span>02</span>
+        <strong>当前条件未生成建议</strong>
+        <p>${escapeHtml(message)}</p>
+      </div>`;
+  }
+
+  function recommendation(contract, objective, cost, cadence, family, technical) {
     const direction = directionOf(contract);
     const stance = contract.score?.stance || "需进一步核验";
     const confidence = contract.score?.view_confidence || "需进一步核验";
     const lowConfidence = confidence === "低" || /分歧/.test(stance);
-    const downgraded = lowConfidence && cost === "leveraged";
+    const phoenix = family === "phoenix";
+    const downgraded = lowConfidence && (cost === "leveraged" || (phoenix && cost !== "one_x"));
     const appliedCost = downgraded ? "one_x" : cost;
-    const catalogueAdjusted = objective === "inventory" && cadence === "daily" && appliedCost === "leveraged";
+    const catalogueAdjusted = !phoenix && objective === "inventory" && cadence === "daily" && appliedCost === "leveraged";
     const p = technical;
     let name = "";
     let structureType = "";
@@ -124,7 +137,39 @@
     let parameters = [];
     let blocked = false;
 
-    if (cadence === "spread") {
+    if (phoenix) {
+      const isBuy = objective === "procurement";
+      const phoenixDirection = isBuy ? "累购" : "累沽";
+      const knockIn = isBuy ? p.support1 : p.resistance1;
+      const knockOut = isBuy ? p.resistance1 : p.support1;
+      const isEnhanced = appliedCost === "leveraged";
+      const variant = appliedCost === "one_x" ? "1.0" : appliedCost === "bounded" ? "2.0" : (direction === "neutral" ? "4.0" : "3.0");
+      const allQuantity = variant === "2.0";
+      const leverage = isEnhanced ? "2 倍" : "1 倍";
+      const quantity = allQuantity ? "全部观察期数量" : "敲入时剩余数量";
+      const knockOutPayoff = variant === "3.0" ? "线性增强收益" : variant === "4.0" ? "固定增强收益" : "无额外收益";
+      name = `凤凰${phoenixDirection}${variant}`;
+      structureType = `${leverage}凤凰累计 · 敲入价建仓 · ${quantity}`;
+      sourcePage = "凤凰累计结构定义（2025-02-27）";
+      settlement = "每日观察；敲入或敲出后产品立即终止";
+      summary = isBuy
+        ? `用于真实逐日采购：区间内累计票息，下方敲入后一次性形成${quantity}的远期多头，上方敲出后终止。`
+        : `用于真实逐日销售或库存管理：区间内累计票息，上方敲入后一次性形成${quantity}的远期空头，下方敲出后终止。`;
+      tradeoff = variant === "1.0"
+        ? "选择剩余数量、1 倍参与和敲入价建仓，属于凤凰系列中相对较低风险组合；代价是区间票息通常较低。"
+        : variant === "2.0"
+          ? "1 倍参与但敲入覆盖全部观察期数量，区间票息可能更高；敲入时的集中远期头寸也更大。"
+          : `${leverage}参与并在敲出端提供${knockOutPayoff}；只采用剩余数量和敲入价建仓，不自动使用风险更高的 5.0/6.0。`;
+      risk = `该结构为 R5 高风险产品，可能承担无限风险敞口；敲入会集中形成${quantity}的${isBuy ? "多头" : "空头"}远期头寸，需准备保证金并以现货流量承接。`;
+      parameters = [
+        parameter("01", "入场参考", p.atm, "按当前价取整，仅作为询价锚点"),
+        parameter("02", "敲入障碍", knockIn, `${isBuy ? "下方" : "上方"}技术位；触发后结构终止并形成远期头寸`),
+        parameter("03", "敲出障碍", knockOut, `${isBuy ? "上方" : "下方"}技术位；触发后结构终止`),
+        parameter("04", "敲入建仓", `${leverage} · 敲入价`, `${quantity}；不采用等间隔建仓`),
+        parameter("05", "敲出收益", knockOutPayoff, "票息、增强参与率和保证金均需重新询价"),
+        parameter("06", "建议观察", "30 个交易日 · 每日", "每日名义数量必须匹配真实采购或销售计划"),
+      ];
+    } else if (cadence === "spread") {
       name = "价差宝 / 月差宝（待补数据）";
       structureType = "跨品种或跨期价差期权";
       sourcePage = "19-22";
@@ -294,23 +339,27 @@
     if (lowConfidence) {
       summary += " 当前观点置信度偏低，点位仅用于多家交易对手询价比较。";
     }
-    return { name, structureType, sourcePage, settlement, summary, tradeoff, risk, parameters, direction, stance, confidence, lowConfidence, downgraded, catalogueAdjusted, blocked };
+    return { name, structureType, sourcePage, settlement, summary, tradeoff, risk, parameters, direction, stance, confidence, lowConfidence, downgraded, catalogueAdjusted, blocked, phoenix };
   }
 
   function directionLabel(value) {
     return { bullish: "偏强", bearish: "偏弱", neutral: "震荡/方向不明" }[value] || "需进一步核验";
   }
 
-  function render(contract, objective, cost, cadence) {
+  function render(contract, objective, cost, cadence, family) {
     const technical = technicalSnapshot(contract);
-    const advice = recommendation(contract, objective, cost, cadence, technical);
+    const advice = recommendation(contract, objective, cost, cadence, family, technical);
     const age = ageInDays(contract.trade_date || dataset.updated_at);
     const warnings = [];
-    warnings.push("产品结构依据附件 2024-10-09 版本；附件历史报价、权利金和保证金不得直接用于当前交易。");
+    warnings.push(advice.phoenix
+      ? "凤凰累计只抽象使用结构定义；内部资料的历史报价、权利金和保证金不会在页面展示或用于当前交易。"
+      : "产品结构依据附件 2024-10-09 版本；附件历史报价、权利金和保证金不得直接用于当前交易。");
     if (age === null || age > 3) warnings.push("行情时间超过 3 个自然日，所有点位需进一步核验后再询价。");
     if (/未完成|未配置|待核验/.test(String(contract.verification || ""))) warnings.push("行情交叉核验未完成，当前以页面记录的主数据源为准。");
     if (advice.lowConfidence) warnings.push("综合观点为分歧或低置信：累计结构仅限真实产业流量，禁止脱离现货做方向性放大。");
-    if (advice.downgraded) warnings.push("因行情低置信，已将“增强型”自动降级为 1 倍产品，不输出 2 倍比例领式或 Plus 累计。");
+    if (advice.downgraded && !advice.phoenix) warnings.push("因行情低置信，已将“增强型”自动降级为 1 倍产品，不输出 2 倍比例领式或 Plus 累计。");
+    if (advice.phoenix) warnings.push("已按 R5 产品处理：必须完成交易对手适当性、压力测试和保证金评估；敲入或敲出后头寸均结束。");
+    if (advice.phoenix && advice.downgraded) warnings.push("凤凰结构已降至 1.0；当前低置信行情不自动输出覆盖全部数量的 2.0 或 2 倍的 3.0-6.0。");
     if (advice.catalogueAdjusted) warnings.push("附件未提供 2 倍每日累沽产品；模型按产品库边界改用惠鑫保2.0的障碍降本方案，不虚构杠杆版本。");
     if (advice.blocked) warnings.push("当前缺少价差序列与配比数据，候选产品不等于可执行建议，点位需进一步核验。");
     const updated = dataset.updated_at || contract.trade_date || "需进一步核验";
@@ -326,7 +375,7 @@
       <article class="otc-result-card">
         <header class="otc-result-header">
           <div>
-            <span>${escapeHtml(contract.name)} ${escapeHtml(contract.symbol)} · 附件第 ${escapeHtml(advice.sourcePage)} 页</span>
+            <span>${escapeHtml(contract.name)} ${escapeHtml(contract.symbol)} · ${advice.phoenix ? escapeHtml(advice.sourcePage) : `附件第 ${escapeHtml(advice.sourcePage)} 页`}</span>
             <h2>${escapeHtml(advice.name)}</h2>
             <p>${escapeHtml(advice.structureType)} · ${escapeHtml(advice.summary)}</p>
           </div>
@@ -357,7 +406,7 @@
         </div>
 
         <footer class="otc-result-footer">
-          <p>产品依据：《商品类产品化宣传单页-20241009》附件第 ${escapeHtml(advice.sourcePage)} 页 · 技术依据：${escapeHtml(contract.child_skill || contract.analysis_skill || "technical-analysis-helper")} · ATR ${format(technical.atr, 2)}</p>
+          <p>产品依据：${advice.phoenix ? "凤凰累计结构定义（2025-02-27；未公开内部报价）" : `《商品类产品化宣传单页-20241009》附件第 ${escapeHtml(advice.sourcePage)} 页`} · 技术依据：${escapeHtml(contract.child_skill || contract.analysis_skill || "technical-analysis-helper")} · ATR ${format(technical.atr, 2)}</p>
           <p>数据更新时间：${escapeHtml(updated)} · ${escapeHtml(contract.source || dataset.source || "来源需进一步核验")}</p>
         </footer>
       </article>`;
@@ -389,6 +438,16 @@
     formError.textContent = "";
   });
 
+  function syncFamilyFields() {
+    const phoenixSelected = familySelect.value === "phoenix";
+    phoenixSuitability.hidden = !phoenixSelected;
+    if (phoenixSelected && cadenceSelect.value !== "daily") cadenceSelect.value = "daily";
+    if (!phoenixSelected) r5Confirm.checked = false;
+    formError.textContent = "";
+  }
+
+  familySelect.addEventListener("change", syncFamilyFields);
+
   form.addEventListener("submit", (event) => {
     event.preventDefault();
     const contract = contracts.find((item) => item.symbol === contractSelect.value);
@@ -397,9 +456,30 @@
       contractSelect.focus();
       return;
     }
+    const family = familySelect.value;
+    const objective = selected("objective");
+    if (family === "phoenix" && cadenceSelect.value !== "daily") {
+      formError.textContent = "凤凰累计必须选择“每日采购或销售 / 逐日结算”。";
+      resetResult(formError.textContent);
+      cadenceSelect.focus();
+      return;
+    }
+    if (family === "phoenix" && objective === "enhancement") {
+      formError.textContent = "凤凰累计需要明确真实采购或库存/销售方向，不能按无方向的“库存增收”输出。";
+      resetResult(formError.textContent);
+      form.querySelector('input[name="objective"][value="procurement"]').focus();
+      return;
+    }
+    if (family === "phoenix" && !r5Confirm.checked) {
+      formError.textContent = "请先确认交易主体已完成 R5 适当性核验。";
+      resetResult(formError.textContent);
+      r5Confirm.focus();
+      return;
+    }
     formError.textContent = "";
-    render(contract, selected("objective"), selected("cost"), cadenceSelect.value);
+    render(contract, objective, selected("cost"), cadenceSelect.value, family);
   });
 
   populate();
+  syncFamilyFields();
 })();
