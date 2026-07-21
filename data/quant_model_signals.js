@@ -1,7 +1,7 @@
 window.QUANT_MODEL_SIGNALS = {
   "status": "ok",
   "schema_version": 2,
-  "generated_at": "2026-07-21T08:34:45+08:00",
+  "generated_at": "2026-07-21T08:40:20+08:00",
   "default_model_id": "bollinger-rsi-ma6-v1",
   "models": [
     {
