@@ -12,7 +12,10 @@
     <meta property="og:image" content="https://ethenwen0423-coder.github.io/palm-oil-daily/assets/og-palm-oil.png" />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="icon" href="data:," />
-    <link rel="stylesheet" href="assets/styles.css" />
+    <script>
+      window.FUTURES_CACHE_BUST = Date.now();
+      document.write('<link rel="stylesheet" href="assets/styles.css?v=' + window.FUTURES_CACHE_BUST + '" />');
+    </script>
   </head>
   <body class="futures-analysis-page">
     <header class="futures-page-header">
@@ -53,7 +56,7 @@
     </main>
 
     <footer class="futures-page-footer"><div class="shell"><span id="futures-data-source">数据源等待加载</span><span>仅作研究跟踪，不构成投资建议。</span></div></footer>
-    <script src="data/exchange_futures.js"></script>
-    <script src="assets/futures-analysis.js"></script>
+    <script>document.write('<script src="data/exchange_futures.js?v=' + window.FUTURES_CACHE_BUST + '"><\/script>');</script>
+    <script>document.write('<script src="assets/futures-analysis.js?v=' + window.FUTURES_CACHE_BUST + '"><\/script>');</script>
   </body>
 </html>

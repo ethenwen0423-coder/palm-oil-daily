@@ -5,6 +5,11 @@
   const contractSelect = document.querySelector("#otc-contract");
   const formError = document.querySelector("#otc-form-error");
   const result = document.querySelector("#otc-result");
+  const marketUpdated = document.querySelector("#otc-market-updated");
+  const sessionNames = { morning: "早盘", midday: "午盘", close: "收盘", manual: "手动" };
+  const updateLabel = dataset.updated_at
+    ? `行情更新时间：${dataset.updated_at}${sessionNames[dataset.update_session] ? ` · ${sessionNames[dataset.update_session]}` : ""}（${dataset.timezone || "Asia/Shanghai"}）`
+    : "行情数据等待更新";
 
   function escapeHtml(value) {
     return String(value ?? "")
@@ -204,7 +209,7 @@
       <article class="otc-result-card otc-analysis-result">
         <header class="otc-result-header">
           <div>
-            <span>${escapeHtml(contract.name)} ${escapeHtml(contract.contract)} · ${escapeHtml(contract.trade_date || dataset.updated_at || "日期需进一步核验")}</span>
+            <span>${escapeHtml(contract.name)} ${escapeHtml(contract.contract)} · 交易日 ${escapeHtml(contract.trade_date || "需进一步核验")} · ${escapeHtml(updateLabel)}</span>
             <h2>${escapeHtml(advice.structure)}</h2>
             <p>${escapeHtml(advice.summary)}</p>
           </div>
@@ -243,6 +248,8 @@
     formError.textContent = "当前无法生成建议，需进一步核验行情数据。";
     return;
   }
+
+  if (marketUpdated) marketUpdated.textContent = updateLabel;
 
   contractSelect.innerHTML = contracts.map((contract) =>
     `<option value="${escapeHtml(contract.contract)}">${escapeHtml(contract.name)} ${escapeHtml(contract.contract)}</option>`

@@ -41,6 +41,16 @@ PCT_TOLERANCE = 0.25
 ICDX_CPOTR_API = "https://www.icdx.co.id/cms/api/table-price-all/get"
 
 
+def infer_update_session(now: datetime | None = None) -> str:
+    current = now or datetime.now(SHANGHAI)
+    minutes = current.hour * 60 + current.minute
+    if minutes < 11 * 60 + 30:
+        return "morning"
+    if minutes < 15 * 60:
+        return "midday"
+    return "close"
+
+
 def load_private_env() -> None:
     """Load local secrets for launchd/manual runs without storing them in the repo."""
     if not PRIVATE_ENV.exists():
@@ -1102,6 +1112,7 @@ def main() -> int:
     parser.add_argument("--mode", choices=("publish", "actual-snapshot"), default="publish")
     parser.add_argument("--snapshot-date")
     parser.add_argument("--external-only", choices=("CPOTR",), help="只刷新指定海外合约，保留现有国内合约数据")
+    parser.add_argument("--update-session", choices=("morning", "midday", "close", "manual"))
     args = parser.parse_args()
 
     if args.print_time_metadata:
@@ -1156,6 +1167,8 @@ def main() -> int:
     if args.external_only:
         spec = next(item for item in EXTERNAL if item["symbol"] == args.external_only)
         payload = update_external_contract_only(load_js_payload(args.output), spec, snapshot, review_learning)
+        payload["update_session"] = args.update_session or infer_update_session()
+        payload["timezone"] = "Asia/Shanghai"
         tmp_output = OUTPUT.with_name(".oil_futures.quality-check.tmp.js")
         try:
             write_js(payload, tmp_output, publish=False)
@@ -1180,9 +1193,11 @@ def main() -> int:
     if snapshot_path:
         source_note += f"：{snapshot_path.relative_to(ROOT)}"
     source_note += "；国内合约名单先由 contract_selector_skill 选择，再由 contract_discovery_skill 按当月实时成交量、持仓量、成交额排序生成，海外产地盘展示马来 BMD FCPO 与印尼 ICDX CPOTR；内盘具体合约与日线缺口由 AkShare 补充，并用同花顺问财行情skill交叉验证"
-    now = datetime.now()
+    now = datetime.now(SHANGHAI)
     payload = {
         "updated_at": now.strftime("%Y-%m-%d %H:%M"),
+        "update_session": args.update_session or infer_update_session(now),
+        "timezone": "Asia/Shanghai",
         "source": source_note,
         "contract_selector_skill": discovery.get("selector_skill", "contract_selector_skill"),
         "contract_discovery_skill": "contract_discovery_skill",

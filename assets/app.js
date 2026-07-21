@@ -441,6 +441,13 @@
     return `<span class="futures-direction ${className}">${escapeHtml(direction)}</span>`;
   }
 
+  function marketUpdateLabel(data) {
+    if (!data?.updated_at) return "行情数据等待更新";
+    const sessionNames = { morning: "早盘", midday: "午盘", close: "收盘", manual: "手动" };
+    const session = sessionNames[data.update_session] ? ` · ${sessionNames[data.update_session]}` : "";
+    return `行情更新时间：${data.updated_at}${session}（${data.timezone || "Asia/Shanghai"}）`;
+  }
+
   function renderStrategyRecommendation(recommendation) {
     const strategy = recommendation || {};
     if (!strategy.take_profit || !strategy.stop_loss) {
@@ -503,7 +510,7 @@
     `;
   }
 
-  function renderContractBody(contract) {
+  function renderContractBody(contract, data) {
     const score = contract.score || {};
     const totalScore = score.total ?? contract.total_score ?? "需进一步核验";
     const technicalScore = score.technical ?? contract.technical_score ?? "需进一步核验";
@@ -524,6 +531,7 @@
         </div>
         <span>${escapeHtml(contract.change || "需进一步核验")}</span>
       </div>
+      <small class="futures-market-time">${escapeHtml(marketUpdateLabel(data))} · 交易日 ${escapeHtml(contract.trade_date || "需进一步核验")}</small>
       <dl class="futures-score">
         <div>
           <dt>综合评分</dt>
@@ -549,11 +557,11 @@
     `;
   }
 
-  function renderContractCard(contract) {
-    return `<article class="futures-card">${renderContractBody(contract)}</article>`;
+  function renderContractCard(contract, data) {
+    return `<article class="futures-card">${renderContractBody(contract, data)}</article>`;
   }
 
-  function renderWatchlistCard(contracts, options) {
+  function renderWatchlistCard(contracts, options, data) {
     const optionItems = (Array.isArray(options) && options.length ? options : contracts.map((contract) => ({
       value: contract.symbol,
       label: contract.symbol,
@@ -587,14 +595,14 @@
     `;
   }
 
-  function bindFuturesWatchlist(contracts) {
+  function bindFuturesWatchlist(contracts, data) {
     const select = document.querySelector("#futures-watch-select");
     const confirm = document.querySelector("#futures-watch-confirm");
     const result = document.querySelector("#futures-watch-result");
     if (!select || !confirm || !result) return;
     confirm.addEventListener("click", () => {
       const contract = contracts.find((item) => item.symbol === select.value);
-      result.innerHTML = contract ? renderContractBody(contract) : '<p class="futures-view">需进一步核验。</p>';
+      result.innerHTML = contract ? renderContractBody(contract, data) : '<p class="futures-view">需进一步核验。</p>';
     });
   }
 
@@ -606,10 +614,10 @@
       (contract) => contract.contract_rank === 1 || ["FCPO", "CPOTR"].includes(String(contract.symbol || "").toUpperCase()),
     );
     if (oilFuturesUpdated) {
-      oilFuturesUpdated.textContent = data.updated_at ? `更新 ${data.updated_at}` : "等待行情数据";
+      oilFuturesUpdated.textContent = marketUpdateLabel(data);
     }
     if (overviewFuturesTitle) {
-      overviewFuturesTitle.textContent = data.updated_at ? `更新 ${data.updated_at}` : "等待行情数据";
+      overviewFuturesTitle.textContent = marketUpdateLabel(data);
     }
     if (oilFuturesSource) {
       oilFuturesSource.textContent = data.source || "数据源等待加载";
@@ -668,8 +676,8 @@
             .join("")
         : '<p class="empty">海外价格参照待更新。</p>';
     }
-    oilFuturesList.innerHTML = `${mainContracts.map(renderContractCard).join("")}${renderWatchlistCard(contracts, data.watchlist_options)}`;
-    bindFuturesWatchlist(contracts);
+    oilFuturesList.innerHTML = `${mainContracts.map((contract) => renderContractCard(contract, data)).join("")}${renderWatchlistCard(contracts, data.watchlist_options, data)}`;
+    bindFuturesWatchlist(contracts, data);
   }
 
   function activateTab(targetId) {

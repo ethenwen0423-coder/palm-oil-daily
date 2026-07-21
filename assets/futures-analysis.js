@@ -12,6 +12,10 @@
   const escapeHtml = (value) => String(value ?? "需进一步核验").replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[char]);
   const formatNumber = (value) => typeof value === "number" ? value.toLocaleString("zh-CN", { maximumFractionDigits: 2 }) : "需进一步核验";
   const formatChange = (value) => typeof value === "number" ? `${value > 0 ? "+" : ""}${value.toFixed(2)}%` : "需进一步核验";
+  const sessionNames = { morning: "早盘", midday: "午盘", close: "收盘", manual: "手动" };
+  const updateLabel = data.updated_at
+    ? `行情更新时间：${data.updated_at}${sessionNames[data.update_session] ? ` · ${sessionNames[data.update_session]}` : ""}（${data.timezone || "Asia/Shanghai"}）`
+    : "行情数据等待更新";
 
   function populateContracts() {
     const exchange = exchangeFilter.value;
@@ -48,7 +52,7 @@
     const direction = contract.change_pct > 0 ? "up" : contract.change_pct < 0 ? "down" : "flat";
     result.innerHTML = `
       <article class="analysis-head">
-        <div><p>${escapeHtml(contract.exchange)} · ${escapeHtml(contract.category)}</p><h2>${escapeHtml(contract.product)} <span>${escapeHtml(contract.symbol)}</span></h2><small>主力合约，交易日 ${escapeHtml(contract.trade_date || "需进一步核验")}</small></div>
+        <div><p>${escapeHtml(contract.exchange)} · ${escapeHtml(contract.category)}</p><h2>${escapeHtml(contract.product)} <span>${escapeHtml(contract.symbol)}</span></h2><small>主力合约，交易日 ${escapeHtml(contract.trade_date || "需进一步核验")} · ${escapeHtml(updateLabel)}</small></div>
         <div class="analysis-price ${direction}"><strong>${formatNumber(contract.price)}</strong><span>${formatChange(contract.change_pct)}</span></div>
       </article>
       <div class="analysis-columns">
@@ -76,6 +80,6 @@
     result.innerHTML = contract ? "" : '<div class="analysis-empty">请选择有效的具体合约后确认。</div>';
     if (contract) renderAnalysis(contract);
   });
-  if (source) source.textContent = data.source ? `${data.source} 更新 ${data.updated_at || "需进一步核验"}` : "数据集等待生成";
+  if (source) source.textContent = data.source ? `${updateLabel} · ${data.source}` : "数据集等待生成";
   populateContracts();
 })();

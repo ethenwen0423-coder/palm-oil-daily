@@ -56,8 +56,11 @@ REPORT="\$ROOT/reports/\$REPORT_DATE.md"
 DOWNLOAD="\$ROOT/downloads/\$REPORT_DATE.md"
 DATA="\$ROOT/data/reports.js"
 LOG="$SUPPORT_DIR/palm-oil-daily-watchdog.check.log"
+STATE_DIR="$SUPPORT_DIR/market-refresh-state"
+MORNING_STATE="\$STATE_DIR/\$REPORT_DATE-morning.ok"
 FORBIDDEN='未实际调用|当前环境未暴露调用入口|这是测试报告|排版调试样稿'
 
+mkdir -p "\$STATE_DIR"
 echo "[\$(TZ=Asia/Shanghai date '+%F %T')] check \$REPORT_DATE" >> "\$LOG"
 
 if (( WEEKDAY < 1 || WEEKDAY > 5 )); then
@@ -68,10 +71,15 @@ fi
 if [[ -s "\$REPORT" && -s "\$DOWNLOAD" && -s "\$DATA" ]] \\
   && grep -q "\"date\": \"\$REPORT_DATE\"" "\$DATA" \\
   && ! grep -Eq "\$FORBIDDEN" "\$REPORT"; then
-  echo "[\$(TZ=Asia/Shanghai date '+%F %T')] daily published, refresh oil-futures tab on same schedule" >> "\$LOG"
+  if [[ -f "\$MORNING_STATE" ]]; then
+    echo "[\$(TZ=Asia/Shanghai date '+%F %T')] daily and morning market data already published, skip retry" >> "\$LOG"
+    exit 0
+  fi
+  echo "[\$(TZ=Asia/Shanghai date '+%F %T')] daily published, refresh morning market data" >> "\$LOG"
   cd "\$ROOT"
   git pull --ff-only >> "\$LOG" 2>&1
-  bash scripts/deploy_oil_futures_tab.sh >> "\$LOG" 2>&1
+  bash scripts/deploy_oil_futures_tab.sh morning >> "\$LOG" 2>&1
+  touch "\$MORNING_STATE"
   exit 0
 fi
 
@@ -88,10 +96,11 @@ printf '%s\n' "\$PROMPT" | "\$CODEX_BIN" exec \\
 if [[ -s "\$REPORT" && -s "\$DOWNLOAD" && -s "\$DATA" ]] \\
   && grep -q "\"date\": \"\$REPORT_DATE\"" "\$DATA" \\
   && ! grep -Eq "\$FORBIDDEN" "\$REPORT"; then
-  echo "[\$(TZ=Asia/Shanghai date '+%F %T')] daily backfill complete, refresh oil-futures tab on same schedule" >> "\$LOG"
+  echo "[\$(TZ=Asia/Shanghai date '+%F %T')] daily backfill complete, refresh morning market data" >> "\$LOG"
   cd "\$ROOT"
   git pull --ff-only >> "\$LOG" 2>&1
-  bash scripts/deploy_oil_futures_tab.sh >> "\$LOG" 2>&1
+  bash scripts/deploy_oil_futures_tab.sh morning >> "\$LOG" 2>&1
+  touch "\$MORNING_STATE"
 else
   echo "[\$(TZ=Asia/Shanghai date '+%F %T')] daily still missing or invalid, skip oil-futures tab" >> "\$LOG"
 fi

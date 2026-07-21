@@ -79,7 +79,8 @@ if [[ "$update_oil_futures_tab" == true ]]; then
   python3 scripts/update_oil_futures_data.py \
     --report-date "$report_date" \
     --generated-at "$generated_at" \
-    --cutoff-at "$cutoff_at"
+    --cutoff-at "$cutoff_at" \
+    --update-session morning
   python3 skills/data_quality_gate_skill/scripts/validate_data.py --oil-futures data/oil_futures.js --strict
 else
   echo "skip oil futures tab update for weekly-only report deploy"

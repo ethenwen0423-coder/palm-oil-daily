@@ -12,6 +12,7 @@ import time
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import requests
 
@@ -23,8 +24,9 @@ except ImportError:  # pragma: no cover - deployment dependency
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "data" / "exchange_futures.js"
-TECHNICAL_HELPER = Path.home() / ".openclaw" / "workspace" / "skills" / "technical-analysis-helper" / "scripts" / "calculate_indicators.py"
-LEVELS_HELPER = Path.home() / ".openclaw" / "workspace" / "skills" / "technical-analysis-helper" / "scripts" / "identify_levels.py"
+SHANGHAI = ZoneInfo("Asia/Shanghai")
+TECHNICAL_HELPER = Path.home() / ".codex" / "skills" / "technical-analysis-helper" / "scripts" / "calculate_indicators.py"
+LEVELS_HELPER = Path.home() / ".codex" / "skills" / "technical-analysis-helper" / "scripts" / "identify_levels.py"
 NEWS_GLOB = ROOT / "source_runs" / "*" / "raw" / "mx_search_news.json"
 SINA_DAILY_URL = "https://stock2.finance.sina.com.cn/futures/api/jsonp.php/var_V21052021_4_12=/InnerFuturesNewService.getDailyKLine"
 
@@ -550,10 +552,14 @@ def build_contracts() -> list[dict[str, Any]]:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, default=OUTPUT)
+    parser.add_argument("--update-session", choices=("morning", "midday", "close", "manual"), default="manual")
     args = parser.parse_args()
     contracts = build_contracts()
+    now = datetime.now(SHANGHAI)
     payload = {
-        "updated_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
+        "updated_at": now.strftime("%Y-%m-%d %H:%M"),
+        "update_session": args.update_session,
+        "timezone": "Asia/Shanghai",
         "source": "AkShare 实时行情与日线数据；技术指标由 technical-analysis-helper 生成；新闻热点来自最近一次已保存的资讯检索结果。",
         "contracts": contracts,
     }
