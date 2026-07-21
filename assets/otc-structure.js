@@ -117,11 +117,12 @@
       { label: "ATR / 价格", value: Number.isFinite(market.atrPct) ? `${market.atrPct.toFixed(2)}% · ${volatility}` : "需核验" },
     ];
 
-    function build(structure, summary, structureReason, reviewCondition) {
+    function build(structure, summary, structureDescription, structureReason, reviewCondition) {
       return {
         market,
         structure,
         summary,
+        structureDescription,
         reasons: [trend, marketReason, structureReason],
         metrics,
         reviewCondition,
@@ -133,6 +134,7 @@
         return build(
           "正向气囊宝1.0",
           "虚值行权 + 收益封顶",
+          "未触及下方障碍时，到期按约定参与率分享上涨，收益从虚值行权价起算并在封顶价停止增加；若观察日收盘触及下方障碍，安全垫终止，结构转为约定建仓价的 1 倍多头远期。",
           {
             title: "用封顶换取更高参与效率",
             detail: "偏强方向已经确认且波动偏低，采用虚值行权与收益封顶增强上涨参与，同时保留下方安全垫。",
@@ -143,6 +145,7 @@
       return build(
         "正向气囊宝1.0",
         "标准型",
+        "未触及下方障碍时，到期按约定参与率分享上涨；若观察日收盘触及下方障碍，安全垫终止，结构转为约定建仓价的 1 倍多头远期。",
         {
           title: "先参与方向，不放大结构",
           detail: `${market.confidence === "低" ? "方向虽偏强，但观点置信度仍低" : "方向偏强，但当前波动不低"}，标准型保留上涨参与和回撤安全垫，暂不使用增强版本。`,
@@ -156,6 +159,7 @@
         return build(
           "反向气囊宝1.0",
           "虚值行权 + 收益封顶",
+          "未触及上方障碍时，到期按约定参与率分享下跌，收益从虚值行权价起算并在封顶价停止增加；若观察日收盘触及上方障碍，安全垫终止，结构转为约定建仓价的 1 倍空头远期。",
           {
             title: "用封顶换取更高参与效率",
             detail: "偏弱方向已经确认且波动偏低，采用虚值行权与收益封顶增强下跌参与，同时保留上方安全垫。",
@@ -166,6 +170,7 @@
       return build(
         "反向气囊宝1.0",
         "标准型",
+        "未触及上方障碍时，到期按约定参与率分享下跌；若观察日收盘触及上方障碍，安全垫终止，结构转为约定建仓价的 1 倍空头远期。",
         {
           title: "先参与方向，不放大结构",
           detail: `${market.confidence === "低" ? "方向虽偏弱，但观点置信度仍低" : "方向偏弱，但当前波动不低"}，标准型保留下跌参与和反弹安全垫，暂不使用增强版本。`,
@@ -177,6 +182,7 @@
     return build(
       "暂不配置场外结构",
       "等待方向确认",
+      "当前不建立方向性场外头寸。等待价格与 MA20、MA60 形成一致方向后，再评估正向或反向气囊结构。",
       {
         title: "不为震荡强行构造方向",
         detail: "均线信号不一致时配置方向结构，会增加不必要的路径与结算风险，等待确认优于勉强入场。",
@@ -208,6 +214,11 @@
             <small>${escapeHtml(advice.market.confidence)}置信</small>
           </div>
         </header>
+
+        <section class="otc-structure-explainer">
+          <div><span>Structure in brief</span><h3>结构怎么运作</h3></div>
+          <p>${escapeHtml(advice.structureDescription)}</p>
+        </section>
 
         <div class="otc-market-grid otc-market-grid--compact">${metrics}</div>
 

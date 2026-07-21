@@ -366,6 +366,7 @@
   padding: 38px 36px 34px;
 }
 
+.otc-structure-explainer span,
 .otc-rationale header span,
 .otc-review-condition > span {
   color: #9b6b2c;
@@ -373,6 +374,31 @@
   font-weight: 900;
   letter-spacing: 0.1em;
   text-transform: uppercase;
+}
+
+.otc-structure-explainer {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.34fr) minmax(0, 1fr);
+  gap: 34px;
+  align-items: baseline;
+  padding: 25px 36px 27px;
+  border-top: 1px solid #eadfce;
+  background: #f8f3ea;
+}
+
+.otc-structure-explainer div { display: grid; }
+
+.otc-structure-explainer h3 {
+  margin: 4px 0 0;
+  color: #50391e;
+  font-size: 1.05rem;
+}
+
+.otc-structure-explainer p {
+  margin: 0;
+  color: #665f54;
+  font-size: 0.86rem;
+  line-height: 1.75;
 }
 
 .otc-rationale header h3 {
@@ -538,6 +564,7 @@
   .otc-market-grid--compact > div:nth-child(3) { min-height: 78px; border-right: 1px solid #e4e5df; }
   .otc-market-grid--compact > div:nth-child(2n) { border-right: 0; }
   .otc-rationale { grid-template-columns: 1fr; gap: 22px; padding: 30px 22px; }
+  .otc-structure-explainer { grid-template-columns: 1fr; gap: 8px; padding: 22px; }
   .otc-review-condition { grid-template-columns: 1fr; gap: 5px; padding: 20px 22px; }
   .otc-warning,
   .otc-ready { margin-right: 22px; margin-left: 22px; }
