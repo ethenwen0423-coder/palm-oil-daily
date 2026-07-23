@@ -1,7 +1,10 @@
 {
   "status": "ok",
   "schema_version": 2,
-  "generated_at": "2026-07-23T12:46:42+08:00",
+  "generated_at": "2026-07-23T12:56:27+08:00",
+  "market_updated_at": "2026-07-23 12:41",
+  "market_update_session": "midday",
+  "market_timezone": "Asia/Shanghai",
   "default_model_id": "bollinger-rsi-ma6-v1",
   "models": [
     {
@@ -199,6 +202,14 @@
             "validation_scope": "same_rule_calculation",
             "data_source": "akshare:futures_zh_daily_sina"
           }
+        },
+        "current_quote": {
+          "price": 9494.0,
+          "change": "+2.64%",
+          "direction": "↑",
+          "trade_date": "2026-07-23",
+          "source": "AkShare + 同花顺问财行情skill",
+          "unit": "元/吨"
         }
       },
       {
@@ -319,6 +330,14 @@
             "validation_scope": "same_rule_calculation",
             "data_source": "akshare:futures_zh_daily_sina"
           }
+        },
+        "current_quote": {
+          "price": 9777.0,
+          "change": "+2.45%",
+          "direction": "↑",
+          "trade_date": "2026-07-23",
+          "source": "AkShare + 同花顺问财行情skill",
+          "unit": "元/吨"
         }
       },
       {
@@ -443,6 +462,14 @@
             "validation_scope": "same_rule_calculation",
             "data_source": "akshare:futures_zh_daily_sina"
           }
+        },
+        "current_quote": {
+          "price": 8542.0,
+          "change": "+1.18%",
+          "direction": "↑",
+          "trade_date": "2026-07-23",
+          "source": "AkShare + 同花顺问财行情skill",
+          "unit": "元/吨"
         }
       },
       {
@@ -567,6 +594,14 @@
             "validation_scope": "same_rule_calculation",
             "data_source": "akshare:futures_zh_daily_sina"
           }
+        },
+        "current_quote": {
+          "price": 8560.0,
+          "change": "+1.12%",
+          "direction": "↑",
+          "trade_date": "2026-07-23",
+          "source": "AkShare + 同花顺问财行情skill",
+          "unit": "元/吨"
         }
       },
       {
@@ -687,6 +722,14 @@
             "validation_scope": "same_rule_calculation",
             "data_source": "akshare:futures_zh_daily_sina"
           }
+        },
+        "current_quote": {
+          "price": 10118.0,
+          "change": "+1.70%",
+          "direction": "↑",
+          "trade_date": "2026-07-23",
+          "source": "AkShare + 同花顺问财行情skill",
+          "unit": "元/吨"
         }
       },
       {
@@ -807,6 +850,14 @@
             "validation_scope": "same_rule_calculation",
             "data_source": "akshare:futures_zh_daily_sina"
           }
+        },
+        "current_quote": {
+          "price": 10040.0,
+          "change": "+1.70%",
+          "direction": "↑",
+          "trade_date": "2026-07-23",
+          "source": "akshare:futures_zh_realtime",
+          "unit": "元/吨"
         }
       },
       {
@@ -932,6 +983,14 @@
             "execution_window": "missed",
             "data_source": "akshare:futures_zh_daily_sina"
           }
+        },
+        "current_quote": {
+          "price": 3179.0,
+          "change": "+1.05%",
+          "direction": "↑",
+          "trade_date": "2026-07-23",
+          "source": "AkShare + 同花顺问财行情skill",
+          "unit": "元/吨"
         }
       },
       {
@@ -1057,6 +1116,14 @@
             "execution_window": "missed",
             "data_source": "akshare:futures_zh_daily_sina"
           }
+        },
+        "current_quote": {
+          "price": 3234.0,
+          "change": "+1.06%",
+          "direction": "↑",
+          "trade_date": "2026-07-23",
+          "source": "AkShare + 同花顺问财行情skill",
+          "unit": "元/吨"
         }
       },
       {
@@ -1181,6 +1248,14 @@
             "execution_window": "missed",
             "data_source": "akshare:futures_zh_daily_sina"
           }
+        },
+        "current_quote": {
+          "price": 2370.0,
+          "change": "+0.85%",
+          "direction": "↑",
+          "trade_date": "2026-07-23",
+          "source": "akshare:futures_zh_realtime",
+          "unit": "元/吨"
         }
       },
       {
@@ -1305,6 +1380,14 @@
             "execution_window": "missed",
             "data_source": "akshare:futures_zh_daily_sina"
           }
+        },
+        "current_quote": {
+          "price": 2329.0,
+          "change": "+1.61%",
+          "direction": "↑",
+          "trade_date": "2026-07-23",
+          "source": "akshare:futures_zh_realtime",
+          "unit": "元/吨"
         }
       }
     ]
@@ -1502,6 +1585,14 @@
           "validation_scope": "same_rule_calculation",
           "data_source": "akshare:futures_zh_daily_sina"
         }
+      },
+      "current_quote": {
+        "price": 9494.0,
+        "change": "+2.64%",
+        "direction": "↑",
+        "trade_date": "2026-07-23",
+        "source": "AkShare + 同花顺问财行情skill",
+        "unit": "元/吨"
       }
     },
     {
@@ -1622,6 +1713,14 @@
           "validation_scope": "same_rule_calculation",
           "data_source": "akshare:futures_zh_daily_sina"
         }
+      },
+      "current_quote": {
+        "price": 9777.0,
+        "change": "+2.45%",
+        "direction": "↑",
+        "trade_date": "2026-07-23",
+        "source": "AkShare + 同花顺问财行情skill",
+        "unit": "元/吨"
       }
     },
     {
@@ -1746,6 +1845,14 @@
           "validation_scope": "same_rule_calculation",
           "data_source": "akshare:futures_zh_daily_sina"
         }
+      },
+      "current_quote": {
+        "price": 8542.0,
+        "change": "+1.18%",
+        "direction": "↑",
+        "trade_date": "2026-07-23",
+        "source": "AkShare + 同花顺问财行情skill",
+        "unit": "元/吨"
       }
     },
     {
@@ -1870,6 +1977,14 @@
           "validation_scope": "same_rule_calculation",
           "data_source": "akshare:futures_zh_daily_sina"
         }
+      },
+      "current_quote": {
+        "price": 8560.0,
+        "change": "+1.12%",
+        "direction": "↑",
+        "trade_date": "2026-07-23",
+        "source": "AkShare + 同花顺问财行情skill",
+        "unit": "元/吨"
       }
     },
     {
@@ -1990,6 +2105,14 @@
           "validation_scope": "same_rule_calculation",
           "data_source": "akshare:futures_zh_daily_sina"
         }
+      },
+      "current_quote": {
+        "price": 10118.0,
+        "change": "+1.70%",
+        "direction": "↑",
+        "trade_date": "2026-07-23",
+        "source": "AkShare + 同花顺问财行情skill",
+        "unit": "元/吨"
       }
     },
     {
@@ -2110,6 +2233,14 @@
           "validation_scope": "same_rule_calculation",
           "data_source": "akshare:futures_zh_daily_sina"
         }
+      },
+      "current_quote": {
+        "price": 10040.0,
+        "change": "+1.70%",
+        "direction": "↑",
+        "trade_date": "2026-07-23",
+        "source": "akshare:futures_zh_realtime",
+        "unit": "元/吨"
       }
     },
     {
@@ -2235,6 +2366,14 @@
           "execution_window": "missed",
           "data_source": "akshare:futures_zh_daily_sina"
         }
+      },
+      "current_quote": {
+        "price": 3179.0,
+        "change": "+1.05%",
+        "direction": "↑",
+        "trade_date": "2026-07-23",
+        "source": "AkShare + 同花顺问财行情skill",
+        "unit": "元/吨"
       }
     },
     {
@@ -2360,6 +2499,14 @@
           "execution_window": "missed",
           "data_source": "akshare:futures_zh_daily_sina"
         }
+      },
+      "current_quote": {
+        "price": 3234.0,
+        "change": "+1.06%",
+        "direction": "↑",
+        "trade_date": "2026-07-23",
+        "source": "AkShare + 同花顺问财行情skill",
+        "unit": "元/吨"
       }
     },
     {
@@ -2484,6 +2631,14 @@
           "execution_window": "missed",
           "data_source": "akshare:futures_zh_daily_sina"
         }
+      },
+      "current_quote": {
+        "price": 2370.0,
+        "change": "+0.85%",
+        "direction": "↑",
+        "trade_date": "2026-07-23",
+        "source": "akshare:futures_zh_realtime",
+        "unit": "元/吨"
       }
     },
     {
@@ -2608,6 +2763,14 @@
           "execution_window": "missed",
           "data_source": "akshare:futures_zh_daily_sina"
         }
+      },
+      "current_quote": {
+        "price": 2329.0,
+        "change": "+1.61%",
+        "direction": "↑",
+        "trade_date": "2026-07-23",
+        "source": "akshare:futures_zh_realtime",
+        "unit": "元/吨"
       }
     }
   ]

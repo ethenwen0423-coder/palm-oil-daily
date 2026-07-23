@@ -19,6 +19,7 @@
   const entryRequired = document.querySelector("#entry-required");
   const formError = document.querySelector("#form-error");
   const resultSection = document.querySelector("#quant-result-section");
+  const marketUpdated = document.querySelector("#quant-market-updated");
 
   function escapeHtml(value) {
     return String(value ?? "")
@@ -33,6 +34,28 @@
     const number = Number(value);
     if (!Number.isFinite(number)) return "--";
     return number.toLocaleString("zh-CN", { maximumFractionDigits: digits });
+  }
+
+  function formatDateTime(value) {
+    if (!value) return "待更新";
+    const normalized = String(value).includes("T") ? String(value) : String(value).replace(" ", "T") + ":00+08:00";
+    const date = new Date(normalized);
+    if (!Number.isFinite(date.getTime())) return String(value);
+    return date.toLocaleString("zh-CN", { hour12: false });
+  }
+
+  function marketSessionLabel(session) {
+    return {
+      morning: "早盘",
+      midday: "午盘",
+      close: "收盘",
+    }[session] || "行情";
+  }
+
+  function quoteChangeClass(change) {
+    const value = Number.parseFloat(String(change || "").replace("%", ""));
+    if (!Number.isFinite(value) || value === 0) return "";
+    return value > 0 ? "positive" : "negative";
   }
 
   function selectedPosition() {
@@ -143,8 +166,12 @@
     }
 
     const market = signal.market || contract.market || {};
-    const performance = positionPerformance(Number(market.close), price, position);
-    const generated = dataset.generated_at ? new Date(dataset.generated_at).toLocaleString("zh-CN", { hour12: false }) : "待更新";
+    const quote = contract.current_quote || {};
+    const quotePrice = Number(quote.price);
+    const performancePrice = Number.isFinite(quotePrice) ? quotePrice : Number(market.close);
+    const performance = positionPerformance(performancePrice, price, position);
+    const generated = formatDateTime(dataset.generated_at);
+    const quoteUpdated = formatDateTime(dataset.market_updated_at);
     const overdue = signal.execution_window === "missed";
     const model = currentModel();
     resultSection.innerHTML = `
@@ -156,7 +183,7 @@
             <h2>${escapeHtml(actionText(signal.action))}</h2>
           </div>
           <div class="quant-result-date">
-            <span>行情日期</span>
+            <span>模型行情日</span>
             <strong>${escapeHtml(contract.market_date || "待更新")}</strong>
             <small>${contract.bar_completed ? "完整日线" : "当日线未完成"}</small>
           </div>
@@ -165,13 +192,23 @@
         ${overdue ? '<div class="quant-alert">该模型信号的标准执行窗口已过，请严格遵守不追单/及时风控规则。</div>' : ""}
         ${contract.model_scope === "rule_trial" ? '<div class="quant-alert scope">所选品种沿用相同模型规则试算；成熟回测范围为 P0 棕榈油主力连续合约。</div>' : ""}
 
+        <div class="quant-live-quote">
+          <div>
+            <span>当前行情</span>
+            <strong>${formatNumber(quote.price)}</strong>
+            <em class="${quoteChangeClass(quote.change)}">${escapeHtml(quote.change || "--")}</em>
+          </div>
+          <p>${escapeHtml(quote.trade_date || "交易日待更新")} · ${escapeHtml(marketSessionLabel(dataset.market_update_session))}更新于 ${escapeHtml(quoteUpdated)}</p>
+          <small>模型指令仍按 ${escapeHtml(contract.market_date || "最近交易日")} 完整日线计算，不使用盘中价格重算信号。</small>
+        </div>
+
         <div class="quant-metrics">
-          <div><span>最新收盘</span><strong>${formatNumber(market.close)}</strong></div>
+          <div><span>模型收盘</span><strong>${formatNumber(market.close)}</strong></div>
           <div><span>MA20</span><strong>${formatNumber(market.ma20)}</strong></div>
           <div><span>MA6</span><strong>${formatNumber(market.ma6)}</strong></div>
           <div><span>RSI14</span><strong>${formatNumber(market.rsi14, 1)}</strong></div>
           <div><span>ATR14</span><strong>${formatNumber(market.atr14)}</strong></div>
-          ${performance ? `<div class="${performance.points >= 0 ? "positive" : "negative"}"><span>持仓浮动</span><strong>${performance.points >= 0 ? "+" : ""}${formatNumber(performance.points)} <small>(${performance.percent >= 0 ? "+" : ""}${formatNumber(performance.percent)}%)</small></strong></div>` : ""}
+          ${performance ? `<div class="${performance.points >= 0 ? "positive" : "negative"}"><span>${Number.isFinite(quotePrice) ? "盘中持仓浮动" : "持仓浮动"}</span><strong>${performance.points >= 0 ? "+" : ""}${formatNumber(performance.points)} <small>(${performance.percent >= 0 ? "+" : ""}${formatNumber(performance.percent)}%)</small></strong></div>` : ""}
         </div>
 
         <div class="quant-decision-grid">
@@ -184,7 +221,7 @@
         <footer class="quant-result-footer">
           <p><strong>模型</strong> ${escapeHtml(model.name || "待核验")} · <a href="quant-model-detail.html?model=${encodeURIComponent(model.id || "")}">查看策略详情</a></p>
           <p><strong>数据来源</strong> ${escapeHtml(contract.data_source || signal.data_source || "AkShare 国内期货日线")} · 标的：${escapeHtml(contract.symbol)} · 模型 skill：${escapeHtml(model.skill || "generate-oilseed-trade-signal")}</p>
-          <p><strong>更新时间</strong> ${escapeHtml(generated)} · 回测单边成本假设 0.04%</p>
+          <p><strong>行情更新</strong> ${escapeHtml(quoteUpdated)} · <strong>模型生成</strong> ${escapeHtml(generated)} · 回测单边成本假设 0.04%</p>
           <p>本结果为策略信号，不保证未来表现，不构成个人化投资建议。</p>
         </footer>
       </article>`;
@@ -284,4 +321,9 @@
 
   populateModels();
   updatePositionInput();
+  if (marketUpdated) {
+    marketUpdated.textContent = dataset.market_updated_at
+      ? `${marketSessionLabel(dataset.market_update_session)}行情更新：${formatDateTime(dataset.market_updated_at)}`
+      : "当前行情待更新";
+  }
 })();

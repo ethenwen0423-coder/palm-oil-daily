@@ -14,6 +14,7 @@ from quant_models import MODEL_ADAPTERS
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACTS_PATH = ROOT / "data" / "contracts" / "current_contracts.json"
+OIL_FUTURES_PATH = ROOT / "data" / "oil_futures.js"
 DEFAULT_JSON = ROOT / "data" / "quant_model_signals.json"
 DEFAULT_JS = ROOT / "data" / "quant_model_signals.js"
 SUPPORTED_PRODUCTS = ("P", "Y", "OI", "M", "RM")
@@ -28,9 +29,50 @@ def read_contracts() -> list[dict[str, Any]]:
     ]
 
 
+def read_market_quotes(path: Path = OIL_FUTURES_PATH) -> tuple[dict[str, Any], dict[str, dict[str, Any]]]:
+    prefix = "window.OIL_FUTURES_CONTRACTS = "
+    raw = path.read_text(encoding="utf-8").strip()
+    if not raw.startswith(prefix):
+        raise ValueError(f"unexpected oil futures wrapper in {path}")
+    payload = json.loads(raw[len(prefix):].removesuffix(";"))
+    quotes: dict[str, dict[str, Any]] = {}
+    for item in payload.get("contracts", []):
+        symbol = str(item.get("symbol", "")).strip().upper()
+        if not symbol:
+            continue
+        try:
+            price = float(item["price"])
+        except (KeyError, TypeError, ValueError):
+            price = None
+        quotes[symbol] = {
+            "price": price,
+            "change": item.get("change"),
+            "direction": item.get("direction"),
+            "trade_date": item.get("trade_date"),
+            "source": item.get("source"),
+            "unit": item.get("unit") or "元/吨",
+        }
+    return payload, quotes
+
+
+def attach_current_quotes(
+    contracts: list[dict[str, Any]],
+    quotes: dict[str, dict[str, Any]],
+) -> list[dict[str, Any]]:
+    enriched: list[dict[str, Any]] = []
+    for contract in contracts:
+        item = dict(contract)
+        quote = quotes.get(str(item.get("symbol", "")).strip().upper())
+        if quote:
+            item["current_quote"] = dict(quote)
+        enriched.append(item)
+    return enriched
+
+
 def build_payload() -> dict[str, Any]:
     generated_at = datetime.now(ZoneInfo("Asia/Shanghai")).isoformat(timespec="seconds")
     source_contracts = read_contracts()
+    market_payload, market_quotes = read_market_quotes()
     models: list[dict[str, Any]] = []
     model_contracts: dict[str, list[dict[str, Any]]] = {}
 
@@ -38,7 +80,10 @@ def build_payload() -> dict[str, Any]:
         model = dict(adapter.metadata)
         model_id = str(model["id"])
         models.append(model)
-        model_contracts[model_id] = adapter.build_contracts(source_contracts)
+        model_contracts[model_id] = attach_current_quotes(
+            adapter.build_contracts(source_contracts),
+            market_quotes,
+        )
 
     active_models = [model for model in models if model.get("status") == "active"]
     default_model = active_models[0] if active_models else (models[0] if models else {})
@@ -53,6 +98,9 @@ def build_payload() -> dict[str, Any]:
         "status": "ok" if available else "error",
         "schema_version": 2,
         "generated_at": generated_at,
+        "market_updated_at": market_payload.get("updated_at"),
+        "market_update_session": market_payload.get("update_session"),
+        "market_timezone": market_payload.get("timezone") or "Asia/Shanghai",
         "default_model_id": default_model.get("id"),
         "models": models,
         "model_contracts": model_contracts,
