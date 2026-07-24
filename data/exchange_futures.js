@@ -1,6 +1,6 @@
 window.EXCHANGE_FUTURES_DATA = {
-  "updated_at": "2026-07-23 15:14",
-  "update_session": "close",
+  "updated_at": "2026-07-24 16:47",
+  "update_session": "morning",
   "timezone": "Asia/Shanghai",
   "source": "AkShare 实时行情与日线数据；技术指标由 technical-analysis-helper 生成；新闻热点来自最近一次已保存的资讯检索结果。",
   "contracts": [
@@ -74,7 +74,7 @@ window.EXCHANGE_FUTURES_DATA = {
         ]
       },
       "news_hotspots": [],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "TS2609",
@@ -146,7 +146,7 @@ window.EXCHANGE_FUTURES_DATA = {
         ]
       },
       "news_hotspots": [],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "TF2609",
@@ -218,7 +218,7 @@ window.EXCHANGE_FUTURES_DATA = {
         ]
       },
       "news_hotspots": [],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "IH2609",
@@ -290,7 +290,7 @@ window.EXCHANGE_FUTURES_DATA = {
         ]
       },
       "news_hotspots": [],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "IM2609",
@@ -362,7 +362,7 @@ window.EXCHANGE_FUTURES_DATA = {
         ]
       },
       "news_hotspots": [],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "IC2609",
@@ -434,7 +434,7 @@ window.EXCHANGE_FUTURES_DATA = {
         ]
       },
       "news_hotspots": [],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "IF2609",
@@ -506,7 +506,7 @@ window.EXCHANGE_FUTURES_DATA = {
         ]
       },
       "news_hotspots": [],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "PK2611",
@@ -578,55 +578,55 @@ window.EXCHANGE_FUTURES_DATA = {
         ]
       },
       "news_hotspots": [],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "OI2609",
       "product": "菜油",
       "exchange": "CZCE",
       "category": "油脂油料",
-      "price": 10175.0,
-      "change_pct": 2.27,
-      "volume": 319042,
-      "open_interest": 359393,
+      "price": 10170.0,
+      "change_pct": -0.05,
+      "volume": 86132,
+      "open_interest": 357064,
       "trade_date": "2026-07-23",
       "technical": {
         "status": "ok",
         "trend": "偏多",
         "score": 73,
-        "summary": "价格位于20日均线上方；中期均线结构偏多；MACD快线位于慢线上方；RSI处于偏高区间，注意波动放大",
+        "summary": "价格位于20日均线上方；中期均线结构偏多；MACD快线位于慢线上方",
         "details": [
           {
             "title": "趋势",
-            "text": "日线趋势判定为偏多，MA20 9833.45，MA60 9822.33。"
+            "text": "日线趋势判定为偏多，MA20 9853.3，MA60 9826.45。"
           },
           {
             "title": "动量",
-            "text": "MACD向上，短线动能偏强；RSI偏高，追涨风险上升"
+            "text": "MACD向上，短线动能偏强"
           },
           {
             "title": "波动",
-            "text": "ATR14 为 121.79，布林区间 9474.38 至 10192.52。"
+            "text": "ATR14 为 131.29，布林区间 9518.49 至 10188.11。"
           },
           {
             "title": "关键位",
-            "text": "20日高低区间 10109.0 / 9453.0；局部支撑 9537.0，局部阻力 需进一步核验。"
+            "text": "20日高低区间 10186.0 / 9516.0；局部支撑 9537.0，局部阻力 需进一步核验。"
           }
         ],
         "indicators": {
-          "MA5": 10047.0,
-          "MA20": 9833.45,
-          "MA60": 9822.33,
-          "MACD": 36.32,
-          "RSI12": 78.11,
-          "KDJ_J": 122.7,
-          "BOLL上轨": 10192.52,
-          "BOLL下轨": 9474.38,
-          "ATR14": 121.79
+          "MA5": 10028.4,
+          "MA20": 9853.3,
+          "MA60": 9826.45,
+          "MACD": 29.24,
+          "RSI12": 68.89,
+          "KDJ_J": 86.21,
+          "BOLL上轨": 10188.11,
+          "BOLL下轨": 9518.49,
+          "ATR14": 131.29
         },
         "levels": {
-          "20日高": 10109.0,
-          "20日低": 9453.0,
+          "20日高": 10186.0,
+          "20日低": 9516.0,
           "局部支撑": 9537.0,
           "局部阻力": null
         }
@@ -651,10 +651,22 @@ window.EXCHANGE_FUTURES_DATA = {
       },
       "news_hotspots": [
         {
-          "title": "游戏结束！印尼取得惊人成果，中方早有先见之明，每年1630万吨棕榈油改喂柴油车，印尼B50正式上路，全球食品通胀的引信正在冒烟_政策",
-          "date": "2026-07-23 00:50:00",
+          "title": "全线跳水！美国公布新关税措施 24日生效！特朗普：“认真考虑” 重启对伊大规模作战！伊朗、胡塞武装：已对美军行动做好应对准备",
+          "date": "2026-07-24 08:00:00",
           "source": "资讯来源需进一步核验",
-          "url": "https://www.sohu.com/a/1053567232_122420475"
+          "url": ""
+        },
+        {
+          "title": "油脂板块集体上行",
+          "date": "2026-07-24 00:00:00",
+          "source": "资讯来源需进一步核验",
+          "url": "https://www.cnfin.com/dz-lb/detail/20260724/4445462_1.html"
+        },
+        {
+          "title": "全线跳水！美国公布新关税措施 24日生效！特朗普：“认真考虑” 重启对伊大规模作战！伊朗、胡塞武装：已对美军行动做好应对准备",
+          "date": "2026-07-24 08:00:00",
+          "source": "资讯来源需进一步核验",
+          "url": ""
         }
       ],
       "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
@@ -677,7 +689,7 @@ window.EXCHANGE_FUTURES_DATA = {
         "details": [
           {
             "title": "趋势",
-            "text": "日线趋势判定为偏多，MA20 5918.15，MA60 5859.07。"
+            "text": "日线趋势判定为偏多，MA20 5922.9，MA60 5860.27。"
           },
           {
             "title": "动量",
@@ -685,34 +697,34 @@ window.EXCHANGE_FUTURES_DATA = {
           },
           {
             "title": "波动",
-            "text": "ATR14 为 69.43，布林区间 5809.54 至 6026.76。"
+            "text": "ATR14 为 69.71，布林区间 5818.04 至 6027.76。"
           },
           {
             "title": "关键位",
-            "text": "20日高低区间 6029.0 / 5803.0；局部支撑 5735.0，局部阻力 6000.0。"
+            "text": "20日高低区间 6029.0 / 5803.0；局部支撑 5735.0，局部阻力 5950.0。"
           }
         ],
         "indicators": {
-          "MA5": 5942.2,
-          "MA20": 5918.15,
-          "MA60": 5859.07,
-          "MACD": 1.95,
-          "RSI12": 50.0,
-          "KDJ_J": 89.63,
-          "BOLL上轨": 6026.76,
-          "BOLL下轨": 5809.54,
-          "ATR14": 69.43
+          "MA5": 5941.8,
+          "MA20": 5922.9,
+          "MA60": 5860.27,
+          "MACD": 2.71,
+          "RSI12": 48.17,
+          "KDJ_J": 83.63,
+          "BOLL上轨": 6027.76,
+          "BOLL下轨": 5818.04,
+          "ATR14": 69.71
         },
         "levels": {
           "20日高": 6029.0,
           "20日低": 5803.0,
           "局部支撑": 5735.0,
-          "局部阻力": 6000.0
+          "局部阻力": 5950.0
         }
       },
       "fundamental": {
         "category": "农产品",
-        "summary": "菜籽基本面围绕供给、需求和库存/成本三条线展开。未匹配到直接热点，基本面结论仅保留供需跟踪框架，不据此给出方向判断。",
+        "summary": "菜籽基本面围绕供给、需求和库存/成本三条线展开。已匹配到直接热点，热点只作为研究线索，需结合原始报道和数据验证传导链。",
         "factors": [
           {
             "title": "产区供给",
@@ -728,7 +740,26 @@ window.EXCHANGE_FUTURES_DATA = {
           }
         ]
       },
-      "news_hotspots": [],
+      "news_hotspots": [
+        {
+          "title": "全线跳水！美国公布新关税措施 24日生效！特朗普：“认真考虑” 重启对伊大规模作战！伊朗、胡塞武装：已对美军行动做好应对准备",
+          "date": "2026-07-24 08:00:00",
+          "source": "资讯来源需进一步核验",
+          "url": ""
+        },
+        {
+          "title": "油脂板块集体上行",
+          "date": "2026-07-24 00:00:00",
+          "source": "资讯来源需进一步核验",
+          "url": "https://www.cnfin.com/dz-lb/detail/20260724/4445462_1.html"
+        },
+        {
+          "title": "全线跳水！美国公布新关税措施 24日生效！特朗普：“认真考虑” 重启对伊大规模作战！伊朗、胡塞武装：已对美军行动做好应对准备",
+          "date": "2026-07-24 08:00:00",
+          "source": "资讯来源需进一步核验",
+          "url": ""
+        }
+      ],
       "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
     },
     {
@@ -736,10 +767,10 @@ window.EXCHANGE_FUTURES_DATA = {
       "product": "菜粕",
       "exchange": "CZCE",
       "category": "油脂油料",
-      "price": 2360.0,
-      "change_pct": 0.43,
-      "volume": 898445,
-      "open_interest": 624717,
+      "price": 2375.0,
+      "change_pct": 0.64,
+      "volume": 266143,
+      "open_interest": 620039,
       "trade_date": "2026-07-23",
       "technical": {
         "status": "ok",
@@ -749,7 +780,7 @@ window.EXCHANGE_FUTURES_DATA = {
         "details": [
           {
             "title": "趋势",
-            "text": "日线趋势判定为偏多，MA20 2302.55，MA60 2315.95。"
+            "text": "日线趋势判定为偏多，MA20 2307.5，MA60 2315.85。"
           },
           {
             "title": "动量",
@@ -757,26 +788,26 @@ window.EXCHANGE_FUTURES_DATA = {
           },
           {
             "title": "波动",
-            "text": "ATR14 为 36.93，布林区间 2243.02 至 2362.08。"
+            "text": "ATR14 为 38.0，布林区间 2243.91 至 2371.09。"
           },
           {
             "title": "关键位",
-            "text": "20日高低区间 2375.0 / 2232.0；局部支撑 2231.0，局部阻力 需进一步核验。"
+            "text": "20日高低区间 2397.0 / 2232.0；局部支撑 2231.0，局部阻力 需进一步核验。"
           }
         ],
         "indicators": {
-          "MA5": 2325.8,
-          "MA20": 2302.55,
-          "MA60": 2315.95,
-          "MACD": 6.3,
-          "RSI12": 62.39,
-          "KDJ_J": 92.93,
-          "BOLL上轨": 2362.08,
-          "BOLL下轨": 2243.02,
-          "ATR14": 36.93
+          "MA5": 2337.2,
+          "MA20": 2307.5,
+          "MA60": 2315.85,
+          "MACD": 7.6,
+          "RSI12": 62.56,
+          "KDJ_J": 87.23,
+          "BOLL上轨": 2371.09,
+          "BOLL下轨": 2243.91,
+          "ATR14": 38.0
         },
         "levels": {
-          "20日高": 2375.0,
+          "20日高": 2397.0,
           "20日低": 2232.0,
           "局部支撑": 2231.0,
           "局部阻力": null
@@ -802,10 +833,10 @@ window.EXCHANGE_FUTURES_DATA = {
       },
       "news_hotspots": [
         {
-          "title": "【iFinD财经早餐】7月23日",
-          "date": "2026-07-23 07:02:00",
+          "title": "2026年7月23日粮油早间行情简析|豆油|现货|价格|上涨|运行_新浪新闻",
+          "date": "2026-07-24 05:05:00",
           "source": "资讯来源需进一步核验",
-          "url": "http://mp.weixin.qq.com/s?__biz=MzkwNTI0OTIzMQ==&mid=2247555894&idx=2&sn=5b3b0dc6b85554701e33fb6f99bfa47c&chksm=c1da2527255f19f3b011b7a196b504266d81b98b48af7eae7d2715ba552ce7f2d68ced6e958d&scene=0&xtrack=1#rd"
+          "url": "https://k.sina.com.cn/article_5953740931_162dee08306703ptik.html"
         }
       ],
       "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
@@ -815,10 +846,10 @@ window.EXCHANGE_FUTURES_DATA = {
       "product": "PTA",
       "exchange": "CZCE",
       "category": "能化材料",
-      "price": 5946.0,
-      "change_pct": 0.95,
-      "volume": 838968,
-      "open_interest": 958469,
+      "price": 6020.0,
+      "change_pct": 1.24,
+      "volume": 382916,
+      "open_interest": 969868,
       "trade_date": "2026-07-23",
       "technical": {
         "status": "ok",
@@ -828,7 +859,7 @@ window.EXCHANGE_FUTURES_DATA = {
         "details": [
           {
             "title": "趋势",
-            "text": "日线趋势判定为偏多，MA20 5615.4，MA60 6047.57。"
+            "text": "日线趋势判定为偏多，MA20 5641.2，MA60 6039.7。"
           },
           {
             "title": "动量",
@@ -836,26 +867,26 @@ window.EXCHANGE_FUTURES_DATA = {
           },
           {
             "title": "波动",
-            "text": "ATR14 为 169.29，布林区间 5279.62 至 5951.18。"
+            "text": "ATR14 为 165.86，布林区间 5278.74 至 6003.66。"
           },
           {
             "title": "关键位",
-            "text": "20日高低区间 5966.0 / 5294.0；局部支撑 需进一步核验，局部阻力 6466.0。"
+            "text": "20日高低区间 5972.0 / 5294.0；局部支撑 需进一步核验，局部阻力 6466.0。"
           }
         ],
         "indicators": {
-          "MA5": 5806.8,
-          "MA20": 5615.4,
-          "MA60": 6047.57,
-          "MACD": 61.51,
+          "MA5": 5855.2,
+          "MA20": 5641.2,
+          "MA60": 6039.7,
+          "MACD": 65.6,
           "RSI12": 70.93,
-          "KDJ_J": 93.0,
-          "BOLL上轨": 5951.18,
-          "BOLL下轨": 5279.62,
-          "ATR14": 169.29
+          "KDJ_J": 112.94,
+          "BOLL上轨": 6003.66,
+          "BOLL下轨": 5278.74,
+          "ATR14": 165.86
         },
         "levels": {
-          "20日高": 5966.0,
+          "20日高": 5972.0,
           "20日低": 5294.0,
           "局部支撑": null,
           "局部阻力": 6466.0
@@ -952,7 +983,7 @@ window.EXCHANGE_FUTURES_DATA = {
         ]
       },
       "news_hotspots": [],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "PX2609",
@@ -1024,7 +1055,7 @@ window.EXCHANGE_FUTURES_DATA = {
         ]
       },
       "news_hotspots": [],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "UR2609",
@@ -1096,7 +1127,7 @@ window.EXCHANGE_FUTURES_DATA = {
         ]
       },
       "news_hotspots": [],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "SH2609",
@@ -1168,7 +1199,7 @@ window.EXCHANGE_FUTURES_DATA = {
         ]
       },
       "news_hotspots": [],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "PR2609",
@@ -1240,7 +1271,7 @@ window.EXCHANGE_FUTURES_DATA = {
         ]
       },
       "news_hotspots": [],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "PF2609",
@@ -1312,17 +1343,17 @@ window.EXCHANGE_FUTURES_DATA = {
         ]
       },
       "news_hotspots": [],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "MA2609",
       "product": "郑醇",
       "exchange": "CZCE",
       "category": "能化材料",
-      "price": 2756.0,
-      "change_pct": 1.4,
-      "volume": 1253549,
-      "open_interest": 625617,
+      "price": 2753.0,
+      "change_pct": -0.11,
+      "volume": 490622,
+      "open_interest": 643120,
       "trade_date": "2026-07-23",
       "technical": {
         "status": "ok",
@@ -1332,7 +1363,7 @@ window.EXCHANGE_FUTURES_DATA = {
         "details": [
           {
             "title": "趋势",
-            "text": "日线趋势判定为偏多，MA20 2518.4，MA60 2749.62。"
+            "text": "日线趋势判定为偏多，MA20 2532.7，MA60 2746.62。"
           },
           {
             "title": "动量",
@@ -1340,29 +1371,29 @@ window.EXCHANGE_FUTURES_DATA = {
           },
           {
             "title": "波动",
-            "text": "ATR14 为 93.71，布林区间 2238.01 至 2798.79。"
+            "text": "ATR14 为 93.64，布林区间 2242.59 至 2822.81。"
           },
           {
             "title": "关键位",
-            "text": "20日高低区间 2815.0 / 2306.0；局部支撑 需进一步核验，局部阻力 3045.0。"
+            "text": "20日高低区间 2815.0 / 2306.0；局部支撑 需进一步核验，局部阻力 需进一步核验。"
           }
         ],
         "indicators": {
-          "MA5": 2705.6,
-          "MA20": 2518.4,
-          "MA60": 2749.62,
-          "MACD": 47.96,
-          "RSI12": 80.94,
-          "KDJ_J": 82.94,
-          "BOLL上轨": 2798.79,
-          "BOLL下轨": 2238.01,
-          "ATR14": 93.71
+          "MA5": 2722.0,
+          "MA20": 2532.7,
+          "MA60": 2746.62,
+          "MACD": 43.87,
+          "RSI12": 79.53,
+          "KDJ_J": 80.13,
+          "BOLL上轨": 2822.81,
+          "BOLL下轨": 2242.59,
+          "ATR14": 93.64
         },
         "levels": {
           "20日高": 2815.0,
           "20日低": 2306.0,
           "局部支撑": null,
-          "局部阻力": 3045.0
+          "局部阻力": null
         }
       },
       "fundamental": {
@@ -1385,16 +1416,22 @@ window.EXCHANGE_FUTURES_DATA = {
       },
       "news_hotspots": [
         {
-          "title": "能源化工日报",
-          "date": "2026-07-23 06:26:58",
-          "source": "五矿期货",
-          "url": ""
+          "title": "Choice财经早班车 2026.7.24 星期五",
+          "date": "2026-07-24 07:17:00",
+          "source": "资讯来源需进一步核验",
+          "url": "https://mp.weixin.qq.com/s/_ET7oY56dw-iGYNzVouSgQ"
         },
         {
-          "title": "【iFinD财经早餐】7月23日",
-          "date": "2026-07-23 07:02:00",
+          "title": "【财经早餐】2026.07.24星期五",
+          "date": "2026-07-24 06:35:00",
           "source": "资讯来源需进一步核验",
-          "url": "http://mp.weixin.qq.com/s?__biz=MzkwNTI0OTIzMQ==&mid=2247555894&idx=2&sn=5b3b0dc6b85554701e33fb6f99bfa47c&chksm=c1da2527255f19f3b011b7a196b504266d81b98b48af7eae7d2715ba552ce7f2d68ced6e958d&scene=0&xtrack=1#rd"
+          "url": "https://mp.weixin.qq.com/s/dlU7m2ATeyYtx2EgP3VYFw"
+        },
+        {
+          "title": "7月24日：游戏结束！印尼取得惊人成果，中方早有先见之明，棕榈油是要变天了_柴油_全球_出口",
+          "date": "2026-07-24 07:16:00",
+          "source": "资讯来源需进一步核验",
+          "url": "https://www.sohu.com/a/1054064173_122287179"
         }
       ],
       "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
@@ -1469,7 +1506,7 @@ window.EXCHANGE_FUTURES_DATA = {
         ]
       },
       "news_hotspots": [],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "CY2609",
@@ -1541,27 +1578,27 @@ window.EXCHANGE_FUTURES_DATA = {
         ]
       },
       "news_hotspots": [],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "CF2609",
       "product": "棉花",
       "exchange": "CZCE",
       "category": "软商品",
-      "price": 16005.0,
-      "change_pct": 0.31,
-      "volume": 196124,
-      "open_interest": 413028,
+      "price": 16065.0,
+      "change_pct": 0.37,
+      "volume": 75098,
+      "open_interest": 412467,
       "trade_date": "2026-07-23",
       "technical": {
         "status": "ok",
-        "trend": "偏空",
-        "score": 27,
-        "summary": "价格位于20日均线下方；中期均线结构偏空；MACD快线位于慢线下方",
+        "trend": "震荡",
+        "score": 55,
+        "summary": "价格位于20日均线上方；MACD快线位于慢线下方",
         "details": [
           {
             "title": "趋势",
-            "text": "日线趋势判定为偏空，MA20 16042.75，MA60 16101.75。"
+            "text": "日线趋势判定为震荡，MA20 16059.25，MA60 16098.75。"
           },
           {
             "title": "动量",
@@ -1569,34 +1606,34 @@ window.EXCHANGE_FUTURES_DATA = {
           },
           {
             "title": "波动",
-            "text": "ATR14 为 231.07，布林区间 15686.15 至 16399.35。"
+            "text": "ATR14 为 221.79，布林区间 15742.24 至 16376.26。"
           },
           {
             "title": "关键位",
-            "text": "20日高低区间 16485.0 / 15615.0；局部支撑 15675.0，局部阻力 16330.0。"
+            "text": "20日高低区间 16485.0 / 15625.0；局部支撑 15675.0，局部阻力 16330.0。"
           }
         ],
         "indicators": {
-          "MA5": 15940.0,
-          "MA20": 16042.75,
-          "MA60": 16101.75,
-          "MACD": -18.48,
-          "RSI12": 40.0,
-          "KDJ_J": 61.7,
-          "BOLL上轨": 16399.35,
-          "BOLL下轨": 15686.15,
-          "ATR14": 231.07
+          "MA5": 15932.0,
+          "MA20": 16059.25,
+          "MA60": 16098.75,
+          "MACD": -12.06,
+          "RSI12": 39.92,
+          "KDJ_J": 73.95,
+          "BOLL上轨": 16376.26,
+          "BOLL下轨": 15742.24,
+          "ATR14": 221.79
         },
         "levels": {
           "20日高": 16485.0,
-          "20日低": 15615.0,
+          "20日低": 15625.0,
           "局部支撑": 15675.0,
           "局部阻力": 16330.0
         }
       },
       "fundamental": {
         "category": "农产品",
-        "summary": "棉花基本面围绕供给、需求和库存/成本三条线展开。已匹配到直接热点，热点只作为研究线索，需结合原始报道和数据验证传导链。",
+        "summary": "棉花基本面围绕供给、需求和库存/成本三条线展开。未匹配到直接热点，基本面结论仅保留供需跟踪框架，不据此给出方向判断。",
         "factors": [
           {
             "title": "产区供给",
@@ -1612,14 +1649,7 @@ window.EXCHANGE_FUTURES_DATA = {
           }
         ]
       },
-      "news_hotspots": [
-        {
-          "title": "【iFinD财经早餐】7月23日",
-          "date": "2026-07-23 07:02:00",
-          "source": "资讯来源需进一步核验",
-          "url": "http://mp.weixin.qq.com/s?__biz=MzkwNTI0OTIzMQ==&mid=2247555894&idx=2&sn=5b3b0dc6b85554701e33fb6f99bfa47c&chksm=c1da2527255f19f3b011b7a196b504266d81b98b48af7eae7d2715ba552ce7f2d68ced6e958d&scene=0&xtrack=1#rd"
-        }
-      ],
+      "news_hotspots": [],
       "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
     },
     {
@@ -1627,10 +1657,10 @@ window.EXCHANGE_FUTURES_DATA = {
       "product": "白糖",
       "exchange": "CZCE",
       "category": "软商品",
-      "price": 5190.0,
-      "change_pct": 0.41,
-      "volume": 284729,
-      "open_interest": 665332,
+      "price": 5176.0,
+      "change_pct": -0.27,
+      "volume": 97895,
+      "open_interest": 664082,
       "trade_date": "2026-07-23",
       "technical": {
         "status": "ok",
@@ -1640,7 +1670,7 @@ window.EXCHANGE_FUTURES_DATA = {
         "details": [
           {
             "title": "趋势",
-            "text": "日线趋势判定为偏空，MA20 5238.7，MA60 5335.82。"
+            "text": "日线趋势判定为偏空，MA20 5235.95，MA60 5331.78。"
           },
           {
             "title": "动量",
@@ -1648,7 +1678,7 @@ window.EXCHANGE_FUTURES_DATA = {
           },
           {
             "title": "波动",
-            "text": "ATR14 为 44.36，布林区间 5125.84 至 5351.56。"
+            "text": "ATR14 为 42.43，布林区间 5118.13 至 5353.77。"
           },
           {
             "title": "关键位",
@@ -1656,15 +1686,15 @@ window.EXCHANGE_FUTURES_DATA = {
           }
         ],
         "indicators": {
-          "MA5": 5159.6,
-          "MA20": 5238.7,
-          "MA60": 5335.82,
-          "MACD": -6.59,
-          "RSI12": 29.79,
-          "KDJ_J": 46.06,
-          "BOLL上轨": 5351.56,
-          "BOLL下轨": 5125.84,
-          "ATR14": 44.36
+          "MA5": 5159.0,
+          "MA20": 5235.95,
+          "MA60": 5331.78,
+          "MACD": -5.64,
+          "RSI12": 27.71,
+          "KDJ_J": 39.32,
+          "BOLL上轨": 5353.77,
+          "BOLL下轨": 5118.13,
+          "ATR14": 42.43
         },
         "levels": {
           "20日高": 5336.0,
@@ -1764,7 +1794,7 @@ window.EXCHANGE_FUTURES_DATA = {
         ]
       },
       "news_hotspots": [],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "AP2610",
@@ -1836,7 +1866,7 @@ window.EXCHANGE_FUTURES_DATA = {
         ]
       },
       "news_hotspots": [],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "SF2609",
@@ -1908,7 +1938,7 @@ window.EXCHANGE_FUTURES_DATA = {
         ]
       },
       "news_hotspots": [],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "SM2609",
@@ -1980,17 +2010,17 @@ window.EXCHANGE_FUTURES_DATA = {
         ]
       },
       "news_hotspots": [],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "FG2609",
       "product": "玻璃",
       "exchange": "CZCE",
       "category": "黑色建材",
-      "price": 899.0,
-      "change_pct": -1.53,
-      "volume": 1448162,
-      "open_interest": 1851559,
+      "price": 894.0,
+      "change_pct": -0.56,
+      "volume": 343004,
+      "open_interest": 1876085,
       "trade_date": "2026-07-23",
       "technical": {
         "status": "ok",
@@ -2000,7 +2030,7 @@ window.EXCHANGE_FUTURES_DATA = {
         "details": [
           {
             "title": "趋势",
-            "text": "日线趋势判定为偏空，MA20 948.65，MA60 1002.05。"
+            "text": "日线趋势判定为偏空，MA20 945.3，MA60 999.2。"
           },
           {
             "title": "动量",
@@ -2008,7 +2038,7 @@ window.EXCHANGE_FUTURES_DATA = {
           },
           {
             "title": "波动",
-            "text": "ATR14 为 18.57，布林区间 892.08 至 1005.22。"
+            "text": "ATR14 为 19.14，布林区间 887.12 至 1003.48。"
           },
           {
             "title": "关键位",
@@ -2016,15 +2046,15 @@ window.EXCHANGE_FUTURES_DATA = {
           }
         ],
         "indicators": {
-          "MA5": 904.4,
-          "MA20": 948.65,
-          "MA60": 1002.05,
-          "MACD": -4.43,
-          "RSI12": 24.24,
-          "KDJ_J": 13.5,
-          "BOLL上轨": 1005.22,
-          "BOLL下轨": 892.08,
-          "ATR14": 18.57
+          "MA5": 900.2,
+          "MA20": 945.3,
+          "MA60": 999.2,
+          "MACD": -3.69,
+          "RSI12": 29.29,
+          "KDJ_J": 11.69,
+          "BOLL上轨": 1003.48,
+          "BOLL下轨": 887.12,
+          "ATR14": 19.14
         },
         "levels": {
           "20日高": 982.0,
@@ -2124,7 +2154,7 @@ window.EXCHANGE_FUTURES_DATA = {
         ]
       },
       "news_hotspots": [],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "LG2609",
@@ -2196,7 +2226,7 @@ window.EXCHANGE_FUTURES_DATA = {
         ]
       },
       "news_hotspots": [],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "FB2609",
@@ -2268,7 +2298,7 @@ window.EXCHANGE_FUTURES_DATA = {
         ]
       },
       "news_hotspots": [],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "BB2611",
@@ -2303,7 +2333,7 @@ window.EXCHANGE_FUTURES_DATA = {
         ]
       },
       "news_hotspots": [],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "P2609",
@@ -2388,7 +2418,7 @@ window.EXCHANGE_FUTURES_DATA = {
           "url": "https://www.sohu.com/a/1053567232_122420475"
         }
       ],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "A2609",
@@ -2460,7 +2490,7 @@ window.EXCHANGE_FUTURES_DATA = {
         ]
       },
       "news_hotspots": [],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "B2609",
@@ -2532,7 +2562,7 @@ window.EXCHANGE_FUTURES_DATA = {
         ]
       },
       "news_hotspots": [],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "Y2609",
@@ -2611,7 +2641,7 @@ window.EXCHANGE_FUTURES_DATA = {
           "url": "https://www.sohu.com/a/1053567232_122420475"
         }
       ],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "M2609",
@@ -2690,7 +2720,7 @@ window.EXCHANGE_FUTURES_DATA = {
           "url": "http://mp.weixin.qq.com/s?__biz=MzkwNTI0OTIzMQ==&mid=2247555894&idx=2&sn=5b3b0dc6b85554701e33fb6f99bfa47c&chksm=c1da2527255f19f3b011b7a196b504266d81b98b48af7eae7d2715ba552ce7f2d68ced6e958d&scene=0&xtrack=1#rd"
         }
       ],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "PP2609",
@@ -2762,7 +2792,7 @@ window.EXCHANGE_FUTURES_DATA = {
         ]
       },
       "news_hotspots": [],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "V2609",
@@ -2841,7 +2871,7 @@ window.EXCHANGE_FUTURES_DATA = {
           "url": "http://mp.weixin.qq.com/s?__biz=MzkwNTI0OTIzMQ==&mid=2247555894&idx=2&sn=5b3b0dc6b85554701e33fb6f99bfa47c&chksm=c1da2527255f19f3b011b7a196b504266d81b98b48af7eae7d2715ba552ce7f2d68ced6e958d&scene=0&xtrack=1#rd"
         }
       ],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "EG2609",
@@ -2920,7 +2950,7 @@ window.EXCHANGE_FUTURES_DATA = {
           "url": "http://mp.weixin.qq.com/s?__biz=MzkwNTI0OTIzMQ==&mid=2247555894&idx=2&sn=5b3b0dc6b85554701e33fb6f99bfa47c&chksm=c1da2527255f19f3b011b7a196b504266d81b98b48af7eae7d2715ba552ce7f2d68ced6e958d&scene=0&xtrack=1#rd"
         }
       ],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "L2609",
@@ -2992,7 +3022,7 @@ window.EXCHANGE_FUTURES_DATA = {
         ]
       },
       "news_hotspots": [],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "PG2610",
@@ -3064,7 +3094,7 @@ window.EXCHANGE_FUTURES_DATA = {
         ]
       },
       "news_hotspots": [],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "BZ2609",
@@ -3136,7 +3166,7 @@ window.EXCHANGE_FUTURES_DATA = {
         ]
       },
       "news_hotspots": [],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "EB2609",
@@ -3215,7 +3245,7 @@ window.EXCHANGE_FUTURES_DATA = {
           "url": "http://mp.weixin.qq.com/s?__biz=MzkwNTI0OTIzMQ==&mid=2247555894&idx=2&sn=5b3b0dc6b85554701e33fb6f99bfa47c&chksm=c1da2527255f19f3b011b7a196b504266d81b98b48af7eae7d2715ba552ce7f2d68ced6e958d&scene=0&xtrack=1#rd"
         }
       ],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "C2609",
@@ -3294,7 +3324,7 @@ window.EXCHANGE_FUTURES_DATA = {
           "url": "http://mp.weixin.qq.com/s?__biz=MzkwNTI0OTIzMQ==&mid=2247555894&idx=2&sn=5b3b0dc6b85554701e33fb6f99bfa47c&chksm=c1da2527255f19f3b011b7a196b504266d81b98b48af7eae7d2715ba552ce7f2d68ced6e958d&scene=0&xtrack=1#rd"
         }
       ],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "CS2609",
@@ -3366,7 +3396,7 @@ window.EXCHANGE_FUTURES_DATA = {
         ]
       },
       "news_hotspots": [],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "RR2609",
@@ -3438,7 +3468,7 @@ window.EXCHANGE_FUTURES_DATA = {
         ]
       },
       "news_hotspots": [],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "LH2609",
@@ -3510,7 +3540,7 @@ window.EXCHANGE_FUTURES_DATA = {
         ]
       },
       "news_hotspots": [],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "JD2609",
@@ -3582,7 +3612,7 @@ window.EXCHANGE_FUTURES_DATA = {
         ]
       },
       "news_hotspots": [],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "J2609",
@@ -3654,7 +3684,7 @@ window.EXCHANGE_FUTURES_DATA = {
         ]
       },
       "news_hotspots": [],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "JM2609",
@@ -3726,7 +3756,7 @@ window.EXCHANGE_FUTURES_DATA = {
         ]
       },
       "news_hotspots": [],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "I2609",
@@ -3798,7 +3828,7 @@ window.EXCHANGE_FUTURES_DATA = {
         ]
       },
       "news_hotspots": [],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "PS2609",
@@ -3870,7 +3900,7 @@ window.EXCHANGE_FUTURES_DATA = {
         ]
       },
       "news_hotspots": [],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "SI2609",
@@ -3942,7 +3972,7 @@ window.EXCHANGE_FUTURES_DATA = {
         ]
       },
       "news_hotspots": [],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "LC2609",
@@ -4014,7 +4044,7 @@ window.EXCHANGE_FUTURES_DATA = {
         ]
       },
       "news_hotspots": [],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "PD2610",
@@ -4086,7 +4116,7 @@ window.EXCHANGE_FUTURES_DATA = {
         ]
       },
       "news_hotspots": [],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "PT2610",
@@ -4158,7 +4188,7 @@ window.EXCHANGE_FUTURES_DATA = {
         ]
       },
       "news_hotspots": [],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "BC2608",
@@ -4230,7 +4260,7 @@ window.EXCHANGE_FUTURES_DATA = {
         ]
       },
       "news_hotspots": [],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "AO2609",
@@ -4309,7 +4339,7 @@ window.EXCHANGE_FUTURES_DATA = {
           "url": "http://mp.weixin.qq.com/s?__biz=MzkwNTI0OTIzMQ==&mid=2247555894&idx=2&sn=5b3b0dc6b85554701e33fb6f99bfa47c&chksm=c1da2527255f19f3b011b7a196b504266d81b98b48af7eae7d2715ba552ce7f2d68ced6e958d&scene=0&xtrack=1#rd"
         }
       ],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "PB2609",
@@ -4381,7 +4411,7 @@ window.EXCHANGE_FUTURES_DATA = {
         ]
       },
       "news_hotspots": [],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "CU2609",
@@ -4453,7 +4483,7 @@ window.EXCHANGE_FUTURES_DATA = {
         ]
       },
       "news_hotspots": [],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "AL2609",
@@ -4525,7 +4555,7 @@ window.EXCHANGE_FUTURES_DATA = {
         ]
       },
       "news_hotspots": [],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "ZN2609",
@@ -4597,7 +4627,7 @@ window.EXCHANGE_FUTURES_DATA = {
         ]
       },
       "news_hotspots": [],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "SN2608",
@@ -4669,7 +4699,7 @@ window.EXCHANGE_FUTURES_DATA = {
         ]
       },
       "news_hotspots": [],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "NI2609",
@@ -4741,7 +4771,7 @@ window.EXCHANGE_FUTURES_DATA = {
         ]
       },
       "news_hotspots": [],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "AD2609",
@@ -4813,7 +4843,7 @@ window.EXCHANGE_FUTURES_DATA = {
         ]
       },
       "news_hotspots": [],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "NR2609",
@@ -4885,7 +4915,7 @@ window.EXCHANGE_FUTURES_DATA = {
         ]
       },
       "news_hotspots": [],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "BR2609",
@@ -4957,7 +4987,7 @@ window.EXCHANGE_FUTURES_DATA = {
         ]
       },
       "news_hotspots": [],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "LU2609",
@@ -5036,7 +5066,7 @@ window.EXCHANGE_FUTURES_DATA = {
           "url": ""
         }
       ],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "SC2609",
@@ -5127,7 +5157,7 @@ window.EXCHANGE_FUTURES_DATA = {
           "url": ""
         }
       ],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "RU2609",
@@ -5206,7 +5236,7 @@ window.EXCHANGE_FUTURES_DATA = {
           "url": "http://mp.weixin.qq.com/s?__biz=MzkwNTI0OTIzMQ==&mid=2247555894&idx=2&sn=5b3b0dc6b85554701e33fb6f99bfa47c&chksm=c1da2527255f19f3b011b7a196b504266d81b98b48af7eae7d2715ba552ce7f2d68ced6e958d&scene=0&xtrack=1#rd"
         }
       ],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "BU2609",
@@ -5278,7 +5308,7 @@ window.EXCHANGE_FUTURES_DATA = {
         ]
       },
       "news_hotspots": [],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "FU2609",
@@ -5363,7 +5393,7 @@ window.EXCHANGE_FUTURES_DATA = {
           "url": "http://mp.weixin.qq.com/s?__biz=MzkwNTI0OTIzMQ==&mid=2247555894&idx=2&sn=5b3b0dc6b85554701e33fb6f99bfa47c&chksm=c1da2527255f19f3b011b7a196b504266d81b98b48af7eae7d2715ba552ce7f2d68ced6e958d&scene=0&xtrack=1#rd"
         }
       ],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "AG2610",
@@ -5435,7 +5465,7 @@ window.EXCHANGE_FUTURES_DATA = {
         ]
       },
       "news_hotspots": [],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "AU2608",
@@ -5507,7 +5537,7 @@ window.EXCHANGE_FUTURES_DATA = {
         ]
       },
       "news_hotspots": [],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "SP2609",
@@ -5579,7 +5609,7 @@ window.EXCHANGE_FUTURES_DATA = {
         ]
       },
       "news_hotspots": [],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "OP2609",
@@ -5651,7 +5681,7 @@ window.EXCHANGE_FUTURES_DATA = {
         ]
       },
       "news_hotspots": [],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "EC2608",
@@ -5723,7 +5753,7 @@ window.EXCHANGE_FUTURES_DATA = {
         ]
       },
       "news_hotspots": [],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "SS2609",
@@ -5795,7 +5825,7 @@ window.EXCHANGE_FUTURES_DATA = {
         ]
       },
       "news_hotspots": [],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "HC2610",
@@ -5867,7 +5897,7 @@ window.EXCHANGE_FUTURES_DATA = {
         ]
       },
       "news_hotspots": [],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "WR2609",
@@ -5939,7 +5969,7 @@ window.EXCHANGE_FUTURES_DATA = {
         ]
       },
       "news_hotspots": [],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     },
     {
       "symbol": "RB2610",
@@ -6011,7 +6041,7 @@ window.EXCHANGE_FUTURES_DATA = {
         ]
       },
       "news_hotspots": [],
-      "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。"
+      "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。"
     }
   ]
 };

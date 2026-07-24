@@ -1,9 +1,9 @@
 {
-  "status": "ok",
+  "status": "error",
   "schema_version": 2,
-  "generated_at": "2026-07-23T15:14:16+08:00",
-  "market_updated_at": "2026-07-23 15:07",
-  "market_update_session": "close",
+  "generated_at": "2026-07-24T16:47:39+08:00",
+  "market_updated_at": "2026-07-24 08:29",
+  "market_update_session": "morning",
   "market_timezone": "Asia/Shanghai",
   "default_model_id": "bollinger-rsi-ma6-v1",
   "models": [
@@ -90,124 +90,13 @@
         "product_name": "棕榈油",
         "rank": 1,
         "label": "主力",
-        "market_date": "2026-07-22",
-        "data_source": "akshare:futures_zh_daily_sina",
-        "bar_completed": true,
-        "bar_note": "latest source bar treated as completed",
-        "model_scope": "validated_mapping",
-        "model_scope_label": "成熟模型映射",
-        "market": {
-          "close": 9250.0,
-          "ma6": 9272.333333333334,
-          "ma20": 9268.05,
-          "atr14": 146.33719094266158,
-          "rsi14": 47.007212285776276,
-          "long_signal": false,
-          "short_signal": false,
-          "bearish_divergence": false,
-          "bullish_divergence": false
-        },
-        "signals": {
-          "flat": {
-            "status": "ok",
-            "symbol": "P2609",
-            "period": "daily",
-            "market_date": "2026-07-22",
-            "position": "flat",
-            "action": "WAIT",
-            "execution": "none",
-            "rationale": [
-              "no new MA20 crossover"
-            ],
-            "blocked_direction_after_action": "none",
-            "market": {
-              "close": 9250.0,
-              "ma6": 9272.333333333334,
-              "ma20": 9268.05,
-              "atr14": 146.33719094266158,
-              "rsi14": 47.007212285776276,
-              "long_signal": false,
-              "short_signal": false,
-              "bearish_divergence": false,
-              "bullish_divergence": false
-            },
-            "stop_state": {},
-            "take_profit": "long: 20-day price high without RSI confirmation; short: reverse",
-            "cost_assumption_one_way": 0.0004,
-            "validation_scope": "same_rule_calculation",
-            "data_source": "akshare:futures_zh_daily_sina"
-          },
-          "long": {
-            "status": "ok",
-            "symbol": "P2609",
-            "period": "daily",
-            "market_date": "2026-07-22",
-            "position": "long",
-            "action": "HOLD_LONG_DATA_NEEDED",
-            "execution": "none",
-            "rationale": [
-              "long ATR activation cannot be evaluated from the supplied position data"
-            ],
-            "blocked_direction_after_action": "none",
-            "market": {
-              "close": 9250.0,
-              "ma6": 9272.333333333334,
-              "ma20": 9268.05,
-              "atr14": 146.33719094266158,
-              "rsi14": 47.007212285776276,
-              "long_signal": false,
-              "short_signal": false,
-              "bearish_divergence": false,
-              "bullish_divergence": false
-            },
-            "stop_state": {
-              "evaluated": false,
-              "missing": "entry_date or entry_price, entry_atr, and highest_since_entry"
-            },
-            "take_profit": "long: 20-day price high without RSI confirmation; short: reverse",
-            "cost_assumption_one_way": 0.0004,
-            "validation_scope": "same_rule_calculation",
-            "data_source": "akshare:futures_zh_daily_sina"
-          },
-          "short": {
-            "status": "ok",
-            "symbol": "P2609",
-            "period": "daily",
-            "market_date": "2026-07-22",
-            "position": "short",
-            "action": "HOLD_SHORT",
-            "execution": "none",
-            "rationale": [
-              "short stop and bullish divergence not triggered"
-            ],
-            "blocked_direction_after_action": "none",
-            "market": {
-              "close": 9250.0,
-              "ma6": 9272.333333333334,
-              "ma20": 9268.05,
-              "atr14": 146.33719094266158,
-              "rsi14": 47.007212285776276,
-              "long_signal": false,
-              "short_signal": false,
-              "bearish_divergence": false,
-              "bullish_divergence": false
-            },
-            "stop_state": {
-              "armed": true,
-              "close_above_ma6": false,
-              "ma6": 9272.333333333334
-            },
-            "take_profit": "long: 20-day price high without RSI confirmation; short: reverse",
-            "cost_assumption_one_way": 0.0004,
-            "validation_scope": "same_rule_calculation",
-            "data_source": "akshare:futures_zh_daily_sina"
-          }
-        },
+        "status": "error",
+        "message": "market data request failed after 2 attempts for P2609: HTTPSConnectionPool(host='stock2.finance.sina.com.cn', port=443): Max retries exceeded with url: /futures/api/jsonp.php/var%20_V21052021_4_12=/InnerFuturesNewService.getDailyKLine?symbol=P2609&type=2021_04_12 (Caused by NameResolutionError(\"HTTPSConnection(host='stock2.finance.sina.com.cn', port=443): Failed to resolve 'stock2.finance.sina.com.cn' ([Errno 8] nodename nor servname provided, or not known)\"))",
         "current_quote": {
-          "price": 9515.0,
-          "change": "+2.86%",
+          "price": 9534.0,
+          "change": "+0.20%",
           "direction": "↑",
-          "trade_date": "2026-07-23",
+          "trade_date": "2026-07-24",
           "source": "AkShare + 同花顺问财行情skill",
           "unit": "元/吨"
         }
@@ -218,124 +107,13 @@
         "product_name": "棕榈油",
         "rank": 2,
         "label": "次主力",
-        "market_date": "2026-07-22",
-        "data_source": "akshare:futures_zh_daily_sina",
-        "bar_completed": true,
-        "bar_note": "latest source bar treated as completed",
-        "model_scope": "validated_mapping",
-        "model_scope_label": "成熟模型映射",
-        "market": {
-          "close": 9543.0,
-          "ma6": 9565.666666666666,
-          "ma20": 9546.6,
-          "atr14": 135.09700636155702,
-          "rsi14": 48.04940130503786,
-          "long_signal": false,
-          "short_signal": false,
-          "bearish_divergence": false,
-          "bullish_divergence": false
-        },
-        "signals": {
-          "flat": {
-            "status": "ok",
-            "symbol": "P2701",
-            "period": "daily",
-            "market_date": "2026-07-22",
-            "position": "flat",
-            "action": "WAIT",
-            "execution": "none",
-            "rationale": [
-              "no new MA20 crossover"
-            ],
-            "blocked_direction_after_action": "none",
-            "market": {
-              "close": 9543.0,
-              "ma6": 9565.666666666666,
-              "ma20": 9546.6,
-              "atr14": 135.09700636155702,
-              "rsi14": 48.04940130503786,
-              "long_signal": false,
-              "short_signal": false,
-              "bearish_divergence": false,
-              "bullish_divergence": false
-            },
-            "stop_state": {},
-            "take_profit": "long: 20-day price high without RSI confirmation; short: reverse",
-            "cost_assumption_one_way": 0.0004,
-            "validation_scope": "same_rule_calculation",
-            "data_source": "akshare:futures_zh_daily_sina"
-          },
-          "long": {
-            "status": "ok",
-            "symbol": "P2701",
-            "period": "daily",
-            "market_date": "2026-07-22",
-            "position": "long",
-            "action": "HOLD_LONG_DATA_NEEDED",
-            "execution": "none",
-            "rationale": [
-              "long ATR activation cannot be evaluated from the supplied position data"
-            ],
-            "blocked_direction_after_action": "none",
-            "market": {
-              "close": 9543.0,
-              "ma6": 9565.666666666666,
-              "ma20": 9546.6,
-              "atr14": 135.09700636155702,
-              "rsi14": 48.04940130503786,
-              "long_signal": false,
-              "short_signal": false,
-              "bearish_divergence": false,
-              "bullish_divergence": false
-            },
-            "stop_state": {
-              "evaluated": false,
-              "missing": "entry_date or entry_price, entry_atr, and highest_since_entry"
-            },
-            "take_profit": "long: 20-day price high without RSI confirmation; short: reverse",
-            "cost_assumption_one_way": 0.0004,
-            "validation_scope": "same_rule_calculation",
-            "data_source": "akshare:futures_zh_daily_sina"
-          },
-          "short": {
-            "status": "ok",
-            "symbol": "P2701",
-            "period": "daily",
-            "market_date": "2026-07-22",
-            "position": "short",
-            "action": "HOLD_SHORT",
-            "execution": "none",
-            "rationale": [
-              "short stop and bullish divergence not triggered"
-            ],
-            "blocked_direction_after_action": "none",
-            "market": {
-              "close": 9543.0,
-              "ma6": 9565.666666666666,
-              "ma20": 9546.6,
-              "atr14": 135.09700636155702,
-              "rsi14": 48.04940130503786,
-              "long_signal": false,
-              "short_signal": false,
-              "bearish_divergence": false,
-              "bullish_divergence": false
-            },
-            "stop_state": {
-              "armed": true,
-              "close_above_ma6": false,
-              "ma6": 9565.666666666666
-            },
-            "take_profit": "long: 20-day price high without RSI confirmation; short: reverse",
-            "cost_assumption_one_way": 0.0004,
-            "validation_scope": "same_rule_calculation",
-            "data_source": "akshare:futures_zh_daily_sina"
-          }
-        },
+        "status": "error",
+        "message": "market data request failed after 2 attempts for P2701: HTTPSConnectionPool(host='stock2.finance.sina.com.cn', port=443): Max retries exceeded with url: /futures/api/jsonp.php/var%20_V21052021_4_12=/InnerFuturesNewService.getDailyKLine?symbol=P2701&type=2021_04_12 (Caused by NameResolutionError(\"HTTPSConnection(host='stock2.finance.sina.com.cn', port=443): Failed to resolve 'stock2.finance.sina.com.cn' ([Errno 8] nodename nor servname provided, or not known)\"))",
         "current_quote": {
-          "price": 9795.0,
-          "change": "+2.64%",
+          "price": 9812.0,
+          "change": "+0.17%",
           "direction": "↑",
-          "trade_date": "2026-07-23",
+          "trade_date": "2026-07-24",
           "source": "AkShare + 同花顺问财行情skill",
           "unit": "元/吨"
         }
@@ -346,128 +124,13 @@
         "product_name": "豆油",
         "rank": 1,
         "label": "主力",
-        "market_date": "2026-07-22",
-        "data_source": "akshare:futures_zh_daily_sina",
-        "bar_completed": true,
-        "bar_note": "latest source bar treated as completed",
-        "model_scope": "rule_trial",
-        "model_scope_label": "同规则试算",
-        "market": {
-          "close": 8442.0,
-          "ma6": 8547.666666666666,
-          "ma20": 8514.85,
-          "atr14": 84.19769509145172,
-          "rsi14": 44.31119275574017,
-          "long_signal": false,
-          "short_signal": true,
-          "bearish_divergence": false,
-          "bullish_divergence": false
-        },
-        "signals": {
-          "flat": {
-            "status": "ok",
-            "symbol": "Y2609",
-            "period": "daily",
-            "market_date": "2026-07-22",
-            "position": "flat",
-            "action": "MISSED_ENTRY_SIGNAL",
-            "execution": "wait_for_next_confirmed_signal",
-            "rationale": [
-              "completed close crossed below MA20",
-              "the strategy's next-open entry window has already passed; do not chase"
-            ],
-            "blocked_direction_after_action": "none",
-            "market": {
-              "close": 8442.0,
-              "ma6": 8547.666666666666,
-              "ma20": 8514.85,
-              "atr14": 84.19769509145172,
-              "rsi14": 44.31119275574017,
-              "long_signal": false,
-              "short_signal": true,
-              "bearish_divergence": false,
-              "bullish_divergence": false
-            },
-            "stop_state": {},
-            "take_profit": "long: 20-day price high without RSI confirmation; short: reverse",
-            "cost_assumption_one_way": 0.0004,
-            "validation_scope": "same_rule_calculation",
-            "intended_execution_date": "2026-07-23",
-            "original_confirmed_action": "OPEN_SHORT",
-            "execution_window": "missed",
-            "data_source": "akshare:futures_zh_daily_sina"
-          },
-          "long": {
-            "status": "ok",
-            "symbol": "Y2609",
-            "period": "daily",
-            "market_date": "2026-07-22",
-            "position": "long",
-            "action": "HOLD_LONG_DATA_NEEDED",
-            "execution": "none",
-            "rationale": [
-              "long ATR activation cannot be evaluated from the supplied position data"
-            ],
-            "blocked_direction_after_action": "none",
-            "market": {
-              "close": 8442.0,
-              "ma6": 8547.666666666666,
-              "ma20": 8514.85,
-              "atr14": 84.19769509145172,
-              "rsi14": 44.31119275574017,
-              "long_signal": false,
-              "short_signal": true,
-              "bearish_divergence": false,
-              "bullish_divergence": false
-            },
-            "stop_state": {
-              "evaluated": false,
-              "missing": "entry_date or entry_price, entry_atr, and highest_since_entry"
-            },
-            "take_profit": "long: 20-day price high without RSI confirmation; short: reverse",
-            "cost_assumption_one_way": 0.0004,
-            "validation_scope": "same_rule_calculation",
-            "data_source": "akshare:futures_zh_daily_sina"
-          },
-          "short": {
-            "status": "ok",
-            "symbol": "Y2609",
-            "period": "daily",
-            "market_date": "2026-07-22",
-            "position": "short",
-            "action": "HOLD_SHORT",
-            "execution": "none",
-            "rationale": [
-              "short stop and bullish divergence not triggered"
-            ],
-            "blocked_direction_after_action": "none",
-            "market": {
-              "close": 8442.0,
-              "ma6": 8547.666666666666,
-              "ma20": 8514.85,
-              "atr14": 84.19769509145172,
-              "rsi14": 44.31119275574017,
-              "long_signal": false,
-              "short_signal": true,
-              "bearish_divergence": false,
-              "bullish_divergence": false
-            },
-            "stop_state": {
-              "armed": true,
-              "close_above_ma6": false,
-              "ma6": 8547.666666666666
-            },
-            "take_profit": "long: 20-day price high without RSI confirmation; short: reverse",
-            "cost_assumption_one_way": 0.0004,
-            "validation_scope": "same_rule_calculation",
-            "data_source": "akshare:futures_zh_daily_sina"
-          }
-        },
+        "status": "error",
+        "message": "market data request failed after 2 attempts for Y2609: HTTPSConnectionPool(host='stock2.finance.sina.com.cn', port=443): Max retries exceeded with url: /futures/api/jsonp.php/var%20_V21052021_4_12=/InnerFuturesNewService.getDailyKLine?symbol=Y2609&type=2021_04_12 (Caused by NameResolutionError(\"HTTPSConnection(host='stock2.finance.sina.com.cn', port=443): Failed to resolve 'stock2.finance.sina.com.cn' ([Errno 8] nodename nor servname provided, or not known)\"))",
         "current_quote": {
-          "price": 8545.0,
-          "change": "+1.22%",
+          "price": 8582.0,
+          "change": "+0.43%",
           "direction": "↑",
-          "trade_date": "2026-07-23",
+          "trade_date": "2026-07-24",
           "source": "AkShare + 同花顺问财行情skill",
           "unit": "元/吨"
         }
@@ -478,128 +141,13 @@
         "product_name": "豆油",
         "rank": 2,
         "label": "次主力",
-        "market_date": "2026-07-22",
-        "data_source": "akshare:futures_zh_daily_sina",
-        "bar_completed": true,
-        "bar_note": "latest source bar treated as completed",
-        "model_scope": "rule_trial",
-        "model_scope_label": "同规则试算",
-        "market": {
-          "close": 8465.0,
-          "ma6": 8547.833333333334,
-          "ma20": 8494.15,
-          "atr14": 81.239868758601,
-          "rsi14": 47.72734864906311,
-          "long_signal": false,
-          "short_signal": true,
-          "bearish_divergence": false,
-          "bullish_divergence": false
-        },
-        "signals": {
-          "flat": {
-            "status": "ok",
-            "symbol": "Y2701",
-            "period": "daily",
-            "market_date": "2026-07-22",
-            "position": "flat",
-            "action": "MISSED_ENTRY_SIGNAL",
-            "execution": "wait_for_next_confirmed_signal",
-            "rationale": [
-              "completed close crossed below MA20",
-              "the strategy's next-open entry window has already passed; do not chase"
-            ],
-            "blocked_direction_after_action": "none",
-            "market": {
-              "close": 8465.0,
-              "ma6": 8547.833333333334,
-              "ma20": 8494.15,
-              "atr14": 81.239868758601,
-              "rsi14": 47.72734864906311,
-              "long_signal": false,
-              "short_signal": true,
-              "bearish_divergence": false,
-              "bullish_divergence": false
-            },
-            "stop_state": {},
-            "take_profit": "long: 20-day price high without RSI confirmation; short: reverse",
-            "cost_assumption_one_way": 0.0004,
-            "validation_scope": "same_rule_calculation",
-            "intended_execution_date": "2026-07-23",
-            "original_confirmed_action": "OPEN_SHORT",
-            "execution_window": "missed",
-            "data_source": "akshare:futures_zh_daily_sina"
-          },
-          "long": {
-            "status": "ok",
-            "symbol": "Y2701",
-            "period": "daily",
-            "market_date": "2026-07-22",
-            "position": "long",
-            "action": "HOLD_LONG_DATA_NEEDED",
-            "execution": "none",
-            "rationale": [
-              "long ATR activation cannot be evaluated from the supplied position data"
-            ],
-            "blocked_direction_after_action": "none",
-            "market": {
-              "close": 8465.0,
-              "ma6": 8547.833333333334,
-              "ma20": 8494.15,
-              "atr14": 81.239868758601,
-              "rsi14": 47.72734864906311,
-              "long_signal": false,
-              "short_signal": true,
-              "bearish_divergence": false,
-              "bullish_divergence": false
-            },
-            "stop_state": {
-              "evaluated": false,
-              "missing": "entry_date or entry_price, entry_atr, and highest_since_entry"
-            },
-            "take_profit": "long: 20-day price high without RSI confirmation; short: reverse",
-            "cost_assumption_one_way": 0.0004,
-            "validation_scope": "same_rule_calculation",
-            "data_source": "akshare:futures_zh_daily_sina"
-          },
-          "short": {
-            "status": "ok",
-            "symbol": "Y2701",
-            "period": "daily",
-            "market_date": "2026-07-22",
-            "position": "short",
-            "action": "HOLD_SHORT",
-            "execution": "none",
-            "rationale": [
-              "short stop and bullish divergence not triggered"
-            ],
-            "blocked_direction_after_action": "none",
-            "market": {
-              "close": 8465.0,
-              "ma6": 8547.833333333334,
-              "ma20": 8494.15,
-              "atr14": 81.239868758601,
-              "rsi14": 47.72734864906311,
-              "long_signal": false,
-              "short_signal": true,
-              "bearish_divergence": false,
-              "bullish_divergence": false
-            },
-            "stop_state": {
-              "armed": true,
-              "close_above_ma6": false,
-              "ma6": 8547.833333333334
-            },
-            "take_profit": "long: 20-day price high without RSI confirmation; short: reverse",
-            "cost_assumption_one_way": 0.0004,
-            "validation_scope": "same_rule_calculation",
-            "data_source": "akshare:futures_zh_daily_sina"
-          }
-        },
+        "status": "error",
+        "message": "market data request failed after 2 attempts for Y2701: HTTPSConnectionPool(host='stock2.finance.sina.com.cn', port=443): Max retries exceeded with url: /futures/api/jsonp.php/var%20_V21052021_4_12=/InnerFuturesNewService.getDailyKLine?symbol=Y2701&type=2021_04_12 (Caused by NameResolutionError(\"HTTPSConnection(host='stock2.finance.sina.com.cn', port=443): Failed to resolve 'stock2.finance.sina.com.cn' ([Errno 8] nodename nor servname provided, or not known)\"))",
         "current_quote": {
-          "price": 8562.0,
-          "change": "+1.15%",
+          "price": 8596.0,
+          "change": "+0.40%",
           "direction": "↑",
-          "trade_date": "2026-07-23",
+          "trade_date": "2026-07-24",
           "source": "AkShare + 同花顺问财行情skill",
           "unit": "元/吨"
         }
@@ -610,253 +158,31 @@
         "product_name": "菜油",
         "rank": 1,
         "label": "主力",
-        "market_date": "2026-07-22",
-        "data_source": "akshare:futures_zh_daily_sina",
-        "bar_completed": true,
-        "bar_note": "latest source bar treated as completed",
-        "model_scope": "rule_trial",
-        "model_scope_label": "同规则试算",
-        "market": {
-          "close": 9949.0,
-          "ma6": 9990.833333333334,
-          "ma20": 9822.15,
-          "atr14": 132.0150601384178,
-          "rsi14": 54.57892935414837,
-          "long_signal": false,
-          "short_signal": false,
-          "bearish_divergence": false,
-          "bullish_divergence": false
-        },
-        "signals": {
-          "flat": {
-            "status": "ok",
-            "symbol": "OI2609",
-            "period": "daily",
-            "market_date": "2026-07-22",
-            "position": "flat",
-            "action": "WAIT",
-            "execution": "none",
-            "rationale": [
-              "no new MA20 crossover"
-            ],
-            "blocked_direction_after_action": "none",
-            "market": {
-              "close": 9949.0,
-              "ma6": 9990.833333333334,
-              "ma20": 9822.15,
-              "atr14": 132.0150601384178,
-              "rsi14": 54.57892935414837,
-              "long_signal": false,
-              "short_signal": false,
-              "bearish_divergence": false,
-              "bullish_divergence": false
-            },
-            "stop_state": {},
-            "take_profit": "long: 20-day price high without RSI confirmation; short: reverse",
-            "cost_assumption_one_way": 0.0004,
-            "validation_scope": "same_rule_calculation",
-            "data_source": "akshare:futures_zh_daily_sina"
-          },
-          "long": {
-            "status": "ok",
-            "symbol": "OI2609",
-            "period": "daily",
-            "market_date": "2026-07-22",
-            "position": "long",
-            "action": "HOLD_LONG_DATA_NEEDED",
-            "execution": "none",
-            "rationale": [
-              "long ATR activation cannot be evaluated from the supplied position data"
-            ],
-            "blocked_direction_after_action": "none",
-            "market": {
-              "close": 9949.0,
-              "ma6": 9990.833333333334,
-              "ma20": 9822.15,
-              "atr14": 132.0150601384178,
-              "rsi14": 54.57892935414837,
-              "long_signal": false,
-              "short_signal": false,
-              "bearish_divergence": false,
-              "bullish_divergence": false
-            },
-            "stop_state": {
-              "evaluated": false,
-              "missing": "entry_date or entry_price, entry_atr, and highest_since_entry"
-            },
-            "take_profit": "long: 20-day price high without RSI confirmation; short: reverse",
-            "cost_assumption_one_way": 0.0004,
-            "validation_scope": "same_rule_calculation",
-            "data_source": "akshare:futures_zh_daily_sina"
-          },
-          "short": {
-            "status": "ok",
-            "symbol": "OI2609",
-            "period": "daily",
-            "market_date": "2026-07-22",
-            "position": "short",
-            "action": "HOLD_SHORT",
-            "execution": "none",
-            "rationale": [
-              "short stop and bullish divergence not triggered"
-            ],
-            "blocked_direction_after_action": "none",
-            "market": {
-              "close": 9949.0,
-              "ma6": 9990.833333333334,
-              "ma20": 9822.15,
-              "atr14": 132.0150601384178,
-              "rsi14": 54.57892935414837,
-              "long_signal": false,
-              "short_signal": false,
-              "bearish_divergence": false,
-              "bullish_divergence": false
-            },
-            "stop_state": {
-              "armed": true,
-              "close_above_ma6": false,
-              "ma6": 9990.833333333334
-            },
-            "take_profit": "long: 20-day price high without RSI confirmation; short: reverse",
-            "cost_assumption_one_way": 0.0004,
-            "validation_scope": "same_rule_calculation",
-            "data_source": "akshare:futures_zh_daily_sina"
-          }
-        },
+        "status": "error",
+        "message": "market data request failed after 2 attempts for OI2609: HTTPSConnectionPool(host='stock2.finance.sina.com.cn', port=443): Max retries exceeded with url: /futures/api/jsonp.php/var%20_V21052021_4_12=/InnerFuturesNewService.getDailyKLine?symbol=OI2609&type=2021_04_12 (Caused by NameResolutionError(\"HTTPSConnection(host='stock2.finance.sina.com.cn', port=443): Failed to resolve 'stock2.finance.sina.com.cn' ([Errno 8] nodename nor servname provided, or not known)\"))",
         "current_quote": {
-          "price": 10175.0,
-          "change": "+2.27%",
-          "direction": "↑",
+          "price": 10170.0,
+          "change": "-0.05%",
+          "direction": "↓",
           "trade_date": "2026-07-23",
           "source": "AkShare + 同花顺问财行情skill",
           "unit": "元/吨"
         }
       },
       {
-        "symbol": "OI2701",
+        "symbol": "OI2611",
         "product": "OI",
         "product_name": "菜油",
         "rank": 2,
         "label": "次主力",
-        "market_date": "2026-07-22",
-        "data_source": "akshare:futures_zh_daily_sina",
-        "bar_completed": true,
-        "bar_note": "latest source bar treated as completed",
-        "model_scope": "rule_trial",
-        "model_scope_label": "同规则试算",
-        "market": {
-          "close": 9872.0,
-          "ma6": 9895.5,
-          "ma20": 9734.9,
-          "atr14": 123.99547339026203,
-          "rsi14": 55.317020837334105,
-          "long_signal": false,
-          "short_signal": false,
-          "bearish_divergence": false,
-          "bullish_divergence": false
-        },
-        "signals": {
-          "flat": {
-            "status": "ok",
-            "symbol": "OI2701",
-            "period": "daily",
-            "market_date": "2026-07-22",
-            "position": "flat",
-            "action": "WAIT",
-            "execution": "none",
-            "rationale": [
-              "no new MA20 crossover"
-            ],
-            "blocked_direction_after_action": "none",
-            "market": {
-              "close": 9872.0,
-              "ma6": 9895.5,
-              "ma20": 9734.9,
-              "atr14": 123.99547339026203,
-              "rsi14": 55.317020837334105,
-              "long_signal": false,
-              "short_signal": false,
-              "bearish_divergence": false,
-              "bullish_divergence": false
-            },
-            "stop_state": {},
-            "take_profit": "long: 20-day price high without RSI confirmation; short: reverse",
-            "cost_assumption_one_way": 0.0004,
-            "validation_scope": "same_rule_calculation",
-            "data_source": "akshare:futures_zh_daily_sina"
-          },
-          "long": {
-            "status": "ok",
-            "symbol": "OI2701",
-            "period": "daily",
-            "market_date": "2026-07-22",
-            "position": "long",
-            "action": "HOLD_LONG_DATA_NEEDED",
-            "execution": "none",
-            "rationale": [
-              "long ATR activation cannot be evaluated from the supplied position data"
-            ],
-            "blocked_direction_after_action": "none",
-            "market": {
-              "close": 9872.0,
-              "ma6": 9895.5,
-              "ma20": 9734.9,
-              "atr14": 123.99547339026203,
-              "rsi14": 55.317020837334105,
-              "long_signal": false,
-              "short_signal": false,
-              "bearish_divergence": false,
-              "bullish_divergence": false
-            },
-            "stop_state": {
-              "evaluated": false,
-              "missing": "entry_date or entry_price, entry_atr, and highest_since_entry"
-            },
-            "take_profit": "long: 20-day price high without RSI confirmation; short: reverse",
-            "cost_assumption_one_way": 0.0004,
-            "validation_scope": "same_rule_calculation",
-            "data_source": "akshare:futures_zh_daily_sina"
-          },
-          "short": {
-            "status": "ok",
-            "symbol": "OI2701",
-            "period": "daily",
-            "market_date": "2026-07-22",
-            "position": "short",
-            "action": "HOLD_SHORT",
-            "execution": "none",
-            "rationale": [
-              "short stop and bullish divergence not triggered"
-            ],
-            "blocked_direction_after_action": "none",
-            "market": {
-              "close": 9872.0,
-              "ma6": 9895.5,
-              "ma20": 9734.9,
-              "atr14": 123.99547339026203,
-              "rsi14": 55.317020837334105,
-              "long_signal": false,
-              "short_signal": false,
-              "bearish_divergence": false,
-              "bullish_divergence": false
-            },
-            "stop_state": {
-              "armed": true,
-              "close_above_ma6": false,
-              "ma6": 9895.5
-            },
-            "take_profit": "long: 20-day price high without RSI confirmation; short: reverse",
-            "cost_assumption_one_way": 0.0004,
-            "validation_scope": "same_rule_calculation",
-            "data_source": "akshare:futures_zh_daily_sina"
-          }
-        },
+        "status": "error",
+        "message": "market data request failed after 2 attempts for OI2611: HTTPSConnectionPool(host='stock2.finance.sina.com.cn', port=443): Max retries exceeded with url: /futures/api/jsonp.php/var%20_V21052021_4_12=/InnerFuturesNewService.getDailyKLine?symbol=OI2611&type=2021_04_12 (Caused by NameResolutionError(\"HTTPSConnection(host='stock2.finance.sina.com.cn', port=443): Failed to resolve 'stock2.finance.sina.com.cn' ([Errno 8] nodename nor servname provided, or not known)\"))",
         "current_quote": {
-          "price": 10087.0,
-          "change": "+2.18%",
-          "direction": "↑",
+          "price": 10169.0,
+          "change": "-0.04%",
+          "direction": "↓",
           "trade_date": "2026-07-23",
-          "source": "akshare:futures_zh_realtime",
+          "source": "AkShare + 同花顺问财行情skill",
           "unit": "元/吨"
         }
       },
@@ -866,129 +192,13 @@
         "product_name": "豆粕",
         "rank": 1,
         "label": "主力",
-        "market_date": "2026-07-22",
-        "data_source": "akshare:futures_zh_daily_sina",
-        "bar_completed": true,
-        "bar_note": "latest source bar treated as completed",
-        "model_scope": "rule_trial",
-        "model_scope_label": "同规则试算",
-        "market": {
-          "close": 3146.0,
-          "ma6": 3102.8333333333335,
-          "ma20": 3034.25,
-          "atr14": 36.08446147835136,
-          "rsi14": 78.53122493302064,
-          "long_signal": false,
-          "short_signal": false,
-          "bearish_divergence": true,
-          "bullish_divergence": false
-        },
-        "signals": {
-          "flat": {
-            "status": "ok",
-            "symbol": "M2609",
-            "period": "daily",
-            "market_date": "2026-07-22",
-            "position": "flat",
-            "action": "WAIT",
-            "execution": "none",
-            "rationale": [
-              "no new MA20 crossover"
-            ],
-            "blocked_direction_after_action": "none",
-            "market": {
-              "close": 3146.0,
-              "ma6": 3102.8333333333335,
-              "ma20": 3034.25,
-              "atr14": 36.08446147835136,
-              "rsi14": 78.53122493302064,
-              "long_signal": false,
-              "short_signal": false,
-              "bearish_divergence": true,
-              "bullish_divergence": false
-            },
-            "stop_state": {},
-            "take_profit": "long: 20-day price high without RSI confirmation; short: reverse",
-            "cost_assumption_one_way": 0.0004,
-            "validation_scope": "same_rule_calculation",
-            "data_source": "akshare:futures_zh_daily_sina"
-          },
-          "long": {
-            "status": "ok",
-            "symbol": "M2609",
-            "period": "daily",
-            "market_date": "2026-07-22",
-            "position": "long",
-            "action": "EXIT_SIGNAL_OVERDUE",
-            "execution": "next_available_market_opportunity",
-            "rationale": [
-              "price made a 20-day high while RSI failed to confirm",
-              "the strategy's next-open exit window has passed; risk-control exit is overdue"
-            ],
-            "blocked_direction_after_action": "none",
-            "market": {
-              "close": 3146.0,
-              "ma6": 3102.8333333333335,
-              "ma20": 3034.25,
-              "atr14": 36.08446147835136,
-              "rsi14": 78.53122493302064,
-              "long_signal": false,
-              "short_signal": false,
-              "bearish_divergence": true,
-              "bullish_divergence": false
-            },
-            "stop_state": {},
-            "take_profit": "long: 20-day price high without RSI confirmation; short: reverse",
-            "cost_assumption_one_way": 0.0004,
-            "validation_scope": "same_rule_calculation",
-            "intended_execution_date": "2026-07-23",
-            "original_confirmed_action": "TAKE_PROFIT_EXIT_LONG",
-            "execution_window": "missed",
-            "data_source": "akshare:futures_zh_daily_sina"
-          },
-          "short": {
-            "status": "ok",
-            "symbol": "M2609",
-            "period": "daily",
-            "market_date": "2026-07-22",
-            "position": "short",
-            "action": "EXIT_SIGNAL_OVERDUE",
-            "execution": "next_available_market_opportunity",
-            "rationale": [
-              "short stop triggered: completed close above MA6",
-              "the strategy's next-open exit window has passed; risk-control exit is overdue"
-            ],
-            "blocked_direction_after_action": "short",
-            "market": {
-              "close": 3146.0,
-              "ma6": 3102.8333333333335,
-              "ma20": 3034.25,
-              "atr14": 36.08446147835136,
-              "rsi14": 78.53122493302064,
-              "long_signal": false,
-              "short_signal": false,
-              "bearish_divergence": true,
-              "bullish_divergence": false
-            },
-            "stop_state": {
-              "armed": true,
-              "close_above_ma6": true,
-              "ma6": 3102.8333333333335
-            },
-            "take_profit": "long: 20-day price high without RSI confirmation; short: reverse",
-            "cost_assumption_one_way": 0.0004,
-            "validation_scope": "same_rule_calculation",
-            "intended_execution_date": "2026-07-23",
-            "original_confirmed_action": "STOP_EXIT_SHORT",
-            "execution_window": "missed",
-            "data_source": "akshare:futures_zh_daily_sina"
-          }
-        },
+        "status": "error",
+        "message": "market data request failed after 2 attempts for M2609: HTTPSConnectionPool(host='stock2.finance.sina.com.cn', port=443): Max retries exceeded with url: /futures/api/jsonp.php/var%20_V21052021_4_12=/InnerFuturesNewService.getDailyKLine?symbol=M2609&type=2021_04_12 (Caused by NameResolutionError(\"HTTPSConnection(host='stock2.finance.sina.com.cn', port=443): Failed to resolve 'stock2.finance.sina.com.cn' ([Errno 8] nodename nor servname provided, or not known)\"))",
         "current_quote": {
-          "price": 3175.0,
-          "change": "+0.92%",
-          "direction": "↑",
-          "trade_date": "2026-07-23",
+          "price": 3172.0,
+          "change": "-0.09%",
+          "direction": "↓",
+          "trade_date": "2026-07-24",
           "source": "AkShare + 同花顺问财行情skill",
           "unit": "元/吨"
         }
@@ -999,129 +209,13 @@
         "product_name": "豆粕",
         "rank": 2,
         "label": "次主力",
-        "market_date": "2026-07-22",
-        "data_source": "akshare:futures_zh_daily_sina",
-        "bar_completed": true,
-        "bar_note": "latest source bar treated as completed",
-        "model_scope": "rule_trial",
-        "model_scope_label": "同规则试算",
-        "market": {
-          "close": 3200.0,
-          "ma6": 3163.8333333333335,
-          "ma20": 3093.8,
-          "atr14": 32.36845990847952,
-          "rsi14": 79.79582477562472,
-          "long_signal": false,
-          "short_signal": false,
-          "bearish_divergence": true,
-          "bullish_divergence": false
-        },
-        "signals": {
-          "flat": {
-            "status": "ok",
-            "symbol": "M2701",
-            "period": "daily",
-            "market_date": "2026-07-22",
-            "position": "flat",
-            "action": "WAIT",
-            "execution": "none",
-            "rationale": [
-              "no new MA20 crossover"
-            ],
-            "blocked_direction_after_action": "none",
-            "market": {
-              "close": 3200.0,
-              "ma6": 3163.8333333333335,
-              "ma20": 3093.8,
-              "atr14": 32.36845990847952,
-              "rsi14": 79.79582477562472,
-              "long_signal": false,
-              "short_signal": false,
-              "bearish_divergence": true,
-              "bullish_divergence": false
-            },
-            "stop_state": {},
-            "take_profit": "long: 20-day price high without RSI confirmation; short: reverse",
-            "cost_assumption_one_way": 0.0004,
-            "validation_scope": "same_rule_calculation",
-            "data_source": "akshare:futures_zh_daily_sina"
-          },
-          "long": {
-            "status": "ok",
-            "symbol": "M2701",
-            "period": "daily",
-            "market_date": "2026-07-22",
-            "position": "long",
-            "action": "EXIT_SIGNAL_OVERDUE",
-            "execution": "next_available_market_opportunity",
-            "rationale": [
-              "price made a 20-day high while RSI failed to confirm",
-              "the strategy's next-open exit window has passed; risk-control exit is overdue"
-            ],
-            "blocked_direction_after_action": "none",
-            "market": {
-              "close": 3200.0,
-              "ma6": 3163.8333333333335,
-              "ma20": 3093.8,
-              "atr14": 32.36845990847952,
-              "rsi14": 79.79582477562472,
-              "long_signal": false,
-              "short_signal": false,
-              "bearish_divergence": true,
-              "bullish_divergence": false
-            },
-            "stop_state": {},
-            "take_profit": "long: 20-day price high without RSI confirmation; short: reverse",
-            "cost_assumption_one_way": 0.0004,
-            "validation_scope": "same_rule_calculation",
-            "intended_execution_date": "2026-07-23",
-            "original_confirmed_action": "TAKE_PROFIT_EXIT_LONG",
-            "execution_window": "missed",
-            "data_source": "akshare:futures_zh_daily_sina"
-          },
-          "short": {
-            "status": "ok",
-            "symbol": "M2701",
-            "period": "daily",
-            "market_date": "2026-07-22",
-            "position": "short",
-            "action": "EXIT_SIGNAL_OVERDUE",
-            "execution": "next_available_market_opportunity",
-            "rationale": [
-              "short stop triggered: completed close above MA6",
-              "the strategy's next-open exit window has passed; risk-control exit is overdue"
-            ],
-            "blocked_direction_after_action": "short",
-            "market": {
-              "close": 3200.0,
-              "ma6": 3163.8333333333335,
-              "ma20": 3093.8,
-              "atr14": 32.36845990847952,
-              "rsi14": 79.79582477562472,
-              "long_signal": false,
-              "short_signal": false,
-              "bearish_divergence": true,
-              "bullish_divergence": false
-            },
-            "stop_state": {
-              "armed": true,
-              "close_above_ma6": true,
-              "ma6": 3163.8333333333335
-            },
-            "take_profit": "long: 20-day price high without RSI confirmation; short: reverse",
-            "cost_assumption_one_way": 0.0004,
-            "validation_scope": "same_rule_calculation",
-            "intended_execution_date": "2026-07-23",
-            "original_confirmed_action": "STOP_EXIT_SHORT",
-            "execution_window": "missed",
-            "data_source": "akshare:futures_zh_daily_sina"
-          }
-        },
+        "status": "error",
+        "message": "market data request failed after 2 attempts for M2701: HTTPSConnectionPool(host='stock2.finance.sina.com.cn', port=443): Max retries exceeded with url: /futures/api/jsonp.php/var%20_V21052021_4_12=/InnerFuturesNewService.getDailyKLine?symbol=M2701&type=2021_04_12 (Caused by NameResolutionError(\"HTTPSConnection(host='stock2.finance.sina.com.cn', port=443): Failed to resolve 'stock2.finance.sina.com.cn' ([Errno 8] nodename nor servname provided, or not known)\"))",
         "current_quote": {
-          "price": 3233.0,
-          "change": "+1.03%",
-          "direction": "↑",
-          "trade_date": "2026-07-23",
+          "price": 3228.0,
+          "change": "-0.15%",
+          "direction": "↓",
+          "trade_date": "2026-07-24",
           "source": "AkShare + 同花顺问财行情skill",
           "unit": "元/吨"
         }
@@ -1132,126 +226,11 @@
         "product_name": "菜粕",
         "rank": 1,
         "label": "主力",
-        "market_date": "2026-07-22",
-        "data_source": "akshare:futures_zh_daily_sina",
-        "bar_completed": true,
-        "bar_note": "latest source bar treated as completed",
-        "model_scope": "rule_trial",
-        "model_scope_label": "同规则试算",
-        "market": {
-          "close": 2350.0,
-          "ma6": 2322.3333333333335,
-          "ma20": 2302.05,
-          "atr14": 36.45110818817296,
-          "rsi14": 58.50846772697182,
-          "long_signal": false,
-          "short_signal": false,
-          "bearish_divergence": false,
-          "bullish_divergence": false
-        },
-        "signals": {
-          "flat": {
-            "status": "ok",
-            "symbol": "RM2609",
-            "period": "daily",
-            "market_date": "2026-07-22",
-            "position": "flat",
-            "action": "WAIT",
-            "execution": "none",
-            "rationale": [
-              "no new MA20 crossover"
-            ],
-            "blocked_direction_after_action": "none",
-            "market": {
-              "close": 2350.0,
-              "ma6": 2322.3333333333335,
-              "ma20": 2302.05,
-              "atr14": 36.45110818817296,
-              "rsi14": 58.50846772697182,
-              "long_signal": false,
-              "short_signal": false,
-              "bearish_divergence": false,
-              "bullish_divergence": false
-            },
-            "stop_state": {},
-            "take_profit": "long: 20-day price high without RSI confirmation; short: reverse",
-            "cost_assumption_one_way": 0.0004,
-            "validation_scope": "same_rule_calculation",
-            "data_source": "akshare:futures_zh_daily_sina"
-          },
-          "long": {
-            "status": "ok",
-            "symbol": "RM2609",
-            "period": "daily",
-            "market_date": "2026-07-22",
-            "position": "long",
-            "action": "HOLD_LONG_DATA_NEEDED",
-            "execution": "none",
-            "rationale": [
-              "long ATR activation cannot be evaluated from the supplied position data"
-            ],
-            "blocked_direction_after_action": "none",
-            "market": {
-              "close": 2350.0,
-              "ma6": 2322.3333333333335,
-              "ma20": 2302.05,
-              "atr14": 36.45110818817296,
-              "rsi14": 58.50846772697182,
-              "long_signal": false,
-              "short_signal": false,
-              "bearish_divergence": false,
-              "bullish_divergence": false
-            },
-            "stop_state": {
-              "evaluated": false,
-              "missing": "entry_date or entry_price, entry_atr, and highest_since_entry"
-            },
-            "take_profit": "long: 20-day price high without RSI confirmation; short: reverse",
-            "cost_assumption_one_way": 0.0004,
-            "validation_scope": "same_rule_calculation",
-            "data_source": "akshare:futures_zh_daily_sina"
-          },
-          "short": {
-            "status": "ok",
-            "symbol": "RM2609",
-            "period": "daily",
-            "market_date": "2026-07-22",
-            "position": "short",
-            "action": "EXIT_SIGNAL_OVERDUE",
-            "execution": "next_available_market_opportunity",
-            "rationale": [
-              "short stop triggered: completed close above MA6",
-              "the strategy's next-open exit window has passed; risk-control exit is overdue"
-            ],
-            "blocked_direction_after_action": "short",
-            "market": {
-              "close": 2350.0,
-              "ma6": 2322.3333333333335,
-              "ma20": 2302.05,
-              "atr14": 36.45110818817296,
-              "rsi14": 58.50846772697182,
-              "long_signal": false,
-              "short_signal": false,
-              "bearish_divergence": false,
-              "bullish_divergence": false
-            },
-            "stop_state": {
-              "armed": true,
-              "close_above_ma6": true,
-              "ma6": 2322.3333333333335
-            },
-            "take_profit": "long: 20-day price high without RSI confirmation; short: reverse",
-            "cost_assumption_one_way": 0.0004,
-            "validation_scope": "same_rule_calculation",
-            "intended_execution_date": "2026-07-23",
-            "original_confirmed_action": "STOP_EXIT_SHORT",
-            "execution_window": "missed",
-            "data_source": "akshare:futures_zh_daily_sina"
-          }
-        },
+        "status": "error",
+        "message": "market data request failed after 2 attempts for RM2609: HTTPSConnectionPool(host='stock2.finance.sina.com.cn', port=443): Max retries exceeded with url: /futures/api/jsonp.php/var%20_V21052021_4_12=/InnerFuturesNewService.getDailyKLine?symbol=RM2609&type=2021_04_12 (Caused by NameResolutionError(\"HTTPSConnection(host='stock2.finance.sina.com.cn', port=443): Failed to resolve 'stock2.finance.sina.com.cn' ([Errno 8] nodename nor servname provided, or not known)\"))",
         "current_quote": {
-          "price": 2360.0,
-          "change": "+0.43%",
+          "price": 2375.0,
+          "change": "+0.64%",
           "direction": "↑",
           "trade_date": "2026-07-23",
           "source": "akshare:futures_zh_realtime",
@@ -1264,129 +243,14 @@
         "product_name": "菜粕",
         "rank": 2,
         "label": "次主力",
-        "market_date": "2026-07-22",
-        "data_source": "akshare:futures_zh_daily_sina",
-        "bar_completed": true,
-        "bar_note": "latest source bar treated as completed",
-        "model_scope": "rule_trial",
-        "model_scope_label": "同规则试算",
-        "market": {
-          "close": 2292.0,
-          "ma6": 2264.1666666666665,
-          "ma20": 2245.2,
-          "atr14": 27.421982805761346,
-          "rsi14": 61.55303864681073,
-          "long_signal": false,
-          "short_signal": false,
-          "bearish_divergence": false,
-          "bullish_divergence": false
-        },
-        "signals": {
-          "flat": {
-            "status": "ok",
-            "symbol": "RM2701",
-            "period": "daily",
-            "market_date": "2026-07-22",
-            "position": "flat",
-            "action": "WAIT",
-            "execution": "none",
-            "rationale": [
-              "no new MA20 crossover"
-            ],
-            "blocked_direction_after_action": "none",
-            "market": {
-              "close": 2292.0,
-              "ma6": 2264.1666666666665,
-              "ma20": 2245.2,
-              "atr14": 27.421982805761346,
-              "rsi14": 61.55303864681073,
-              "long_signal": false,
-              "short_signal": false,
-              "bearish_divergence": false,
-              "bullish_divergence": false
-            },
-            "stop_state": {},
-            "take_profit": "long: 20-day price high without RSI confirmation; short: reverse",
-            "cost_assumption_one_way": 0.0004,
-            "validation_scope": "same_rule_calculation",
-            "data_source": "akshare:futures_zh_daily_sina"
-          },
-          "long": {
-            "status": "ok",
-            "symbol": "RM2701",
-            "period": "daily",
-            "market_date": "2026-07-22",
-            "position": "long",
-            "action": "HOLD_LONG_DATA_NEEDED",
-            "execution": "none",
-            "rationale": [
-              "long ATR activation cannot be evaluated from the supplied position data"
-            ],
-            "blocked_direction_after_action": "none",
-            "market": {
-              "close": 2292.0,
-              "ma6": 2264.1666666666665,
-              "ma20": 2245.2,
-              "atr14": 27.421982805761346,
-              "rsi14": 61.55303864681073,
-              "long_signal": false,
-              "short_signal": false,
-              "bearish_divergence": false,
-              "bullish_divergence": false
-            },
-            "stop_state": {
-              "evaluated": false,
-              "missing": "entry_date or entry_price, entry_atr, and highest_since_entry"
-            },
-            "take_profit": "long: 20-day price high without RSI confirmation; short: reverse",
-            "cost_assumption_one_way": 0.0004,
-            "validation_scope": "same_rule_calculation",
-            "data_source": "akshare:futures_zh_daily_sina"
-          },
-          "short": {
-            "status": "ok",
-            "symbol": "RM2701",
-            "period": "daily",
-            "market_date": "2026-07-22",
-            "position": "short",
-            "action": "EXIT_SIGNAL_OVERDUE",
-            "execution": "next_available_market_opportunity",
-            "rationale": [
-              "short stop triggered: completed close above MA6",
-              "the strategy's next-open exit window has passed; risk-control exit is overdue"
-            ],
-            "blocked_direction_after_action": "short",
-            "market": {
-              "close": 2292.0,
-              "ma6": 2264.1666666666665,
-              "ma20": 2245.2,
-              "atr14": 27.421982805761346,
-              "rsi14": 61.55303864681073,
-              "long_signal": false,
-              "short_signal": false,
-              "bearish_divergence": false,
-              "bullish_divergence": false
-            },
-            "stop_state": {
-              "armed": true,
-              "close_above_ma6": true,
-              "ma6": 2264.1666666666665
-            },
-            "take_profit": "long: 20-day price high without RSI confirmation; short: reverse",
-            "cost_assumption_one_way": 0.0004,
-            "validation_scope": "same_rule_calculation",
-            "intended_execution_date": "2026-07-23",
-            "original_confirmed_action": "STOP_EXIT_SHORT",
-            "execution_window": "missed",
-            "data_source": "akshare:futures_zh_daily_sina"
-          }
-        },
+        "status": "error",
+        "message": "market data request failed after 2 attempts for RM2701: HTTPSConnectionPool(host='stock2.finance.sina.com.cn', port=443): Max retries exceeded with url: /futures/api/jsonp.php/var%20_V21052021_4_12=/InnerFuturesNewService.getDailyKLine?symbol=RM2701&type=2021_04_12 (Caused by NameResolutionError(\"HTTPSConnection(host='stock2.finance.sina.com.cn', port=443): Failed to resolve 'stock2.finance.sina.com.cn' ([Errno 8] nodename nor servname provided, or not known)\"))",
         "current_quote": {
-          "price": 2320.0,
-          "change": "+1.22%",
+          "price": 2333.0,
+          "change": "+0.56%",
           "direction": "↑",
           "trade_date": "2026-07-23",
-          "source": "AkShare + 同花顺问财行情skill",
+          "source": "akshare:futures_zh_realtime",
           "unit": "元/吨"
         }
       }
@@ -1473,124 +337,13 @@
       "product_name": "棕榈油",
       "rank": 1,
       "label": "主力",
-      "market_date": "2026-07-22",
-      "data_source": "akshare:futures_zh_daily_sina",
-      "bar_completed": true,
-      "bar_note": "latest source bar treated as completed",
-      "model_scope": "validated_mapping",
-      "model_scope_label": "成熟模型映射",
-      "market": {
-        "close": 9250.0,
-        "ma6": 9272.333333333334,
-        "ma20": 9268.05,
-        "atr14": 146.33719094266158,
-        "rsi14": 47.007212285776276,
-        "long_signal": false,
-        "short_signal": false,
-        "bearish_divergence": false,
-        "bullish_divergence": false
-      },
-      "signals": {
-        "flat": {
-          "status": "ok",
-          "symbol": "P2609",
-          "period": "daily",
-          "market_date": "2026-07-22",
-          "position": "flat",
-          "action": "WAIT",
-          "execution": "none",
-          "rationale": [
-            "no new MA20 crossover"
-          ],
-          "blocked_direction_after_action": "none",
-          "market": {
-            "close": 9250.0,
-            "ma6": 9272.333333333334,
-            "ma20": 9268.05,
-            "atr14": 146.33719094266158,
-            "rsi14": 47.007212285776276,
-            "long_signal": false,
-            "short_signal": false,
-            "bearish_divergence": false,
-            "bullish_divergence": false
-          },
-          "stop_state": {},
-          "take_profit": "long: 20-day price high without RSI confirmation; short: reverse",
-          "cost_assumption_one_way": 0.0004,
-          "validation_scope": "same_rule_calculation",
-          "data_source": "akshare:futures_zh_daily_sina"
-        },
-        "long": {
-          "status": "ok",
-          "symbol": "P2609",
-          "period": "daily",
-          "market_date": "2026-07-22",
-          "position": "long",
-          "action": "HOLD_LONG_DATA_NEEDED",
-          "execution": "none",
-          "rationale": [
-            "long ATR activation cannot be evaluated from the supplied position data"
-          ],
-          "blocked_direction_after_action": "none",
-          "market": {
-            "close": 9250.0,
-            "ma6": 9272.333333333334,
-            "ma20": 9268.05,
-            "atr14": 146.33719094266158,
-            "rsi14": 47.007212285776276,
-            "long_signal": false,
-            "short_signal": false,
-            "bearish_divergence": false,
-            "bullish_divergence": false
-          },
-          "stop_state": {
-            "evaluated": false,
-            "missing": "entry_date or entry_price, entry_atr, and highest_since_entry"
-          },
-          "take_profit": "long: 20-day price high without RSI confirmation; short: reverse",
-          "cost_assumption_one_way": 0.0004,
-          "validation_scope": "same_rule_calculation",
-          "data_source": "akshare:futures_zh_daily_sina"
-        },
-        "short": {
-          "status": "ok",
-          "symbol": "P2609",
-          "period": "daily",
-          "market_date": "2026-07-22",
-          "position": "short",
-          "action": "HOLD_SHORT",
-          "execution": "none",
-          "rationale": [
-            "short stop and bullish divergence not triggered"
-          ],
-          "blocked_direction_after_action": "none",
-          "market": {
-            "close": 9250.0,
-            "ma6": 9272.333333333334,
-            "ma20": 9268.05,
-            "atr14": 146.33719094266158,
-            "rsi14": 47.007212285776276,
-            "long_signal": false,
-            "short_signal": false,
-            "bearish_divergence": false,
-            "bullish_divergence": false
-          },
-          "stop_state": {
-            "armed": true,
-            "close_above_ma6": false,
-            "ma6": 9272.333333333334
-          },
-          "take_profit": "long: 20-day price high without RSI confirmation; short: reverse",
-          "cost_assumption_one_way": 0.0004,
-          "validation_scope": "same_rule_calculation",
-          "data_source": "akshare:futures_zh_daily_sina"
-        }
-      },
+      "status": "error",
+      "message": "market data request failed after 2 attempts for P2609: HTTPSConnectionPool(host='stock2.finance.sina.com.cn', port=443): Max retries exceeded with url: /futures/api/jsonp.php/var%20_V21052021_4_12=/InnerFuturesNewService.getDailyKLine?symbol=P2609&type=2021_04_12 (Caused by NameResolutionError(\"HTTPSConnection(host='stock2.finance.sina.com.cn', port=443): Failed to resolve 'stock2.finance.sina.com.cn' ([Errno 8] nodename nor servname provided, or not known)\"))",
       "current_quote": {
-        "price": 9515.0,
-        "change": "+2.86%",
+        "price": 9534.0,
+        "change": "+0.20%",
         "direction": "↑",
-        "trade_date": "2026-07-23",
+        "trade_date": "2026-07-24",
         "source": "AkShare + 同花顺问财行情skill",
         "unit": "元/吨"
       }
@@ -1601,124 +354,13 @@
       "product_name": "棕榈油",
       "rank": 2,
       "label": "次主力",
-      "market_date": "2026-07-22",
-      "data_source": "akshare:futures_zh_daily_sina",
-      "bar_completed": true,
-      "bar_note": "latest source bar treated as completed",
-      "model_scope": "validated_mapping",
-      "model_scope_label": "成熟模型映射",
-      "market": {
-        "close": 9543.0,
-        "ma6": 9565.666666666666,
-        "ma20": 9546.6,
-        "atr14": 135.09700636155702,
-        "rsi14": 48.04940130503786,
-        "long_signal": false,
-        "short_signal": false,
-        "bearish_divergence": false,
-        "bullish_divergence": false
-      },
-      "signals": {
-        "flat": {
-          "status": "ok",
-          "symbol": "P2701",
-          "period": "daily",
-          "market_date": "2026-07-22",
-          "position": "flat",
-          "action": "WAIT",
-          "execution": "none",
-          "rationale": [
-            "no new MA20 crossover"
-          ],
-          "blocked_direction_after_action": "none",
-          "market": {
-            "close": 9543.0,
-            "ma6": 9565.666666666666,
-            "ma20": 9546.6,
-            "atr14": 135.09700636155702,
-            "rsi14": 48.04940130503786,
-            "long_signal": false,
-            "short_signal": false,
-            "bearish_divergence": false,
-            "bullish_divergence": false
-          },
-          "stop_state": {},
-          "take_profit": "long: 20-day price high without RSI confirmation; short: reverse",
-          "cost_assumption_one_way": 0.0004,
-          "validation_scope": "same_rule_calculation",
-          "data_source": "akshare:futures_zh_daily_sina"
-        },
-        "long": {
-          "status": "ok",
-          "symbol": "P2701",
-          "period": "daily",
-          "market_date": "2026-07-22",
-          "position": "long",
-          "action": "HOLD_LONG_DATA_NEEDED",
-          "execution": "none",
-          "rationale": [
-            "long ATR activation cannot be evaluated from the supplied position data"
-          ],
-          "blocked_direction_after_action": "none",
-          "market": {
-            "close": 9543.0,
-            "ma6": 9565.666666666666,
-            "ma20": 9546.6,
-            "atr14": 135.09700636155702,
-            "rsi14": 48.04940130503786,
-            "long_signal": false,
-            "short_signal": false,
-            "bearish_divergence": false,
-            "bullish_divergence": false
-          },
-          "stop_state": {
-            "evaluated": false,
-            "missing": "entry_date or entry_price, entry_atr, and highest_since_entry"
-          },
-          "take_profit": "long: 20-day price high without RSI confirmation; short: reverse",
-          "cost_assumption_one_way": 0.0004,
-          "validation_scope": "same_rule_calculation",
-          "data_source": "akshare:futures_zh_daily_sina"
-        },
-        "short": {
-          "status": "ok",
-          "symbol": "P2701",
-          "period": "daily",
-          "market_date": "2026-07-22",
-          "position": "short",
-          "action": "HOLD_SHORT",
-          "execution": "none",
-          "rationale": [
-            "short stop and bullish divergence not triggered"
-          ],
-          "blocked_direction_after_action": "none",
-          "market": {
-            "close": 9543.0,
-            "ma6": 9565.666666666666,
-            "ma20": 9546.6,
-            "atr14": 135.09700636155702,
-            "rsi14": 48.04940130503786,
-            "long_signal": false,
-            "short_signal": false,
-            "bearish_divergence": false,
-            "bullish_divergence": false
-          },
-          "stop_state": {
-            "armed": true,
-            "close_above_ma6": false,
-            "ma6": 9565.666666666666
-          },
-          "take_profit": "long: 20-day price high without RSI confirmation; short: reverse",
-          "cost_assumption_one_way": 0.0004,
-          "validation_scope": "same_rule_calculation",
-          "data_source": "akshare:futures_zh_daily_sina"
-        }
-      },
+      "status": "error",
+      "message": "market data request failed after 2 attempts for P2701: HTTPSConnectionPool(host='stock2.finance.sina.com.cn', port=443): Max retries exceeded with url: /futures/api/jsonp.php/var%20_V21052021_4_12=/InnerFuturesNewService.getDailyKLine?symbol=P2701&type=2021_04_12 (Caused by NameResolutionError(\"HTTPSConnection(host='stock2.finance.sina.com.cn', port=443): Failed to resolve 'stock2.finance.sina.com.cn' ([Errno 8] nodename nor servname provided, or not known)\"))",
       "current_quote": {
-        "price": 9795.0,
-        "change": "+2.64%",
+        "price": 9812.0,
+        "change": "+0.17%",
         "direction": "↑",
-        "trade_date": "2026-07-23",
+        "trade_date": "2026-07-24",
         "source": "AkShare + 同花顺问财行情skill",
         "unit": "元/吨"
       }
@@ -1729,128 +371,13 @@
       "product_name": "豆油",
       "rank": 1,
       "label": "主力",
-      "market_date": "2026-07-22",
-      "data_source": "akshare:futures_zh_daily_sina",
-      "bar_completed": true,
-      "bar_note": "latest source bar treated as completed",
-      "model_scope": "rule_trial",
-      "model_scope_label": "同规则试算",
-      "market": {
-        "close": 8442.0,
-        "ma6": 8547.666666666666,
-        "ma20": 8514.85,
-        "atr14": 84.19769509145172,
-        "rsi14": 44.31119275574017,
-        "long_signal": false,
-        "short_signal": true,
-        "bearish_divergence": false,
-        "bullish_divergence": false
-      },
-      "signals": {
-        "flat": {
-          "status": "ok",
-          "symbol": "Y2609",
-          "period": "daily",
-          "market_date": "2026-07-22",
-          "position": "flat",
-          "action": "MISSED_ENTRY_SIGNAL",
-          "execution": "wait_for_next_confirmed_signal",
-          "rationale": [
-            "completed close crossed below MA20",
-            "the strategy's next-open entry window has already passed; do not chase"
-          ],
-          "blocked_direction_after_action": "none",
-          "market": {
-            "close": 8442.0,
-            "ma6": 8547.666666666666,
-            "ma20": 8514.85,
-            "atr14": 84.19769509145172,
-            "rsi14": 44.31119275574017,
-            "long_signal": false,
-            "short_signal": true,
-            "bearish_divergence": false,
-            "bullish_divergence": false
-          },
-          "stop_state": {},
-          "take_profit": "long: 20-day price high without RSI confirmation; short: reverse",
-          "cost_assumption_one_way": 0.0004,
-          "validation_scope": "same_rule_calculation",
-          "intended_execution_date": "2026-07-23",
-          "original_confirmed_action": "OPEN_SHORT",
-          "execution_window": "missed",
-          "data_source": "akshare:futures_zh_daily_sina"
-        },
-        "long": {
-          "status": "ok",
-          "symbol": "Y2609",
-          "period": "daily",
-          "market_date": "2026-07-22",
-          "position": "long",
-          "action": "HOLD_LONG_DATA_NEEDED",
-          "execution": "none",
-          "rationale": [
-            "long ATR activation cannot be evaluated from the supplied position data"
-          ],
-          "blocked_direction_after_action": "none",
-          "market": {
-            "close": 8442.0,
-            "ma6": 8547.666666666666,
-            "ma20": 8514.85,
-            "atr14": 84.19769509145172,
-            "rsi14": 44.31119275574017,
-            "long_signal": false,
-            "short_signal": true,
-            "bearish_divergence": false,
-            "bullish_divergence": false
-          },
-          "stop_state": {
-            "evaluated": false,
-            "missing": "entry_date or entry_price, entry_atr, and highest_since_entry"
-          },
-          "take_profit": "long: 20-day price high without RSI confirmation; short: reverse",
-          "cost_assumption_one_way": 0.0004,
-          "validation_scope": "same_rule_calculation",
-          "data_source": "akshare:futures_zh_daily_sina"
-        },
-        "short": {
-          "status": "ok",
-          "symbol": "Y2609",
-          "period": "daily",
-          "market_date": "2026-07-22",
-          "position": "short",
-          "action": "HOLD_SHORT",
-          "execution": "none",
-          "rationale": [
-            "short stop and bullish divergence not triggered"
-          ],
-          "blocked_direction_after_action": "none",
-          "market": {
-            "close": 8442.0,
-            "ma6": 8547.666666666666,
-            "ma20": 8514.85,
-            "atr14": 84.19769509145172,
-            "rsi14": 44.31119275574017,
-            "long_signal": false,
-            "short_signal": true,
-            "bearish_divergence": false,
-            "bullish_divergence": false
-          },
-          "stop_state": {
-            "armed": true,
-            "close_above_ma6": false,
-            "ma6": 8547.666666666666
-          },
-          "take_profit": "long: 20-day price high without RSI confirmation; short: reverse",
-          "cost_assumption_one_way": 0.0004,
-          "validation_scope": "same_rule_calculation",
-          "data_source": "akshare:futures_zh_daily_sina"
-        }
-      },
+      "status": "error",
+      "message": "market data request failed after 2 attempts for Y2609: HTTPSConnectionPool(host='stock2.finance.sina.com.cn', port=443): Max retries exceeded with url: /futures/api/jsonp.php/var%20_V21052021_4_12=/InnerFuturesNewService.getDailyKLine?symbol=Y2609&type=2021_04_12 (Caused by NameResolutionError(\"HTTPSConnection(host='stock2.finance.sina.com.cn', port=443): Failed to resolve 'stock2.finance.sina.com.cn' ([Errno 8] nodename nor servname provided, or not known)\"))",
       "current_quote": {
-        "price": 8545.0,
-        "change": "+1.22%",
+        "price": 8582.0,
+        "change": "+0.43%",
         "direction": "↑",
-        "trade_date": "2026-07-23",
+        "trade_date": "2026-07-24",
         "source": "AkShare + 同花顺问财行情skill",
         "unit": "元/吨"
       }
@@ -1861,128 +388,13 @@
       "product_name": "豆油",
       "rank": 2,
       "label": "次主力",
-      "market_date": "2026-07-22",
-      "data_source": "akshare:futures_zh_daily_sina",
-      "bar_completed": true,
-      "bar_note": "latest source bar treated as completed",
-      "model_scope": "rule_trial",
-      "model_scope_label": "同规则试算",
-      "market": {
-        "close": 8465.0,
-        "ma6": 8547.833333333334,
-        "ma20": 8494.15,
-        "atr14": 81.239868758601,
-        "rsi14": 47.72734864906311,
-        "long_signal": false,
-        "short_signal": true,
-        "bearish_divergence": false,
-        "bullish_divergence": false
-      },
-      "signals": {
-        "flat": {
-          "status": "ok",
-          "symbol": "Y2701",
-          "period": "daily",
-          "market_date": "2026-07-22",
-          "position": "flat",
-          "action": "MISSED_ENTRY_SIGNAL",
-          "execution": "wait_for_next_confirmed_signal",
-          "rationale": [
-            "completed close crossed below MA20",
-            "the strategy's next-open entry window has already passed; do not chase"
-          ],
-          "blocked_direction_after_action": "none",
-          "market": {
-            "close": 8465.0,
-            "ma6": 8547.833333333334,
-            "ma20": 8494.15,
-            "atr14": 81.239868758601,
-            "rsi14": 47.72734864906311,
-            "long_signal": false,
-            "short_signal": true,
-            "bearish_divergence": false,
-            "bullish_divergence": false
-          },
-          "stop_state": {},
-          "take_profit": "long: 20-day price high without RSI confirmation; short: reverse",
-          "cost_assumption_one_way": 0.0004,
-          "validation_scope": "same_rule_calculation",
-          "intended_execution_date": "2026-07-23",
-          "original_confirmed_action": "OPEN_SHORT",
-          "execution_window": "missed",
-          "data_source": "akshare:futures_zh_daily_sina"
-        },
-        "long": {
-          "status": "ok",
-          "symbol": "Y2701",
-          "period": "daily",
-          "market_date": "2026-07-22",
-          "position": "long",
-          "action": "HOLD_LONG_DATA_NEEDED",
-          "execution": "none",
-          "rationale": [
-            "long ATR activation cannot be evaluated from the supplied position data"
-          ],
-          "blocked_direction_after_action": "none",
-          "market": {
-            "close": 8465.0,
-            "ma6": 8547.833333333334,
-            "ma20": 8494.15,
-            "atr14": 81.239868758601,
-            "rsi14": 47.72734864906311,
-            "long_signal": false,
-            "short_signal": true,
-            "bearish_divergence": false,
-            "bullish_divergence": false
-          },
-          "stop_state": {
-            "evaluated": false,
-            "missing": "entry_date or entry_price, entry_atr, and highest_since_entry"
-          },
-          "take_profit": "long: 20-day price high without RSI confirmation; short: reverse",
-          "cost_assumption_one_way": 0.0004,
-          "validation_scope": "same_rule_calculation",
-          "data_source": "akshare:futures_zh_daily_sina"
-        },
-        "short": {
-          "status": "ok",
-          "symbol": "Y2701",
-          "period": "daily",
-          "market_date": "2026-07-22",
-          "position": "short",
-          "action": "HOLD_SHORT",
-          "execution": "none",
-          "rationale": [
-            "short stop and bullish divergence not triggered"
-          ],
-          "blocked_direction_after_action": "none",
-          "market": {
-            "close": 8465.0,
-            "ma6": 8547.833333333334,
-            "ma20": 8494.15,
-            "atr14": 81.239868758601,
-            "rsi14": 47.72734864906311,
-            "long_signal": false,
-            "short_signal": true,
-            "bearish_divergence": false,
-            "bullish_divergence": false
-          },
-          "stop_state": {
-            "armed": true,
-            "close_above_ma6": false,
-            "ma6": 8547.833333333334
-          },
-          "take_profit": "long: 20-day price high without RSI confirmation; short: reverse",
-          "cost_assumption_one_way": 0.0004,
-          "validation_scope": "same_rule_calculation",
-          "data_source": "akshare:futures_zh_daily_sina"
-        }
-      },
+      "status": "error",
+      "message": "market data request failed after 2 attempts for Y2701: HTTPSConnectionPool(host='stock2.finance.sina.com.cn', port=443): Max retries exceeded with url: /futures/api/jsonp.php/var%20_V21052021_4_12=/InnerFuturesNewService.getDailyKLine?symbol=Y2701&type=2021_04_12 (Caused by NameResolutionError(\"HTTPSConnection(host='stock2.finance.sina.com.cn', port=443): Failed to resolve 'stock2.finance.sina.com.cn' ([Errno 8] nodename nor servname provided, or not known)\"))",
       "current_quote": {
-        "price": 8562.0,
-        "change": "+1.15%",
+        "price": 8596.0,
+        "change": "+0.40%",
         "direction": "↑",
-        "trade_date": "2026-07-23",
+        "trade_date": "2026-07-24",
         "source": "AkShare + 同花顺问财行情skill",
         "unit": "元/吨"
       }
@@ -1993,253 +405,31 @@
       "product_name": "菜油",
       "rank": 1,
       "label": "主力",
-      "market_date": "2026-07-22",
-      "data_source": "akshare:futures_zh_daily_sina",
-      "bar_completed": true,
-      "bar_note": "latest source bar treated as completed",
-      "model_scope": "rule_trial",
-      "model_scope_label": "同规则试算",
-      "market": {
-        "close": 9949.0,
-        "ma6": 9990.833333333334,
-        "ma20": 9822.15,
-        "atr14": 132.0150601384178,
-        "rsi14": 54.57892935414837,
-        "long_signal": false,
-        "short_signal": false,
-        "bearish_divergence": false,
-        "bullish_divergence": false
-      },
-      "signals": {
-        "flat": {
-          "status": "ok",
-          "symbol": "OI2609",
-          "period": "daily",
-          "market_date": "2026-07-22",
-          "position": "flat",
-          "action": "WAIT",
-          "execution": "none",
-          "rationale": [
-            "no new MA20 crossover"
-          ],
-          "blocked_direction_after_action": "none",
-          "market": {
-            "close": 9949.0,
-            "ma6": 9990.833333333334,
-            "ma20": 9822.15,
-            "atr14": 132.0150601384178,
-            "rsi14": 54.57892935414837,
-            "long_signal": false,
-            "short_signal": false,
-            "bearish_divergence": false,
-            "bullish_divergence": false
-          },
-          "stop_state": {},
-          "take_profit": "long: 20-day price high without RSI confirmation; short: reverse",
-          "cost_assumption_one_way": 0.0004,
-          "validation_scope": "same_rule_calculation",
-          "data_source": "akshare:futures_zh_daily_sina"
-        },
-        "long": {
-          "status": "ok",
-          "symbol": "OI2609",
-          "period": "daily",
-          "market_date": "2026-07-22",
-          "position": "long",
-          "action": "HOLD_LONG_DATA_NEEDED",
-          "execution": "none",
-          "rationale": [
-            "long ATR activation cannot be evaluated from the supplied position data"
-          ],
-          "blocked_direction_after_action": "none",
-          "market": {
-            "close": 9949.0,
-            "ma6": 9990.833333333334,
-            "ma20": 9822.15,
-            "atr14": 132.0150601384178,
-            "rsi14": 54.57892935414837,
-            "long_signal": false,
-            "short_signal": false,
-            "bearish_divergence": false,
-            "bullish_divergence": false
-          },
-          "stop_state": {
-            "evaluated": false,
-            "missing": "entry_date or entry_price, entry_atr, and highest_since_entry"
-          },
-          "take_profit": "long: 20-day price high without RSI confirmation; short: reverse",
-          "cost_assumption_one_way": 0.0004,
-          "validation_scope": "same_rule_calculation",
-          "data_source": "akshare:futures_zh_daily_sina"
-        },
-        "short": {
-          "status": "ok",
-          "symbol": "OI2609",
-          "period": "daily",
-          "market_date": "2026-07-22",
-          "position": "short",
-          "action": "HOLD_SHORT",
-          "execution": "none",
-          "rationale": [
-            "short stop and bullish divergence not triggered"
-          ],
-          "blocked_direction_after_action": "none",
-          "market": {
-            "close": 9949.0,
-            "ma6": 9990.833333333334,
-            "ma20": 9822.15,
-            "atr14": 132.0150601384178,
-            "rsi14": 54.57892935414837,
-            "long_signal": false,
-            "short_signal": false,
-            "bearish_divergence": false,
-            "bullish_divergence": false
-          },
-          "stop_state": {
-            "armed": true,
-            "close_above_ma6": false,
-            "ma6": 9990.833333333334
-          },
-          "take_profit": "long: 20-day price high without RSI confirmation; short: reverse",
-          "cost_assumption_one_way": 0.0004,
-          "validation_scope": "same_rule_calculation",
-          "data_source": "akshare:futures_zh_daily_sina"
-        }
-      },
+      "status": "error",
+      "message": "market data request failed after 2 attempts for OI2609: HTTPSConnectionPool(host='stock2.finance.sina.com.cn', port=443): Max retries exceeded with url: /futures/api/jsonp.php/var%20_V21052021_4_12=/InnerFuturesNewService.getDailyKLine?symbol=OI2609&type=2021_04_12 (Caused by NameResolutionError(\"HTTPSConnection(host='stock2.finance.sina.com.cn', port=443): Failed to resolve 'stock2.finance.sina.com.cn' ([Errno 8] nodename nor servname provided, or not known)\"))",
       "current_quote": {
-        "price": 10175.0,
-        "change": "+2.27%",
-        "direction": "↑",
+        "price": 10170.0,
+        "change": "-0.05%",
+        "direction": "↓",
         "trade_date": "2026-07-23",
         "source": "AkShare + 同花顺问财行情skill",
         "unit": "元/吨"
       }
     },
     {
-      "symbol": "OI2701",
+      "symbol": "OI2611",
       "product": "OI",
       "product_name": "菜油",
       "rank": 2,
       "label": "次主力",
-      "market_date": "2026-07-22",
-      "data_source": "akshare:futures_zh_daily_sina",
-      "bar_completed": true,
-      "bar_note": "latest source bar treated as completed",
-      "model_scope": "rule_trial",
-      "model_scope_label": "同规则试算",
-      "market": {
-        "close": 9872.0,
-        "ma6": 9895.5,
-        "ma20": 9734.9,
-        "atr14": 123.99547339026203,
-        "rsi14": 55.317020837334105,
-        "long_signal": false,
-        "short_signal": false,
-        "bearish_divergence": false,
-        "bullish_divergence": false
-      },
-      "signals": {
-        "flat": {
-          "status": "ok",
-          "symbol": "OI2701",
-          "period": "daily",
-          "market_date": "2026-07-22",
-          "position": "flat",
-          "action": "WAIT",
-          "execution": "none",
-          "rationale": [
-            "no new MA20 crossover"
-          ],
-          "blocked_direction_after_action": "none",
-          "market": {
-            "close": 9872.0,
-            "ma6": 9895.5,
-            "ma20": 9734.9,
-            "atr14": 123.99547339026203,
-            "rsi14": 55.317020837334105,
-            "long_signal": false,
-            "short_signal": false,
-            "bearish_divergence": false,
-            "bullish_divergence": false
-          },
-          "stop_state": {},
-          "take_profit": "long: 20-day price high without RSI confirmation; short: reverse",
-          "cost_assumption_one_way": 0.0004,
-          "validation_scope": "same_rule_calculation",
-          "data_source": "akshare:futures_zh_daily_sina"
-        },
-        "long": {
-          "status": "ok",
-          "symbol": "OI2701",
-          "period": "daily",
-          "market_date": "2026-07-22",
-          "position": "long",
-          "action": "HOLD_LONG_DATA_NEEDED",
-          "execution": "none",
-          "rationale": [
-            "long ATR activation cannot be evaluated from the supplied position data"
-          ],
-          "blocked_direction_after_action": "none",
-          "market": {
-            "close": 9872.0,
-            "ma6": 9895.5,
-            "ma20": 9734.9,
-            "atr14": 123.99547339026203,
-            "rsi14": 55.317020837334105,
-            "long_signal": false,
-            "short_signal": false,
-            "bearish_divergence": false,
-            "bullish_divergence": false
-          },
-          "stop_state": {
-            "evaluated": false,
-            "missing": "entry_date or entry_price, entry_atr, and highest_since_entry"
-          },
-          "take_profit": "long: 20-day price high without RSI confirmation; short: reverse",
-          "cost_assumption_one_way": 0.0004,
-          "validation_scope": "same_rule_calculation",
-          "data_source": "akshare:futures_zh_daily_sina"
-        },
-        "short": {
-          "status": "ok",
-          "symbol": "OI2701",
-          "period": "daily",
-          "market_date": "2026-07-22",
-          "position": "short",
-          "action": "HOLD_SHORT",
-          "execution": "none",
-          "rationale": [
-            "short stop and bullish divergence not triggered"
-          ],
-          "blocked_direction_after_action": "none",
-          "market": {
-            "close": 9872.0,
-            "ma6": 9895.5,
-            "ma20": 9734.9,
-            "atr14": 123.99547339026203,
-            "rsi14": 55.317020837334105,
-            "long_signal": false,
-            "short_signal": false,
-            "bearish_divergence": false,
-            "bullish_divergence": false
-          },
-          "stop_state": {
-            "armed": true,
-            "close_above_ma6": false,
-            "ma6": 9895.5
-          },
-          "take_profit": "long: 20-day price high without RSI confirmation; short: reverse",
-          "cost_assumption_one_way": 0.0004,
-          "validation_scope": "same_rule_calculation",
-          "data_source": "akshare:futures_zh_daily_sina"
-        }
-      },
+      "status": "error",
+      "message": "market data request failed after 2 attempts for OI2611: HTTPSConnectionPool(host='stock2.finance.sina.com.cn', port=443): Max retries exceeded with url: /futures/api/jsonp.php/var%20_V21052021_4_12=/InnerFuturesNewService.getDailyKLine?symbol=OI2611&type=2021_04_12 (Caused by NameResolutionError(\"HTTPSConnection(host='stock2.finance.sina.com.cn', port=443): Failed to resolve 'stock2.finance.sina.com.cn' ([Errno 8] nodename nor servname provided, or not known)\"))",
       "current_quote": {
-        "price": 10087.0,
-        "change": "+2.18%",
-        "direction": "↑",
+        "price": 10169.0,
+        "change": "-0.04%",
+        "direction": "↓",
         "trade_date": "2026-07-23",
-        "source": "akshare:futures_zh_realtime",
+        "source": "AkShare + 同花顺问财行情skill",
         "unit": "元/吨"
       }
     },
@@ -2249,129 +439,13 @@
       "product_name": "豆粕",
       "rank": 1,
       "label": "主力",
-      "market_date": "2026-07-22",
-      "data_source": "akshare:futures_zh_daily_sina",
-      "bar_completed": true,
-      "bar_note": "latest source bar treated as completed",
-      "model_scope": "rule_trial",
-      "model_scope_label": "同规则试算",
-      "market": {
-        "close": 3146.0,
-        "ma6": 3102.8333333333335,
-        "ma20": 3034.25,
-        "atr14": 36.08446147835136,
-        "rsi14": 78.53122493302064,
-        "long_signal": false,
-        "short_signal": false,
-        "bearish_divergence": true,
-        "bullish_divergence": false
-      },
-      "signals": {
-        "flat": {
-          "status": "ok",
-          "symbol": "M2609",
-          "period": "daily",
-          "market_date": "2026-07-22",
-          "position": "flat",
-          "action": "WAIT",
-          "execution": "none",
-          "rationale": [
-            "no new MA20 crossover"
-          ],
-          "blocked_direction_after_action": "none",
-          "market": {
-            "close": 3146.0,
-            "ma6": 3102.8333333333335,
-            "ma20": 3034.25,
-            "atr14": 36.08446147835136,
-            "rsi14": 78.53122493302064,
-            "long_signal": false,
-            "short_signal": false,
-            "bearish_divergence": true,
-            "bullish_divergence": false
-          },
-          "stop_state": {},
-          "take_profit": "long: 20-day price high without RSI confirmation; short: reverse",
-          "cost_assumption_one_way": 0.0004,
-          "validation_scope": "same_rule_calculation",
-          "data_source": "akshare:futures_zh_daily_sina"
-        },
-        "long": {
-          "status": "ok",
-          "symbol": "M2609",
-          "period": "daily",
-          "market_date": "2026-07-22",
-          "position": "long",
-          "action": "EXIT_SIGNAL_OVERDUE",
-          "execution": "next_available_market_opportunity",
-          "rationale": [
-            "price made a 20-day high while RSI failed to confirm",
-            "the strategy's next-open exit window has passed; risk-control exit is overdue"
-          ],
-          "blocked_direction_after_action": "none",
-          "market": {
-            "close": 3146.0,
-            "ma6": 3102.8333333333335,
-            "ma20": 3034.25,
-            "atr14": 36.08446147835136,
-            "rsi14": 78.53122493302064,
-            "long_signal": false,
-            "short_signal": false,
-            "bearish_divergence": true,
-            "bullish_divergence": false
-          },
-          "stop_state": {},
-          "take_profit": "long: 20-day price high without RSI confirmation; short: reverse",
-          "cost_assumption_one_way": 0.0004,
-          "validation_scope": "same_rule_calculation",
-          "intended_execution_date": "2026-07-23",
-          "original_confirmed_action": "TAKE_PROFIT_EXIT_LONG",
-          "execution_window": "missed",
-          "data_source": "akshare:futures_zh_daily_sina"
-        },
-        "short": {
-          "status": "ok",
-          "symbol": "M2609",
-          "period": "daily",
-          "market_date": "2026-07-22",
-          "position": "short",
-          "action": "EXIT_SIGNAL_OVERDUE",
-          "execution": "next_available_market_opportunity",
-          "rationale": [
-            "short stop triggered: completed close above MA6",
-            "the strategy's next-open exit window has passed; risk-control exit is overdue"
-          ],
-          "blocked_direction_after_action": "short",
-          "market": {
-            "close": 3146.0,
-            "ma6": 3102.8333333333335,
-            "ma20": 3034.25,
-            "atr14": 36.08446147835136,
-            "rsi14": 78.53122493302064,
-            "long_signal": false,
-            "short_signal": false,
-            "bearish_divergence": true,
-            "bullish_divergence": false
-          },
-          "stop_state": {
-            "armed": true,
-            "close_above_ma6": true,
-            "ma6": 3102.8333333333335
-          },
-          "take_profit": "long: 20-day price high without RSI confirmation; short: reverse",
-          "cost_assumption_one_way": 0.0004,
-          "validation_scope": "same_rule_calculation",
-          "intended_execution_date": "2026-07-23",
-          "original_confirmed_action": "STOP_EXIT_SHORT",
-          "execution_window": "missed",
-          "data_source": "akshare:futures_zh_daily_sina"
-        }
-      },
+      "status": "error",
+      "message": "market data request failed after 2 attempts for M2609: HTTPSConnectionPool(host='stock2.finance.sina.com.cn', port=443): Max retries exceeded with url: /futures/api/jsonp.php/var%20_V21052021_4_12=/InnerFuturesNewService.getDailyKLine?symbol=M2609&type=2021_04_12 (Caused by NameResolutionError(\"HTTPSConnection(host='stock2.finance.sina.com.cn', port=443): Failed to resolve 'stock2.finance.sina.com.cn' ([Errno 8] nodename nor servname provided, or not known)\"))",
       "current_quote": {
-        "price": 3175.0,
-        "change": "+0.92%",
-        "direction": "↑",
-        "trade_date": "2026-07-23",
+        "price": 3172.0,
+        "change": "-0.09%",
+        "direction": "↓",
+        "trade_date": "2026-07-24",
         "source": "AkShare + 同花顺问财行情skill",
         "unit": "元/吨"
       }
@@ -2382,129 +456,13 @@
       "product_name": "豆粕",
       "rank": 2,
       "label": "次主力",
-      "market_date": "2026-07-22",
-      "data_source": "akshare:futures_zh_daily_sina",
-      "bar_completed": true,
-      "bar_note": "latest source bar treated as completed",
-      "model_scope": "rule_trial",
-      "model_scope_label": "同规则试算",
-      "market": {
-        "close": 3200.0,
-        "ma6": 3163.8333333333335,
-        "ma20": 3093.8,
-        "atr14": 32.36845990847952,
-        "rsi14": 79.79582477562472,
-        "long_signal": false,
-        "short_signal": false,
-        "bearish_divergence": true,
-        "bullish_divergence": false
-      },
-      "signals": {
-        "flat": {
-          "status": "ok",
-          "symbol": "M2701",
-          "period": "daily",
-          "market_date": "2026-07-22",
-          "position": "flat",
-          "action": "WAIT",
-          "execution": "none",
-          "rationale": [
-            "no new MA20 crossover"
-          ],
-          "blocked_direction_after_action": "none",
-          "market": {
-            "close": 3200.0,
-            "ma6": 3163.8333333333335,
-            "ma20": 3093.8,
-            "atr14": 32.36845990847952,
-            "rsi14": 79.79582477562472,
-            "long_signal": false,
-            "short_signal": false,
-            "bearish_divergence": true,
-            "bullish_divergence": false
-          },
-          "stop_state": {},
-          "take_profit": "long: 20-day price high without RSI confirmation; short: reverse",
-          "cost_assumption_one_way": 0.0004,
-          "validation_scope": "same_rule_calculation",
-          "data_source": "akshare:futures_zh_daily_sina"
-        },
-        "long": {
-          "status": "ok",
-          "symbol": "M2701",
-          "period": "daily",
-          "market_date": "2026-07-22",
-          "position": "long",
-          "action": "EXIT_SIGNAL_OVERDUE",
-          "execution": "next_available_market_opportunity",
-          "rationale": [
-            "price made a 20-day high while RSI failed to confirm",
-            "the strategy's next-open exit window has passed; risk-control exit is overdue"
-          ],
-          "blocked_direction_after_action": "none",
-          "market": {
-            "close": 3200.0,
-            "ma6": 3163.8333333333335,
-            "ma20": 3093.8,
-            "atr14": 32.36845990847952,
-            "rsi14": 79.79582477562472,
-            "long_signal": false,
-            "short_signal": false,
-            "bearish_divergence": true,
-            "bullish_divergence": false
-          },
-          "stop_state": {},
-          "take_profit": "long: 20-day price high without RSI confirmation; short: reverse",
-          "cost_assumption_one_way": 0.0004,
-          "validation_scope": "same_rule_calculation",
-          "intended_execution_date": "2026-07-23",
-          "original_confirmed_action": "TAKE_PROFIT_EXIT_LONG",
-          "execution_window": "missed",
-          "data_source": "akshare:futures_zh_daily_sina"
-        },
-        "short": {
-          "status": "ok",
-          "symbol": "M2701",
-          "period": "daily",
-          "market_date": "2026-07-22",
-          "position": "short",
-          "action": "EXIT_SIGNAL_OVERDUE",
-          "execution": "next_available_market_opportunity",
-          "rationale": [
-            "short stop triggered: completed close above MA6",
-            "the strategy's next-open exit window has passed; risk-control exit is overdue"
-          ],
-          "blocked_direction_after_action": "short",
-          "market": {
-            "close": 3200.0,
-            "ma6": 3163.8333333333335,
-            "ma20": 3093.8,
-            "atr14": 32.36845990847952,
-            "rsi14": 79.79582477562472,
-            "long_signal": false,
-            "short_signal": false,
-            "bearish_divergence": true,
-            "bullish_divergence": false
-          },
-          "stop_state": {
-            "armed": true,
-            "close_above_ma6": true,
-            "ma6": 3163.8333333333335
-          },
-          "take_profit": "long: 20-day price high without RSI confirmation; short: reverse",
-          "cost_assumption_one_way": 0.0004,
-          "validation_scope": "same_rule_calculation",
-          "intended_execution_date": "2026-07-23",
-          "original_confirmed_action": "STOP_EXIT_SHORT",
-          "execution_window": "missed",
-          "data_source": "akshare:futures_zh_daily_sina"
-        }
-      },
+      "status": "error",
+      "message": "market data request failed after 2 attempts for M2701: HTTPSConnectionPool(host='stock2.finance.sina.com.cn', port=443): Max retries exceeded with url: /futures/api/jsonp.php/var%20_V21052021_4_12=/InnerFuturesNewService.getDailyKLine?symbol=M2701&type=2021_04_12 (Caused by NameResolutionError(\"HTTPSConnection(host='stock2.finance.sina.com.cn', port=443): Failed to resolve 'stock2.finance.sina.com.cn' ([Errno 8] nodename nor servname provided, or not known)\"))",
       "current_quote": {
-        "price": 3233.0,
-        "change": "+1.03%",
-        "direction": "↑",
-        "trade_date": "2026-07-23",
+        "price": 3228.0,
+        "change": "-0.15%",
+        "direction": "↓",
+        "trade_date": "2026-07-24",
         "source": "AkShare + 同花顺问财行情skill",
         "unit": "元/吨"
       }
@@ -2515,126 +473,11 @@
       "product_name": "菜粕",
       "rank": 1,
       "label": "主力",
-      "market_date": "2026-07-22",
-      "data_source": "akshare:futures_zh_daily_sina",
-      "bar_completed": true,
-      "bar_note": "latest source bar treated as completed",
-      "model_scope": "rule_trial",
-      "model_scope_label": "同规则试算",
-      "market": {
-        "close": 2350.0,
-        "ma6": 2322.3333333333335,
-        "ma20": 2302.05,
-        "atr14": 36.45110818817296,
-        "rsi14": 58.50846772697182,
-        "long_signal": false,
-        "short_signal": false,
-        "bearish_divergence": false,
-        "bullish_divergence": false
-      },
-      "signals": {
-        "flat": {
-          "status": "ok",
-          "symbol": "RM2609",
-          "period": "daily",
-          "market_date": "2026-07-22",
-          "position": "flat",
-          "action": "WAIT",
-          "execution": "none",
-          "rationale": [
-            "no new MA20 crossover"
-          ],
-          "blocked_direction_after_action": "none",
-          "market": {
-            "close": 2350.0,
-            "ma6": 2322.3333333333335,
-            "ma20": 2302.05,
-            "atr14": 36.45110818817296,
-            "rsi14": 58.50846772697182,
-            "long_signal": false,
-            "short_signal": false,
-            "bearish_divergence": false,
-            "bullish_divergence": false
-          },
-          "stop_state": {},
-          "take_profit": "long: 20-day price high without RSI confirmation; short: reverse",
-          "cost_assumption_one_way": 0.0004,
-          "validation_scope": "same_rule_calculation",
-          "data_source": "akshare:futures_zh_daily_sina"
-        },
-        "long": {
-          "status": "ok",
-          "symbol": "RM2609",
-          "period": "daily",
-          "market_date": "2026-07-22",
-          "position": "long",
-          "action": "HOLD_LONG_DATA_NEEDED",
-          "execution": "none",
-          "rationale": [
-            "long ATR activation cannot be evaluated from the supplied position data"
-          ],
-          "blocked_direction_after_action": "none",
-          "market": {
-            "close": 2350.0,
-            "ma6": 2322.3333333333335,
-            "ma20": 2302.05,
-            "atr14": 36.45110818817296,
-            "rsi14": 58.50846772697182,
-            "long_signal": false,
-            "short_signal": false,
-            "bearish_divergence": false,
-            "bullish_divergence": false
-          },
-          "stop_state": {
-            "evaluated": false,
-            "missing": "entry_date or entry_price, entry_atr, and highest_since_entry"
-          },
-          "take_profit": "long: 20-day price high without RSI confirmation; short: reverse",
-          "cost_assumption_one_way": 0.0004,
-          "validation_scope": "same_rule_calculation",
-          "data_source": "akshare:futures_zh_daily_sina"
-        },
-        "short": {
-          "status": "ok",
-          "symbol": "RM2609",
-          "period": "daily",
-          "market_date": "2026-07-22",
-          "position": "short",
-          "action": "EXIT_SIGNAL_OVERDUE",
-          "execution": "next_available_market_opportunity",
-          "rationale": [
-            "short stop triggered: completed close above MA6",
-            "the strategy's next-open exit window has passed; risk-control exit is overdue"
-          ],
-          "blocked_direction_after_action": "short",
-          "market": {
-            "close": 2350.0,
-            "ma6": 2322.3333333333335,
-            "ma20": 2302.05,
-            "atr14": 36.45110818817296,
-            "rsi14": 58.50846772697182,
-            "long_signal": false,
-            "short_signal": false,
-            "bearish_divergence": false,
-            "bullish_divergence": false
-          },
-          "stop_state": {
-            "armed": true,
-            "close_above_ma6": true,
-            "ma6": 2322.3333333333335
-          },
-          "take_profit": "long: 20-day price high without RSI confirmation; short: reverse",
-          "cost_assumption_one_way": 0.0004,
-          "validation_scope": "same_rule_calculation",
-          "intended_execution_date": "2026-07-23",
-          "original_confirmed_action": "STOP_EXIT_SHORT",
-          "execution_window": "missed",
-          "data_source": "akshare:futures_zh_daily_sina"
-        }
-      },
+      "status": "error",
+      "message": "market data request failed after 2 attempts for RM2609: HTTPSConnectionPool(host='stock2.finance.sina.com.cn', port=443): Max retries exceeded with url: /futures/api/jsonp.php/var%20_V21052021_4_12=/InnerFuturesNewService.getDailyKLine?symbol=RM2609&type=2021_04_12 (Caused by NameResolutionError(\"HTTPSConnection(host='stock2.finance.sina.com.cn', port=443): Failed to resolve 'stock2.finance.sina.com.cn' ([Errno 8] nodename nor servname provided, or not known)\"))",
       "current_quote": {
-        "price": 2360.0,
-        "change": "+0.43%",
+        "price": 2375.0,
+        "change": "+0.64%",
         "direction": "↑",
         "trade_date": "2026-07-23",
         "source": "akshare:futures_zh_realtime",
@@ -2647,129 +490,14 @@
       "product_name": "菜粕",
       "rank": 2,
       "label": "次主力",
-      "market_date": "2026-07-22",
-      "data_source": "akshare:futures_zh_daily_sina",
-      "bar_completed": true,
-      "bar_note": "latest source bar treated as completed",
-      "model_scope": "rule_trial",
-      "model_scope_label": "同规则试算",
-      "market": {
-        "close": 2292.0,
-        "ma6": 2264.1666666666665,
-        "ma20": 2245.2,
-        "atr14": 27.421982805761346,
-        "rsi14": 61.55303864681073,
-        "long_signal": false,
-        "short_signal": false,
-        "bearish_divergence": false,
-        "bullish_divergence": false
-      },
-      "signals": {
-        "flat": {
-          "status": "ok",
-          "symbol": "RM2701",
-          "period": "daily",
-          "market_date": "2026-07-22",
-          "position": "flat",
-          "action": "WAIT",
-          "execution": "none",
-          "rationale": [
-            "no new MA20 crossover"
-          ],
-          "blocked_direction_after_action": "none",
-          "market": {
-            "close": 2292.0,
-            "ma6": 2264.1666666666665,
-            "ma20": 2245.2,
-            "atr14": 27.421982805761346,
-            "rsi14": 61.55303864681073,
-            "long_signal": false,
-            "short_signal": false,
-            "bearish_divergence": false,
-            "bullish_divergence": false
-          },
-          "stop_state": {},
-          "take_profit": "long: 20-day price high without RSI confirmation; short: reverse",
-          "cost_assumption_one_way": 0.0004,
-          "validation_scope": "same_rule_calculation",
-          "data_source": "akshare:futures_zh_daily_sina"
-        },
-        "long": {
-          "status": "ok",
-          "symbol": "RM2701",
-          "period": "daily",
-          "market_date": "2026-07-22",
-          "position": "long",
-          "action": "HOLD_LONG_DATA_NEEDED",
-          "execution": "none",
-          "rationale": [
-            "long ATR activation cannot be evaluated from the supplied position data"
-          ],
-          "blocked_direction_after_action": "none",
-          "market": {
-            "close": 2292.0,
-            "ma6": 2264.1666666666665,
-            "ma20": 2245.2,
-            "atr14": 27.421982805761346,
-            "rsi14": 61.55303864681073,
-            "long_signal": false,
-            "short_signal": false,
-            "bearish_divergence": false,
-            "bullish_divergence": false
-          },
-          "stop_state": {
-            "evaluated": false,
-            "missing": "entry_date or entry_price, entry_atr, and highest_since_entry"
-          },
-          "take_profit": "long: 20-day price high without RSI confirmation; short: reverse",
-          "cost_assumption_one_way": 0.0004,
-          "validation_scope": "same_rule_calculation",
-          "data_source": "akshare:futures_zh_daily_sina"
-        },
-        "short": {
-          "status": "ok",
-          "symbol": "RM2701",
-          "period": "daily",
-          "market_date": "2026-07-22",
-          "position": "short",
-          "action": "EXIT_SIGNAL_OVERDUE",
-          "execution": "next_available_market_opportunity",
-          "rationale": [
-            "short stop triggered: completed close above MA6",
-            "the strategy's next-open exit window has passed; risk-control exit is overdue"
-          ],
-          "blocked_direction_after_action": "short",
-          "market": {
-            "close": 2292.0,
-            "ma6": 2264.1666666666665,
-            "ma20": 2245.2,
-            "atr14": 27.421982805761346,
-            "rsi14": 61.55303864681073,
-            "long_signal": false,
-            "short_signal": false,
-            "bearish_divergence": false,
-            "bullish_divergence": false
-          },
-          "stop_state": {
-            "armed": true,
-            "close_above_ma6": true,
-            "ma6": 2264.1666666666665
-          },
-          "take_profit": "long: 20-day price high without RSI confirmation; short: reverse",
-          "cost_assumption_one_way": 0.0004,
-          "validation_scope": "same_rule_calculation",
-          "intended_execution_date": "2026-07-23",
-          "original_confirmed_action": "STOP_EXIT_SHORT",
-          "execution_window": "missed",
-          "data_source": "akshare:futures_zh_daily_sina"
-        }
-      },
+      "status": "error",
+      "message": "market data request failed after 2 attempts for RM2701: HTTPSConnectionPool(host='stock2.finance.sina.com.cn', port=443): Max retries exceeded with url: /futures/api/jsonp.php/var%20_V21052021_4_12=/InnerFuturesNewService.getDailyKLine?symbol=RM2701&type=2021_04_12 (Caused by NameResolutionError(\"HTTPSConnection(host='stock2.finance.sina.com.cn', port=443): Failed to resolve 'stock2.finance.sina.com.cn' ([Errno 8] nodename nor servname provided, or not known)\"))",
       "current_quote": {
-        "price": 2320.0,
-        "change": "+1.22%",
+        "price": 2333.0,
+        "change": "+0.56%",
         "direction": "↑",
         "trade_date": "2026-07-23",
-        "source": "AkShare + 同花顺问财行情skill",
+        "source": "akshare:futures_zh_realtime",
         "unit": "元/吨"
       }
     }
