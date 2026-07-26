@@ -26,7 +26,7 @@ MESSAGES_SCRIPT = ROOT / "scripts" / "send_research_messages.applescript"
 OIL_FUTURES = ROOT / "data" / "oil_futures.js"
 REPORTS_INDEX = ROOT / "data" / "reports.js"
 PUBLIC_BASE = "https://ethenwen0423-coder.github.io/palm-oil-daily"
-MAX_MESSAGE_CHARS = 1200
+MAX_MESSAGE_CHARS = 1000
 FORBIDDEN = re.compile("未实际调用|当前环境未暴露调用入口|这是测试报告|排版调试样稿")
 EDITION_LABEL = {"morning": "晨报", "close": "收盘复盘", "night": "夜盘前报告"}
 
@@ -429,6 +429,121 @@ def select_contracts(payload: dict[str, Any]) -> list[dict[str, Any]]:
     return selected
 
 
+def compact_piece(text: str, limit: int) -> str:
+    clean = re.sub(r"\s+", " ", str(text or "")).strip()
+    if len(clean) <= limit:
+        return clean
+    cut = max(clean.rfind(mark, 0, limit) for mark in ("。", "；", "，"))
+    if cut < limit // 2:
+        cut = limit - 1
+    return clean[: cut + 1].rstrip("，； ") + "…"
+
+
+def normalized_section(text: str, heading: str, limit: int) -> str:
+    lines = text.splitlines()
+    try:
+        start = next(index for index, line in enumerate(lines) if line.strip() == heading) + 1
+    except StopIteration:
+        return ""
+    selected: list[str] = []
+    for line in lines[start:]:
+        stripped = line.strip()
+        if stripped.startswith("【") and stripped.endswith("】"):
+            break
+        if stripped in {"来源与完整报告", "油脂主力技术面补充"}:
+            break
+        if stripped:
+            selected.append(stripped)
+    return compact_piece(" ".join(selected), limit)
+
+
+def compact_contract_line(item: dict[str, Any]) -> str:
+    score = item.get("score") or {}
+    strategy = item.get("strategy_recommendation") or {}
+    position_text = " ".join(
+        str(row.get("text") or "") for row in item.get("technical_detail", [])[:1]
+    )
+    ma20 = re.search(r"MA20\s*([0-9.]+)", position_text)
+    ma60 = re.search(r"MA60\s*([0-9.]+)", position_text)
+    ma_text = (
+        f"MA20/60 {ma20.group(1)}/{ma60.group(1)}"
+        if ma20 and ma60
+        else "均线需核验"
+    )
+    return (
+        f"{item.get('product')} {item.get('contract')} {item.get('price')}({item.get('change')})；"
+        f"{score.get('stance', '需核验')}/技{score.get('technical', '需核验')}；{ma_text}；"
+        f"观察{strategy.get('lower_watch', '需核验')}-{strategy.get('upper_watch', '需核验')}"
+    )
+
+
+def compact_market_report(payload: dict[str, Any], edition: str, report_date: str) -> str:
+    selected = select_contracts(payload)
+    domestic = selected[:3]
+    ranked = sorted(
+        domestic,
+        key=lambda item: as_float((item.get("score") or {}).get("total")) or -1,
+        reverse=True,
+    )
+    strength = ">".join(str(item.get("product") or "") for item in ranked)
+    references = payload.get("market_references") or {}
+    fcpo = references.get("malaysia_fcpo") or {}
+    cbot = fetch_cbot_bean_oil()
+    cbot_text = (
+        f"{fmt(cbot.get('price'))}({fmt(cbot.get('change'))}%)"
+        if cbot.get("status") == "ok"
+        else "需进一步核验"
+    )
+    risks = [
+        str((item.get("score") or {}).get("contradiction_warning") or "")
+        for item in domestic
+    ]
+    risks = list(dict.fromkeys(risk for risk in risks if risk))
+    lines = [
+        f"结论：三油强弱{strength}；技术面只判断位置与节奏，需结合外盘和资金确认。",
+        *[compact_contract_line(item) for item in domestic],
+        f"外盘：FCPO {fcpo.get('price', '需核验')}({fcpo.get('change', '需核验')})；CBOT豆油 {cbot_text}。",
+        f"风险：{compact_piece('；'.join(risks), 130) or '跨源数据冲突或驱动反向时降级观望。'}",
+        f"快照：{payload.get('updated_at', '需进一步核验')}。仅供研究参考，不构成交易指令。",
+    ]
+    return "\n".join(lines)
+
+
+def compact_morning_report(content: str, payload: dict[str, Any] | None, report_date: str) -> str:
+    normalized = normalize_morning_markdown(content, report_date)
+    viewpoint = normalized_section(normalized, "【今日观点】", 190)
+    strategy = normalized_section(normalized, "【今日交易信号】", 170)
+    risk = normalized_section(normalized, "【风险提示】", 130)
+    lines = [
+        f"观点：{viewpoint or '需进一步核验'}",
+        f"策略：{strategy or '需进一步核验'}",
+    ]
+    if payload:
+        selected = select_contracts(payload)
+        lines.extend(compact_contract_line(item) for item in selected[:3])
+        references = payload.get("market_references") or {}
+        fcpo = references.get("malaysia_fcpo") or {}
+        cbot = fetch_cbot_bean_oil()
+        cbot_text = (
+            f"{fmt(cbot.get('price'))}({fmt(cbot.get('change'))}%)"
+            if cbot.get("status") == "ok"
+            else "需进一步核验"
+        )
+        lines.append(
+            f"外盘：FCPO {fcpo.get('price', '需核验')}({fcpo.get('change', '需核验')})；"
+            f"CBOT豆油 {cbot_text}。"
+        )
+    else:
+        lines.append("技术面：当天主力快照未就绪，需进一步核验。")
+    lines.extend(
+        [
+            f"风险：{risk or '驱动与资金反向时降级观望。'}",
+            f"全文：{public_report_url(report_date)}",
+        ]
+    )
+    return "\n".join(lines)
+
+
 def build_session_report(payload: dict[str, Any], edition: str, report_date: str) -> str:
     updated_at = str(payload.get("updated_at") or "需进一步核验")
     selected = select_contracts(payload)
@@ -547,49 +662,16 @@ def build_technical_supplement(payload: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def split_text(text: str, limit: int = MAX_MESSAGE_CHARS) -> list[str]:
-    if limit < 80:
-        raise ValueError("message limit is too small")
-    paragraphs = [part.strip() for part in re.split(r"\n\s*\n", text) if part.strip()]
-    chunks: list[str] = []
-    current = ""
-    for paragraph in paragraphs:
-        pieces: list[str] = []
-        remaining = paragraph
-        while len(remaining) > limit:
-            cut = max(
-                remaining.rfind(mark, 0, limit + 1)
-                for mark in ("\n", "。", "；", "，")
-            )
-            if cut < limit // 3:
-                cut = limit
-            else:
-                cut += 1
-            pieces.append(remaining[:cut].strip())
-            remaining = remaining[cut:].strip()
-        if remaining:
-            pieces.append(remaining)
-        for piece in pieces:
-            candidate = piece if not current else f"{current}\n\n{piece}"
-            if len(candidate) <= limit:
-                current = candidate
-            else:
-                if current:
-                    chunks.append(current)
-                current = piece
-    if current:
-        chunks.append(current)
-    return chunks
-
-
 def prepare_messages(text: str, report_date: str, edition: str) -> list[str]:
-    prefix_room = 40
-    chunks = split_text(text, MAX_MESSAGE_CHARS - prefix_room)
-    total = len(chunks)
-    return [
-        f"【棕榈油研究·{EDITION_LABEL[edition]}·{report_date}·{index}/{total}】\n{chunk}"
-        for index, chunk in enumerate(chunks, start=1)
-    ]
+    prefix = f"【棕榈油研究·{EDITION_LABEL[edition]}·{report_date}】\n"
+    available = MAX_MESSAGE_CHARS - len(prefix)
+    body = re.sub(r"[ \t]+", " ", text).strip()
+    if len(body) > available:
+        cut = max(body.rfind(mark, 0, available) for mark in ("\n", "。", "；"))
+        if cut < available // 2:
+            cut = available - 1
+        body = body[: cut + 1].rstrip() + "…"
+    return [prefix + body]
 
 
 def send_message(recipient: str, message: str, attempts: int = 3) -> None:
@@ -638,6 +720,8 @@ def deliver(
     base: Path,
     dry_run: bool,
 ) -> dict[str, Any]:
+    if len(messages) != 1:
+        raise ResearchNotifierError("研究报告必须限制为一个 Messages 气泡")
     key = f"{report_date}:{edition}"
     path = base / "state.json"
     state = load_state(path)
@@ -700,19 +784,15 @@ def build_report(
     require_public: bool,
 ) -> str:
     if edition == "morning":
-        text = normalize_morning_markdown(
-            verify_morning_report(report_date, require_public=require_public),
-            report_date,
-        )
+        content = verify_morning_report(report_date, require_public=require_public)
+        payload: dict[str, Any] | None = None
         try:
-            payload = parse_wrapped_json(OIL_FUTURES, "window.OIL_FUTURES_CONTRACTS")
-            if str(payload.get("updated_at") or "").startswith(report_date):
-                text += "\n\n" + build_technical_supplement(payload)
-            else:
-                text += "\n\n油脂主力技术面补充\n当天技术快照尚未就绪，需进一步核验。"
-        except Exception as exc:
-            text += f"\n\n油脂主力技术面补充\n技术快照不可用，需进一步核验：{exc}"
-        return text
+            candidate = parse_wrapped_json(OIL_FUTURES, "window.OIL_FUTURES_CONTRACTS")
+            if str(candidate.get("updated_at") or "").startswith(report_date):
+                payload = candidate
+        except Exception:
+            payload = None
+        return compact_morning_report(content, payload, report_date)
     if snapshot:
         payload = parse_wrapped_json(snapshot)
     elif edition == "close":
@@ -726,7 +806,7 @@ def build_report(
             output = Path(temporary) / "oil_futures.js"
             refresh_private_snapshot(output)
             payload = parse_wrapped_json(output, "window.OIL_FUTURES_CONTRACTS")
-    return build_session_report(payload, edition, report_date)
+    return compact_market_report(payload, edition, report_date)
 
 
 def build_parser() -> argparse.ArgumentParser:

@@ -46,11 +46,11 @@ class CalendarAndChunkTest(unittest.TestCase):
         self.assertFalse(NOTIFIER.final_attempt("night", datetime(2026, 7, 27, 20, 35, tzinfo=tz)))
         self.assertTrue(NOTIFIER.final_attempt("night", datetime(2026, 7, 27, 20, 45, tzinfo=tz)))
 
-    def test_chunks_are_bounded_and_sequenced(self):
+    def test_message_is_single_and_bounded(self):
         messages = NOTIFIER.prepare_messages("段落。\n\n" * 1500, "2026-07-27", "close")
-        self.assertGreater(len(messages), 1)
+        self.assertEqual(len(messages), 1)
         self.assertTrue(all(len(message) <= NOTIFIER.MAX_MESSAGE_CHARS for message in messages))
-        self.assertIn("·1/", messages[0])
+        self.assertNotIn("·1/", messages[0])
 
     def test_source_link_table_is_collapsed(self):
         source = """# 晨报
@@ -125,7 +125,7 @@ class IndicatorAndDeliveryTest(unittest.TestCase):
     def test_delivery_is_idempotent_and_resumes_parts(self):
         with tempfile.TemporaryDirectory() as temporary:
             base = Path(temporary)
-            messages = ["第一段", "第二段"]
+            messages = ["唯一消息"]
             calls = []
 
             def fake_send(recipient, message, attempts=3):
@@ -146,6 +146,17 @@ class IndicatorAndDeliveryTest(unittest.TestCase):
             self.assertEqual(first["status"], "submitted_to_messages")
             self.assertEqual(second["status"], "duplicate")
             self.assertEqual(calls, messages)
+
+    def test_delivery_rejects_multiple_bubbles(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.assertRaises(NOTIFIER.ResearchNotifierError):
+                NOTIFIER.deliver(
+                    ["第一段", "第二段"],
+                    "2026-07-27",
+                    "close",
+                    Path(temporary),
+                    True,
+                )
 
     def test_corrupt_state_is_not_silently_reset(self):
         with tempfile.TemporaryDirectory() as temporary:
