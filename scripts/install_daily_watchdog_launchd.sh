@@ -58,10 +58,23 @@ DATA="\$ROOT/data/reports.js"
 LOG="$SUPPORT_DIR/palm-oil-daily-watchdog.check.log"
 STATE_DIR="$SUPPORT_DIR/market-refresh-state"
 MORNING_STATE="\$STATE_DIR/\$REPORT_DATE-morning.ok"
+RESEARCH_RUNNER="$SUPPORT_DIR/palm-oil-research-notifier.sh"
 FORBIDDEN='未实际调用|当前环境未暴露调用入口|这是测试报告|排版调试样稿'
 
 mkdir -p "\$STATE_DIR"
 echo "[\$(TZ=Asia/Shanghai date '+%F %T')] check \$REPORT_DATE" >> "\$LOG"
+
+notify_morning_research() {
+  if [[ ! -x "\$RESEARCH_RUNNER" ]]; then
+    echo "[\$(TZ=Asia/Shanghai date '+%F %T')] research notifier not installed, skip message" >> "\$LOG"
+    return 0
+  fi
+  if "\$RESEARCH_RUNNER" morning >> "\$LOG" 2>&1; then
+    echo "[\$(TZ=Asia/Shanghai date '+%F %T')] morning research notification checked" >> "\$LOG"
+  else
+    echo "[\$(TZ=Asia/Shanghai date '+%F %T')] morning research notification failed; keep website workflow running" >> "\$LOG"
+  fi
+}
 
 if (( WEEKDAY < 1 || WEEKDAY > 5 )); then
   echo "[\$(TZ=Asia/Shanghai date '+%F %T')] not weekday, skip daily and oil-futures tab" >> "\$LOG"
@@ -71,6 +84,7 @@ fi
 if [[ -s "\$REPORT" && -s "\$DOWNLOAD" && -s "\$DATA" ]] \\
   && grep -q "\"date\": \"\$REPORT_DATE\"" "\$DATA" \\
   && ! grep -Eq "\$FORBIDDEN" "\$REPORT"; then
+  notify_morning_research
   if [[ -f "\$MORNING_STATE" ]]; then
     echo "[\$(TZ=Asia/Shanghai date '+%F %T')] daily and morning market data already published, skip retry" >> "\$LOG"
     exit 0
@@ -96,6 +110,7 @@ printf '%s\n' "\$PROMPT" | "\$CODEX_BIN" exec \\
 if [[ -s "\$REPORT" && -s "\$DOWNLOAD" && -s "\$DATA" ]] \\
   && grep -q "\"date\": \"\$REPORT_DATE\"" "\$DATA" \\
   && ! grep -Eq "\$FORBIDDEN" "\$REPORT"; then
+  notify_morning_research
   echo "[\$(TZ=Asia/Shanghai date '+%F %T')] daily backfill complete, refresh morning market data" >> "\$LOG"
   cd "\$ROOT"
   git pull --ff-only >> "\$LOG" 2>&1
