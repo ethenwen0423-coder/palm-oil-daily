@@ -78,6 +78,53 @@ class DailyWatchdogLaunchdTests(unittest.TestCase):
             self.assertIn("/Applications/ChatGPT.app/Contents/Resources/codex", text)
             self.assertIn("command -v codex", text)
 
+    def test_daily_watchdog_uses_new_report_structure_only(self) -> None:
+        text = INSTALLER.read_text(encoding="utf-8")
+        for heading in (
+            "【今日观点】",
+            "【今日交易信号】",
+            "【核心驱动与预期差】",
+            "【关键数据与价格】",
+            "【开盘推演】",
+            "【风险提示】",
+            "【信息来源与核验说明】",
+            "【消息来源链接】",
+            "【AI观点风险提示】",
+        ):
+            self.assertIn(heading, text)
+        self.assertIn("正文结构的唯一权威", text)
+        self.assertIn("不得要求、恢复或额外新增旧独立栏目", text)
+
+    def test_weekly_watchdog_uses_new_report_structure_only(self) -> None:
+        text = WEEKLY_INSTALLER.read_text(encoding="utf-8")
+        for heading in (
+            "【一句话核心观点】",
+            "【本周验证与预期差】",
+            "【核心数据变化】",
+            "【下周主线与事件】",
+            "【周一开盘推演】",
+            "【交易计划】",
+            "【风险提示】",
+            "【信息来源与核验说明】",
+            "【消息来源链接】",
+            "【AI观点风险提示】",
+        ):
+            self.assertIn(heading, text)
+        self.assertIn("正文结构的唯一权威", text)
+        self.assertIn("不得要求、恢复或额外新增旧独立栏目", text)
+
+    def test_morning_watchdogs_do_not_invoke_close_review_code(self) -> None:
+        forbidden_runtime_calls = (
+            "scripts/review_prediction.py",
+            "skills/daily_review_skill/scripts/",
+            "--mode actual-snapshot",
+            "build_metrics.py",
+        )
+        for installer in (INSTALLER, WEEKLY_INSTALLER):
+            text = installer.read_text(encoding="utf-8")
+            for forbidden in forbidden_runtime_calls:
+                self.assertNotIn(forbidden, text)
+
     def test_legacy_2305_review_installer_is_removed(self) -> None:
         self.assertFalse(LEGACY_REVIEW_INSTALLER.exists())
 
