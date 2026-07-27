@@ -97,8 +97,8 @@
 当前调度包括：
 
 - `com.vinsontesla.palm-oil-daily-watchdog`
-  - 周一至周五 08:20 主动检查并生成日报
-  - 周一至周五 08:40 再次补检
+  - 周一至周五 06:00 主动检查并生成日报
+  - 周一至周五 06:20 再次补检
   - 日报合格后在同一调度内刷新首页“油脂主力合约”tab
 - `com.vinsontesla.palm-oil-weekly-watchdog`
   - 周日 21:15 主动检查并生成周报

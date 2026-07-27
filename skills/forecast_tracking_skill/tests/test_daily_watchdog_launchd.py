@@ -23,7 +23,7 @@ class DailyWatchdogLaunchdTests(unittest.TestCase):
 
         self.assertEqual(
             schedule,
-            [(str(day), "8", minute) for minute in ("20", "40") for day in range(1, 6)],
+            [(str(day), "6", minute) for minute in ("0", "20") for day in range(1, 6)],
         )
 
     def test_weekly_watchdog_runs_only_sunday_evening(self) -> None:
