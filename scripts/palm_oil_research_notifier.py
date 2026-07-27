@@ -680,11 +680,22 @@ def send_message(recipient: str, message: str, attempts: int = 3) -> None:
     last_error = ""
     for attempt in range(attempts):
         try:
+            subprocess.run(
+                ["/usr/bin/open", "-g", "-a", "Messages"],
+                text=True,
+                capture_output=True,
+                timeout=10,
+                check=False,
+            )
+            time.sleep(1 if attempt == 0 else 2)
+        except (OSError, subprocess.TimeoutExpired):
+            pass
+        try:
             result = subprocess.run(
                 ["/usr/bin/osascript", str(MESSAGES_SCRIPT), recipient, message],
                 text=True,
                 capture_output=True,
-                timeout=25,
+                timeout=40,
                 check=False,
             )
             if result.returncode == 0:
