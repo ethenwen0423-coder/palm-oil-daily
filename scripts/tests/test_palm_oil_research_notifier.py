@@ -71,6 +71,44 @@ class CalendarAndChunkTest(unittest.TestCase):
         self.assertNotIn("example.com", result)
         self.assertIn("AI观点风险提示", result)
 
+    def test_morning_digest_uses_one_report_snapshot_and_fixed_layout(self):
+        source = """# 晨报
+
+## 【今日观点】
+原油回落压制估值。
+【结论】P按震荡偏弱处理。
+
+## 【今日交易信号】
+三大油脂强弱：Y > P > OI；板块分化。
+
+## 【今日关键数据】
+| 数据 | 快照 | 对P影响 |
+|---|---:|---|
+| FCPO | 4723（+0.04%） | ↑ |
+| WTI | 84.51（-5.37%） | ↓ |
+| CBOT豆油 / 美豆 | 31.68（+0.51%）/1245 | → |
+
+## 【关键价格】
+| 品种 | 压力位 | 支撑位 | 强弱分界 |
+|---|---:|---:|---:|
+| P2609 | 9532 / 9570 | 9487 / 9442 | 9518 |
+| Y2609 | 8610 / 8620 | 8562 / 8520 | 8589 |
+| OI2609 | 10240 / 10281 | 10126 / 10070 | 10191 |
+
+## 【今日观察指标】
+1. WTI能否收复86；2. FCPO能否站稳4723；3. Y能否站回8610。
+
+## 【风险提示】
+1. 原油快速反弹；2. FCPO与Y同步放量。
+"""
+        result = NOTIFIER.compact_morning_report(source, "2026-07-27")
+        self.assertIn("结论：P按震荡偏弱处理", result)
+        self.assertIn("强弱：Y > P > OI", result)
+        self.assertIn("P2609｜支9487 / 9442｜压9532 / 9570｜分界9518", result)
+        self.assertIn("外盘：WTI 84.51", result)
+        self.assertNotIn("MA20", result)
+        self.assertNotIn("技术评分", result)
+
     def test_installers_keep_existing_weekday_values(self):
         research = (ROOT / "scripts" / "install_palm_oil_research_notifier_launchd.sh").read_text(
             encoding="utf-8"
