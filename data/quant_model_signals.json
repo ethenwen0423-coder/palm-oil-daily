@@ -1,9 +1,9 @@
 {
   "status": "ok",
   "schema_version": 2,
-  "generated_at": "2026-07-27T08:36:59+08:00",
-  "market_updated_at": "2026-07-27 08:28",
-  "market_update_session": "morning",
+  "generated_at": "2026-07-27T11:43:01+08:00",
+  "market_updated_at": "2026-07-27 11:37",
+  "market_update_session": "midday",
   "market_timezone": "Asia/Shanghai",
   "default_model_id": "bollinger-rsi-ma6-v1",
   "models": [
@@ -209,8 +209,8 @@
           }
         },
         "current_quote": {
-          "price": 9515.0,
-          "change": "-0.57%",
+          "price": 9394.0,
+          "change": "-1.84%",
           "direction": "↓",
           "trade_date": "2026-07-27",
           "source": "AkShare + 同花顺问财行情skill",
@@ -342,8 +342,8 @@
           }
         },
         "current_quote": {
-          "price": 9798.0,
-          "change": "-0.46%",
+          "price": 9690.0,
+          "change": "-1.55%",
           "direction": "↓",
           "trade_date": "2026-07-27",
           "source": "AkShare + 同花顺问财行情skill",
@@ -475,8 +475,8 @@
           }
         },
         "current_quote": {
-          "price": 8609.0,
-          "change": "-0.13%",
+          "price": 8492.0,
+          "change": "-1.48%",
           "direction": "↓",
           "trade_date": "2026-07-27",
           "source": "AkShare + 同花顺问财行情skill",
@@ -610,8 +610,8 @@
           }
         },
         "current_quote": {
-          "price": 8630.0,
-          "change": "-0.03%",
+          "price": 8520.0,
+          "change": "-1.31%",
           "direction": "↓",
           "trade_date": "2026-07-27",
           "source": "AkShare + 同花顺问财行情skill",
@@ -743,16 +743,16 @@
           }
         },
         "current_quote": {
-          "price": 10191.0,
-          "change": "-0.88%",
+          "price": 10039.0,
+          "change": "-2.35%",
           "direction": "↓",
-          "trade_date": "2026-07-24",
+          "trade_date": "2026-07-27",
           "source": "AkShare + 同花顺问财行情skill",
           "unit": "元/吨"
         }
       },
       {
-        "symbol": "OI2701",
+        "symbol": "OI2611",
         "product": "OI",
         "product_name": "菜油",
         "rank": 2,
@@ -764,11 +764,11 @@
         "model_scope": "rule_trial",
         "model_scope_label": "同规则试算",
         "market": {
-          "close": 10192.0,
-          "ma6": 9980.5,
-          "ma20": 9792.8,
-          "atr14": 132.37875001507288,
-          "rsi14": 68.23365844494359,
+          "close": 10276.0,
+          "ma6": 10068.833333333334,
+          "ma20": 9876.1,
+          "atr14": 137.49826608167743,
+          "rsi14": 67.39388020928129,
           "long_signal": false,
           "short_signal": false,
           "bearish_divergence": false,
@@ -777,7 +777,7 @@
         "signals": {
           "flat": {
             "status": "ok",
-            "symbol": "OI2701",
+            "symbol": "OI2611",
             "period": "daily",
             "market_date": "2026-07-24",
             "position": "flat",
@@ -788,11 +788,11 @@
             ],
             "blocked_direction_after_action": "none",
             "market": {
-              "close": 10192.0,
-              "ma6": 9980.5,
-              "ma20": 9792.8,
-              "atr14": 132.37875001507288,
-              "rsi14": 68.23365844494359,
+              "close": 10276.0,
+              "ma6": 10068.833333333334,
+              "ma20": 9876.1,
+              "atr14": 137.49826608167743,
+              "rsi14": 67.39388020928129,
               "long_signal": false,
               "short_signal": false,
               "bearish_divergence": false,
@@ -806,7 +806,7 @@
           },
           "long": {
             "status": "ok",
-            "symbol": "OI2701",
+            "symbol": "OI2611",
             "period": "daily",
             "market_date": "2026-07-24",
             "position": "long",
@@ -817,11 +817,11 @@
             ],
             "blocked_direction_after_action": "none",
             "market": {
-              "close": 10192.0,
-              "ma6": 9980.5,
-              "ma20": 9792.8,
-              "atr14": 132.37875001507288,
-              "rsi14": 68.23365844494359,
+              "close": 10276.0,
+              "ma6": 10068.833333333334,
+              "ma20": 9876.1,
+              "atr14": 137.49826608167743,
+              "rsi14": 67.39388020928129,
               "long_signal": false,
               "short_signal": false,
               "bearish_divergence": false,
@@ -838,7 +838,7 @@
           },
           "short": {
             "status": "ok",
-            "symbol": "OI2701",
+            "symbol": "OI2611",
             "period": "daily",
             "market_date": "2026-07-24",
             "position": "short",
@@ -850,11 +850,11 @@
             ],
             "blocked_direction_after_action": "short",
             "market": {
-              "close": 10192.0,
-              "ma6": 9980.5,
-              "ma20": 9792.8,
-              "atr14": 132.37875001507288,
-              "rsi14": 68.23365844494359,
+              "close": 10276.0,
+              "ma6": 10068.833333333334,
+              "ma20": 9876.1,
+              "atr14": 137.49826608167743,
+              "rsi14": 67.39388020928129,
               "long_signal": false,
               "short_signal": false,
               "bearish_divergence": false,
@@ -863,7 +863,7 @@
             "stop_state": {
               "armed": true,
               "close_above_ma6": true,
-              "ma6": 9980.5
+              "ma6": 10068.833333333334
             },
             "take_profit": "long: 20-day price high without RSI confirmation; short: reverse",
             "cost_assumption_one_way": 0.0004,
@@ -876,11 +876,11 @@
           }
         },
         "current_quote": {
-          "price": 10112.0,
-          "change": "-0.78%",
+          "price": 10039.0,
+          "change": "-2.31%",
           "direction": "↓",
-          "trade_date": "2026-07-24",
-          "source": "akshare:futures_zh_realtime",
+          "trade_date": "2026-07-27",
+          "source": "AkShare + 同花顺问财行情skill",
           "unit": "元/吨"
         }
       },
@@ -1009,8 +1009,8 @@
           }
         },
         "current_quote": {
-          "price": 3204.0,
-          "change": "-0.65%",
+          "price": 3181.0,
+          "change": "-1.36%",
           "direction": "↓",
           "trade_date": "2026-07-27",
           "source": "AkShare + 同花顺问财行情skill",
@@ -1142,8 +1142,8 @@
           }
         },
         "current_quote": {
-          "price": 3255.0,
-          "change": "-0.46%",
+          "price": 3237.0,
+          "change": "-1.01%",
           "direction": "↓",
           "trade_date": "2026-07-27",
           "source": "AkShare + 同花顺问财行情skill",
@@ -1275,10 +1275,10 @@
           }
         },
         "current_quote": {
-          "price": 2414.0,
-          "change": "-2.15%",
+          "price": 2399.0,
+          "change": "-2.76%",
           "direction": "↓",
-          "trade_date": "2026-07-24",
+          "trade_date": "2026-07-27",
           "source": "akshare:futures_zh_realtime",
           "unit": "元/吨"
         }
@@ -1408,10 +1408,10 @@
           }
         },
         "current_quote": {
-          "price": 2359.0,
-          "change": "-1.26%",
+          "price": 2351.0,
+          "change": "-1.59%",
           "direction": "↓",
-          "trade_date": "2026-07-24",
+          "trade_date": "2026-07-27",
           "source": "akshare:futures_zh_realtime",
           "unit": "元/吨"
         }
@@ -1618,8 +1618,8 @@
         }
       },
       "current_quote": {
-        "price": 9515.0,
-        "change": "-0.57%",
+        "price": 9394.0,
+        "change": "-1.84%",
         "direction": "↓",
         "trade_date": "2026-07-27",
         "source": "AkShare + 同花顺问财行情skill",
@@ -1751,8 +1751,8 @@
         }
       },
       "current_quote": {
-        "price": 9798.0,
-        "change": "-0.46%",
+        "price": 9690.0,
+        "change": "-1.55%",
         "direction": "↓",
         "trade_date": "2026-07-27",
         "source": "AkShare + 同花顺问财行情skill",
@@ -1884,8 +1884,8 @@
         }
       },
       "current_quote": {
-        "price": 8609.0,
-        "change": "-0.13%",
+        "price": 8492.0,
+        "change": "-1.48%",
         "direction": "↓",
         "trade_date": "2026-07-27",
         "source": "AkShare + 同花顺问财行情skill",
@@ -2019,8 +2019,8 @@
         }
       },
       "current_quote": {
-        "price": 8630.0,
-        "change": "-0.03%",
+        "price": 8520.0,
+        "change": "-1.31%",
         "direction": "↓",
         "trade_date": "2026-07-27",
         "source": "AkShare + 同花顺问财行情skill",
@@ -2152,16 +2152,16 @@
         }
       },
       "current_quote": {
-        "price": 10191.0,
-        "change": "-0.88%",
+        "price": 10039.0,
+        "change": "-2.35%",
         "direction": "↓",
-        "trade_date": "2026-07-24",
+        "trade_date": "2026-07-27",
         "source": "AkShare + 同花顺问财行情skill",
         "unit": "元/吨"
       }
     },
     {
-      "symbol": "OI2701",
+      "symbol": "OI2611",
       "product": "OI",
       "product_name": "菜油",
       "rank": 2,
@@ -2173,11 +2173,11 @@
       "model_scope": "rule_trial",
       "model_scope_label": "同规则试算",
       "market": {
-        "close": 10192.0,
-        "ma6": 9980.5,
-        "ma20": 9792.8,
-        "atr14": 132.37875001507288,
-        "rsi14": 68.23365844494359,
+        "close": 10276.0,
+        "ma6": 10068.833333333334,
+        "ma20": 9876.1,
+        "atr14": 137.49826608167743,
+        "rsi14": 67.39388020928129,
         "long_signal": false,
         "short_signal": false,
         "bearish_divergence": false,
@@ -2186,7 +2186,7 @@
       "signals": {
         "flat": {
           "status": "ok",
-          "symbol": "OI2701",
+          "symbol": "OI2611",
           "period": "daily",
           "market_date": "2026-07-24",
           "position": "flat",
@@ -2197,11 +2197,11 @@
           ],
           "blocked_direction_after_action": "none",
           "market": {
-            "close": 10192.0,
-            "ma6": 9980.5,
-            "ma20": 9792.8,
-            "atr14": 132.37875001507288,
-            "rsi14": 68.23365844494359,
+            "close": 10276.0,
+            "ma6": 10068.833333333334,
+            "ma20": 9876.1,
+            "atr14": 137.49826608167743,
+            "rsi14": 67.39388020928129,
             "long_signal": false,
             "short_signal": false,
             "bearish_divergence": false,
@@ -2215,7 +2215,7 @@
         },
         "long": {
           "status": "ok",
-          "symbol": "OI2701",
+          "symbol": "OI2611",
           "period": "daily",
           "market_date": "2026-07-24",
           "position": "long",
@@ -2226,11 +2226,11 @@
           ],
           "blocked_direction_after_action": "none",
           "market": {
-            "close": 10192.0,
-            "ma6": 9980.5,
-            "ma20": 9792.8,
-            "atr14": 132.37875001507288,
-            "rsi14": 68.23365844494359,
+            "close": 10276.0,
+            "ma6": 10068.833333333334,
+            "ma20": 9876.1,
+            "atr14": 137.49826608167743,
+            "rsi14": 67.39388020928129,
             "long_signal": false,
             "short_signal": false,
             "bearish_divergence": false,
@@ -2247,7 +2247,7 @@
         },
         "short": {
           "status": "ok",
-          "symbol": "OI2701",
+          "symbol": "OI2611",
           "period": "daily",
           "market_date": "2026-07-24",
           "position": "short",
@@ -2259,11 +2259,11 @@
           ],
           "blocked_direction_after_action": "short",
           "market": {
-            "close": 10192.0,
-            "ma6": 9980.5,
-            "ma20": 9792.8,
-            "atr14": 132.37875001507288,
-            "rsi14": 68.23365844494359,
+            "close": 10276.0,
+            "ma6": 10068.833333333334,
+            "ma20": 9876.1,
+            "atr14": 137.49826608167743,
+            "rsi14": 67.39388020928129,
             "long_signal": false,
             "short_signal": false,
             "bearish_divergence": false,
@@ -2272,7 +2272,7 @@
           "stop_state": {
             "armed": true,
             "close_above_ma6": true,
-            "ma6": 9980.5
+            "ma6": 10068.833333333334
           },
           "take_profit": "long: 20-day price high without RSI confirmation; short: reverse",
           "cost_assumption_one_way": 0.0004,
@@ -2285,11 +2285,11 @@
         }
       },
       "current_quote": {
-        "price": 10112.0,
-        "change": "-0.78%",
+        "price": 10039.0,
+        "change": "-2.31%",
         "direction": "↓",
-        "trade_date": "2026-07-24",
-        "source": "akshare:futures_zh_realtime",
+        "trade_date": "2026-07-27",
+        "source": "AkShare + 同花顺问财行情skill",
         "unit": "元/吨"
       }
     },
@@ -2418,8 +2418,8 @@
         }
       },
       "current_quote": {
-        "price": 3204.0,
-        "change": "-0.65%",
+        "price": 3181.0,
+        "change": "-1.36%",
         "direction": "↓",
         "trade_date": "2026-07-27",
         "source": "AkShare + 同花顺问财行情skill",
@@ -2551,8 +2551,8 @@
         }
       },
       "current_quote": {
-        "price": 3255.0,
-        "change": "-0.46%",
+        "price": 3237.0,
+        "change": "-1.01%",
         "direction": "↓",
         "trade_date": "2026-07-27",
         "source": "AkShare + 同花顺问财行情skill",
@@ -2684,10 +2684,10 @@
         }
       },
       "current_quote": {
-        "price": 2414.0,
-        "change": "-2.15%",
+        "price": 2399.0,
+        "change": "-2.76%",
         "direction": "↓",
-        "trade_date": "2026-07-24",
+        "trade_date": "2026-07-27",
         "source": "akshare:futures_zh_realtime",
         "unit": "元/吨"
       }
@@ -2817,10 +2817,10 @@
         }
       },
       "current_quote": {
-        "price": 2359.0,
-        "change": "-1.26%",
+        "price": 2351.0,
+        "change": "-1.59%",
         "direction": "↓",
-        "trade_date": "2026-07-24",
+        "trade_date": "2026-07-27",
         "source": "akshare:futures_zh_realtime",
         "unit": "元/吨"
       }
