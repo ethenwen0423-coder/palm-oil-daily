@@ -1,295 +1,202 @@
 ---
 name: report-writer-skill
-description: Dedicated report writer skill implementing the report_writer_skill interface for oil and fats morning reports. Use after market_data_skill and oil_report_freshness, and before headline_skill, when Codex needs to write or rewrite the body of palm-oil/oil-fats daily or weekly reports with higher research quality without increasing length. It upgrades report body writing from information summary to institutional research analysis using driver ranking, why-based reasoning, transmission chains, expectation-vs-reality checks, invalidation conditions, and confidence ratings.
+description: Write or revise governed Chinese palm-oil and oil-fats daily or weekly reports through a structured outline, bounded draft, and deterministic editorial audit. Use after market data, data quality, forecast feedback, and freshness governance, and before headline generation and publication.
 ---
 
-# Skill: report_writer_skill
+# report_writer_skill
 
-## Positioning
+## Scope
 
-Use this skill to write the report body only.
+Write the report body. Do not fetch data, calculate strategy levels, change model or strategy parameters, invent a source, or generate `Headline` / `Subheadline`.
 
-Do not generate `Headline` or `Subheadline`. Do not fetch market data. Do not override `oil_report_freshness`. Do not add new report sections unless the existing structure already requires them.
+Inputs must already be governed by:
 
-Base writing style still follows `../vinson-research-writing/SKILL.md`, but this skill is stricter for oil/fats reports.
+1. `market_data_skill` and its manifest/raw outputs;
+2. `data_quality_gate_skill`;
+3. `oil_report_freshness`;
+4. for daily reports, `data/forecast/feedback/latest.json`;
+5. the existing deterministic trading-strategy result.
 
-## Core Objective
+Use `../vinson-research-writing/SKILL.md` for general style. This skill controls the oil-report research contract.
 
-Upgrade the body from `资讯汇总` to `研究分析` while keeping the report length stable.
+## Three-stage contract
 
-Write closer to domestic top-tier futures research morning notes:
+### Stage 1: research outline
 
-- 中信期货
-- 永安期货
-- 国投安信期货
-- 浙商期货
-- 南华期货
+Before prose, create `source_runs/<date>-<kind>/report_outline.json`. It must validate against `references/report_outline.schema.json`.
 
-Principle:
-
-```text
-研究 > 新闻
-分析 > 罗列
-逻辑 > 数据
-结论 > 信息
-```
-
-## Required Inputs
-
-Before writing, use only:
-
-1. `market_data_skill` output or equivalent called data source results.
-2. `oil_report_freshness` governed output.
-3. Existing report structure requirements.
-4. `data/forecast/feedback/latest.json`, generated before writing from prior evaluated forecasts and recent daily reviews.
-
-Do not re-upgrade old news, weekly inventory, old policy, old research reports, or unverifiable rumors into today's driver.
-
-Apply forecast feedback conservatively: it may cap confidence, downgrade a repeatedly weak product from the mainline, or require an extra invalidation scenario. It must never replace current market evidence, boost confidence, or silently change permanent scoring rules. Copy every `required_report_disclosures` sentence exactly into `信息来源与核验说明` so the deterministic publication gate can verify the feedback was used.
-
-## Writing Algorithm
-
-For each body module, run this sequence:
-
-1. Select the core view.
-2. Rank drivers by impact.
-3. Explain why the view holds.
-4. Build the transmission chain.
-5. Separate expectation from reality.
-6. State invalidation conditions.
-7. Assign confidence.
-8. Compress repeated statements instead of adding length.
-
-## Driver Ranking
-
-Before writing body paragraphs, rank drivers by impact:
+The outline contains:
 
 ```text
-★★★★★  Main driver
-★★★★☆  Secondary driver
-★★★☆☆  Supporting variable
-★★☆☆☆  Background
-★☆☆☆☆  Stale or low-impact background
+top_call
+market_stance
+primary_driver
+secondary_driver
+transmission_chain
+expectation_vs_reality
+strongest_counter_case
+invalidation_condition
+trade_trigger
+confirmation_condition
+stop_loss
+target_range
+position_limit
+signal_expiry
+research_confidence
+evidence_status
 ```
 
-Body logic must focus on the top two drivers.
+Rules:
 
-Lower-ranked items may appear only as background or risk context. Do not let them become the mainline.
+- Choose exactly one baseline stance and at most two main drivers.
+- Both main drivers must be fresh, governed `Level 1` evidence. Level 2/3 may appear only as background or risk.
+- `strongest_counter_case` must be capable of explaining why the baseline view may be wrong.
+- Direction, trigger, confirmation, stop, target, position, and expiry must come from existing strategy/data outputs. The writer must not create or recalculate them.
+- Every driver records its source and `as_of` / snapshot time.
+- Put unverifiable information only in `evidence_status.needs_verification`. Promote it to the body only if it can change the conclusion.
+- The outline is an internal audit artifact, not a new visible report section.
 
-## Why Requirement
+For weekly reports, reason internally in the order `供给 → 需求 → 价格与资金 → 策略`, but expose only the conclusions with the greatest impact.
 
-Every view must answer `为什么`.
+### Stage 2: bounded draft
 
-Use this compact pattern:
+Daily body budget: **1,000–1,400 Chinese characters**.
 
-```markdown
-观点：...
-原因：1）...；2）...；3）...
-总结：...
+Daily headings, in order:
+
+1. `今日观点`
+2. `今日交易信号`
+3. `核心驱动与预期差`
+4. `关键数据与价格`
+5. `开盘推演`
+6. `风险提示`
+7. `信息来源与核验说明`
+8. `消息来源链接`
+9. `AI观点风险提示`
+
+Weekly body budget: **1,600–2,000 Chinese characters**.
+
+Weekly headings, in order:
+
+1. `一句话核心观点`
+2. `本周验证与预期差`
+3. `核心数据变化`
+4. `下周主线与事件`
+5. `周一开盘推演`
+6. `交易计划`
+7. `风险提示`
+8. `信息来源与核验说明`
+9. `消息来源链接`
+10. `AI观点风险提示`
+
+The budget excludes the message-source link table and the fixed AI disclaimer.
+
+Common rules:
+
+- Lead with one `Top Call`: conclusion, action, and invalidation condition.
+- Use only the two ranked drivers. Explain `why`, one transmission chain, and expectation versus reality.
+- State the strongest counter-case without weakening it into a generic disclaimer.
+- Each fact and each transmission chain appears in full only once. Later references add only new information.
+- Do not mechanically append `【结论】`; use it at most twice in the whole report.
+- Every numeric fact states its statistics date, snapshot time, or trading-session basis.
+- Consolidate `需进一步核验` items in `信息来源与核验说明`; mention them in the core body only when they can change the view.
+- Preserve the complete trade plan: direction, trigger, confirmation, stop, target, position limit, and signal expiry.
+- P/Y/OI coverage is mandatory. Weekly reports also state relative strength and the role of Y/OI in the P thesis.
+- Copy every daily forecast feedback `required_report_disclosures` sentence exactly into `信息来源与核验说明`.
+- Forecast feedback may only reduce confidence, downgrade a product, or add a counter-scenario. It cannot boost confidence or replace current evidence.
+
+### Stage 3: senior editor audit
+
+The audit is read-only with respect to the report:
+
+```bash
+python3 skills/report_writer_skill/scripts/audit_report.py \
+  --report "reports/<date>.md" \
+  --outline "source_runs/<date>-daily/report_outline.json" \
+  --kind daily \
+  --source-json "source_runs/<date>-daily/raw/futures_market_data.json" \
+  --feedback data/forecast/feedback/latest.json \
+  --output "source_runs/<date>-daily/report_quality.json" \
+  --min-score 85
 ```
 
-Do not write only a result, such as `P 强于 Y/OI`. Explain the cause:
+Use `--kind weekend` and the weekend source-run paths for a weekly report.
 
-- relative driver strength
-- cross-market linkage
-- inventory or basis pressure
-- flow/position behavior
-- expectation-vs-reality mismatch
+The editor checks:
 
-## Transmission Chain
+- governed evidence supports the view;
+- top call, stance, score, trade plan, opening scenarios, and risks agree;
+- Level 2/3 evidence was not promoted into the mainline;
+- news, causal chains, and conclusions are not repeated;
+- critical prices, changes, spreads, and outline trade levels are fully checked;
+- at least three other numeric facts are sampled with a fixed seed;
+- daily forecast disclosures are present exactly;
+- source/snapshot times and evidence gaps are disclosed;
+- the quality score is at least 85/100.
 
-Important views must include a mechanism, not a one-step claim.
+Scoring:
 
-Example:
+| Dimension | Points |
+|---|---:|
+| Data accuracy | 20 |
+| View/trade-plan consistency | 20 |
+| Freshness and source state | 15 |
+| Causal chain and expectation gap | 15 |
+| Risk and invalidation | 10 |
+| Structural completeness | 10 |
+| Concision and repetition control | 10 |
+
+Regardless of total score, publication is blocked by:
+
+- a critical market or trade-level mismatch;
+- stale Level 2/3 evidence used as a main driver;
+- a missing required forecast disclosure;
+- contradictory baseline/trading directions;
+- a missing required report section or invalid outline.
+
+`WARN` is appropriate for an explainable source-method difference. Do not turn a critical numeric error into a tolerance warning.
+
+## Writing patterns
+
+Compact causal pattern:
 
 ```text
-原油下跌
-↓
-生柴利润压缩
-↓
-POGO估值支撑减弱
-↓
-棕榈油需求预期降温
-↓
-P承压
+事实（含时间） → 机制 → P/Y/OI影响 → 已定价/未定价 → 结论
 ```
 
-Use short inline chains when space is limited:
-
-`原油 → 生柴利润 → POGO估值 → 需求预期 → P承压`
-
-## Expectation Vs Reality
-
-Every core section must identify whether the market is trading expectation or reality.
-
-Use:
+Counter-case pattern:
 
 ```text
-预期：...
-现实：...
-差异：...
-结论：...
+基准判断：...
+最强反证：...
+确认条件：...
+失效条件：...
 ```
 
-Explain why price has or has not fully priced the expectation.
-
-Example:
-
-`市场仍交易印尼政策预期，但国内库存高、基差弱，说明现实需求尚未验证预期，价格更容易走震荡而非单边。`
-
-## Invalidation Thinking
-
-Each core view must include what would change the research conclusion.
-
-Do not turn invalidation into trading advice. Only state research conditions.
-
-Examples:
-
-- `若 FCPO 重新放量大涨，当前震荡判断需要上修。`
-- `若原油重新突破关键位置，生柴估值修复逻辑需要重新评估。`
-- `若库存连续去化，现实压力对 P 的压制将减弱。`
-
-## Confidence Rating
-
-Each core view must include confidence:
+Trade pattern:
 
 ```text
-置信度：★★★★★ / ★★★★☆ / ★★★☆☆ / ★★☆☆☆ / ★☆☆☆☆
+方向 | 触发 | 确认 | 止损 | 目标 | 仓位上限 | 有效期
 ```
 
-Calculate confidence from:
+## Prohibitions
 
-- data quality
-- information freshness
-- source reliability
-- logic consistency
+- No paragraph that only lists news.
+- No view without a mechanism.
+- No claim such as `原油跌，所以P跌` without the intermediate transmission.
+- No stale policy, old inventory, research note, or rumor as today's mainline.
+- No invented number, price level, probability, position, or source.
+- No statement that feedback has improved accuracy without sufficient reproducible directional accuracy, Brier score, and interval evidence.
+- No silent change to data source, forecast model, strategy, schedule, template, or publication frequency.
 
-Guide:
+## Completion check
 
-- `★★★★★`: fresh data, reliable source, clear driver, consistent chain
-- `★★★★☆`: mostly fresh and reliable, minor uncertainty
-- `★★★☆☆`: mixed data or partial confirmation
-- `★★☆☆☆`: old data, weak source, or conflicting signals
-- `★☆☆☆☆`: unverifiable or only background
+Return the draft only after:
 
-## No Length Increase
-
-Do not add large new sections.
-
-Integrate the upgraded analysis into existing modules:
-
-- `今日观点`
-- `今日交易重点`
-- `开盘推演`
-- `风险提示`
-- weekly equivalents
-
-Use replacement, not expansion:
-
-- replace news lists with driver ranking
-- replace repeated claims with one logic chain
-- replace generic risk with invalidation conditions
-- replace vague confidence with explicit stars
-
-## Repetition Control
-
-Do not repeat the same view across sections.
-
-Use one concise structure:
-
-```text
-观点
-↓
-三个原因
-↓
-一句总结
-```
-
-If the same logic appears again, refer to it briefly and add only new information.
-
-## Required Module Behavior
-
-### 今日观点
-
-Must contain:
-
-- one core view
-- top two drivers
-- expectation-vs-reality statement
-- confidence rating
-
-No more than the existing length target.
-
-### 今日交易重点
-
-Must contain:
-
-- driver ranking by impact
-- why the top two drivers matter
-- one transmission chain
-- one invalidation condition
-
-### 相关新闻导向分析
-
-Use this module when the report structure includes `相关新闻导向分析` or `本周新闻导向分析`.
-
-This is not a news-summary module. It converts important news into market direction and trading relevance.
-
-Each item must include:
-
-- news item
-- direction
-- transmission chain
-- trading implication
-- confidence rating
-
-Keep it compact:
-
-- daily reports: no more than 3 items
-- weekly reports: no more than 3 items
-
-Do not repeat the same news in other modules. If a news item is already in `昨夜发生了什么` or `本周三大变化`, add only the market interpretation here.
-
-Unverified news must be marked as `暂无官方确认` and treated as a sentiment variable, not as a confirmed driver.
-
-### 开盘推演
-
-Must explain why each scenario would occur.
-
-Do not only list high/open/low scenarios. Each scenario must link trigger → mechanism → research conclusion.
-
-### 风险提示
-
-Use risks as invalidation conditions, not generic warnings.
-
-Each risk must answer:
-
-- what changes
-- why it changes the conclusion
-- which current view it challenges
-
-## Hard Prohibitions
-
-- Do not write a paragraph that only lists news.
-- Do not write a view without reasons.
-- Do not write `原油跌，所以P跌` without the transmission chain.
-- Do not let background items become main drivers.
-- Do not add new first-level sections to satisfy this skill.
-- Do not increase report length by adding repeated explanation.
-- Do not write unverifiable information as confirmed fact.
-- Do not let `headline_skill` responsibilities enter the body writer.
-
-## Output Check
-
-Before returning body text, verify:
-
-- Each core view answers why.
-- Driver ranking exists and the body focuses on the top two drivers.
-- Important views contain a transmission chain.
-- Expectation and reality are separated where the market is trading a theme.
-- Invalidation conditions are stated without becoming trading advice.
-- Confidence ratings are included for core views.
-- Level 2 and non-upgraded Level 3 information remains background.
-- Unverifiable information is marked as unconfirmed.
-- No new first-level sections were added only to satisfy this skill.
-- Repeated news or repeated logic was compressed.
+- outline schema validation succeeds;
+- only one stance and two drivers remain;
+- the strongest counter-case and invalidation are explicit;
+- every body number has an as-of basis;
+- all trade-plan fields come from deterministic inputs;
+- repeated facts/chains have been compressed;
+- the deterministic audit returns `can_publish=true`.

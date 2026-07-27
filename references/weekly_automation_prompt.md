@@ -1,174 +1,125 @@
-# 自动任务执行说明
+# 棕榈油周报与周一推演自动任务
 
-每周日晚上生成并发布一份棕榈油周报与周一开盘预测到网站。工作目录是 /Users/ethen/Documents/分析网站，当前公网托管仓库是 GitHub Pages：ethenwen0423-coder/palm-oil-daily；腾讯云/COS/CDN 备案完成前不要改 DNS 或腾讯云配置。
+每周日 21:15 生成并发布周报。生产目录为 `/Users/ethen/Sites/palm-oil-daily`，文件为 `reports/YYYY-MM-DD-weekend.md`。一级标题使用“MM月DD日周报”，不超过 15 个字。不得改变数据源、预测模型、交易策略参数、调度或发布频率。
 
-时间与文件规则：
-1. 使用当前日期（Asia/Shanghai）作为报告日期，文件名为 reports/YYYY-MM-DD-weekend.md。
-2. Markdown 正文一级标题必须控制在15个字以内，格式用“MM月DD日周报”，例如“06月28日周报”。
-3. 该任务每周日 21:15 运行；不需要判断当天是否交易日，但必须判断下一交易日通常是否为周一，如遇中国期货市场节假日导致周一休市，需要明确写“下一交易日待交易所日历确认/顺延”。
-4. 网站首页标题必须控制在15个字以内；长观点只能写在【一句话核心观点】中，不要塞进标题。
-5. 第一条观点必须是总结性交易判断，不得写“周末总结与开盘预测”“今日周报”“发生了什么事”等泛标题。
+下一交易日若因中国期货市场节假日不是周一，明确写“下一交易日待交易所日历确认/顺延”。
 
-Master Skill 调度规则：
-1. 正式生成报告前必须先读取并执行 skills/master_report_skill/SKILL.md。
-2. 必须按 master_report_skill 固定顺序执行：market_data_skill → data_quality_gate_skill → oil_report_freshness → report_writer_skill → headline_skill → report_quality_gate。
-3. 当前项目中尚未单独落地的子 Skill 只保留接口，不伪造实现；但必须完成下列现有映射。
-4. market_data_skill 当前由 python3 scripts/run_financial_skills.py、source_runs/$REPORT_DATE-weekend/manifest.json 和 raw/ 原始结果承担；必须记录数据时间、来源、失败项和替代来源。
-5. data_quality_gate_skill 当前由 skills/data_quality_gate_skill/SKILL.md 和 scripts/validate_data.py 承担；关键行情、合约、日期、单位、来源冲突、FCPO口径和库存/出口/产量统计日期未通过时停止发布。
-6. oil_report_freshness 当前由 skills/oil-report-freshness/SKILL.md 承担；必须输出新增驱动、主线建议、延续性背景、风险因素、不允许作为主线的信息、待核验信息、信息新鲜度表。周报可以覆盖本周信息，但周一开盘主线与标题依据仍必须优先来自最近24小时或周末新增的可核验信息。
-7. report_writer_skill 当前由 skills/report_writer_skill/SKILL.md 承担正文研究质量控制，并以 skills/vinson-research-writing/SKILL.md 及其 checklist/terminology/examples/anti_patterns 作为通用写作规范；正文只能使用 market_data_skill 和 oil_report_freshness 治理后的内容。
-8. headline_skill 当前由 skills/title-generation/SKILL.md 和 skills/title-quality-gate/SKILL.md 共同承担；标题只能基于 oil_report_freshness 的新增驱动和主线建议生成，不得新增正文中没有的观点。
-9. report_quality_gate 当前保留接口，由 data_quality_gate_skill、vinson-research-writing checklist、title-quality-gate、信息来源与核验说明、oil_report_freshness 禁用项共同完成最终一致性检查；不得新增观点、伪造来源或覆盖前面 Skill 的职责。
+## 固定调度顺序
 
-Writing Skill 规则：
-1. 正式写作前必须先读取并调用 skills/report_writer_skill/SKILL.md。
-2. 正式写作前必须读取 skills/vinson-research-writing/SKILL.md。
-3. 涉及术语统一时读取 skills/vinson-research-writing/terminology.md。
-4. 涉及表达优化时读取 skills/vinson-research-writing/examples.md 和 skills/vinson-research-writing/anti_patterns.md。
-5. 发布前必须按 skills/vinson-research-writing/checklist.md 自检；不符合项必须先重写。
-6. report_writer 只能使用 oil-report-freshness 治理后的内容生成正文，不得把 Level 2 或未升级的 Level 3 信息重新提升为本周/周一主线、最新驱动或最大影响。
-7. report_writer 必须把正文从资讯汇总改成研究分析：每个核心观点必须回答为什么，按影响程度排序驱动，写清传导链，区分预期与现实，说明观点失效条件，并给出研究置信度。
-8. report_writer 不得为满足上述要求增加新的一级标题或拉长篇幅；必须把分析能力压缩进【一句话核心观点】【本周三大变化】【市场复盘】【周一开盘推演】【风险提示】等既有模块。
-9. title-generation 只能基于 oil-report-freshness 的新增驱动和主线建议提炼标题；不得把延续性背景、旧政策、周度库存或待核验信息写成 Headline 依据。
-10. 生成或修改【一句话核心观点】、网站首页标题、列表标题前，必须先读取并调用 skills/title-generation/SKILL.md，提炼本周市场主线并生成 Headline / Subheadline / Report Title / One Sentence Summary。
-11. 标题生成后必须读取并调用 skills/title-quality-gate/SKILL.md 做质量门检查；若未通过，必须回到 title-generation 按失败原因重写，直到通过后才允许发布。
-12. Headline 只写市场观点，Subheadline 只写核心逻辑，具体价格、追高、低吸、止损、加减仓等交易动作只能放入【周一开盘推演】或【交易计划】，不得塞进标题或首页观点。
-13. Writing Skill 只用于提升结构、表达、可读性和机构研究风格，不得改变数据来源、业务逻辑或交易策略。
+正式生成前读取 `skills/master_report_skill/SKILL.md`，按以下顺序执行：
 
+```text
+market_data_skill
+→ data_quality_gate_skill
+→ oil_report_freshness
+→ report_writer_skill（提纲→正文）
+→ headline_skill
+→ report_quality_gate（高级编辑审计）
+```
 
+执行：
 
-补充参考来源规则：
-1. 正式生成报告前必须读取 references/wechat_oil_sources.md。
-2. 该文件中的微信链接只是历史样例来源池，不是固定引用清单；不得默认只引用这些旧链接。
-3. 必须动态搜索本周最新同类微信/产业/期货公司来源，用于补充产业观点、市场叙事、情绪变化、交易逻辑和写作风格。
-4. 不得把微信文章里的行情、库存、出口、产量、持仓、价差等数字直接包装成已核实事实；核心数据仍以交易所、官方机构、金融 skills、东方财富、问财和期货公司研报交叉验证为准。
-5. 若最新同类来源无法访问，在信息来源与核验说明中写明“微信/产业参考源访问失败或未使用”，不得影响正式发布。
+```bash
+cd /Users/ethen/Sites/palm-oil-daily
+git pull --ff-only
+python3 scripts/run_financial_skills.py --date "$REPORT_DATE" --kind weekend --timeout 90
+python3 skills/data_quality_gate_skill/scripts/validate_data.py \
+  --manifest "source_runs/$REPORT_DATE-weekend/manifest.json" --strict
+```
 
-固定 skill 调用入口（必须执行）：
-1. 先运行 git pull --ff-only，确保本地站点仓库是最新。
-2. 使用 Asia/Shanghai 当前日期作为 REPORT_DATE，先执行：python3 scripts/run_financial_skills.py --date "$REPORT_DATE" --kind weekend --timeout 90。
-3. 执行后必须读取 source_runs/$REPORT_DATE-weekend/manifest.json，并打开 raw/ 目录中的原始结果文件。该 manifest 是本次金融 skill 调用审计记录，保存在本地，不发布到网站。
-4. 必须运行 `python3 skills/data_quality_gate_skill/scripts/validate_data.py --manifest source_runs/$REPORT_DATE-weekend/manifest.json --strict`；未通过时停止正式发布，只记录失败原因。
-5. 必须把以下成功调用结果用于正文判断：futures-oil-daily、东方财富妙想资讯(mx-search)、妙想结构化数据(mx-data)、问财行情(hithink-market-query)、研报搜索(report-search)。大宗商品分析为框架型 skill，需按其供需、库存、期限结构、季节性、宏观验证框架交叉印证。
-6. 若某项 status 不是 ok，必须在“信息来源与核验说明”中列出：哪个 skill 失败、失败原因、是否切换到其他方式获取同等数据、替代来源名称。不得写“未调用”来替代实际状态。
-7. 若单个 skill 失败，跳过该 skill，改用 MPOB、MPOA、ITS、GAPKI、USDA、CME、ICE、DCE、东方财富行情、问财、期货公司研报、Reuters 或 Wind 可访问口径等替代来源获取同类数据，并注明替代核验状态。
-8. 若 manifest 缺失或全部金融数据源失败，停止发布正式周报，只记录失败原因。
-9. futures-oil-daily 生成的辅助稿如含“待补充/待分析/待判断/待填充/待评价/N/A”等占位词，不得直接复制进正式报告；只能使用其原始数据和可核验结论。
-10. 运行 report_writer 前必须完成 master_report_skill 调度和 oil-report-freshness 信息治理；如果 freshness 输出 `需要report_writer重新生成对应段落`，必须重写对应段落后再发布。
-11. 运行 headline_skill 前必须确认 report_writer 已完成正文草稿，headline_skill 不得新增正文中没有的观点。
-12. 运行 report_quality_gate 接口检查标题、正文、来源、时效性一致后，才允许发布。
-13. 正式报告不得出现“未实际调用”“当前环境未暴露调用入口”“这是测试报告”“排版调试样稿”等文字。
+读取 manifest 和 `raw/` 全部实际结果。manifest 缺失、全部金融源失败或关键数据门禁失败时停止发布。
 
-相关油脂覆盖规则：
-1. 周报以棕榈油为主线，但必须系统覆盖豆油、菜油两个相关油脂品种。
-2. 每周必须给出三大油脂强弱排序和下周排序预测，例如“棕榈油 > 豆油 > 菜油”，并说明原因。
-3. 豆油部分必须覆盖：美豆油/CME或CBOT豆油、国内豆油主力、压榨/大豆到港/库存或生柴逻辑、下周行情判断、对棕榈油的共振或拖累。
-4. 菜油部分必须覆盖：国内菜油主力、加拿大菜籽/ICE或进口成本、菜籽到港/库存/基差、下周行情判断、对油脂板块的影响。
-5. 必须覆盖至少两项相对价值指标：豆棕价差、菜豆价差、菜棕价差、BOPO、POGO 或其他可核验比价。无法核验则写“暂无官方确认”。
-6. 交易计划不能只写 P 主力；必须附带豆油 Y、菜油 OI 的操作倾向：偏多、偏空、震荡或观望，以及与棕榈油交易的关系。
-7. 篇幅仍控制在1500-2000字，新增油脂分析要提高信息密度，不得扩写成新闻堆砌。
+实际成功、失败、替代来源和截止时间必须记录。核心数据使用 DCE、MPOB/MPOA/ITS、USDA、CME/ICE、东方财富、问财、期货公司研报等可复核来源；微信/产业文章只补充叙事，不把其中数字直接包装为已核实事实。Reuters/Wind 不可访问时只说明，不伪造链接。
 
-固定输出结构（必须严格按顺序）：
-1.【一句话核心观点】
-- 100字以内总结本周最重要观点。
-- 语言必须是交易判断，不是新闻标题。
-- 必须包含棕榈油主线，以及豆油/菜油对油脂板块的共振或分化判断。
-- 本节末尾加【结论】。
+## Writing Skill：三阶段
 
-2.【本周三大变化】
-- 只写真正影响市场最大的三件事，不超过3条。
-- 每件事必须包含：事件、为什么重要、市场如何交易、我的判断。
-- 三件事中至少一件要体现豆油或菜油的边际变化；如果没有显著变化，写明“豆油/菜油未提供新增驱动”。
-- 本节末尾加【结论】。
+写作前完整读取：
 
-3.【本周新闻导向分析】
-- 新增固定栏目，用于把本周重要新闻转化为行情导向，不做新闻摘要。
-- 最多3条，只选对棕榈油、豆油、菜油、原油、生柴、天气、政策或资金情绪有实际传导意义的新闻。
-- 每条必须包含：新闻、方向、传导链、交易含义、置信度。
-- 必须说明新闻是“预期驱动”还是“现实验证”，以及是否已被盘面交易。
-- 未核验新闻不得作为本周核心结论；只能写成“暂无官方确认，暂按情绪变量处理”。
-- 本节末尾加【结论】。
+- `skills/report_writer_skill/SKILL.md`
+- `skills/vinson-research-writing/SKILL.md`
+- 需要时读取其术语、示例和反例
 
-4.【市场一致预期 VS 我的判断】
-- 必须用两列表格：市场观点、我的观点。
-- 体现分析能力，不能只是新闻汇总。
-- 必须包含至少一条豆油或菜油观点差异。
-- 本节末尾加【结论】。
+### 1. 结构化提纲
 
-5.【核心数据变化】
-- 保留关键数据，不超过10项。
-- 每个数据必须包含：数据、环比变化、对行情影响、一句点评。
-- 必须包含 P/Y/OI 三大内盘主力，且至少包含豆棕价差或菜豆价差。
-- 必须解释这个数据意味着什么，不得只罗列数字。
-- 本节末尾加【结论】。
+先保存 `source_runs/$REPORT_DATE-weekend/report_outline.json`，必须符合：
 
-6.【市场复盘】
-- 不重复新闻。
-- 必须回答：为什么涨、为什么跌、资金交易的是什么、本周最大驱动是什么、哪些因素已经交易、哪些因素还没交易。
-- 必须说明棕榈油、豆油、菜油谁是主驱动，谁是跟随，谁在拖累。
-- 本节末尾加【结论】。
+`skills/report_writer_skill/references/report_outline.schema.json`
 
-7.【周一开盘推演】
-- 必须用概率预测，至少包含：高开高走、高开震荡、高开回落、低开。
-- 每种情况必须说明触发条件和应对。
-- 必须说明 Y/OI 同步或背离时，P 主力交易如何调整。
-- 本节末尾加【结论】。
+提纲仅保留一个基准方向和两个 Level 1 主驱动，完整包含 Top Call、预期差、最强反证、失效条件和既有策略提供的触发/确认/止损/目标/仓位/有效期。禁止由 Writer 创造交易数字。
 
-8.【交易计划】
-- 必须写方案一、方案二、方案三。
-- 方案一：什么位置可以做多、止损、目标位、仓位建议。
-- 方案二：什么情况下不追。
-- 方案三：什么时候观望。
-- 必须给出明确交易计划，不得只写“关注”。
-- 表格中必须包含 P、Y、OI 三个品种的交易倾向或使用条件。
-- 本节末尾加【结论】。
+内部研究按 `供给 → 需求 → 价格与资金 → 策略` 整理，可在 `supply_demand_framework` 留审计记录；最终正文只展示影响最大的结论，不新增客户可见栏目。
 
-9.【下周重要事件】
-- 必须输出事件日历。
-- 至少包含周一至周五，每天写事件、重要性星级、观察重点。
-- 事件日历需覆盖棕榈油、豆油、菜油相关变量，例如马来出口、MPOB/MPOA/ITS、USDA、CME/CBOT豆油、ICE菜籽、国内库存和基差。
-- 本节末尾加【结论】。
+### 2. 正文
 
-10.【风险提示】
-- 不超过3条。
-- 只保留真正重要风险。
-- 至少一条风险需要说明豆油或菜油对棕榈油判断的扰动。
-- 本节末尾加【结论】。
+正文（不含消息来源链接表和固定 AI 声明）控制在 **1,600–2,000 字**，固定栏目顺序：
 
-11.【信息来源与核验说明】
-- 列出实际调用的 skill、权威数据源、替代数据源、失败切换情况。
-- 对无法核验的数据明确写“暂无官方确认”。
-- Reuters 或 Wind 如果不可访问，不得包装成已核实事实。
-- 本节末尾加【结论】。
+1. `【一句话核心观点】`
+   - 首屏给出唯一 Top Call、下周行动、失效条件和置信度。
+   - 包含 P 主线与 Y/OI 的共振或分化，不写泛化标题。
+2. `【本周验证与预期差】`
+   - 先复核上周判断：哪些兑现、哪些落空、错在何处。
+   - 只写两个主驱动，每个包含时间、机制、盘面定价程度。
+   - 写最强反证；新闻只在这里完整出现一次。
+3. `【核心数据变化】`
+   - 不超过 10 项；必须含 P/Y/OI、至少两个可核验的价差或相对价值指标。
+   - 每项写统计时间、变化、含义，不只罗列数字。
+4. `【下周主线与事件】`
+   - 将供给、需求、价格资金的结论压缩为下周唯一主线。
+   - 说明 P/Y/OI 强弱排序和排序条件。
+   - 列出周一至周五关键事件、重要性和触发条件；没有确定事件不得编造。
+5. `【周一开盘推演】`
+   - 高开高走、高开震荡、高开回落、低开四种情景及概率。
+   - 概率来自既有模型/规则，不得由 Writer任意生成；写触发、确认、应对、放弃条件。
+   - 写清 Y/OI 同步或背离时对 P 的调整。
+6. `【交易计划】`
+   - 对 P/Y/OI 分别写方向、触发、确认、止损、目标、仓位上限和有效期。
+   - 方案必须覆盖可执行、不可追、观望三种状态。
+7. `【风险提示】`
+   - 不超过 3 条，用失效条件表达；至少包含最强反证及 Y/OI 对 P 结论的扰动。
+8. `【信息来源与核验说明】`
+   - 列出实际 skill、来源、截止时间、失败切换。
+   - “需进一步核验”集中在此；只在会改变结论时进入核心正文。
+9. `【消息来源链接】`
+   - 只列实际使用、核验或尝试访问的公开链接。
+10. `【AI观点风险提示】`
+   - 固定说明 AI 研究判断不构成投资建议或交易指令，期货波动较大，客户应独立决策。
 
-12.【一句话总结】
-- 最后必须输出一句明确交易建议，例如“当前位置更适合等待回踩后的确认，而不是追涨。”
+共同规则：
 
-13.【消息来源链接】
-- 报告结尾必须新增本节。
-- 用简洁表格列出本次实际使用、核验或尝试访问的主要公开来源链接。
-- 表格字段建议：来源、用途、链接。
-- 至少覆盖交易所/官方数据、期货公司或资讯来源、动态产业参考来源中的实际使用项。
-- 不得添加没有实际使用或无法确认的伪链接。
-- Reuters 或 Wind 如果不可访问，只能在“信息来源与核验说明”中说明，不要伪造链接。
+- 每个事实和传导链只完整出现一次。
+- 不机械添加 `【结论】`，全文最多两处。
+- 主驱动只能来自 freshness 治理后的 Level 1 信息；Level 2/3、旧政策、旧库存、传言只能作背景/风险。
+- P 为主线，但必须系统覆盖 Y/OI；豆油包含外盘豆油和压榨/到港/库存或生柴，菜油包含菜籽/进口成本与到港/库存/基差。
+- 每个正文数字均附统计日期、交易时段或快照时间。
+- 无法核验的事实写“需进一步核验”，禁止伪装成结论。
+- 新闻约 30%，分析约 70%；重点解释为什么、定价程度、预期差和如何交易。
 
-14.【AI观点风险提示】
-- 报告最后必须新增本节。
-- 固定写明：本报告由 AI 基于公开信息、已调用数据源和既定研究框架生成，仅代表模型在生成时点的研究判断，不构成投资建议或交易指令。
-- 必须提示：期货价格波动较大，客户应结合自身风险承受能力独立决策。
-- 文字保持克制，不要写营销式免责声明。
+### 3. 高级编辑审计
 
-内容风格要求：
-1. 风格参考中信期货、永安期货、国泰君安期货、银河期货等研究所日报：信息密度高、逻辑清晰、观点鲜明、可直接指导交易。
-2. 不为了凑篇幅重复新闻；新闻只写一次。
-3. 内容比例控制为约30%新闻、70%分析，重点写：为什么、意味着什么、如何交易、市场怎么看、我的观点是什么。
-4. 语言简洁，减少废话，避免大量重复“预计”“可能”“关注”。
-5. 篇幅控制在1500-2000字，客户应能在3-5分钟读完。
-6. 不输出未经确认的数据；无法核验则写“暂无官方确认”。
-7. 数据优先调用和交叉验证：MPOB、MPOA、ITS、GAPKI、USDA、CME、ICE、DCE、东方财富行情、问财、各大期货公司研报、Reuters（如可访问）、Wind（如可访问）。
+标题先通过 `title-generation`，再通过 `title-quality-gate`。标题仅来自最近 24 小时或周末新增的可核验主驱动，不放价格和交易动作。
 
-具体执行：
-1. 联网核实周末和最近可得信息，优先覆盖：大连棕榈油/豆油/菜油期货主力合约、Bursa Malaysia FCPO、CME/CBOT 豆油、ICE 菜籽、马来西亚/印尼出口与库存、MPOB/MPOA/ITS/Amspec/SGS/GAPKI、USDA 油籽/油脂供需、原油/豆油联动、人民币与宏观风险、周末突发政策或地缘新闻。
-2. 生成中文 Markdown 周末报告，保存到 reports/YYYY-MM-DD-weekend.md。如果当天 weekend 文件已存在，更新内容而不是重复新建。
-3. 运行 bash scripts/deploy_report.sh。该脚本会更新 data/reports.js、data/version.js、downloads/*.md、提交 reports/data/downloads 的变化并推送到 GitHub。
-4. 最后检查 git status、GitHub Pages 状态，以及 index.html、data/reports.js、data/version.js、当天 Markdown 文件、下载文件存在。简要记录完成情况和公网访问地址。
+如存在 `futures_market_data.weekly_compatible.json`，审计优先使用该文件；否则使用 `futures_market_data.json`：
+
+```bash
+python3 skills/report_writer_skill/scripts/audit_report.py \
+  --report "reports/$REPORT_DATE-weekend.md" \
+  --outline "source_runs/$REPORT_DATE-weekend/report_outline.json" \
+  --kind weekend \
+  --source-json "source_runs/$REPORT_DATE-weekend/raw/futures_market_data.weekly_compatible.json" \
+  --output "source_runs/$REPORT_DATE-weekend/report_quality.json" \
+  --min-score 85
+```
+
+低于 85 分或出现任一一票否决项均不得发布：关键行情/价位错误、Level 2/3 成为主线、方向冲突、必需栏目/提纲缺失。关键数字全量复核，其他数字按固定种子至少抽取 3 项。来源口径差异可解释时记 `WARN`。
+
+最后按 `skills/vinson-research-writing/checklist.md` 自检。
+
+## 发布与验证
+
+门禁全部通过后执行：
+
+```bash
+bash scripts/deploy_report.sh
+```
+
+检查 `git status`、推送结果、GitHub Pages、`index.html`、`data/reports.js`、`data/version.js`、周报 Markdown 和下载文件。不得夹带工作树其他修改。
