@@ -1,9 +1,9 @@
 window.QUANT_MODEL_SIGNALS = {
   "status": "ok",
   "schema_version": 2,
-  "generated_at": "2026-07-27T11:43:01+08:00",
-  "market_updated_at": "2026-07-27 11:37",
-  "market_update_session": "midday",
+  "generated_at": "2026-07-27T15:13:22+08:00",
+  "market_updated_at": "2026-07-27 15:07",
+  "market_update_session": "close",
   "market_timezone": "Asia/Shanghai",
   "default_model_id": "bollinger-rsi-ma6-v1",
   "models": [
@@ -209,8 +209,8 @@ window.QUANT_MODEL_SIGNALS = {
           }
         },
         "current_quote": {
-          "price": 9394.0,
-          "change": "-1.84%",
+          "price": 9380.0,
+          "change": "-1.99%",
           "direction": "↓",
           "trade_date": "2026-07-27",
           "source": "AkShare + 同花顺问财行情skill",
@@ -342,8 +342,8 @@ window.QUANT_MODEL_SIGNALS = {
           }
         },
         "current_quote": {
-          "price": 9690.0,
-          "change": "-1.55%",
+          "price": 9675.0,
+          "change": "-1.71%",
           "direction": "↓",
           "trade_date": "2026-07-27",
           "source": "AkShare + 同花顺问财行情skill",
@@ -475,8 +475,8 @@ window.QUANT_MODEL_SIGNALS = {
           }
         },
         "current_quote": {
-          "price": 8492.0,
-          "change": "-1.48%",
+          "price": 8471.0,
+          "change": "-1.73%",
           "direction": "↓",
           "trade_date": "2026-07-27",
           "source": "AkShare + 同花顺问财行情skill",
@@ -610,8 +610,8 @@ window.QUANT_MODEL_SIGNALS = {
           }
         },
         "current_quote": {
-          "price": 8520.0,
-          "change": "-1.31%",
+          "price": 8489.0,
+          "change": "-1.67%",
           "direction": "↓",
           "trade_date": "2026-07-27",
           "source": "AkShare + 同花顺问财行情skill",
@@ -743,8 +743,8 @@ window.QUANT_MODEL_SIGNALS = {
           }
         },
         "current_quote": {
-          "price": 10039.0,
-          "change": "-2.35%",
+          "price": 9991.0,
+          "change": "-2.82%",
           "direction": "↓",
           "trade_date": "2026-07-27",
           "source": "AkShare + 同花顺问财行情skill",
@@ -876,8 +876,8 @@ window.QUANT_MODEL_SIGNALS = {
           }
         },
         "current_quote": {
-          "price": 10039.0,
-          "change": "-2.31%",
+          "price": 9990.0,
+          "change": "-2.78%",
           "direction": "↓",
           "trade_date": "2026-07-27",
           "source": "AkShare + 同花顺问财行情skill",
@@ -1009,8 +1009,8 @@ window.QUANT_MODEL_SIGNALS = {
           }
         },
         "current_quote": {
-          "price": 3181.0,
-          "change": "-1.36%",
+          "price": 3164.0,
+          "change": "-1.89%",
           "direction": "↓",
           "trade_date": "2026-07-27",
           "source": "AkShare + 同花顺问财行情skill",
@@ -1142,8 +1142,8 @@ window.QUANT_MODEL_SIGNALS = {
           }
         },
         "current_quote": {
-          "price": 3237.0,
-          "change": "-1.01%",
+          "price": 3216.0,
+          "change": "-1.65%",
           "direction": "↓",
           "trade_date": "2026-07-27",
           "source": "AkShare + 同花顺问财行情skill",
@@ -1275,8 +1275,8 @@ window.QUANT_MODEL_SIGNALS = {
           }
         },
         "current_quote": {
-          "price": 2399.0,
-          "change": "-2.76%",
+          "price": 2387.0,
+          "change": "-3.24%",
           "direction": "↓",
           "trade_date": "2026-07-27",
           "source": "akshare:futures_zh_realtime",
@@ -1408,8 +1408,8 @@ window.QUANT_MODEL_SIGNALS = {
           }
         },
         "current_quote": {
-          "price": 2351.0,
-          "change": "-1.59%",
+          "price": 2339.0,
+          "change": "-2.09%",
           "direction": "↓",
           "trade_date": "2026-07-27",
           "source": "akshare:futures_zh_realtime",
@@ -1618,8 +1618,8 @@ window.QUANT_MODEL_SIGNALS = {
         }
       },
       "current_quote": {
-        "price": 9394.0,
-        "change": "-1.84%",
+        "price": 9380.0,
+        "change": "-1.99%",
         "direction": "↓",
         "trade_date": "2026-07-27",
         "source": "AkShare + 同花顺问财行情skill",
@@ -1751,8 +1751,8 @@ window.QUANT_MODEL_SIGNALS = {
         }
       },
       "current_quote": {
-        "price": 9690.0,
-        "change": "-1.55%",
+        "price": 9675.0,
+        "change": "-1.71%",
         "direction": "↓",
         "trade_date": "2026-07-27",
         "source": "AkShare + 同花顺问财行情skill",
@@ -1884,8 +1884,8 @@ window.QUANT_MODEL_SIGNALS = {
         }
       },
       "current_quote": {
-        "price": 8492.0,
-        "change": "-1.48%",
+        "price": 8471.0,
+        "change": "-1.73%",
         "direction": "↓",
         "trade_date": "2026-07-27",
         "source": "AkShare + 同花顺问财行情skill",
@@ -2019,8 +2019,8 @@ window.QUANT_MODEL_SIGNALS = {
         }
       },
       "current_quote": {
-        "price": 8520.0,
-        "change": "-1.31%",
+        "price": 8489.0,
+        "change": "-1.67%",
         "direction": "↓",
         "trade_date": "2026-07-27",
         "source": "AkShare + 同花顺问财行情skill",
@@ -2152,8 +2152,8 @@ window.QUANT_MODEL_SIGNALS = {
         }
       },
       "current_quote": {
-        "price": 10039.0,
-        "change": "-2.35%",
+        "price": 9991.0,
+        "change": "-2.82%",
         "direction": "↓",
         "trade_date": "2026-07-27",
         "source": "AkShare + 同花顺问财行情skill",
@@ -2285,8 +2285,8 @@ window.QUANT_MODEL_SIGNALS = {
         }
       },
       "current_quote": {
-        "price": 10039.0,
-        "change": "-2.31%",
+        "price": 9990.0,
+        "change": "-2.78%",
         "direction": "↓",
         "trade_date": "2026-07-27",
         "source": "AkShare + 同花顺问财行情skill",
@@ -2418,8 +2418,8 @@ window.QUANT_MODEL_SIGNALS = {
         }
       },
       "current_quote": {
-        "price": 3181.0,
-        "change": "-1.36%",
+        "price": 3164.0,
+        "change": "-1.89%",
         "direction": "↓",
         "trade_date": "2026-07-27",
         "source": "AkShare + 同花顺问财行情skill",
@@ -2551,8 +2551,8 @@ window.QUANT_MODEL_SIGNALS = {
         }
       },
       "current_quote": {
-        "price": 3237.0,
-        "change": "-1.01%",
+        "price": 3216.0,
+        "change": "-1.65%",
         "direction": "↓",
         "trade_date": "2026-07-27",
         "source": "AkShare + 同花顺问财行情skill",
@@ -2684,8 +2684,8 @@ window.QUANT_MODEL_SIGNALS = {
         }
       },
       "current_quote": {
-        "price": 2399.0,
-        "change": "-2.76%",
+        "price": 2387.0,
+        "change": "-3.24%",
         "direction": "↓",
         "trade_date": "2026-07-27",
         "source": "akshare:futures_zh_realtime",
@@ -2817,8 +2817,8 @@ window.QUANT_MODEL_SIGNALS = {
         }
       },
       "current_quote": {
-        "price": 2351.0,
-        "change": "-1.59%",
+        "price": 2339.0,
+        "change": "-2.09%",
         "direction": "↓",
         "trade_date": "2026-07-27",
         "source": "akshare:futures_zh_realtime",
