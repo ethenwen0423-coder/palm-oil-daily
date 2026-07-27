@@ -260,6 +260,9 @@ class DeployReportTest(unittest.TestCase):
                 if [[ "${FAIL_FEEDBACK:-0}" == "1" && "$1" == "skills/forecast_tracking_skill/scripts/validate_report_feedback.py" ]]; then
                   exit 8
                 fi
+                if [[ "${FAIL_REPORT_AUDIT:-0}" == "1" && "$1" == "skills/report_writer_skill/scripts/audit_report.py" ]]; then
+                  exit 10
+                fi
                 if [[ "${FAIL_UPDATE:-0}" == "1" && "$1" == "scripts/update_oil_futures_data.py" ]]; then
                   exit 9
                 fi
@@ -297,12 +300,21 @@ class DeployReportTest(unittest.TestCase):
         )
         self.assertIn("git add -- reports data downloads miniprogram/data :(exclude)data/forecast/daily/*.json", calls)
         self.assertIn(":(exclude)data/review/runtime_snapshots/**", calls)
+        self.assertIn(
+            "skills/report_writer_skill/scripts/audit_report.py --report reports/2026-07-14.md --outline source_runs/2026-07-14-daily/report_outline.json --kind daily --source-json source_runs/2026-07-14-daily/raw/futures_market_data.json",
+            calls,
+        )
+        self.assertIn("--feedback data/forecast/feedback/latest.json", calls)
         self.assertNotIn("git reset", calls)
 
     def test_weekly_only_deploy_does_not_update_or_freeze(self) -> None:
         result, calls = self.run_deploy("reports/2026-07-13-weekend.md")
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertNotIn("update_oil_futures_data.py", calls)
+        self.assertIn(
+            "skills/report_writer_skill/scripts/audit_report.py --report reports/2026-07-13-weekend.md --outline source_runs/2026-07-13-weekend/report_outline.json --kind weekend",
+            calls,
+        )
         self.assertIn("scripts/publish_report.py", calls)
 
     def test_multiple_daily_dates_fail_before_publish(self) -> None:
@@ -329,6 +341,14 @@ class DeployReportTest(unittest.TestCase):
         result, calls = self.run_deploy("reports/2026-07-14.md", FAIL_FEEDBACK="1")
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("validate_report_feedback.py", calls)
+        self.assertNotIn("update_oil_futures_data.py", calls)
+        self.assertNotIn("scripts/publish_report.py", calls)
+        self.assertNotIn("git add", calls)
+
+    def test_report_audit_failure_stops_before_forecast_update_and_publish(self) -> None:
+        result, calls = self.run_deploy("reports/2026-07-14.md", FAIL_REPORT_AUDIT="1")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("skills/report_writer_skill/scripts/audit_report.py", calls)
         self.assertNotIn("update_oil_futures_data.py", calls)
         self.assertNotIn("scripts/publish_report.py", calls)
         self.assertNotIn("git add", calls)

@@ -142,7 +142,9 @@ python3 skills/forecast_tracking_skill/scripts/build_generation_feedback.py \
   --as-of YYYY-MM-DD
 ```
 
-The first five valid trade days are observation-only. Once at least five valid days exist, the context may only cap confidence, downgrade a low-accuracy product from being the sole mainline, or require broader scenarios. It never boosts confidence and never changes score weights, probability mappings, or strategy parameters. Every exact sentence in `required_report_disclosures` must appear in `信息来源与核验说明`.
+Fewer than five valid trade days are observation-only. Once at least five valid days exist, the context may only cap confidence, downgrade a low-accuracy product from being the sole mainline, or require broader scenarios. It never boosts confidence and never changes score weights, probability mappings, or strategy parameters.
+
+The metrics disclosure is one consolidated sentence covering valid days and evaluated records, P/Y/OI directional accuracy, overall Brier score, close-range coverage, interval-width evidence when available, triggered policy, and the small-sample limitation. Repeated daily-review errors remain separate constraint sentences. Every exact sentence in `required_report_disclosures` must appear in `信息来源与核验说明`.
 
 Before publication run:
 

@@ -40,6 +40,10 @@ def metrics(days: int, p_accuracy: float = 0.7, high_accuracy: float = 0.7) -> d
         "versions": {
             key: {
                 "valid_trade_day_count": days,
+                "overall": {
+                    **group(days * 3, (p_accuracy + 1.2) / 3),
+                    "mean_brier_score": 0.376508,
+                },
                 "by_product": {
                     "P": group(days, p_accuracy),
                     "Y": group(days, 0.6),
@@ -86,6 +90,11 @@ class GenerationFeedbackTest(unittest.TestCase):
         self.assertEqual(feedback["products"]["P"]["action"], "downgrade_directional_claim")
         self.assertEqual(feedback["core_view_confidence_cap_stars"], 2)
         self.assertIn("今日主线降级", feedback["required_report_disclosures"][0])
+        self.assertEqual(len([item for item in feedback["required_report_disclosures"] if item.startswith("预测校准：")]), 1)
+        self.assertIn("P/Y/OI方向命中率分别为", feedback["required_report_disclosures"][0])
+        self.assertIn("整体Brier分数0.377", feedback["required_report_disclosures"][0])
+        self.assertIn("区间宽度质量暂无可复现指标", feedback["required_report_disclosures"][0])
+        self.assertIn("不据此声称准确率改善", feedback["required_report_disclosures"][0])
 
     def test_repeated_review_error_becomes_required_constraint(self) -> None:
         root = self.environment()

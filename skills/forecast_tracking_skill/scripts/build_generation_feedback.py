@@ -45,6 +45,14 @@ def _rate(group: dict[str, Any], name: str) -> float | None:
     return float(rate) if isinstance(rate, (int, float)) and not isinstance(rate, bool) else None
 
 
+def _number(group: dict[str, Any], *names: str) -> float | None:
+    for name in names:
+        value = group.get(name)
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            return float(value)
+    return None
+
+
 def _recent_error_streaks(review_dir: Path, as_of: date) -> dict[str, int]:
     rows: list[tuple[date, set[str]]] = []
     for path in review_dir.glob("*.json") if review_dir.exists() else ():
@@ -133,6 +141,17 @@ def build_feedback(metrics_path: Path, review_dir: Path, as_of_text: str) -> dic
         product: _product_policy(product, by_product.get(product, {}) if isinstance(by_product.get(product), dict) else {}, active)
         for product in PRODUCTS
     }
+    overall = version.get("overall") if version and isinstance(version.get("overall"), dict) else {}
+    overall_sample_count = int(overall.get("sample_count") or 0)
+    overall_directional_accuracy = _rate(overall, "directional_accuracy")
+    overall_range_coverage = _rate(overall, "close_range_coverage")
+    overall_brier = _number(overall, "mean_brier_score")
+    interval_width_ratio = _number(
+        overall,
+        "mean_interval_width_ratio",
+        "interval_width_ratio",
+        "mean_range_width_ratio",
+    )
 
     high_group = version.get("by_confidence", {}).get("high", {}) if version else {}
     high_samples = int(high_group.get("sample_count") or 0) if isinstance(high_group, dict) else 0
@@ -153,19 +172,34 @@ def build_feedback(metrics_path: Path, review_dir: Path, as_of_text: str) -> dic
     elif status == "observe_only":
         disclosures.append(f"预测校准：当前仅有{valid_days}个有效交易日样本，样本不足，仅作观察，不据此调整今日方向。")
     else:
-        for product, policy in products.items():
-            rate = policy["directional_accuracy"]
-            percentage = "暂无" if rate is None else f"{rate * 100:.1f}%"
-            if policy["action"] == "downgrade_directional_claim":
-                disclosures.append(f"预测校准：{product}近{valid_days}个交易日方向命中率{percentage}，今日主线降级，核心置信度不高于★★☆☆☆。")
-            elif policy["action"] == "cap_confidence":
-                disclosures.append(f"预测校准：{product}近{valid_days}个交易日方向命中率{percentage}，今日置信度不高于★★★☆☆。")
-            elif policy["action"] == "widen_scenarios":
-                disclosures.append(f"预测校准：{product}近期区间覆盖偏低，今日必须补充区间外情景及失效条件。")
+        product_rates = "/".join(
+            "暂无" if products[product]["directional_accuracy"] is None else f"{products[product]['directional_accuracy'] * 100:.1f}%"
+            for product in PRODUCTS
+        )
+        brier_text = "暂无" if overall_brier is None else f"{overall_brier:.3f}"
+        coverage_text = "暂无" if overall_range_coverage is None else f"{overall_range_coverage * 100:.1f}%"
+        width_text = "区间宽度质量暂无可复现指标" if interval_width_ratio is None else f"区间宽度比{interval_width_ratio:.2f}"
+        downgraded = [product for product in PRODUCTS if products[product]["action"] == "downgrade_directional_claim"]
+        capped = [product for product in PRODUCTS if products[product]["action"] == "cap_confidence"]
+        widened = [product for product in PRODUCTS if products[product]["action"] == "widen_scenarios"]
+        policies: list[str] = []
+        if downgraded:
+            policies.append(f"{'/'.join(downgraded)}今日主线降级")
+        if capped:
+            policies.append(f"{'/'.join(capped)}置信度受限")
+        if widened:
+            policies.append(f"{'/'.join(widened)}必须补充区间外情景")
+        if not policies:
+            policies.append("未触发品种降级")
+        policies.append(f"核心置信度不高于{'★' * CONFIDENCE_STARS[global_cap]}{'☆' * (5 - CONFIDENCE_STARS[global_cap])}")
+        sample_warning = "样本仍有限，不据此声称准确率改善" if valid_days < 20 else "历史指标只用于约束，不据此上调置信度"
+        disclosures.append(
+            f"预测校准：近{valid_days}个有效交易日共{overall_sample_count}条评估，"
+            f"P/Y/OI方向命中率分别为{product_rates}，整体Brier分数{brier_text}，"
+            f"收盘区间覆盖率{coverage_text}，{width_text}；{'，'.join(policies)}；{sample_warning}。"
+        )
         for error in repeated:
             disclosures.append(f"复盘约束：近期连续出现“{error}”，今日不得让该因素单独主导结论。")
-        if not disclosures:
-            disclosures.append(f"预测校准：近{valid_days}个有效交易日未触发降级门槛，今日仍按新数据独立判断，不因历史命中率上调置信度。")
 
     return {
         "schema_version": SCHEMA_VERSION,
@@ -177,6 +211,13 @@ def build_feedback(metrics_path: Path, review_dir: Path, as_of_text: str) -> dic
         "valid_trade_day_count": valid_days,
         "minimum_active_trade_days": MIN_ACTIVE_DAYS,
         "products": products,
+        "overall_metrics": {
+            "sample_count": overall_sample_count,
+            "directional_accuracy": overall_directional_accuracy,
+            "mean_brier_score": overall_brier,
+            "close_range_coverage": overall_range_coverage,
+            "interval_width_ratio": interval_width_ratio,
+        },
         "high_confidence_history": {"sample_count": high_samples, "directional_accuracy": high_accuracy},
         "core_view_confidence_cap": global_cap,
         "core_view_confidence_cap_stars": CONFIDENCE_STARS[global_cap],

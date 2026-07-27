@@ -44,10 +44,19 @@ for report_path in "${changed_reports[@]}"; do
   report_file="$(basename "$report_path")"
   if [[ "$report_file" == *-weekend.md ]]; then
     report_date="${report_file%-weekend.md}"
-    manifest="source_runs/${report_date}-weekend/manifest.json"
+    report_kind="weekend"
+    run_dir="source_runs/${report_date}-weekend"
+    manifest="${run_dir}/manifest.json"
+    source_json="${run_dir}/raw/futures_market_data.weekly_compatible.json"
+    if [[ ! -f "$source_json" ]]; then
+      source_json="${run_dir}/raw/futures_market_data.json"
+    fi
   else
     report_date="${report_file%.md}"
-    manifest="source_runs/${report_date}-daily/manifest.json"
+    report_kind="daily"
+    run_dir="source_runs/${report_date}-daily"
+    manifest="${run_dir}/manifest.json"
+    source_json="${run_dir}/raw/futures_market_data.json"
   fi
   python3 skills/data_quality_gate_skill/scripts/validate_data.py --manifest "$manifest" --strict
   if [[ "$report_file" != *-weekend.md ]]; then
@@ -56,6 +65,19 @@ for report_path in "${changed_reports[@]}"; do
       --feedback data/forecast/feedback/latest.json \
       --report-date "$report_date"
   fi
+  report_audit=(
+    python3 skills/report_writer_skill/scripts/audit_report.py
+    --report "$report_path"
+    --outline "${run_dir}/report_outline.json"
+    --kind "$report_kind"
+    --source-json "$source_json"
+    --output "${run_dir}/report_quality.json"
+    --min-score 85
+  )
+  if [[ "$report_kind" == "daily" ]]; then
+    report_audit+=(--feedback data/forecast/feedback/latest.json)
+  fi
+  "${report_audit[@]}"
 done
 
 update_oil_futures_tab=false

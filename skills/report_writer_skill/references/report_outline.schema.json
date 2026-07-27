@@ -1,0 +1,148 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/schemas/oil-report-outline-v1.json",
+  "title": "Oil Report Research Outline",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "report_date",
+    "kind",
+    "data_cutoff",
+    "top_call",
+    "market_stance",
+    "primary_driver",
+    "secondary_driver",
+    "transmission_chain",
+    "expectation_vs_reality",
+    "strongest_counter_case",
+    "invalidation_condition",
+    "trade_trigger",
+    "confirmation_condition",
+    "stop_loss",
+    "target_range",
+    "position_limit",
+    "signal_expiry",
+    "research_confidence",
+    "evidence_status"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "oil-report-outline-v1"
+    },
+    "report_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "kind": {
+      "enum": ["daily", "weekend"]
+    },
+    "data_cutoff": {
+      "type": "string",
+      "minLength": 10
+    },
+    "top_call": {
+      "type": "string",
+      "minLength": 8
+    },
+    "market_stance": {
+      "enum": ["偏多", "偏空", "震荡", "观望"]
+    },
+    "primary_driver": {
+      "$ref": "#/$defs/driver"
+    },
+    "secondary_driver": {
+      "$ref": "#/$defs/driver"
+    },
+    "transmission_chain": {
+      "type": "string",
+      "minLength": 8
+    },
+    "expectation_vs_reality": {
+      "type": "string",
+      "minLength": 8
+    },
+    "strongest_counter_case": {
+      "type": "string",
+      "minLength": 8
+    },
+    "invalidation_condition": {
+      "type": "string",
+      "minLength": 8
+    },
+    "trade_trigger": {
+      "type": "string",
+      "minLength": 2
+    },
+    "confirmation_condition": {
+      "type": "string",
+      "minLength": 2
+    },
+    "stop_loss": {
+      "type": "string",
+      "minLength": 2
+    },
+    "target_range": {
+      "type": "string",
+      "minLength": 2
+    },
+    "position_limit": {
+      "type": "string",
+      "minLength": 2
+    },
+    "signal_expiry": {
+      "type": "string",
+      "minLength": 2
+    },
+    "research_confidence": {
+      "type": "string",
+      "pattern": "^[★☆]{5}$"
+    },
+    "evidence_status": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["verified", "limited", "needs_verification"],
+      "properties": {
+        "verified": {
+          "type": "array",
+          "items": {"type": "string"},
+          "uniqueItems": true
+        },
+        "limited": {
+          "type": "array",
+          "items": {"type": "string"},
+          "uniqueItems": true
+        },
+        "needs_verification": {
+          "type": "array",
+          "items": {"type": "string"},
+          "uniqueItems": true
+        }
+      }
+    },
+    "supply_demand_framework": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "supply": {"type": "string"},
+        "demand": {"type": "string"},
+        "price_and_flow": {"type": "string"},
+        "strategy": {"type": "string"}
+      }
+    }
+  },
+  "$defs": {
+    "driver": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "evidence_level", "source", "as_of", "impact"],
+      "properties": {
+        "name": {"type": "string", "minLength": 2},
+        "evidence_level": {"enum": ["Level 1", "Level 2", "Level 3"]},
+        "source": {"type": "string", "minLength": 2},
+        "as_of": {"type": "string", "minLength": 4},
+        "impact": {"type": "string", "minLength": 4}
+      }
+    }
+  }
+}
