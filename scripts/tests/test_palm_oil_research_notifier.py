@@ -52,62 +52,56 @@ class CalendarAndChunkTest(unittest.TestCase):
         self.assertTrue(all(len(message) <= NOTIFIER.MAX_MESSAGE_CHARS for message in messages))
         self.assertNotIn("·1/", messages[0])
 
-    def test_source_link_table_is_collapsed(self):
-        source = """# 晨报
-
-## 【观点】
-正文
-
-## 【消息来源链接】
-| 来源 | 链接 |
-|---|---|
-| 示例 | https://example.com/very-long |
-
-## 【AI观点风险提示】
-风险
-"""
-        result = NOTIFIER.normalize_morning_markdown(source, "2026-07-27")
-        self.assertIn(NOTIFIER.public_report_url("2026-07-27"), result)
-        self.assertNotIn("example.com", result)
-        self.assertIn("AI观点风险提示", result)
-
-    def test_morning_digest_uses_one_report_snapshot_and_fixed_layout(self):
-        source = """# 晨报
-
-## 【今日观点】
-原油回落压制估值。
-【结论】P按震荡偏弱处理。
-
-## 【今日交易信号】
-三大油脂强弱：Y > P > OI；板块分化。
-
-## 【今日关键数据】
-| 数据 | 快照 | 对P影响 |
-|---|---:|---|
-| FCPO | 4723（+0.04%） | ↑ |
-| WTI | 84.51（-5.37%） | ↓ |
-| CBOT豆油 / 美豆 | 31.68（+0.51%）/1245 | → |
-
-## 【关键价格】
-| 品种 | 压力位 | 支撑位 | 强弱分界 |
-|---|---:|---:|---:|
-| P2609 | 9532 / 9570 | 9487 / 9442 | 9518 |
-| Y2609 | 8610 / 8620 | 8562 / 8520 | 8589 |
-| OI2609 | 10240 / 10281 | 10126 / 10070 | 10191 |
-
-## 【今日观察指标】
-1. WTI能否收复86；2. FCPO能否站稳4723；3. Y能否站回8610。
-
-## 【风险提示】
-1. 原油快速反弹；2. FCPO与Y同步放量。
-"""
-        result = NOTIFIER.compact_morning_report(source, "2026-07-27")
-        self.assertIn("结论：P按震荡偏弱处理", result)
-        self.assertIn("强弱：Y > P > OI", result)
-        self.assertIn("P2609｜支9487 / 9442｜压9532 / 9570｜分界9518", result)
-        self.assertIn("外盘：WTI 84.51", result)
-        self.assertNotIn("MA20", result)
-        self.assertNotIn("技术评分", result)
+    def test_morning_digest_is_independent_analysis_not_website_copy(self):
+        payload = {
+            "updated_at": "2026-07-27 08:18",
+            "market_references": {
+                "malaysia_fcpo": {"price": "4723", "change": "+0.04%"}
+            },
+            "contracts": [
+                {
+                    "product": product,
+                    "contract": contract,
+                    "contract_rank": 1,
+                    "price": price,
+                    "change": change,
+                    "view": "网站原文绝不能进入短信",
+                    "score": {
+                        "total": total,
+                        "technical": technical,
+                        "driver": 46,
+                        "money_flow": 55,
+                        "stance": stance,
+                        "contradiction_warning": "暂无明显冲突信号",
+                    },
+                    "technical_detail": [
+                        {"text": f"现价 {price}，MA20 {ma20}、MA60 {ma60}。"}
+                    ],
+                    "strategy_recommendation": {
+                        "lower_watch": lower,
+                        "upper_watch": upper,
+                    },
+                }
+                for product, contract, price, change, total, technical, stance, ma20, ma60, lower, upper in [
+                    ("P", "P2609", "9380", "-1.99%", 50, 51, "震荡", "9289", "9436", "9024", "9600"),
+                    ("Y", "Y2609", "8471", "-1.60%", 56, 58, "震荡偏强", "8390", "8450", "8200", "8700"),
+                    ("OI", "OI2609", "9991", "-1.96%", 48, 45, "震荡偏弱", "10020", "10110", "9700", "10300"),
+                ]
+            ],
+        }
+        with mock.patch.object(
+            NOTIFIER,
+            "fetch_cbot_bean_oil",
+            return_value={"status": "ok", "price": 31.68, "change": 0.51},
+        ):
+            result = NOTIFIER.compact_market_report(payload, "morning", "2026-07-27")
+        self.assertIn("判断：P震荡，区间等待，不追涨杀跌", result)
+        self.assertIn("三油强弱Y>P>OI", result)
+        self.assertIn("P技术：现价9380｜MA20 9289｜MA60 9436", result)
+        self.assertIn("触发：P上破9600", result)
+        self.assertNotIn("网站原文绝不能进入短信", result)
+        self.assertNotIn("全文：", result)
+        self.assertLess(len(result), 500)
 
     def test_installers_keep_existing_weekday_values(self):
         research = (ROOT / "scripts" / "install_palm_oil_research_notifier_launchd.sh").read_text(

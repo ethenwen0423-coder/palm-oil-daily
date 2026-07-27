@@ -23,11 +23,7 @@ from zoneinfo import ZoneInfo
 ROOT = Path(__file__).resolve().parents[1]
 SHANGHAI = ZoneInfo("Asia/Shanghai")
 MESSAGES_SCRIPT = ROOT / "scripts" / "send_research_messages.applescript"
-OIL_FUTURES = ROOT / "data" / "oil_futures.js"
-REPORTS_INDEX = ROOT / "data" / "reports.js"
-PUBLIC_BASE = "https://ethenwen0423-coder.github.io/palm-oil-daily"
 MAX_MESSAGE_CHARS = 700
-FORBIDDEN = re.compile("未实际调用|当前环境未暴露调用入口|这是测试报告|排版调试样稿")
 EDITION_LABEL = {"morning": "晨报", "close": "收盘复盘", "night": "夜盘前报告"}
 SHORT_EDITION_LABEL = {"morning": "油脂晨报", "close": "油脂收盘", "night": "油脂夜盘前"}
 
@@ -108,88 +104,6 @@ def trading_dates() -> set[date]:
 def is_trading_day(day: date, calendar: set[date] | None = None) -> bool:
     dates = calendar if calendar is not None else trading_dates()
     return day in dates if dates else day.weekday() < 5
-
-
-def public_report_url(report_date: str) -> str:
-    return f"{PUBLIC_BASE}/reports/{report_date}.md"
-
-
-def verify_morning_report(report_date: str, require_public: bool = True) -> str:
-    report = ROOT / "reports" / f"{report_date}.md"
-    download = ROOT / "downloads" / f"{report_date}.md"
-    if not report.is_file() or not download.is_file() or not REPORTS_INDEX.is_file():
-        raise ResearchNotifierError("晨报、下载稿或报告索引缺失")
-    content = report.read_text(encoding="utf-8")
-    if not content.strip() or FORBIDDEN.search(content):
-        raise ResearchNotifierError("晨报为空或命中禁用占位文案")
-    index = REPORTS_INDEX.read_text(encoding="utf-8")
-    if f'"date": "{report_date}"' not in index:
-        raise ResearchNotifierError("报告索引尚未包含当天晨报")
-    if require_public:
-        try:
-            import requests
-
-            response = requests.get(public_report_url(report_date), timeout=(5, 15))
-            if response.status_code != 200 or response.text.strip() != content.strip():
-                raise ResearchNotifierError("公网晨报尚未更新为当天版本")
-        except ResearchNotifierError:
-            raise
-        except Exception as exc:
-            raise ResearchNotifierError(f"公网晨报核验失败：{exc}") from exc
-    return content
-
-
-def markdown_table_to_lines(block: list[str]) -> list[str]:
-    rows: list[list[str]] = []
-    for raw in block:
-        cells = [cell.strip() for cell in raw.strip().strip("|").split("|")]
-        if cells and not all(re.fullmatch(r":?-{3,}:?", cell or "-") for cell in cells):
-            rows.append(cells)
-    if len(rows) < 2:
-        return ["；".join(row) for row in rows]
-    header = rows[0]
-    rendered: list[str] = []
-    for row in rows[1:]:
-        pairs = [f"{header[index]}：{value}" for index, value in enumerate(row) if index < len(header)]
-        rendered.append("；".join(pairs))
-    return rendered
-
-
-def normalize_morning_markdown(content: str, report_date: str) -> str:
-    lines = content.splitlines()
-    result: list[str] = []
-    table: list[str] = []
-    skip_sources = False
-
-    def flush_table() -> None:
-        nonlocal table
-        if table:
-            result.extend(markdown_table_to_lines(table))
-            table = []
-
-    for raw in lines:
-        line = raw.rstrip()
-        if re.match(r"^##\s+【消息来源链接】", line):
-            flush_table()
-            skip_sources = True
-            result.extend(["## 来源与完整报告", public_report_url(report_date)])
-            continue
-        if skip_sources:
-            if re.match(r"^##\s+", line):
-                skip_sources = False
-            else:
-                continue
-        if line.startswith("|") and line.endswith("|"):
-            table.append(line)
-            continue
-        flush_table()
-        line = re.sub(r"^#{1,6}\s*", "", line)
-        line = line.replace("**", "").replace("`", "")
-        result.append(line)
-    flush_table()
-    cleaned = "\n".join(result)
-    cleaned = re.sub(r"\n{3,}", "\n\n", cleaned).strip()
-    return cleaned
 
 
 def as_float(value: Any) -> float | None:
@@ -391,7 +305,7 @@ def refresh_private_snapshot(output: Path) -> None:
     result = subprocess.run(command, cwd=ROOT, text=True, capture_output=True, timeout=180, check=False)
     if result.returncode != 0:
         error = result.stderr.strip() or result.stdout.strip() or "未知错误"
-        raise ResearchNotifierError(f"夜盘前行情刷新失败：{error[-500:]}")
+        raise ResearchNotifierError(f"独立行情刷新失败：{error[-500:]}")
     gate = subprocess.run(
         [
             sys.executable,
@@ -407,7 +321,7 @@ def refresh_private_snapshot(output: Path) -> None:
         check=False,
     )
     if gate.returncode != 0:
-        raise ResearchNotifierError(f"夜盘前行情严格门禁失败：{(gate.stderr or gate.stdout)[-500:]}")
+        raise ResearchNotifierError(f"独立行情严格门禁失败：{(gate.stderr or gate.stdout)[-500:]}")
 
 
 def select_contracts(payload: dict[str, Any]) -> list[dict[str, Any]]:
@@ -440,97 +354,32 @@ def compact_piece(text: str, limit: int) -> str:
     return clean[: cut + 1].rstrip("，； ") + "…"
 
 
-def normalized_section(text: str, heading: str, limit: int) -> str:
-    lines = text.splitlines()
-    try:
-        start = next(index for index, line in enumerate(lines) if line.strip() == heading) + 1
-    except StopIteration:
-        return ""
-    selected: list[str] = []
-    for line in lines[start:]:
-        stripped = line.strip()
-        if stripped.startswith("【") and stripped.endswith("】"):
-            break
-        if stripped in {"来源与完整报告", "油脂主力技术面补充"}:
-            break
-        if stripped:
-            selected.append(stripped)
-    return compact_piece(" ".join(selected), limit)
-
-
-def raw_section(content: str, heading: str) -> str:
-    match = re.search(
-        rf"^##\s+【{re.escape(heading)}】\s*$\n(?P<body>.*?)(?=^##\s+|\Z)",
-        content,
-        flags=re.MULTILINE | re.DOTALL,
-    )
-    return match.group("body").strip() if match else ""
-
-
-def markdown_table(content: str) -> list[dict[str, str]]:
-    table_lines = [line.strip() for line in content.splitlines() if line.strip().startswith("|")]
-    if len(table_lines) < 3:
-        return []
-    header = [cell.strip() for cell in table_lines[0].strip("|").split("|")]
-    rows: list[dict[str, str]] = []
-    for line in table_lines[2:]:
-        cells = [cell.strip() for cell in line.strip("|").split("|")]
-        if len(cells) == len(header):
-            rows.append(dict(zip(header, cells)))
-    return rows
-
-
-def conclusion_text(section: str, fallback_limit: int = 90) -> str:
-    match = re.search(r"【结论】\s*(.+)", section)
-    if match:
-        return compact_piece(match.group(1), fallback_limit)
-    clean = re.sub(r"\*\*|`", "", section)
-    clean = re.sub(r"\s+", " ", clean).strip()
-    return compact_piece(clean, fallback_limit)
-
-
-def compact_numbered_items(section: str, count: int, limit: int) -> str:
-    clean = re.sub(r"\*\*|`", "", section)
-    clean = re.sub(r"【结论】.*", "", clean, flags=re.DOTALL).strip()
-    parts = [
-        re.sub(r"^\d+[.、]\s*", "", part).strip(" ；。")
-        for part in re.split(r"(?=\d+[.、]\s*)", clean)
-    ]
-    selected = [part for part in parts if part][:count]
-    return compact_piece("；".join(selected), limit)
-
-
-def report_market_line(rows: list[dict[str, str]]) -> str:
-    values: list[str] = []
-    for label in ("WTI", "FCPO", "CBOT豆油"):
-        row = next((item for item in rows if label in item.get("数据", "")), None)
-        if not row:
-            continue
-        snapshot = row.get("快照", "需核验")
-        if "/" in row.get("数据", "") and label == "CBOT豆油":
-            snapshot = snapshot.split("/", 1)[0].strip()
-        values.append(f"{label} {snapshot}")
-    return "；".join(values) or "需进一步核验"
-
-
-def compact_contract_line(item: dict[str, Any]) -> str:
-    score = item.get("score") or {}
-    strategy = item.get("strategy_recommendation") or {}
+def technical_levels(item: dict[str, Any]) -> tuple[str, str]:
     position_text = " ".join(
         str(row.get("text") or "") for row in item.get("technical_detail", [])[:1]
     )
     ma20 = re.search(r"MA20\s*([0-9.]+)", position_text)
     ma60 = re.search(r"MA60\s*([0-9.]+)", position_text)
-    ma_text = (
-        f"MA20/60 {ma20.group(1)}/{ma60.group(1)}"
-        if ma20 and ma60
-        else "均线需核验"
-    )
     return (
-        f"{item.get('product')} {item.get('contract')} {item.get('price')}({item.get('change')})；"
-        f"{score.get('stance', '需核验')}/技{score.get('technical', '需核验')}；{ma_text}；"
-        f"观察{strategy.get('lower_watch', '需核验')}-{strategy.get('upper_watch', '需核验')}"
+        ma20.group(1) if ma20 else "需核验",
+        ma60.group(1) if ma60 else "需核验",
     )
+
+
+def action_for_stance(stance: str) -> str:
+    if "偏多" in stance or stance == "多":
+        return "回踩确认再偏多，不追涨"
+    if "偏空" in stance or stance == "空":
+        return "反弹承压再偏空，不追跌"
+    return "区间等待，不追涨杀跌"
+
+
+def meaningful_risk(items: list[dict[str, Any]]) -> str:
+    for item in items:
+        warning = str((item.get("score") or {}).get("contradiction_warning") or "").strip()
+        if warning and not any(marker in warning for marker in ("暂无", "无明显", "未见")):
+            return compact_piece(warning, 75).rstrip("。；")
+    return "外盘与资金不同向时，观点降级为观望"
 
 
 def compact_market_report(payload: dict[str, Any], edition: str, report_date: str) -> str:
@@ -550,65 +399,40 @@ def compact_market_report(payload: dict[str, Any], edition: str, report_date: st
         if cbot.get("status") == "ok"
         else "需进一步核验"
     )
-    risks = [
-        str((item.get("score") or {}).get("contradiction_warning") or "")
-        for item in domestic
-    ]
-    risks = list(dict.fromkeys(risk for risk in risks if risk))
-    lines = [
-        f"结论：三油强弱 {strength}，方向需由外盘与资金确认。",
-        *[
-            (
-                f"{item.get('contract')} {item.get('price')}({item.get('change')})｜"
-                f"{(item.get('score') or {}).get('stance', '需核验')}｜"
-                f"支{(item.get('strategy_recommendation') or {}).get('lower_watch', '需核验')}｜"
-                f"压{(item.get('strategy_recommendation') or {}).get('upper_watch', '需核验')}"
-            )
-            for item in domestic
-        ],
-        f"外盘：FCPO {fcpo.get('price', '需核验')}({fcpo.get('change', '需核验')})；CBOT豆油 {cbot_text}。",
-        f"风险：{compact_piece('；'.join(risks), 130) or '跨源数据冲突或驱动反向时降级观望。'}",
-        f"时间：{payload.get('updated_at', '需进一步核验')}｜仅供研究参考。",
-    ]
-    return "\n".join(lines)
-
-
-def compact_morning_report(content: str, report_date: str) -> str:
-    viewpoint = raw_section(content, "今日观点")
-    trading = raw_section(content, "今日交易信号")
-    key_prices = markdown_table(raw_section(content, "关键价格"))
-    market_rows = markdown_table(raw_section(content, "今日关键数据"))
-    watch = compact_numbered_items(raw_section(content, "今日观察指标"), 3, 105)
-    risk = compact_numbered_items(raw_section(content, "风险提示"), 2, 105)
-    driver = next(
+    palm = domestic[0]
+    palm_score = palm.get("score") or {}
+    palm_strategy = palm.get("strategy_recommendation") or {}
+    palm_stance = str(palm_score.get("stance") or "需核验")
+    ma20, ma60 = technical_levels(palm)
+    comparison = "；".join(
         (
-            re.sub(r"\*\*|`", "", line).strip()
-            for line in viewpoint.splitlines()
-            if line.strip() and "【结论】" not in line
-        ),
-        "需进一步核验",
-    )
-    strength_match = re.search(r"三大油脂强弱：([^；。\n]+)", trading)
-    strength = strength_match.group(1).strip() if strength_match else "需进一步核验"
-    lines = [
-        f"结论：{conclusion_text(viewpoint)}",
-        f"驱动：{compact_piece(driver, 75)}",
-        f"强弱：{strength}",
-    ]
-    for row in key_prices:
-        product = row.get("品种", "需核验")
-        lines.append(
-            f"{product}｜支{row.get('支撑位', '需核验')}｜压{row.get('压力位', '需核验')}｜"
-            f"分界{row.get('强弱分界', '需核验')}"
+            f"{item.get('product')} {item.get('price')}({item.get('change')})"
+            f"/{(item.get('score') or {}).get('stance', '需核验')}"
         )
-    lines.extend(
-        [
-            f"外盘：{report_market_line(market_rows)}",
-            f"关注：{watch or '需进一步核验'}",
-            f"风险：{risk or '驱动与资金反向时降级观望'}",
-            f"全文：{public_report_url(report_date)}",
-        ]
+        for item in domestic[1:]
     )
+    lines = [
+        (
+            f"判断：P{palm_stance}，{action_for_stance(palm_stance)}；"
+            f"三油强弱{strength}。"
+        ),
+        (
+            f"依据：P日变{palm.get('change', '需核验')}；"
+            f"FCPO {fcpo.get('change', '需核验')}，CBOT豆油 {cbot_text}。"
+        ),
+        (
+            f"P技术：现价{palm.get('price', '需核验')}｜MA20 {ma20}｜MA60 {ma60}｜"
+            f"下沿{palm_strategy.get('lower_watch', '需核验')}｜"
+            f"上沿{palm_strategy.get('upper_watch', '需核验')}。"
+        ),
+        f"对照：{comparison}。",
+        (
+            f"触发：P上破{palm_strategy.get('upper_watch', '需核验')}且外盘、资金同向→转强；"
+            f"下破{palm_strategy.get('lower_watch', '需核验')}→转弱。"
+        ),
+        f"风险：{meaningful_risk(domestic)}。",
+        f"快照：{payload.get('updated_at', '需进一步核验')}｜仅供研究参考。",
+    ]
     return "\n".join(lines)
 
 
@@ -861,24 +685,16 @@ def build_report(
     edition: str,
     report_date: str,
     snapshot: Path | None,
-    require_public: bool,
 ) -> str:
-    if edition == "morning":
-        content = verify_morning_report(report_date, require_public=require_public)
-        return compact_morning_report(content, report_date)
     if snapshot:
         payload = parse_wrapped_json(snapshot)
-    elif edition == "close":
-        payload = parse_wrapped_json(OIL_FUTURES, "window.OIL_FUTURES_CONTRACTS")
-        if not str(payload.get("updated_at") or "").startswith(report_date):
-            raise ResearchNotifierError("收盘行情快照不是当天数据")
-        if payload.get("update_session") != "close":
-            raise ResearchNotifierError("收盘行情快照尚未完成 close 更新")
     else:
-        with tempfile.TemporaryDirectory(prefix="palm-oil-research-night.") as temporary:
+        with tempfile.TemporaryDirectory(prefix=f"palm-oil-research-{edition}.") as temporary:
             output = Path(temporary) / "oil_futures.js"
             refresh_private_snapshot(output)
             payload = parse_wrapped_json(output, "window.OIL_FUTURES_CONTRACTS")
+    if not str(payload.get("updated_at") or "").startswith(report_date):
+        raise ResearchNotifierError("独立行情快照不是当天数据")
     return compact_market_report(payload, edition, report_date)
 
 
@@ -890,7 +706,6 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--send-test", action="store_true")
     parser.add_argument("--support-dir")
     parser.add_argument("--snapshot", type=Path, help="测试或补跑用行情快照")
-    parser.add_argument("--skip-public-check", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--allow-non-trading-day", action="store_true", help=argparse.SUPPRESS)
     return parser
 
@@ -960,7 +775,6 @@ def main() -> int:
                     edition,
                     report_date,
                     args.snapshot,
-                    require_public=not args.skip_public_check,
                 )
                 write_audit_report(base, report_date, edition, text)
                 messages = prepare_messages(text, report_date, edition)
