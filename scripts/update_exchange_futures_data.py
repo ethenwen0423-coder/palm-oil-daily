@@ -9,7 +9,7 @@ import json
 import re
 import subprocess
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -29,6 +29,35 @@ TECHNICAL_HELPER = Path.home() / ".codex" / "skills" / "technical-analysis-helpe
 LEVELS_HELPER = Path.home() / ".codex" / "skills" / "technical-analysis-helper" / "scripts" / "identify_levels.py"
 NEWS_GLOB = ROOT / "source_runs" / "*" / "raw" / "mx_search_news.json"
 SINA_DAILY_URL = "https://stock2.finance.sina.com.cn/futures/api/jsonp.php/var_V21052021_4_12=/InnerFuturesNewService.getDailyKLine"
+SINA_INDEX_URL = "https://hq.sinajs.cn/list=s_sh000300,s_sh000016,s_sh000905,s_sh000852"
+EASTMONEY_DATA_URL = "https://datacenter-web.eastmoney.com/api/data/v1/get"
+
+INDEX_VARIETIES = {
+    "IF": {"code": "000300", "name": "沪深300"},
+    "IH": {"code": "000016", "name": "上证50"},
+    "IC": {"code": "000905", "name": "中证500"},
+    "IM": {"code": "000852", "name": "中证1000"},
+}
+RATE_VARIETIES = {"TS": "2年", "TF": "5年", "T": "10年"}
+
+# Default scheduled universe: representative, liquid products for each research category.
+# The all-products universe remains available through --scope all for manual diagnostics.
+CORE_PRODUCTS_BY_CATEGORY = {
+    "油脂油料": {"棕榈", "豆油", "菜油", "豆粕", "菜粕"},
+    "谷物饲料": {"玉米"},
+    "软商品": {"白糖", "棉花", "生猪"},
+    "黑色建材": {"铁矿石", "焦炭", "焦煤", "玻璃"},
+    "能化材料": {"PTA", "郑醇", "PP", "乙二醇", "尿素"},
+    "能源化工": {"原油", "燃油", "沥青", "橡胶"},
+    "有色金属": {"沪铜", "沪铝", "沪锌", "沪镍"},
+    "贵金属": {"黄金", "白银"},
+    "黑色金属": {"螺纹钢", "热轧卷板"},
+    "造纸航运": {"纸浆", "集运指数(欧线)期货"},
+    "新能源材料": {"工业硅", "碳酸锂", "多晶硅"},
+    "股指期货": {"沪深300指数期货", "中证500指数期货"},
+    "利率期货": {"5年期国债期货", "10年期国债期货"},
+}
+CORE_PRODUCTS = set().union(*CORE_PRODUCTS_BY_CATEGORY.values())
 
 EXCHANGE_LABELS = {
     "大连商品交易所": "DCE",
@@ -231,6 +260,32 @@ def display_number(value: Any) -> str:
     return str(number) if number is not None else "需进一步核验"
 
 
+def display_compact_number(value: Any) -> str:
+    number = as_number(value)
+    if number is None:
+        return "需进一步核验"
+    if float(number).is_integer():
+        return f"{int(number):,}"
+    return f"{number:,.2f}"
+
+
+def display_signed_number(value: Any) -> str:
+    number = as_number(value)
+    return f"{number:+,.2f}" if number is not None else "需进一步核验"
+
+
+def normalize_date(value: Any) -> str:
+    text = str(value or "").strip()
+    if re.fullmatch(r"\d{8}", text):
+        return f"{text[:4]}-{text[4:6]}-{text[6:]}"
+    return text[:10] if text else ""
+
+
+def contract_variety(symbol: Any) -> str:
+    match = re.match(r"([A-Z]+)", str(symbol or "").upper())
+    return match.group(1) if match else ""
+
+
 def resolve_helper(primary: Path, script_name: str) -> Path:
     """Prefer the configured helper path, with the active Codex skills directory as fallback."""
     candidates = [primary, Path.home() / ".codex" / "skills" / "technical-analysis-helper" / "scripts" / script_name]
@@ -399,14 +454,20 @@ def latest_news() -> list[dict[str, Any]]:
 
 
 def news_for(name: str, news: list[dict[str, Any]]) -> list[dict[str, str]]:
-    aliases = {name, name.replace("鲜", ""), name.replace("郑", "")}
+    aliases = {
+        name,
+        name.replace("鲜", ""),
+        name.replace("郑", ""),
+        name.replace("沪", ""),
+        name.replace("期货", ""),
+    }
     matched = []
     for item in news:
-        text = f"{item.get('title', '')} {item.get('content', '')}"
-        if not any(alias and alias in text for alias in aliases):
+        title = str(item.get("title") or "")
+        if not any(len(alias) >= 2 and alias in title for alias in aliases):
             continue
         matched.append({
-            "title": str(item.get("title") or "行业热点"),
+            "title": title or "行业热点",
             "date": str(item.get("date") or "需进一步核验"),
             "source": str(item.get("insName") or "资讯来源需进一步核验"),
             "url": str(item.get("jumpUrl") or ""),
@@ -452,32 +513,357 @@ def previous_contracts() -> dict[str, dict[str, Any]]:
     return records
 
 
-def fundamental_summary(name: str, category: str, headlines: list[dict[str, str]]) -> dict[str, Any]:
-    factors = []
+def fetch_warrant_snapshots() -> dict[str, dict[str, Any]]:
+    """Fetch registered-warrant inventory in one bounded Eastmoney request."""
+    params = {
+        "reportName": "RPT_FUTU_STOCKDATA",
+        "columns": "SECURITY_CODE,TRADE_DATE,ON_WARRANT_NUM,ADDCHANGE",
+        "pageNumber": "1",
+        "pageSize": "500",
+        "sortTypes": "-1",
+        "sortColumns": "TRADE_DATE",
+        "source": "WEB",
+        "client": "WEB",
+    }
+    try:
+        response = requests.get(EASTMONEY_DATA_URL, params=params, timeout=15)
+        response.raise_for_status()
+        rows = response.json()["result"]["data"]
+    except (requests.RequestException, KeyError, TypeError, ValueError):
+        return {}
+
+    grouped: dict[str, list[dict[str, Any]]] = {}
+    for row in rows:
+        code = str(row.get("SECURITY_CODE") or "").upper()
+        if not code:
+            continue
+        grouped.setdefault(code, []).append(row)
+
+    snapshots = {}
+    for code, items in grouped.items():
+        items.sort(key=lambda row: str(row.get("TRADE_DATE") or ""), reverse=True)
+        latest = items[0]
+        latest_value = as_number(latest.get("ON_WARRANT_NUM"))
+        comparison = items[min(5, len(items) - 1)]
+        comparison_value = as_number(comparison.get("ON_WARRANT_NUM"))
+        snapshots[code] = {
+            "date": str(latest.get("TRADE_DATE") or "")[:10],
+            "value": clean_number(latest_value),
+            "daily_change": clean_number(latest.get("ADDCHANGE")),
+            "five_record_change": clean_number(
+                latest_value - comparison_value
+                if latest_value is not None and comparison_value is not None
+                else None
+            ),
+            "source": "东方财富期货库存数据（注册仓单口径）",
+        }
+    return snapshots
+
+
+def fetch_basis_snapshots(now: datetime | None = None) -> dict[str, dict[str, Any]]:
+    """Fetch the latest available spot and dominant-contract basis table."""
+    if ak is None:
+        return {}
+    current = now or datetime.now(SHANGHAI)
+    for offset in range(5):
+        date_text = (current.date() - timedelta(days=offset)).strftime("%Y%m%d")
+        try:
+            frame = ak.futures_spot_price(date=date_text)
+        except Exception:
+            continue
+        if frame is None or frame.empty:
+            continue
+        snapshots = {}
+        for _, row in frame.iterrows():
+            code = str(row.get("symbol") or "").upper()
+            if not code:
+                continue
+            snapshots[code] = {
+                "date": normalize_date(row.get("date") or date_text),
+                "spot_price": clean_number(row.get("spot_price")),
+                "dominant_contract": str(row.get("dominant_contract") or ""),
+                "dominant_contract_price": clean_number(row.get("dominant_contract_price")),
+                "dom_basis": clean_number(row.get("dom_basis")),
+                "dom_basis_rate": clean_number(
+                    as_number(row.get("dom_basis_rate")) * 100
+                    if as_number(row.get("dom_basis_rate")) is not None
+                    else None
+                ),
+                "source": "生意社现货与期货基差数据（AkShare）",
+            }
+        if snapshots:
+            return snapshots
+    return {}
+
+
+def fetch_index_snapshots() -> dict[str, dict[str, Any]]:
+    """Fetch index spot moves and low-frequency valuation for stock-index futures."""
+    snapshots: dict[str, dict[str, Any]] = {}
+    try:
+        response = requests.get(
+            SINA_INDEX_URL,
+            headers={"Referer": "https://finance.sina.com.cn", "User-Agent": "Mozilla/5.0"},
+            timeout=12,
+        )
+        response.raise_for_status()
+        response.encoding = "gb18030"
+        for code, values in re.findall(r'hq_str_s_sh(\d+)="([^"]*)"', response.text):
+            parts = values.split(",")
+            if len(parts) < 4:
+                continue
+            snapshots[code] = {
+                "name": parts[0],
+                "date": datetime.now(SHANGHAI).strftime("%Y-%m-%d %H:%M"),
+                "spot_price": clean_number(parts[1]),
+                "change": clean_number(parts[2]),
+                "change_pct": clean_number(parts[3]),
+                "spot_source": "新浪财经指数实时行情",
+            }
+    except requests.RequestException:
+        pass
+
+    if ak is None:
+        return snapshots
+    for meta in INDEX_VARIETIES.values():
+        code = meta["code"]
+        try:
+            frame = ak.stock_zh_index_value_csindex(symbol=code)
+        except Exception:
+            continue
+        if frame is None or frame.empty:
+            continue
+        frame = frame.sort_values("日期", ascending=False)
+        row = frame.iloc[0]
+        snapshots.setdefault(code, {}).update({
+            "valuation_date": str(row.get("日期") or "")[:10],
+            "pe": clean_number(row.get("市盈率1")),
+            "dividend_yield": clean_number(row.get("股息率1")),
+            "valuation_source": "中证指数估值数据（AkShare）",
+        })
+    return snapshots
+
+
+def fetch_rate_snapshot(now: datetime | None = None) -> dict[str, Any]:
+    """Fetch the latest government-bond curve and Shibor observations."""
+    if ak is None:
+        return {}
+    current = now or datetime.now(SHANGHAI)
+    snapshot: dict[str, Any] = {}
+    try:
+        curve = ak.bond_china_yield(
+            start_date=(current.date() - timedelta(days=14)).strftime("%Y%m%d"),
+            end_date=current.date().strftime("%Y%m%d"),
+        )
+        curve = curve[curve["曲线名称"] == "中债国债收益率曲线"].sort_values("日期", ascending=False)
+        if not curve.empty:
+            row = curve.iloc[0]
+            snapshot.update({
+                "curve_date": str(row.get("日期") or "")[:10],
+                "1年": clean_number(row.get("1年"), 4),
+                "5年": clean_number(row.get("5年"), 4),
+                "10年": clean_number(row.get("10年"), 4),
+                "10y_1y_spread_bp": clean_number(
+                    (as_number(row.get("10年")) - as_number(row.get("1年"))) * 100
+                    if as_number(row.get("10年")) is not None and as_number(row.get("1年")) is not None
+                    else None
+                ),
+                "curve_source": "中国债券信息网中债国债收益率曲线（AkShare）",
+            })
+    except Exception:
+        pass
+    try:
+        shibor = ak.macro_china_shibor_all().sort_values("日期", ascending=False)
+        if not shibor.empty:
+            row = shibor.iloc[0]
+            snapshot.update({
+                "shibor_date": str(row.get("日期") or "")[:10],
+                "shibor_on": clean_number(row.get("O/N-定价"), 4),
+                "shibor_1w": clean_number(row.get("1W-定价"), 4),
+                "shibor_source": "上海银行间同业拆放利率（AkShare）",
+            })
+    except Exception:
+        pass
+    return snapshot
+
+
+def build_fundamental_evidence(
+    variety: str,
+    category: str,
+    futures_price: float | None,
+    warrant_snapshots: dict[str, dict[str, Any]],
+    basis_snapshots: dict[str, dict[str, Any]],
+    index_snapshots: dict[str, dict[str, Any]],
+    rate_snapshot: dict[str, Any],
+) -> tuple[list[dict[str, str]], list[str], list[str]]:
+    factors: list[dict[str, str]] = []
+    sources: list[str] = []
+    dates: list[str] = []
+
+    warrant = warrant_snapshots.get(variety)
+    if warrant and warrant.get("value") is not None:
+        date = str(warrant.get("date") or "需进一步核验")
+        factors.append({
+            "title": f"仓单库存｜{date}",
+            "text": (
+                f"注册仓单为 {display_compact_number(warrant['value'])}，当日变化 "
+                f"{display_signed_number(warrant.get('daily_change'))}，近 6 个记录点累计变化 "
+                f"{display_signed_number(warrant.get('five_record_change'))}。该口径不等于社会总库存。"
+            ),
+        })
+        sources.append(str(warrant["source"]))
+        dates.append(date)
+
+    basis = basis_snapshots.get(variety)
+    if basis and basis.get("spot_price") is not None and basis.get("dom_basis") is not None:
+        date = str(basis.get("date") or "需进一步核验")
+        relation = "高于" if as_number(basis["dom_basis"]) > 0 else "低于" if as_number(basis["dom_basis"]) < 0 else "接近"
+        factors.append({
+            "title": f"期现基差｜{date}",
+            "text": (
+                f"现货价 {display_compact_number(basis['spot_price'])}，主力结算价 "
+                f"{display_compact_number(basis.get('dominant_contract_price'))}；按“主力－现货”计算为 "
+                f"{display_signed_number(basis['dom_basis'])}（{display_signed_number(basis.get('dom_basis_rate'))}%），"
+                f"主力{relation}现货。"
+            ),
+        })
+        sources.append(str(basis["source"]))
+        dates.append(date)
+
+    index_meta = INDEX_VARIETIES.get(variety)
+    if index_meta:
+        index = index_snapshots.get(index_meta["code"], {})
+        spot_price = as_number(index.get("spot_price"))
+        if spot_price is not None:
+            date = str(index.get("date") or "盘中")
+            index_basis = futures_price - spot_price if futures_price is not None else None
+            basis_rate = index_basis / spot_price * 100 if index_basis is not None and spot_price else None
+            factors.append({
+                "title": f"标的指数与期现｜{date}",
+                "text": (
+                    f"{index_meta['name']}最新 {display_compact_number(spot_price)}，当日 "
+                    f"{display_signed_number(index.get('change_pct'))}%；期指主力－现货为 "
+                    f"{display_signed_number(index_basis)}（{display_signed_number(basis_rate)}%）。"
+                ),
+            })
+            sources.append(str(index.get("spot_source") or "新浪财经指数实时行情"))
+            dates.append(date)
+        if index.get("pe") is not None:
+            date = str(index.get("valuation_date") or "需进一步核验")
+            factors.append({
+                "title": f"指数估值｜{date}",
+                "text": (
+                    f"{index_meta['name']}市盈率 {display_compact_number(index.get('pe'))} 倍，"
+                    f"股息率 {display_compact_number(index.get('dividend_yield'))}%；"
+                    "估值为低频背景，不作为当日单独方向信号。"
+                ),
+            })
+            sources.append(str(index.get("valuation_source") or "中证指数估值数据（AkShare）"))
+            dates.append(date)
+
+    if category == "利率期货" and rate_snapshot:
+        maturity = RATE_VARIETIES.get(variety)
+        yield_value = rate_snapshot.get(maturity or "")
+        if yield_value is not None:
+            date = str(rate_snapshot.get("curve_date") or "需进一步核验")
+            factors.append({
+                "title": f"国债收益率｜{date}",
+                "text": (
+                    f"中债国债 {maturity} 收益率为 {display_compact_number(yield_value)}%，"
+                    f"10年－1年期限利差为 {display_signed_number(rate_snapshot.get('10y_1y_spread_bp'))}bp。"
+                ),
+            })
+            sources.append(str(rate_snapshot.get("curve_source") or "中国债券信息网"))
+            dates.append(date)
+        if rate_snapshot.get("shibor_on") is not None:
+            date = str(rate_snapshot.get("shibor_date") or "需进一步核验")
+            factors.append({
+                "title": f"资金利率｜{date}",
+                "text": (
+                    f"Shibor 隔夜为 {display_compact_number(rate_snapshot.get('shibor_on'))}%，"
+                    f"1 周为 {display_compact_number(rate_snapshot.get('shibor_1w'))}%；"
+                    "资金利率变化用于判断短端流动性环境。"
+                ),
+            })
+            sources.append(str(rate_snapshot.get("shibor_source") or "上海银行间同业拆放利率"))
+            dates.append(date)
+
+    return factors, list(dict.fromkeys(sources)), sorted(set(dates), reverse=True)
+
+
+def fundamental_summary(
+    name: str,
+    category: str,
+    headlines: list[dict[str, str]],
+    variety: str,
+    futures_price: float | None,
+    warrant_snapshots: dict[str, dict[str, Any]],
+    basis_snapshots: dict[str, dict[str, Any]],
+    index_snapshots: dict[str, dict[str, Any]],
+    rate_snapshot: dict[str, Any],
+) -> dict[str, Any]:
+    framework = []
     for names, group_category, group_factors in FUNDAMENTAL_GROUPS:
         if name in names:
             category = group_category
-            factors = [{"title": title, "text": text} for title, text in group_factors]
+            framework = [{"title": f"跟踪框架｜{title}", "text": text} for title, text in group_factors]
             break
-    if not factors:
-        factors = [
-            {"title": "供给", "text": "该品种尚未建立专属基本面模板，需进一步核验产能、进口、政策和交割供给。"},
-            {"title": "需求", "text": "需进一步核验下游开工、终端订单和替代品价格，暂不以分类标签替代具体研究。"},
-            {"title": "库存与现货", "text": "需进一步核验库存、基差、仓单与现货成交，缺少数据时不做方向性判断。"},
+    if not framework:
+        framework = [
+            {"title": "跟踪框架｜供给", "text": "需进一步核验产能、进口、政策和交割供给。"},
+            {"title": "跟踪框架｜需求", "text": "需进一步核验下游开工、终端订单和替代品价格。"},
+            {"title": "跟踪框架｜库存与现货", "text": "需进一步核验库存、基差、仓单与现货成交。"},
         ]
-    headline_note = "已匹配到直接热点，热点只作为研究线索，需结合原始报道和数据验证传导链。" if headlines else "未匹配到直接热点，基本面结论仅保留供需跟踪框架，不据此给出方向判断。"
-    return {"category": category, "summary": f"{name}基本面围绕供给、需求和库存/成本三条线展开。{headline_note}", "factors": factors}
+    evidence, sources, dates = build_fundamental_evidence(
+        variety,
+        category,
+        futures_price,
+        warrant_snapshots,
+        basis_snapshots,
+        index_snapshots,
+        rate_snapshot,
+    )
+    if evidence:
+        latest_date = dates[0] if dates else "盘中"
+        summary = (
+            f"{name}当前取得 {len(evidence)} 项可验证基本面证据，最新有效日期 {latest_date}。"
+            "以下先展示当前数值，再列出仍需持续跟踪的研究框架；单项数据不直接等于方向结论。"
+        )
+        status = "observed"
+    else:
+        summary = (
+            f"{name}本次未取得可验证的库存、基差或宏观结构化数据，需进一步核验。"
+            "下列内容仅为研究框架，不作为当前基本面结论。"
+        )
+        status = "missing"
+    return {
+        "category": category,
+        "summary": summary,
+        "factors": evidence + framework,
+        "evidence_status": status,
+        "evidence_count": len(evidence),
+        "evidence_dates": dates,
+        "evidence_sources": sources,
+        "headline_count": len(headlines),
+    }
 
 
-def build_contracts() -> list[dict[str, Any]]:
+def build_contracts(scope: str = "core") -> list[dict[str, Any]]:
     if ak is None:
         raise RuntimeError("AkShare 未安装，无法生成主力合约列表")
+    if scope not in {"core", "all"}:
+        raise ValueError(f"不支持的品种范围: {scope}")
     helper = load_technical_helper()
     levels_helper = load_levels_helper()
     symbols = ak.futures_symbol_mark()
     symbols = symbols[symbols["exchange"].isin(EXCHANGE_LABELS)].copy()
+    if scope == "core":
+        symbols = symbols[symbols["symbol"].isin(CORE_PRODUCTS)].copy()
     news = latest_news()
     fallback = previous_contracts()
+    warrant_snapshots = fetch_warrant_snapshots()
+    basis_snapshots = fetch_basis_snapshots()
+    index_snapshots = fetch_index_snapshots()
+    rate_snapshot = fetch_rate_snapshot()
     contracts = []
     total_products = len(symbols)
     for index, (_, item) in enumerate(symbols.iterrows(), start=1):
@@ -521,6 +907,18 @@ def build_contracts() -> list[dict[str, Any]]:
         category = category_for(product_name)
         headlines = news_for(product_name, news)
         history = fetch_history(symbol)
+        variety = contract_variety(symbol)
+        fundamental = fundamental_summary(
+            product_name,
+            category,
+            headlines,
+            variety,
+            price,
+            warrant_snapshots,
+            basis_snapshots,
+            index_snapshots,
+            rate_snapshot,
+        )
         contracts.append({
             "symbol": symbol,
             "product": product_name,
@@ -532,9 +930,13 @@ def build_contracts() -> list[dict[str, Any]]:
             "open_interest": int(main["position"]),
             "trade_date": str(main.get("tradedate") or ""),
             "technical": technical_summary(helper, levels_helper, history, price),
-            "fundamental": fundamental_summary(product_name, category, headlines),
+            "fundamental": fundamental,
             "news_hotspots": headlines,
-            "data_quality": "行情来自 AkShare 实时合约列表；技术指标来自日线数据。基本面新闻仅作研究线索，需结合原始来源核验。",
+            "data_quality": (
+                "行情来自 AkShare 实时合约列表；技术指标来自日线数据。"
+                f"基本面结构化证据 {fundamental['evidence_count']} 项，来源和日期见卡片；"
+                "新闻仅作研究线索，需结合原始来源核验。"
+            ),
         })
     expected = {
         (EXCHANGE_LABELS[str(item["exchange"])], str(item["symbol"]))
@@ -553,14 +955,39 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, default=OUTPUT)
     parser.add_argument("--update-session", choices=("morning", "midday", "close", "manual"), default="manual")
+    parser.add_argument(
+        "--scope",
+        choices=("core", "all"),
+        default="core",
+        help="core 仅更新各行业代表品种；all 仅供人工全量排查",
+    )
     args = parser.parse_args()
-    contracts = build_contracts()
+    contracts = build_contracts(scope=args.scope)
     now = datetime.now(SHANGHAI)
+    evidence_contracts = sum(
+        item.get("fundamental", {}).get("evidence_status") == "observed"
+        for item in contracts
+    )
     payload = {
         "updated_at": now.strftime("%Y-%m-%d %H:%M"),
         "update_session": args.update_session,
+        "scope": args.scope,
         "timezone": "Asia/Shanghai",
-        "source": "AkShare 实时行情与日线数据；技术指标由 technical-analysis-helper 生成；新闻热点来自最近一次已保存的资讯检索结果。",
+        "source": (
+            "行情与技术指标来自 AkShare/新浪；商品基本面接入生意社期现基差与东方财富注册仓单，"
+            "股指接入新浪指数行情与中证估值，国债期货接入中债收益率曲线与 Shibor；"
+            "各字段按卡片日期使用，新闻仅来自标题级直接匹配。"
+        ),
+        "fundamental_coverage": {
+            "observed_contracts": evidence_contracts,
+            "total_contracts": len(contracts),
+            "ratio": round(evidence_contracts / len(contracts), 4) if contracts else 0,
+        },
+        "universe_expected": len(CORE_PRODUCTS) if args.scope == "core" else len(contracts),
+        "universe_policy": (
+            "自动任务仅更新各行业流动性较高、研究代表性较强的核心品种；"
+            "小品种不进入默认更新范围，可通过 --scope all 人工排查。"
+        ),
         "contracts": contracts,
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)

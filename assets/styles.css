@@ -1202,6 +1202,17 @@ body.futures-analysis-page {
 .fundamental-framework strong,
 .hotspot-section > strong { color: #9edb9b; }
 
+.fundamental-sources {
+  display: grid;
+  gap: 4px;
+  margin: 13px 0 0;
+  color: rgba(244, 248, 242, 0.58);
+  font-size: 0.76rem;
+  line-height: 1.55;
+}
+.fundamental-sources strong { color: rgba(158, 219, 155, 0.82); }
+.fundamental-sources.is-missing { color: rgba(241, 201, 107, 0.78); }
+
 .hotspot-section { margin-top: 10px; padding-top: 14px; border-top: 1px solid rgba(220, 240, 213, 0.16); }
 .hotspot-list { display: grid; gap: 12px; margin: 12px 0 0; padding: 0; list-style: none; }
 .hotspot-list li { display: grid; gap: 2px; }

@@ -13,6 +13,10 @@
   const formatNumber = (value) => typeof value === "number" ? value.toLocaleString("zh-CN", { maximumFractionDigits: 2 }) : "需进一步核验";
   const formatChange = (value) => typeof value === "number" ? `${value > 0 ? "+" : ""}${value.toFixed(2)}%` : "需进一步核验";
   const sessionNames = { morning: "早盘", midday: "午盘", close: "收盘", manual: "手动" };
+  const coverage = data.fundamental_coverage || {};
+  const coverageLabel = Number.isInteger(coverage.observed_contracts) && Number.isInteger(coverage.total_contracts)
+    ? `基本面证据覆盖 ${coverage.observed_contracts}/${coverage.total_contracts}`
+    : "";
   const updateLabel = data.updated_at
     ? `行情更新时间：${data.updated_at}${sessionNames[data.update_session] ? ` · ${sessionNames[data.update_session]}` : ""}（${data.timezone || "Asia/Shanghai"}）`
     : "行情数据等待更新";
@@ -32,7 +36,8 @@
     contractSelect.innerHTML = `<option value="">选择具体主力合约</option>${groupedOptions}`;
     if (pickerNote) {
       const scope = exchange === "all" ? "五大交易所" : (exchangeNames[exchange] || exchange);
-      pickerNote.textContent = `${scope}当前收录 ${options.length} 个品种主力合约；按实时成交量、持仓量排序选取。`;
+      const universe = data.scope === "core" ? "核心代表品种" : "品种";
+      pickerNote.textContent = `${scope}当前收录 ${options.length} 个${universe}主力合约；按实时成交量、持仓量排序选取。`;
     }
   }
 
@@ -47,8 +52,10 @@
 
   function renderAnalysis(contract) {
     const technical = contract.technical || {};
+    const fundamental = contract.fundamental || {};
     const indicators = technical.indicators || {};
     const levels = technical.levels || {};
+    const fundamentalSources = Array.isArray(fundamental.evidence_sources) ? fundamental.evidence_sources : [];
     const direction = contract.change_pct > 0 ? "up" : contract.change_pct < 0 ? "down" : "flat";
     result.innerHTML = `
       <article class="analysis-head">
@@ -64,9 +71,10 @@
           ${renderDetailList(technical.details || [], "technical-detail-list")}
         </section>
         <section class="analysis-panel">
-          <header><p>基本面</p><h3>${escapeHtml(contract.fundamental?.category || contract.category)}</h3></header>
-          <p>${escapeHtml(contract.fundamental?.summary)}</p>
-          ${renderDetailList(contract.fundamental?.factors || [], "fundamental-detail-list")}
+          <header><p>基本面</p><h3>${escapeHtml(fundamental.category || contract.category)}</h3></header>
+          <p>${escapeHtml(fundamental.summary)}</p>
+          ${renderDetailList(fundamental.factors || [], "fundamental-detail-list")}
+          ${fundamentalSources.length ? `<p class="fundamental-sources"><strong>本卡数据源</strong>${fundamentalSources.map(escapeHtml).join("；")}</p>` : '<p class="fundamental-sources is-missing"><strong>数据状态</strong>本次没有取得可验证的结构化基本面数据，需进一步核验。</p>'}
           <div class="hotspot-section"><strong>新闻热点</strong>${renderNews(contract.news_hotspots || [])}</div>
         </section>
       </div>
@@ -80,6 +88,6 @@
     result.innerHTML = contract ? "" : '<div class="analysis-empty">请选择有效的具体合约后确认。</div>';
     if (contract) renderAnalysis(contract);
   });
-  if (source) source.textContent = data.source ? `${updateLabel} · ${data.source}` : "数据集等待生成";
+  if (source) source.textContent = data.source ? `${updateLabel}${coverageLabel ? ` · ${coverageLabel}` : ""} · ${data.source}` : "数据集等待生成";
   populateContracts();
 })();

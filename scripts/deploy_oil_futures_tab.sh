@@ -50,7 +50,7 @@ if [[ "$SKIP_OIL" == false ]]; then
   python3 skills/data_quality_gate_skill/scripts/validate_data.py --oil-futures "$OIL_TMP" --strict
 fi
 
-python3 scripts/update_exchange_futures_data.py --output "$EXCHANGE_TMP" --update-session "$SESSION"
+python3 scripts/update_exchange_futures_data.py --output "$EXCHANGE_TMP" --update-session "$SESSION" --scope core
 
 python3 - "$SESSION" "$TODAY" "$OIL_TMP" "$EXCHANGE_TMP" "$SKIP_OIL" <<'PY'
 import json
@@ -78,6 +78,10 @@ for name, payload in payloads:
         raise SystemExit(f"{name} has no contracts")
 
 exchange = payloads[0][1]
+if exchange.get("scope") != "core":
+    raise SystemExit("exchange_futures scheduled scope must be core")
+if len(exchange["contracts"]) != exchange.get("universe_expected"):
+    raise SystemExit("exchange_futures core universe is incomplete")
 priced = [item for item in exchange["contracts"] if isinstance(item.get("price"), (int, float))]
 if len(exchange["contracts"]) < 30 or len(priced) < 25:
     raise SystemExit("exchange_futures coverage is too small; refusing partial publish")
