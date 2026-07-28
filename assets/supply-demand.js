@@ -66,6 +66,24 @@
     return value.replaceAll("-", ".");
   }
 
+  function ratio(numerator, denominator) {
+    if (!Number.isFinite(numerator) || !Number.isFinite(denominator) || denominator === 0) {
+      return "需进一步核验";
+    }
+    return `${((numerator / denominator) * 100).toFixed(1)}%`;
+  }
+
+  function annualChange(series, field) {
+    if (!Array.isArray(series) || series.length < 2) return "需进一步核验";
+    const latest = series.at(-1);
+    const previous = series.at(-2);
+    const latestYear = Number(String(latest.market_year).slice(0, 4));
+    const previousYear = Number(String(previous.market_year).slice(0, 4));
+    if (latestYear - previousYear !== 1 || !previous[field]) return "需进一步核验";
+    const change = ((latest[field] / previous[field]) - 1) * 100;
+    return `${change > 0 ? "+" : ""}${change.toFixed(1)}%`;
+  }
+
   function metricCard(countryKey, metricKey, metric, rangeEnd, displayMonths) {
     const series = Array.isArray(metric.series) ? metric.series : [];
     const latest = latestPoint(series);
@@ -125,6 +143,132 @@
           </div>
         </header>
         <div class="supply-metric-grid">${cards}</div>
+      </section>
+    `;
+  }
+
+  function renderGlobalBalance(section) {
+    const rows = [...(section.series || [])]
+      .slice(-10)
+      .reverse()
+      .map((item) => `
+        <tr>
+          <th scope="row">${escapeHtml(item.market_year)}</th>
+          <td>${displayValue(item.production)}</td>
+          <td>${displayValue(item.domestic_consumption)}</td>
+          <td>${displayValue(item.ending_stocks)}</td>
+          <td>${ratio(item.ending_stocks, item.domestic_consumption)}</td>
+        </tr>
+      `)
+      .join("");
+    return `
+      <article class="supply-table-card supply-table-card-wide">
+        <header>
+          <div><span>Global Balance</span><h3>${escapeHtml(section.title)}</h3></div>
+          <small>${escapeHtml(section.definition)}</small>
+        </header>
+        <div class="supply-table-scroll">
+          <table class="supply-data-table">
+            <thead><tr><th>市场年度</th><th>产量</th><th>消费量</th><th>期末库存</th><th>库存消费比</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      </article>
+    `;
+  }
+
+  function renderImportDemand(section) {
+    const rows = (section.markets || [])
+      .map((market) => {
+        const latest = market.series?.at(-1);
+        if (!latest) return "";
+        return `
+          <tr>
+            <th scope="row">${escapeHtml(market.name)}</th>
+            <td>${escapeHtml(latest.market_year)}</td>
+            <td>${displayValue(latest.imports)}</td>
+            <td>${escapeHtml(annualChange(market.series, "imports"))}</td>
+            <td>${displayValue(latest.domestic_consumption)}</td>
+            <td>${displayValue(latest.ending_stocks)}</td>
+          </tr>
+        `;
+      })
+      .join("");
+    return `
+      <article class="supply-table-card">
+        <header>
+          <div><span>Import Demand</span><h3>${escapeHtml(section.title)}</h3></div>
+          <small>${escapeHtml(section.definition)}</small>
+        </header>
+        <div class="supply-table-scroll">
+          <table class="supply-data-table">
+            <thead><tr><th>市场</th><th>市场年度</th><th>进口量</th><th>同比</th><th>消费量</th><th>期末库存</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      </article>
+    `;
+  }
+
+  function renderVegetableOils(section) {
+    const rows = (section.oils || [])
+      .map((oil) => {
+        const latest = oil.series?.at(-1);
+        if (!latest) return "";
+        return `
+          <tr>
+            <th scope="row">${escapeHtml(oil.name)}</th>
+            <td>${escapeHtml(latest.market_year)}</td>
+            <td>${displayValue(latest.production)}</td>
+            <td>${escapeHtml(annualChange(oil.series, "production"))}</td>
+            <td>${displayValue(latest.domestic_consumption)}</td>
+            <td>${displayValue(latest.ending_stocks)}</td>
+            <td>${ratio(latest.ending_stocks, latest.domestic_consumption)}</td>
+          </tr>
+        `;
+      })
+      .join("");
+    return `
+      <article class="supply-table-card">
+        <header>
+          <div><span>Substitute Oils</span><h3>${escapeHtml(section.title)}</h3></div>
+          <small>${escapeHtml(section.definition)}</small>
+        </header>
+        <div class="supply-table-scroll">
+          <table class="supply-data-table">
+            <thead><tr><th>油种</th><th>市场年度</th><th>产量</th><th>产量同比</th><th>消费量</th><th>期末库存</th><th>库存消费比</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      </article>
+    `;
+  }
+
+  function renderSupplemental(section) {
+    if (!section) return "";
+    const status = section.status || "parse_error";
+    return `
+      <section class="supply-supplemental" aria-labelledby="supplemental-title">
+        <header class="supply-country-heading supply-supplemental-heading">
+          <div>
+            <p>Global Balance · Import Demand · Substitute Oils</p>
+            <h2 id="supplemental-title">全球与消费端供需</h2>
+          </div>
+          <div class="supply-country-status">
+            <span class="supply-status supply-status-${escapeHtml(status)}">${escapeHtml(STATUS_LABELS[status] || status)}</span>
+            <small>${escapeHtml(section.status_message)}</small>
+          </div>
+        </header>
+        <div class="supply-psd-meta">
+          <span>USDA PSD ${escapeHtml(section.release_period)}版</span>
+          <span>单位：万吨</span>
+          <a href="${escapeHtml(section.source?.url || "#")}" target="_blank" rel="noopener noreferrer">查看官方数据库 ↗</a>
+        </div>
+        <div class="supply-table-stack">
+          ${renderGlobalBalance(section.global_balance || {})}
+          ${renderImportDemand(section.import_demand || {})}
+          ${renderVegetableOils(section.vegetable_oils || {})}
+        </div>
       </section>
     `;
   }
@@ -238,9 +382,10 @@
 
   function render(payload) {
     const displayMonths = Number(payload.display_months) || 24;
-    root.innerHTML = Object.entries(payload.countries)
+    const countries = Object.entries(payload.countries)
       .map(([key, country]) => countrySection(key, country, displayMonths))
       .join("");
+    root.innerHTML = `${countries}${renderSupplemental(payload.supplemental)}`;
     generated.textContent = `数据文件更新：${new Date(payload.generated_at).toLocaleString("zh-CN", {
       timeZone: payload.timezone || "Asia/Shanghai",
       hour12: false,

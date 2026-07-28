@@ -4,12 +4,16 @@
 from __future__ import annotations
 
 import argparse
+import csv
+import io
 import json
 import re
 import sys
 import urllib.error
 import urllib.parse
 import urllib.request
+import xml.etree.ElementTree as ET
+import zipfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date, datetime
 from html import unescape
@@ -22,6 +26,21 @@ from zoneinfo import ZoneInfo
 TIMEZONE = ZoneInfo("Asia/Shanghai")
 MPOB_BASE = "https://bepi.mpob.gov.my/stat/web_report1.php?val="
 GAPKI_BASE = "https://gapki.id"
+USDA_PSD_HOME = "https://apps.fas.usda.gov/psdonline/app/index.html"
+USDA_PSD_ZIP = "https://apps.fas.usda.gov/psdonline/downloads/psd_oilseeds_csv.zip"
+USDA_PSD_SOAP = "https://apps.fas.usda.gov/PSDExternalAPIService/svcPSD_AMIS.asmx"
+USDA_COMMODITIES = {
+    "palm": ("棕榈油", "4243000"),
+    "soybean": ("豆油", "4232000"),
+    "rapeseed": ("菜籽油", "4239100"),
+    "sunflower": ("葵花籽油", "4236000"),
+}
+USDA_IMPORT_MARKETS = {
+    "india": ("印度", "IN"),
+    "china": ("中国", "CH"),
+    "eu": ("欧盟", "E4"),
+    "pakistan": ("巴基斯坦", "PK"),
+}
 USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) VinsonResearch/1.0"
 DISPLAY_MONTHS = 24
 # Include the current, not-yet-published month so at least 25 released months
@@ -84,13 +103,24 @@ class TableParser(HTMLParser):
             self.rows.append(self._row)
 
 
-def fetch_text(url: str, timeout: int = 20) -> str:
-    request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+def fetch_bytes(
+    url: str,
+    timeout: int = 30,
+    data: bytes | None = None,
+    headers: dict[str, str] | None = None,
+) -> bytes:
+    request_headers = {"User-Agent": USER_AGENT}
+    request_headers.update(headers or {})
+    request = urllib.request.Request(url, data=data, headers=request_headers)
     try:
         with urllib.request.urlopen(request, timeout=timeout) as response:
-            return response.read().decode("utf-8", errors="ignore")
+            return response.read()
     except (urllib.error.URLError, TimeoutError, OSError) as exc:
         raise SourceUnavailable(f"{url}: {exc}") from exc
+
+
+def fetch_text(url: str, timeout: int = 20) -> str:
+    return fetch_bytes(url, timeout=timeout).decode("utf-8", errors="ignore")
 
 
 def month_key(year: int, month: int) -> str:
@@ -340,6 +370,231 @@ def fetch_indonesia(start_period: str) -> dict[str, list[dict[str, object]]]:
     }
 
 
+def marketing_year_label(year: int) -> str:
+    return f"{year}/{str(year + 1)[-2:]}"
+
+
+def psd_tonnes(raw: str) -> int:
+    return int(round(float(raw) * 1_000))
+
+
+def psd_release_period(row: dict[str, str]) -> str:
+    year = int(row["Calendar_Year"])
+    month = int(row["Month"])
+    return month_key(year, month)
+
+
+def parse_usda_country_archive(
+    archive: bytes,
+    minimum_year: int,
+    maximum_year: int | None = None,
+) -> list[dict[str, object]]:
+    attributes = {"Imports", "Domestic Consumption", "Ending Stocks"}
+    country_codes = {code: key for key, (_, code) in USDA_IMPORT_MARKETS.items()}
+    observations: dict[str, dict[int, dict[str, object]]] = {
+        key: {} for key in USDA_IMPORT_MARKETS
+    }
+    try:
+        with zipfile.ZipFile(io.BytesIO(archive)) as bundle:
+            csv_name = next(name for name in bundle.namelist() if name.lower().endswith(".csv"))
+            with bundle.open(csv_name) as raw:
+                reader = csv.DictReader(io.TextIOWrapper(raw, encoding="utf-8-sig", newline=""))
+                for row in reader:
+                    if row.get("Commodity_Code") != USDA_COMMODITIES["palm"][1]:
+                        continue
+                    market_key = country_codes.get(str(row.get("Country_Code") or ""))
+                    attribute = str(row.get("Attribute_Description") or "")
+                    if market_key is None or attribute not in attributes:
+                        continue
+                    if str(row.get("Unit_Description") or "").strip() != "(1000 MT)":
+                        continue
+                    market_year = int(row["Market_Year"])
+                    if market_year < minimum_year or (
+                        maximum_year is not None and market_year > maximum_year
+                    ):
+                        continue
+                    item = observations[market_key].setdefault(
+                        market_year,
+                        {
+                            "market_year": marketing_year_label(market_year),
+                            "release_period": psd_release_period(row),
+                            "source_url": USDA_PSD_ZIP,
+                        },
+                    )
+                    item["release_period"] = max(
+                        str(item["release_period"]),
+                        psd_release_period(row),
+                    )
+                    field = {
+                        "Imports": "imports",
+                        "Domestic Consumption": "domestic_consumption",
+                        "Ending Stocks": "ending_stocks",
+                    }[attribute]
+                    item[field] = psd_tonnes(row["Value"])
+    except (zipfile.BadZipFile, StopIteration, KeyError, ValueError, csv.Error) as exc:
+        raise SourceParseError(f"USDA PSD country archive could not be parsed: {exc}") from exc
+
+    markets = []
+    required = {"imports", "domestic_consumption", "ending_stocks"}
+    for key, (name, _) in USDA_IMPORT_MARKETS.items():
+        series = [
+            item
+            for _, item in sorted(observations[key].items())
+            if required.issubset(item)
+        ]
+        if not series:
+            raise SourceParseError(f"USDA PSD has no import-demand rows for {name}")
+        markets.append({"key": key, "name": name, "series": series})
+    return markets
+
+
+def parse_usda_world_xml(
+    payload: bytes,
+    commodity_key: str,
+    minimum_year: int,
+    maximum_year: int | None = None,
+) -> dict[str, object]:
+    attributes = {"Production", "Total Dom. Cons.", "Ending Stocks"}
+    observations: dict[int, dict[str, object]] = {}
+    try:
+        root = ET.fromstring(payload)
+        for element in root.iter():
+            if element.tag.rsplit("}", 1)[-1] != "Commodity" or not list(element):
+                continue
+            row = {
+                child.tag.rsplit("}", 1)[-1]: (child.text or "").strip()
+                for child in element
+            }
+            attribute = row.get("Attribute_Description")
+            if attribute not in attributes:
+                continue
+            if str(row.get("Unit_Description") or "").strip() != "(1000 MT)":
+                continue
+            market_year = int(row["Market_Year"])
+            if market_year < minimum_year or (
+                maximum_year is not None and market_year > maximum_year
+            ):
+                continue
+            release_period = month_key(int(row["Calendar_Year"]), int(row["Month"]))
+            item = observations.setdefault(
+                market_year,
+                {
+                    "market_year": marketing_year_label(market_year),
+                    "release_period": release_period,
+                    "source_url": USDA_PSD_HOME,
+                },
+            )
+            item["release_period"] = max(str(item["release_period"]), release_period)
+            field = {
+                "Production": "production",
+                "Total Dom. Cons.": "domestic_consumption",
+                "Ending Stocks": "ending_stocks",
+            }[str(attribute)]
+            item[field] = psd_tonnes(row["Value"])
+    except (ET.ParseError, KeyError, ValueError) as exc:
+        raise SourceParseError(f"USDA PSD world response could not be parsed: {exc}") from exc
+
+    required = {"production", "domestic_consumption", "ending_stocks"}
+    series = [
+        item
+        for _, item in sorted(observations.items())
+        if required.issubset(item)
+    ]
+    if not series:
+        raise SourceParseError(f"USDA PSD has no world balance for {commodity_key}")
+    return {
+        "key": commodity_key,
+        "name": USDA_COMMODITIES[commodity_key][0],
+        "series": series,
+    }
+
+
+def fetch_usda_world(
+    commodity_key: str,
+    minimum_year: int,
+    maximum_year: int,
+) -> dict[str, object]:
+    code = USDA_COMMODITIES[commodity_key][1]
+    envelope = f"""<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <getWorldDatabyCommodity xmlns="http://www.fas.usda.gov/wsfaspsd/">
+      <strCommodityCode>{code}</strCommodityCode>
+    </getWorldDatabyCommodity>
+  </soap:Body>
+</soap:Envelope>""".encode("utf-8")
+    payload = fetch_bytes(
+        USDA_PSD_SOAP,
+        timeout=45,
+        data=envelope,
+        headers={
+            "Content-Type": "text/xml; charset=utf-8",
+            "SOAPAction": "http://www.fas.usda.gov/wsfaspsd/getWorldDatabyCommodity",
+        },
+    )
+    return parse_usda_world_xml(payload, commodity_key, minimum_year, maximum_year)
+
+
+def fetch_usda_supplemental(now: datetime) -> dict[str, object]:
+    minimum_year = now.year - 11
+    maximum_year = now.year - 1
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        archive_future = executor.submit(fetch_bytes, USDA_PSD_ZIP, 90)
+        world_futures = {
+            key: executor.submit(fetch_usda_world, key, minimum_year, maximum_year)
+            for key in USDA_COMMODITIES
+        }
+        archive = archive_future.result()
+        import_markets = parse_usda_country_archive(archive, minimum_year, maximum_year)
+        oils = [world_futures[key].result() for key in USDA_COMMODITIES]
+
+    release_periods = [
+        str(item["release_period"])
+        for market in import_markets
+        for item in market["series"]
+    ] + [
+        str(item["release_period"])
+        for oil in oils
+        for item in oil["series"]
+    ]
+    incomplete = (
+        any(len(market["series"]) < 10 for market in import_markets)
+        or any(len(oil["series"]) < 10 for oil in oils)
+    )
+    return {
+        "status": "partial" if incomplete else "ok",
+        "status_message": (
+            "部分年度序列不足10个市场年度，按官方可用数据展示；需进一步核验。"
+            if incomplete
+            else "USDA PSD年度供需数据已更新。"
+        ),
+        "release_period": max(release_periods),
+        "frequency": "market_year",
+        "unit": "tonnes",
+        "display_unit": "万吨",
+        "source": {
+            "name": "USDA Foreign Agricultural Service — Production, Supply and Distribution",
+            "url": USDA_PSD_HOME,
+            "download_url": USDA_PSD_ZIP,
+        },
+        "global_balance": {
+            "title": "全球棕榈油年度平衡",
+            "definition": "USDA PSD全球口径的产量、国内消费量与期末库存；不纳入下一市场年度预测。",
+            "series": next(oil["series"] for oil in oils if oil["key"] == "palm"),
+        },
+        "import_demand": {
+            "title": "主要进口市场需求",
+            "definition": "统一采用USDA PSD市场年度口径，避免不同海关HS编码造成不可比。",
+            "markets": import_markets,
+        },
+        "vegetable_oils": {
+            "title": "四大植物油供需对比",
+            "definition": "对比棕榈油、豆油、菜籽油和葵花籽油的全球供需；不纳入下一市场年度预测。",
+            "oils": oils,
+        },
+    }
+
+
 def metric_payload(label: str, definition: str, series: list[dict[str, object]]) -> dict[str, object]:
     return {
         "label": label,
@@ -446,8 +701,8 @@ def merge_source_data(
 
 
 def validate_payload(payload: dict[str, object], strict: bool = False) -> None:
-    if payload.get("schema_version") != 1:
-        raise ValueError("schema_version must be 1")
+    if payload.get("schema_version") not in {1, 2}:
+        raise ValueError("schema_version must be 1 or 2")
     countries = payload.get("countries")
     if not isinstance(countries, dict) or set(countries) != {"malaysia", "indonesia"}:
         raise ValueError("countries must contain malaysia and indonesia")
@@ -477,6 +732,91 @@ def validate_payload(payload: dict[str, object], strict: bool = False) -> None:
                 raise ValueError(f"{country_key}.{metric_key}: periods must be unique and sorted")
             if strict and not series:
                 raise ValueError(f"{country_key}.{metric_key}: no observations")
+    if payload.get("schema_version") == 2:
+        validate_supplemental(payload.get("supplemental"), strict=strict)
+
+
+def validate_annual_series(
+    series: object,
+    label: str,
+    strict: bool,
+) -> None:
+    if not isinstance(series, list):
+        raise ValueError(f"{label}: series must be a list")
+    years: list[int] = []
+    required = {"production", "domestic_consumption", "ending_stocks"}
+    for item in series:
+        if not isinstance(item, dict):
+            raise ValueError(f"{label}: series item must be an object")
+        match = re.fullmatch(r"(20\d{2})/\d{2}", str(item.get("market_year") or ""))
+        if not match:
+            raise ValueError(f"{label}: invalid market_year")
+        years.append(int(match.group(1)))
+        for field in required:
+            if not isinstance(item.get(field), int) or int(item[field]) < 0:
+                raise ValueError(f"{label}: invalid {field}")
+        if not re.fullmatch(r"20\d{2}-(0[1-9]|1[0-2])", str(item.get("release_period") or "")):
+            raise ValueError(f"{label}: invalid release_period")
+        if not str(item.get("source_url") or "").startswith("https://"):
+            raise ValueError(f"{label}: source_url is required")
+    if years != sorted(set(years)):
+        raise ValueError(f"{label}: market years must be unique and sorted")
+    if strict and not series:
+        raise ValueError(f"{label}: no observations")
+
+
+def validate_supplemental(value: object, strict: bool = False) -> None:
+    if not isinstance(value, dict):
+        raise ValueError("supplemental must be an object")
+    if value.get("status") not in {"ok", "partial", "stale", "source_unreachable", "parse_error"}:
+        raise ValueError("supplemental: invalid status")
+    global_balance = value.get("global_balance")
+    import_demand = value.get("import_demand")
+    vegetable_oils = value.get("vegetable_oils")
+    if not all(isinstance(item, dict) for item in (global_balance, import_demand, vegetable_oils)):
+        raise ValueError("supplemental: required sections are missing")
+    validate_annual_series(global_balance.get("series"), "supplemental.global_balance", strict)
+
+    markets = import_demand.get("markets")
+    if (
+        not isinstance(markets, list)
+        or not all(isinstance(item, dict) for item in markets)
+        or {item.get("key") for item in markets} != set(USDA_IMPORT_MARKETS)
+    ):
+        raise ValueError("supplemental.import_demand: invalid markets")
+    for market in markets:
+        series = market.get("series")
+        if not isinstance(series, list):
+            raise ValueError("supplemental.import_demand: series must be a list")
+        years: list[int] = []
+        for item in series:
+            match = re.fullmatch(r"(20\d{2})/\d{2}", str(item.get("market_year") or ""))
+            if not match:
+                raise ValueError("supplemental.import_demand: invalid market_year")
+            years.append(int(match.group(1)))
+            for field in ("imports", "domestic_consumption", "ending_stocks"):
+                if not isinstance(item.get(field), int) or int(item[field]) < 0:
+                    raise ValueError(f"supplemental.import_demand: invalid {field}")
+            if not str(item.get("source_url") or "").startswith("https://"):
+                raise ValueError("supplemental.import_demand: source_url is required")
+        if years != sorted(set(years)):
+            raise ValueError("supplemental.import_demand: market years must be unique and sorted")
+        if strict and not series:
+            raise ValueError("supplemental.import_demand: no observations")
+
+    oils = vegetable_oils.get("oils")
+    if (
+        not isinstance(oils, list)
+        or not all(isinstance(item, dict) for item in oils)
+        or {item.get("key") for item in oils} != set(USDA_COMMODITIES)
+    ):
+        raise ValueError("supplemental.vegetable_oils: invalid oils")
+    for oil in oils:
+        validate_annual_series(
+            oil.get("series"),
+            f"supplemental.vegetable_oils.{oil.get('key')}",
+            strict,
+        )
 
 
 def load_existing(path: Path | None) -> dict[str, object]:
@@ -490,6 +830,7 @@ def semantic_content(payload: dict[str, object]) -> object:
         "schema_version": payload.get("schema_version"),
         "display_months": payload.get("display_months"),
         "countries": payload.get("countries"),
+        "supplemental": payload.get("supplemental"),
     }
 
 
@@ -498,6 +839,7 @@ def build_payload(
     existing: dict[str, object],
     malaysia_fetcher: Callable[[int], dict[str, list[dict[str, object]]]] = fetch_malaysia_year,
     indonesia_fetcher: Callable[[str], dict[str, list[dict[str, object]]]] = fetch_indonesia,
+    usda_fetcher: Callable[[datetime], dict[str, object]] = fetch_usda_supplemental,
 ) -> dict[str, object]:
     current_period = month_key(now.year, now.month)
     start_period = shift_month(current_period, -(MIN_HISTORY_MONTHS - 1))
@@ -541,12 +883,28 @@ def build_payload(
     indonesia_merged = merge_source_data(indonesia_fresh, indonesia_previous)
     countries["indonesia"] = country_payload("indonesia", indonesia_merged, now.date(), indonesia_error)
 
+    previous_supplemental = existing.get("supplemental") if isinstance(existing, dict) else None
+    supplemental: dict[str, object]
+    try:
+        supplemental = usda_fetcher(now)
+    except SourceUnavailable:
+        supplemental_error = "source_unreachable"
+        supplemental = json.loads(json.dumps(previous_supplemental or {}))
+        supplemental["status"] = supplemental_error
+        supplemental["status_message"] = "本次USDA官方来源更新失败，继续展示上次成功数据；需进一步核验。"
+    except (SourceParseError, ValueError, KeyError, zipfile.BadZipFile, ET.ParseError):
+        supplemental_error = "parse_error"
+        supplemental = json.loads(json.dumps(previous_supplemental or {}))
+        supplemental["status"] = supplemental_error
+        supplemental["status_message"] = "本次USDA官方数据解析失败，继续展示上次成功数据；需进一步核验。"
+
     candidate: dict[str, object] = {
-        "schema_version": 1,
+        "schema_version": 2,
         "generated_at": now.astimezone(TIMEZONE).isoformat(timespec="seconds"),
         "timezone": "Asia/Shanghai",
         "display_months": DISPLAY_MONTHS,
         "countries": countries,
+        "supplemental": supplemental,
     }
     validate_payload(candidate)
     if existing and semantic_content(candidate) == semantic_content(existing):
@@ -583,6 +941,7 @@ def main() -> int:
         key: country["status"]
         for key, country in payload["countries"].items()
     }
+    statuses["usda_psd"] = payload["supplemental"]["status"]
     print(json.dumps({"output": str(args.output), "statuses": statuses}, ensure_ascii=False))
     return 0
 

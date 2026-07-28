@@ -1,6 +1,6 @@
 {
-  "schema_version": 1,
-  "generated_at": "2026-07-28T23:10:55+08:00",
+  "schema_version": 2,
+  "generated_at": "2026-07-28T23:28:46+08:00",
   "timezone": "Asia/Shanghai",
   "display_months": 24,
   "countries": {
@@ -897,6 +897,877 @@
           ]
         }
       }
+    }
+  },
+  "supplemental": {
+    "status": "ok",
+    "status_message": "USDA PSD年度供需数据已更新。",
+    "release_period": "2026-07",
+    "frequency": "market_year",
+    "unit": "tonnes",
+    "display_unit": "万吨",
+    "source": {
+      "name": "USDA Foreign Agricultural Service — Production, Supply and Distribution",
+      "url": "https://apps.fas.usda.gov/psdonline/app/index.html",
+      "download_url": "https://apps.fas.usda.gov/psdonline/downloads/psd_oilseeds_csv.zip"
+    },
+    "global_balance": {
+      "title": "全球棕榈油年度平衡",
+      "definition": "USDA PSD全球口径的产量、国内消费量与期末库存；不纳入下一市场年度预测。",
+      "series": [
+        {
+          "market_year": "2015/16",
+          "release_period": "2026-07",
+          "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
+          "production": 58751000,
+          "domestic_consumption": 59272000,
+          "ending_stocks": 8703000
+        },
+        {
+          "market_year": "2016/17",
+          "release_period": "2026-07",
+          "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
+          "production": 65566000,
+          "domestic_consumption": 60714000,
+          "ending_stocks": 10462000
+        },
+        {
+          "market_year": "2017/18",
+          "release_period": "2026-07",
+          "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
+          "production": 70589000,
+          "domestic_consumption": 65572000,
+          "ending_stocks": 13027000
+        },
+        {
+          "market_year": "2018/19",
+          "release_period": "2026-07",
+          "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
+          "production": 74159000,
+          "domestic_consumption": 70988000,
+          "ending_stocks": 14846000
+        },
+        {
+          "market_year": "2019/20",
+          "release_period": "2026-07",
+          "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
+          "production": 73367000,
+          "domestic_consumption": 71081000,
+          "ending_stocks": 15904000
+        },
+        {
+          "market_year": "2020/21",
+          "release_period": "2026-07",
+          "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
+          "production": 73665000,
+          "domestic_consumption": 72630000,
+          "ending_stocks": 15155000
+        },
+        {
+          "market_year": "2021/22",
+          "release_period": "2026-07",
+          "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
+          "production": 73320000,
+          "domestic_consumption": 69703000,
+          "ending_stocks": 16805000
+        },
+        {
+          "market_year": "2022/23",
+          "release_period": "2026-07",
+          "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
+          "production": 76758000,
+          "domestic_consumption": 73843000,
+          "ending_stocks": 16994000
+        },
+        {
+          "market_year": "2023/24",
+          "release_period": "2026-07",
+          "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
+          "production": 76175000,
+          "domestic_consumption": 75104000,
+          "ending_stocks": 16014000
+        },
+        {
+          "market_year": "2024/25",
+          "release_period": "2026-07",
+          "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
+          "production": 78938000,
+          "domestic_consumption": 76242000,
+          "ending_stocks": 15051000
+        },
+        {
+          "market_year": "2025/26",
+          "release_period": "2026-07",
+          "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
+          "production": 81461000,
+          "domestic_consumption": 78473000,
+          "ending_stocks": 15551000
+        }
+      ]
+    },
+    "import_demand": {
+      "title": "主要进口市场需求",
+      "definition": "统一采用USDA PSD市场年度口径，避免不同海关HS编码造成不可比。",
+      "markets": [
+        {
+          "key": "india",
+          "name": "印度",
+          "series": [
+            {
+              "market_year": "2015/16",
+              "release_period": "2023-02",
+              "source_url": "https://apps.fas.usda.gov/psdonline/downloads/psd_oilseeds_csv.zip",
+              "domestic_consumption": 8997000,
+              "ending_stocks": 660000,
+              "imports": 8857000
+            },
+            {
+              "market_year": "2016/17",
+              "release_period": "2023-02",
+              "source_url": "https://apps.fas.usda.gov/psdonline/downloads/psd_oilseeds_csv.zip",
+              "domestic_consumption": 9060000,
+              "ending_stocks": 1151000,
+              "imports": 9341000
+            },
+            {
+              "market_year": "2017/18",
+              "release_period": "2023-10",
+              "source_url": "https://apps.fas.usda.gov/psdonline/downloads/psd_oilseeds_csv.zip",
+              "domestic_consumption": 8750000,
+              "ending_stocks": 1280000,
+              "imports": 8608000
+            },
+            {
+              "market_year": "2018/19",
+              "release_period": "2024-04",
+              "source_url": "https://apps.fas.usda.gov/psdonline/downloads/psd_oilseeds_csv.zip",
+              "domestic_consumption": 9085000,
+              "ending_stocks": 2184000,
+              "imports": 9710000
+            },
+            {
+              "market_year": "2019/20",
+              "release_period": "2024-04",
+              "source_url": "https://apps.fas.usda.gov/psdonline/downloads/psd_oilseeds_csv.zip",
+              "domestic_consumption": 8450000,
+              "ending_stocks": 1386000,
+              "imports": 7398000
+            },
+            {
+              "market_year": "2020/21",
+              "release_period": "2024-04",
+              "source_url": "https://apps.fas.usda.gov/psdonline/downloads/psd_oilseeds_csv.zip",
+              "domestic_consumption": 9225000,
+              "ending_stocks": 843000,
+              "imports": 8411000
+            },
+            {
+              "market_year": "2021/22",
+              "release_period": "2024-04",
+              "source_url": "https://apps.fas.usda.gov/psdonline/downloads/psd_oilseeds_csv.zip",
+              "domestic_consumption": 8150000,
+              "ending_stocks": 972000,
+              "imports": 8004000
+            },
+            {
+              "market_year": "2022/23",
+              "release_period": "2026-03",
+              "source_url": "https://apps.fas.usda.gov/psdonline/downloads/psd_oilseeds_csv.zip",
+              "domestic_consumption": 8900000,
+              "ending_stocks": 2419000,
+              "imports": 10045000
+            },
+            {
+              "market_year": "2023/24",
+              "release_period": "2026-03",
+              "source_url": "https://apps.fas.usda.gov/psdonline/downloads/psd_oilseeds_csv.zip",
+              "domestic_consumption": 8990000,
+              "ending_stocks": 2615000,
+              "imports": 8886000
+            },
+            {
+              "market_year": "2024/25",
+              "release_period": "2026-03",
+              "source_url": "https://apps.fas.usda.gov/psdonline/downloads/psd_oilseeds_csv.zip",
+              "domestic_consumption": 8800000,
+              "ending_stocks": 1898000,
+              "imports": 7786000
+            },
+            {
+              "market_year": "2025/26",
+              "release_period": "2026-06",
+              "source_url": "https://apps.fas.usda.gov/psdonline/downloads/psd_oilseeds_csv.zip",
+              "domestic_consumption": 9105000,
+              "ending_stocks": 2098000,
+              "imports": 9050000
+            }
+          ]
+        },
+        {
+          "key": "china",
+          "name": "中国",
+          "series": [
+            {
+              "market_year": "2015/16",
+              "release_period": "2017-12",
+              "source_url": "https://apps.fas.usda.gov/psdonline/downloads/psd_oilseeds_csv.zip",
+              "domestic_consumption": 4800000,
+              "ending_stocks": 189000,
+              "imports": 4689000
+            },
+            {
+              "market_year": "2016/17",
+              "release_period": "2022-04",
+              "source_url": "https://apps.fas.usda.gov/psdonline/downloads/psd_oilseeds_csv.zip",
+              "domestic_consumption": 4750000,
+              "ending_stocks": 307000,
+              "imports": 4881000
+            },
+            {
+              "market_year": "2017/18",
+              "release_period": "2022-04",
+              "source_url": "https://apps.fas.usda.gov/psdonline/downloads/psd_oilseeds_csv.zip",
+              "domestic_consumption": 5100000,
+              "ending_stocks": 495000,
+              "imports": 5320000
+            },
+            {
+              "market_year": "2018/19",
+              "release_period": "2023-05",
+              "source_url": "https://apps.fas.usda.gov/psdonline/downloads/psd_oilseeds_csv.zip",
+              "domestic_consumption": 6850000,
+              "ending_stocks": 409000,
+              "imports": 6795000
+            },
+            {
+              "market_year": "2019/20",
+              "release_period": "2023-05",
+              "source_url": "https://apps.fas.usda.gov/psdonline/downloads/psd_oilseeds_csv.zip",
+              "domestic_consumption": 6200000,
+              "ending_stocks": 895000,
+              "imports": 6719000
+            },
+            {
+              "market_year": "2020/21",
+              "release_period": "2023-05",
+              "source_url": "https://apps.fas.usda.gov/psdonline/downloads/psd_oilseeds_csv.zip",
+              "domestic_consumption": 6550000,
+              "ending_stocks": 1149000,
+              "imports": 6818000
+            },
+            {
+              "market_year": "2021/22",
+              "release_period": "2025-04",
+              "source_url": "https://apps.fas.usda.gov/psdonline/downloads/psd_oilseeds_csv.zip",
+              "domestic_consumption": 5100000,
+              "ending_stocks": 420000,
+              "imports": 4387000
+            },
+            {
+              "market_year": "2022/23",
+              "release_period": "2025-04",
+              "source_url": "https://apps.fas.usda.gov/psdonline/downloads/psd_oilseeds_csv.zip",
+              "domestic_consumption": 5400000,
+              "ending_stocks": 1181000,
+              "imports": 6190000
+            },
+            {
+              "market_year": "2023/24",
+              "release_period": "2025-04",
+              "source_url": "https://apps.fas.usda.gov/psdonline/downloads/psd_oilseeds_csv.zip",
+              "domestic_consumption": 5000000,
+              "ending_stocks": 546000,
+              "imports": 4377000
+            },
+            {
+              "market_year": "2024/25",
+              "release_period": "2026-03",
+              "source_url": "https://apps.fas.usda.gov/psdonline/downloads/psd_oilseeds_csv.zip",
+              "domestic_consumption": 3300000,
+              "ending_stocks": 439000,
+              "imports": 3203000
+            },
+            {
+              "market_year": "2025/26",
+              "release_period": "2026-06",
+              "source_url": "https://apps.fas.usda.gov/psdonline/downloads/psd_oilseeds_csv.zip",
+              "domestic_consumption": 4125000,
+              "ending_stocks": 469000,
+              "imports": 4175000
+            }
+          ]
+        },
+        {
+          "key": "eu",
+          "name": "欧盟",
+          "series": [
+            {
+              "market_year": "2015/16",
+              "release_period": "2020-05",
+              "source_url": "https://apps.fas.usda.gov/psdonline/downloads/psd_oilseeds_csv.zip",
+              "domestic_consumption": 6700000,
+              "ending_stocks": 425000,
+              "imports": 6717000
+            },
+            {
+              "market_year": "2016/17",
+              "release_period": "2021-11",
+              "source_url": "https://apps.fas.usda.gov/psdonline/downloads/psd_oilseeds_csv.zip",
+              "domestic_consumption": 6515000,
+              "ending_stocks": 498000,
+              "imports": 6964000
+            },
+            {
+              "market_year": "2017/18",
+              "release_period": "2021-11",
+              "source_url": "https://apps.fas.usda.gov/psdonline/downloads/psd_oilseeds_csv.zip",
+              "domestic_consumption": 6575000,
+              "ending_stocks": 496000,
+              "imports": 6834000
+            },
+            {
+              "market_year": "2018/19",
+              "release_period": "2024-02",
+              "source_url": "https://apps.fas.usda.gov/psdonline/downloads/psd_oilseeds_csv.zip",
+              "domestic_consumption": 6600000,
+              "ending_stocks": 752000,
+              "imports": 7070000
+            },
+            {
+              "market_year": "2019/20",
+              "release_period": "2024-02",
+              "source_url": "https://apps.fas.usda.gov/psdonline/downloads/psd_oilseeds_csv.zip",
+              "domestic_consumption": 6575000,
+              "ending_stocks": 1137000,
+              "imports": 7112000
+            },
+            {
+              "market_year": "2020/21",
+              "release_period": "2024-03",
+              "source_url": "https://apps.fas.usda.gov/psdonline/downloads/psd_oilseeds_csv.zip",
+              "domestic_consumption": 6360000,
+              "ending_stocks": 568000,
+              "imports": 5951000
+            },
+            {
+              "market_year": "2021/22",
+              "release_period": "2026-04",
+              "source_url": "https://apps.fas.usda.gov/psdonline/downloads/psd_oilseeds_csv.zip",
+              "domestic_consumption": 5000000,
+              "ending_stocks": 609000,
+              "imports": 5201000
+            },
+            {
+              "market_year": "2022/23",
+              "release_period": "2026-04",
+              "source_url": "https://apps.fas.usda.gov/psdonline/downloads/psd_oilseeds_csv.zip",
+              "domestic_consumption": 4500000,
+              "ending_stocks": 557000,
+              "imports": 4576000
+            },
+            {
+              "market_year": "2023/24",
+              "release_period": "2026-04",
+              "source_url": "https://apps.fas.usda.gov/psdonline/downloads/psd_oilseeds_csv.zip",
+              "domestic_consumption": 3890000,
+              "ending_stocks": 540000,
+              "imports": 4013000
+            },
+            {
+              "market_year": "2024/25",
+              "release_period": "2026-04",
+              "source_url": "https://apps.fas.usda.gov/psdonline/downloads/psd_oilseeds_csv.zip",
+              "domestic_consumption": 3200000,
+              "ending_stocks": 373000,
+              "imports": 3135000
+            },
+            {
+              "market_year": "2025/26",
+              "release_period": "2026-04",
+              "source_url": "https://apps.fas.usda.gov/psdonline/downloads/psd_oilseeds_csv.zip",
+              "domestic_consumption": 3350000,
+              "ending_stocks": 403000,
+              "imports": 3500000
+            }
+          ]
+        },
+        {
+          "key": "pakistan",
+          "name": "巴基斯坦",
+          "series": [
+            {
+              "market_year": "2015/16",
+              "release_period": "2022-04",
+              "source_url": "https://apps.fas.usda.gov/psdonline/downloads/psd_oilseeds_csv.zip",
+              "domestic_consumption": 2895000,
+              "ending_stocks": 207000,
+              "imports": 2720000
+            },
+            {
+              "market_year": "2016/17",
+              "release_period": "2022-04",
+              "source_url": "https://apps.fas.usda.gov/psdonline/downloads/psd_oilseeds_csv.zip",
+              "domestic_consumption": 3105000,
+              "ending_stocks": 387000,
+              "imports": 3285000
+            },
+            {
+              "market_year": "2017/18",
+              "release_period": "2022-04",
+              "source_url": "https://apps.fas.usda.gov/psdonline/downloads/psd_oilseeds_csv.zip",
+              "domestic_consumption": 3346000,
+              "ending_stocks": 326000,
+              "imports": 3285000
+            },
+            {
+              "market_year": "2018/19",
+              "release_period": "2024-10",
+              "source_url": "https://apps.fas.usda.gov/psdonline/downloads/psd_oilseeds_csv.zip",
+              "domestic_consumption": 3395000,
+              "ending_stocks": 413000,
+              "imports": 3482000
+            },
+            {
+              "market_year": "2019/20",
+              "release_period": "2025-09",
+              "source_url": "https://apps.fas.usda.gov/psdonline/downloads/psd_oilseeds_csv.zip",
+              "domestic_consumption": 3345000,
+              "ending_stocks": 300000,
+              "imports": 3232000
+            },
+            {
+              "market_year": "2020/21",
+              "release_period": "2026-04",
+              "source_url": "https://apps.fas.usda.gov/psdonline/downloads/psd_oilseeds_csv.zip",
+              "domestic_consumption": 3045000,
+              "ending_stocks": 259000,
+              "imports": 3004000
+            },
+            {
+              "market_year": "2021/22",
+              "release_period": "2026-04",
+              "source_url": "https://apps.fas.usda.gov/psdonline/downloads/psd_oilseeds_csv.zip",
+              "domestic_consumption": 2845000,
+              "ending_stocks": 148000,
+              "imports": 2734000
+            },
+            {
+              "market_year": "2022/23",
+              "release_period": "2026-04",
+              "source_url": "https://apps.fas.usda.gov/psdonline/downloads/psd_oilseeds_csv.zip",
+              "domestic_consumption": 2995000,
+              "ending_stocks": 247000,
+              "imports": 3094000
+            },
+            {
+              "market_year": "2023/24",
+              "release_period": "2026-04",
+              "source_url": "https://apps.fas.usda.gov/psdonline/downloads/psd_oilseeds_csv.zip",
+              "domestic_consumption": 3070000,
+              "ending_stocks": 156000,
+              "imports": 2980000
+            },
+            {
+              "market_year": "2024/25",
+              "release_period": "2026-04",
+              "source_url": "https://apps.fas.usda.gov/psdonline/downloads/psd_oilseeds_csv.zip",
+              "domestic_consumption": 3250000,
+              "ending_stocks": 231000,
+              "imports": 3325000
+            },
+            {
+              "market_year": "2025/26",
+              "release_period": "2026-04",
+              "source_url": "https://apps.fas.usda.gov/psdonline/downloads/psd_oilseeds_csv.zip",
+              "domestic_consumption": 3600000,
+              "ending_stocks": 281000,
+              "imports": 3650000
+            }
+          ]
+        }
+      ]
+    },
+    "vegetable_oils": {
+      "title": "四大植物油供需对比",
+      "definition": "对比棕榈油、豆油、菜籽油和葵花籽油的全球供需；不纳入下一市场年度预测。",
+      "oils": [
+        {
+          "key": "palm",
+          "name": "棕榈油",
+          "series": [
+            {
+              "market_year": "2015/16",
+              "release_period": "2026-07",
+              "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
+              "production": 58751000,
+              "domestic_consumption": 59272000,
+              "ending_stocks": 8703000
+            },
+            {
+              "market_year": "2016/17",
+              "release_period": "2026-07",
+              "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
+              "production": 65566000,
+              "domestic_consumption": 60714000,
+              "ending_stocks": 10462000
+            },
+            {
+              "market_year": "2017/18",
+              "release_period": "2026-07",
+              "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
+              "production": 70589000,
+              "domestic_consumption": 65572000,
+              "ending_stocks": 13027000
+            },
+            {
+              "market_year": "2018/19",
+              "release_period": "2026-07",
+              "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
+              "production": 74159000,
+              "domestic_consumption": 70988000,
+              "ending_stocks": 14846000
+            },
+            {
+              "market_year": "2019/20",
+              "release_period": "2026-07",
+              "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
+              "production": 73367000,
+              "domestic_consumption": 71081000,
+              "ending_stocks": 15904000
+            },
+            {
+              "market_year": "2020/21",
+              "release_period": "2026-07",
+              "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
+              "production": 73665000,
+              "domestic_consumption": 72630000,
+              "ending_stocks": 15155000
+            },
+            {
+              "market_year": "2021/22",
+              "release_period": "2026-07",
+              "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
+              "production": 73320000,
+              "domestic_consumption": 69703000,
+              "ending_stocks": 16805000
+            },
+            {
+              "market_year": "2022/23",
+              "release_period": "2026-07",
+              "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
+              "production": 76758000,
+              "domestic_consumption": 73843000,
+              "ending_stocks": 16994000
+            },
+            {
+              "market_year": "2023/24",
+              "release_period": "2026-07",
+              "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
+              "production": 76175000,
+              "domestic_consumption": 75104000,
+              "ending_stocks": 16014000
+            },
+            {
+              "market_year": "2024/25",
+              "release_period": "2026-07",
+              "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
+              "production": 78938000,
+              "domestic_consumption": 76242000,
+              "ending_stocks": 15051000
+            },
+            {
+              "market_year": "2025/26",
+              "release_period": "2026-07",
+              "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
+              "production": 81461000,
+              "domestic_consumption": 78473000,
+              "ending_stocks": 15551000
+            }
+          ]
+        },
+        {
+          "key": "soybean",
+          "name": "豆油",
+          "series": [
+            {
+              "market_year": "2015/16",
+              "release_period": "2026-07",
+              "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
+              "production": 51662000,
+              "domestic_consumption": 52087000,
+              "ending_stocks": 4191000
+            },
+            {
+              "market_year": "2016/17",
+              "release_period": "2026-07",
+              "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
+              "production": 53953000,
+              "domestic_consumption": 53576000,
+              "ending_stocks": 4363000
+            },
+            {
+              "market_year": "2017/18",
+              "release_period": "2026-07",
+              "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
+              "production": 55311000,
+              "domestic_consumption": 54442000,
+              "ending_stocks": 4516000
+            },
+            {
+              "market_year": "2018/19",
+              "release_period": "2026-07",
+              "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
+              "production": 56477000,
+              "domestic_consumption": 55649000,
+              "ending_stocks": 4817000
+            },
+            {
+              "market_year": "2019/20",
+              "release_period": "2026-07",
+              "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
+              "production": 58911000,
+              "domestic_consumption": 57303000,
+              "ending_stocks": 5664000
+            },
+            {
+              "market_year": "2020/21",
+              "release_period": "2026-07",
+              "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
+              "production": 60061000,
+              "domestic_consumption": 58937000,
+              "ending_stocks": 5943000
+            },
+            {
+              "market_year": "2021/22",
+              "release_period": "2026-07",
+              "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
+              "production": 60006000,
+              "domestic_consumption": 59727000,
+              "ending_stocks": 5304000
+            },
+            {
+              "market_year": "2022/23",
+              "release_period": "2026-07",
+              "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
+              "production": 60725000,
+              "domestic_consumption": 59415000,
+              "ending_stocks": 5849000
+            },
+            {
+              "market_year": "2023/24",
+              "release_period": "2026-07",
+              "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
+              "production": 64009000,
+              "domestic_consumption": 62896000,
+              "ending_stocks": 5683000
+            },
+            {
+              "market_year": "2024/25",
+              "release_period": "2026-07",
+              "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
+              "production": 70060000,
+              "domestic_consumption": 68324000,
+              "ending_stocks": 6470000
+            },
+            {
+              "market_year": "2025/26",
+              "release_period": "2026-07",
+              "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
+              "production": 72358000,
+              "domestic_consumption": 71168000,
+              "ending_stocks": 6319000
+            }
+          ]
+        },
+        {
+          "key": "rapeseed",
+          "name": "菜籽油",
+          "series": [
+            {
+              "market_year": "2015/16",
+              "release_period": "2026-07",
+              "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
+              "production": 27562000,
+              "domestic_consumption": 28479000,
+              "ending_stocks": 5630000
+            },
+            {
+              "market_year": "2016/17",
+              "release_period": "2026-07",
+              "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
+              "production": 27805000,
+              "domestic_consumption": 29141000,
+              "ending_stocks": 4159000
+            },
+            {
+              "market_year": "2017/18",
+              "release_period": "2026-07",
+              "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
+              "production": 28321000,
+              "domestic_consumption": 29169000,
+              "ending_stocks": 3314000
+            },
+            {
+              "market_year": "2018/19",
+              "release_period": "2026-07",
+              "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
+              "production": 28042000,
+              "domestic_consumption": 28386000,
+              "ending_stocks": 2889000
+            },
+            {
+              "market_year": "2019/20",
+              "release_period": "2026-07",
+              "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
+              "production": 28421000,
+              "domestic_consumption": 28331000,
+              "ending_stocks": 2909000
+            },
+            {
+              "market_year": "2020/21",
+              "release_period": "2026-07",
+              "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
+              "production": 29438000,
+              "domestic_consumption": 28594000,
+              "ending_stocks": 3665000
+            },
+            {
+              "market_year": "2021/22",
+              "release_period": "2026-07",
+              "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
+              "production": 29145000,
+              "domestic_consumption": 30162000,
+              "ending_stocks": 2544000
+            },
+            {
+              "market_year": "2022/23",
+              "release_period": "2026-07",
+              "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
+              "production": 33247000,
+              "domestic_consumption": 32714000,
+              "ending_stocks": 3438000
+            },
+            {
+              "market_year": "2023/24",
+              "release_period": "2026-07",
+              "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
+              "production": 34386000,
+              "domestic_consumption": 34348000,
+              "ending_stocks": 3457000
+            },
+            {
+              "market_year": "2024/25",
+              "release_period": "2026-07",
+              "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
+              "production": 34281000,
+              "domestic_consumption": 34380000,
+              "ending_stocks": 3296000
+            },
+            {
+              "market_year": "2025/26",
+              "release_period": "2026-07",
+              "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
+              "production": 36268000,
+              "domestic_consumption": 35881000,
+              "ending_stocks": 3501000
+            }
+          ]
+        },
+        {
+          "key": "sunflower",
+          "name": "葵花籽油",
+          "series": [
+            {
+              "market_year": "2015/16",
+              "release_period": "2026-07",
+              "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
+              "production": 15404000,
+              "domestic_consumption": 15073000,
+              "ending_stocks": 2038000
+            },
+            {
+              "market_year": "2016/17",
+              "release_period": "2026-07",
+              "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
+              "production": 18298000,
+              "domestic_consumption": 16366000,
+              "ending_stocks": 2616000
+            },
+            {
+              "market_year": "2017/18",
+              "release_period": "2026-07",
+              "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
+              "production": 18568000,
+              "domestic_consumption": 17403000,
+              "ending_stocks": 2606000
+            },
+            {
+              "market_year": "2018/19",
+              "release_period": "2026-07",
+              "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
+              "production": 19618000,
+              "domestic_consumption": 18020000,
+              "ending_stocks": 2443000
+            },
+            {
+              "market_year": "2019/20",
+              "release_period": "2026-07",
+              "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
+              "production": 21205000,
+              "domestic_consumption": 18912000,
+              "ending_stocks": 2997000
+            },
+            {
+              "market_year": "2020/21",
+              "release_period": "2026-07",
+              "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
+              "production": 19005000,
+              "domestic_consumption": 18259000,
+              "ending_stocks": 2112000
+            },
+            {
+              "market_year": "2021/22",
+              "release_period": "2026-07",
+              "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
+              "production": 19679000,
+              "domestic_consumption": 17524000,
+              "ending_stocks": 2761000
+            },
+            {
+              "market_year": "2022/23",
+              "release_period": "2026-07",
+              "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
+              "production": 21712000,
+              "domestic_consumption": 19550000,
+              "ending_stocks": 3223000
+            },
+            {
+              "market_year": "2023/24",
+              "release_period": "2026-07",
+              "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
+              "production": 22119000,
+              "domestic_consumption": 21068000,
+              "ending_stocks": 2892000
+            },
+            {
+              "market_year": "2024/25",
+              "release_period": "2026-07",
+              "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
+              "production": 20410000,
+              "domestic_consumption": 19102000,
+              "ending_stocks": 2546000
+            },
+            {
+              "market_year": "2025/26",
+              "release_period": "2026-07",
+              "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
+              "production": 21123000,
+              "domestic_consumption": 19324000,
+              "ending_stocks": 2417000
+            }
+          ]
+        }
+      ]
     }
   }
 }

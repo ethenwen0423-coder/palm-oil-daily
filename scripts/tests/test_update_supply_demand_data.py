@@ -1,7 +1,9 @@
 import importlib.util
+import io
 import sys
 import unittest
 import urllib.error
+import zipfile
 from datetime import datetime
 from pathlib import Path
 from unittest.mock import patch
@@ -22,6 +24,57 @@ def make_point(period: str, value: int, source: str = "https://example.test/sour
         "value": value,
         "published_at": f"{period}-10",
         "source_url": source,
+    }
+
+
+def make_annual_point(market_year: str, value: int = 1_000_000):
+    return {
+        "market_year": market_year,
+        "production": value,
+        "domestic_consumption": value - 100_000,
+        "ending_stocks": 200_000,
+        "release_period": "2026-07",
+        "source_url": "https://example.test/usda",
+    }
+
+
+def make_supplemental():
+    annual_series = [make_annual_point("2025/26"), make_annual_point("2026/27", 1_100_000)]
+    import_series = [
+        {
+            "market_year": "2025/26",
+            "imports": 800_000,
+            "domestic_consumption": 900_000,
+            "ending_stocks": 100_000,
+            "release_period": "2026-07",
+            "source_url": "https://example.test/usda",
+        }
+    ]
+    return {
+        "status": "ok",
+        "status_message": "ok",
+        "release_period": "2026-07",
+        "frequency": "market_year",
+        "unit": "tonnes",
+        "display_unit": "万吨",
+        "source": {"name": "USDA", "url": "https://example.test/usda"},
+        "global_balance": {"title": "global", "definition": "test", "series": annual_series},
+        "import_demand": {
+            "title": "imports",
+            "definition": "test",
+            "markets": [
+                {"key": key, "name": name, "series": import_series}
+                for key, (name, _) in module.USDA_IMPORT_MARKETS.items()
+            ],
+        },
+        "vegetable_oils": {
+            "title": "oils",
+            "definition": "test",
+            "oils": [
+                {"key": key, "name": name, "series": annual_series}
+                for key, (name, _) in module.USDA_COMMODITIES.items()
+            ],
+        },
     }
 
 
@@ -104,6 +157,41 @@ class SupplyDemandParserTests(unittest.TestCase):
             with self.assertRaises(module.SourceUnavailable):
                 module.fetch_text("https://example.test/missing")
 
+    def test_parse_usda_country_archive_converts_thousand_tonnes(self):
+        header = (
+            "Commodity_Code,Commodity_Description,Country_Code,Country_Name,Market_Year,"
+            "Calendar_Year,Month,Attribute_ID,Attribute_Description,Unit_ID,Unit_Description,Value\n"
+        )
+        rows = []
+        for _, (name, code) in module.USDA_IMPORT_MARKETS.items():
+            for attribute, value in (
+                ("Imports", "8.5000"),
+                ("Domestic Consumption", "9.0000"),
+                ("Ending Stocks", "1.2500"),
+            ):
+                rows.append(
+                    f'4243000,\"Oil, Palm\",{code},\"{name}\",2026,2026,07,057,'
+                    f'\"{attribute}\",08,\"(1000 MT)\",{value}\n'
+                )
+        archive = io.BytesIO()
+        with zipfile.ZipFile(archive, "w") as bundle:
+            bundle.writestr("psd_oilseeds.csv", header + "".join(rows))
+        markets = module.parse_usda_country_archive(archive.getvalue(), 2025)
+        self.assertEqual(len(markets), 4)
+        self.assertEqual(markets[0]["series"][0]["imports"], 8_500)
+        self.assertEqual(markets[0]["series"][0]["release_period"], "2026-07")
+
+    def test_parse_usda_world_balance(self):
+        xml = b"""<?xml version="1.0"?>
+        <root><getWorldDatabyCommodity>
+          <Commodity><Market_Year>2026</Market_Year><Calendar_Year>2026</Calendar_Year><Month>07</Month><Attribute_Description>Production</Attribute_Description><Unit_Description>(1000 MT)</Unit_Description><Value>81441</Value></Commodity>
+          <Commodity><Market_Year>2026</Market_Year><Calendar_Year>2026</Calendar_Year><Month>07</Month><Attribute_Description>Total Dom. Cons.</Attribute_Description><Unit_Description>(1000 MT)</Unit_Description><Value>79667</Value></Commodity>
+          <Commodity><Market_Year>2026</Market_Year><Calendar_Year>2026</Calendar_Year><Month>07</Month><Attribute_Description>Ending Stocks</Attribute_Description><Unit_Description>(1000 MT)</Unit_Description><Value>15050</Value></Commodity>
+        </getWorldDatabyCommodity></root>"""
+        result = module.parse_usda_world_xml(xml, "palm", 2025)
+        self.assertEqual(result["series"][0]["production"], 81_441_000)
+        self.assertEqual(result["series"][0]["domestic_consumption"], 79_667_000)
+
 
 class SupplyDemandPayloadTests(unittest.TestCase):
     def setUp(self):
@@ -129,7 +217,7 @@ class SupplyDemandPayloadTests(unittest.TestCase):
         def unavailable(_):
             raise module.SourceUnavailable("offline")
 
-        result = module.build_payload(now, previous, unavailable, unavailable)
+        result = module.build_payload(now, previous, unavailable, unavailable, lambda _: make_supplemental())
         self.assertEqual(result["countries"]["malaysia"]["status"], "source_unreachable")
         self.assertEqual(
             result["countries"]["malaysia"]["metrics"]["production"]["series"],
@@ -170,7 +258,7 @@ class SupplyDemandPayloadTests(unittest.TestCase):
         def indonesia(_):
             raise module.SourceUnavailable("offline")
 
-        result = module.build_payload(now, {}, malaysia, indonesia)
+        result = module.build_payload(now, {}, malaysia, indonesia, lambda _: make_supplemental())
         self.assertNotEqual(result["countries"]["malaysia"]["status"], "source_unreachable")
         self.assertEqual(result["countries"]["indonesia"]["status"], "source_unreachable")
 
@@ -190,6 +278,36 @@ class SupplyDemandPayloadTests(unittest.TestCase):
         }
         merged = module.merge_source_data(revised, previous)
         self.assertEqual(merged["production"][0]["value"], 1_100_000)
+
+    def test_usda_failure_preserves_previous_tables(self):
+        now = datetime(2026, 7, 28, 13, 15, tzinfo=ZoneInfo("Asia/Shanghai"))
+        previous = {
+            "schema_version": 2,
+            "generated_at": "2026-07-20T13:15:00+08:00",
+            "timezone": "Asia/Shanghai",
+            "display_months": 24,
+            "countries": {
+                "malaysia": module.country_payload("malaysia", self.source_data, now.date()),
+                "indonesia": module.country_payload("indonesia", self.source_data, now.date()),
+            },
+            "supplemental": make_supplemental(),
+        }
+
+        def malaysia(_):
+            return self.source_data
+
+        def indonesia(_):
+            return self.source_data
+
+        def usda_failure(_):
+            raise module.SourceUnavailable("offline")
+
+        result = module.build_payload(now, previous, malaysia, indonesia, usda_failure)
+        self.assertEqual(result["supplemental"]["status"], "source_unreachable")
+        self.assertEqual(
+            result["supplemental"]["global_balance"]["series"],
+            previous["supplemental"]["global_balance"]["series"],
+        )
 
 
 if __name__ == "__main__":
