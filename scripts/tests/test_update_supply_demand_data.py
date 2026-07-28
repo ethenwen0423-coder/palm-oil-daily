@@ -304,10 +304,70 @@ class SupplyDemandPayloadTests(unittest.TestCase):
 
         result = module.build_payload(now, previous, malaysia, indonesia, usda_failure)
         self.assertEqual(result["supplemental"]["status"], "source_unreachable")
+        self.assertEqual(result["update_status"], "source_error")
         self.assertEqual(
             result["supplemental"]["global_balance"]["series"],
             previous["supplemental"]["global_balance"]["series"],
         )
+
+    def test_no_new_official_data_records_daily_check(self):
+        now = datetime(2026, 7, 28, 6, 12, tzinfo=ZoneInfo("Asia/Shanghai"))
+        previous = {
+            "schema_version": 2,
+            "generated_at": "2026-07-27T06:10:00+08:00",
+            "timezone": "Asia/Shanghai",
+            "display_months": 24,
+            "countries": {
+                "malaysia": module.country_payload("malaysia", self.source_data, now.date()),
+                "indonesia": module.country_payload("indonesia", self.source_data, now.date()),
+            },
+            "supplemental": make_supplemental(),
+        }
+
+        result = module.build_payload(
+            now,
+            previous,
+            lambda _: self.source_data,
+            lambda _: self.source_data,
+            lambda _: make_supplemental(),
+            "2026-07-28",
+        )
+        self.assertEqual(result["update_status"], "no_change")
+        self.assertIn("官网暂未更新数据", result["update_message"])
+        self.assertEqual(result["checked_for_report_date"], "2026-07-28")
+        self.assertEqual(result["data_updated_at"], previous["generated_at"])
+
+    def test_new_official_value_records_data_update(self):
+        now = datetime(2026, 7, 28, 6, 12, tzinfo=ZoneInfo("Asia/Shanghai"))
+        previous_country = module.country_payload("malaysia", self.source_data, now.date())
+        previous = {
+            "schema_version": 2,
+            "generated_at": "2026-07-27T06:10:00+08:00",
+            "timezone": "Asia/Shanghai",
+            "display_months": 24,
+            "countries": {
+                "malaysia": previous_country,
+                "indonesia": module.country_payload("indonesia", self.source_data, now.date()),
+            },
+            "supplemental": make_supplemental(),
+        }
+        revised = {
+            key: [dict(item) for item in series]
+            for key, series in self.source_data.items()
+        }
+        revised["production"][-1]["value"] += 10_000
+
+        result = module.build_payload(
+            now,
+            previous,
+            lambda _: revised,
+            lambda _: self.source_data,
+            lambda _: make_supplemental(),
+            "2026-07-28",
+        )
+        self.assertEqual(result["update_status"], "updated")
+        self.assertIn("官方新数据", result["update_message"])
+        self.assertEqual(result["data_updated_at"], result["checked_at"])
 
 
 if __name__ == "__main__":

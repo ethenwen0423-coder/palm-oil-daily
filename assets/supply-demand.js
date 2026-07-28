@@ -10,6 +10,11 @@
     source_unreachable: "来源暂不可达",
     parse_error: "来源解析异常",
   };
+  const UPDATE_STATUS_LABELS = {
+    updated: "发现新数据",
+    no_change: "官网暂未更新",
+    source_error: "来源检查异常",
+  };
 
   const root = document.getElementById("supply-demand-root");
   const generated = document.getElementById("supply-demand-generated");
@@ -273,6 +278,29 @@
     `;
   }
 
+  function renderUpdateNotice(payload) {
+    const status = payload.update_status || "source_error";
+    const checkedAt = payload.checked_at || payload.generated_at;
+    const checkedText = checkedAt
+      ? new Date(checkedAt).toLocaleString("zh-CN", {
+          timeZone: payload.timezone || "Asia/Shanghai",
+          hour12: false,
+        })
+      : "需进一步核验";
+    return `
+      <section class="supply-update-notice supply-update-${escapeHtml(status)}" aria-label="官方数据检查状态">
+        <div>
+          <span>${escapeHtml(UPDATE_STATUS_LABELS[status] || "检查状态")}</span>
+          <strong>${escapeHtml(payload.update_message || "官方来源检查状态需进一步核验。")}</strong>
+        </div>
+        <dl>
+          <div><dt>跟随日报</dt><dd>${escapeHtml(payload.checked_for_report_date || "需进一步核验")}</dd></div>
+          <div><dt>检查时间</dt><dd>${escapeHtml(checkedText)}</dd></div>
+        </dl>
+      </section>
+    `;
+  }
+
   function drawChart(canvas, series, rangeEnd, displayMonths) {
     if (!canvas || !rangeEnd) return;
     const rect = canvas.getBoundingClientRect();
@@ -385,8 +413,9 @@
     const countries = Object.entries(payload.countries)
       .map(([key, country]) => countrySection(key, country, displayMonths))
       .join("");
-    root.innerHTML = `${countries}${renderSupplemental(payload.supplemental)}`;
-    generated.textContent = `数据文件更新：${new Date(payload.generated_at).toLocaleString("zh-CN", {
+    root.innerHTML = `${renderUpdateNotice(payload)}${countries}${renderSupplemental(payload.supplemental)}`;
+    const checkedAt = payload.checked_at || payload.generated_at;
+    generated.textContent = `官方来源检查：${new Date(checkedAt).toLocaleString("zh-CN", {
       timeZone: payload.timezone || "Asia/Shanghai",
       hour12: false,
     })}`;

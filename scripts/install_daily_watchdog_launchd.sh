@@ -6,6 +6,8 @@ RUNTIME_ROOT="${PALM_OIL_AUTOMATION_ROOT:-$HOME/Sites/palm-oil-daily}"
 PLIST="$HOME/Library/LaunchAgents/com.vinsontesla.palm-oil-daily-watchdog.plist"
 SUPPORT_DIR="$HOME/Library/Application Support/VinsonTesla"
 RUNNER="$SUPPORT_DIR/palm-oil-daily-watchdog.sh"
+SUPPLY_RUNTIME="$SUPPORT_DIR/palm-oil-supply-runtime"
+SUPPLY_RUNNER="$SUPPORT_DIR/palm-oil-supply-demand-daily.sh"
 
 mkdir -p "$HOME/Library/LaunchAgents"
 mkdir -p "$SUPPORT_DIR"
@@ -18,6 +20,33 @@ if [[ "$ROOT" != "$RUNTIME_ROOT" ]]; then
     git -C "$RUNTIME_ROOT" pull --ff-only
   fi
 fi
+
+if [[ ! -d "$SUPPLY_RUNTIME/.git" ]]; then
+  git clone --branch main --single-branch "$(git -C "$ROOT" remote get-url origin)" "$SUPPLY_RUNTIME"
+else
+  if [[ "$(git -C "$SUPPLY_RUNTIME" branch --show-current)" != "main" ]] \
+    || [[ -n "$(git -C "$SUPPLY_RUNTIME" status --porcelain --untracked-files=all)" ]]; then
+    echo "supply-demand runtime must be a clean main checkout: $SUPPLY_RUNTIME" >&2
+    exit 2
+  fi
+  git -C "$SUPPLY_RUNTIME" pull --ff-only origin main
+fi
+
+cat > "$SUPPLY_RUNNER" <<SUPPLY_RUNNER
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$SUPPLY_RUNTIME"
+REPORT_DATE="\${1:-\$(TZ=Asia/Shanghai date +%F)}"
+LOG="$SUPPORT_DIR/palm-oil-supply-demand-daily.log"
+
+echo "[\$(TZ=Asia/Shanghai date '+%F %T')] start supply-demand check for \$REPORT_DATE" >> "\$LOG"
+cd "\$ROOT"
+git pull --ff-only origin main >> "\$LOG" 2>&1
+scripts/deploy_supply_demand_data.sh "\$REPORT_DATE" >> "\$LOG" 2>&1
+echo "[\$(TZ=Asia/Shanghai date '+%F %T')] finish supply-demand check for \$REPORT_DATE" >> "\$LOG"
+SUPPLY_RUNNER
+chmod 755 "$SUPPLY_RUNNER"
 
 cat > "$RUNNER" <<RUNNER
 #!/usr/bin/env bash
@@ -58,7 +87,9 @@ DATA="\$ROOT/data/reports.js"
 LOG="$SUPPORT_DIR/palm-oil-daily-watchdog.check.log"
 STATE_DIR="$SUPPORT_DIR/market-refresh-state"
 MORNING_STATE="\$STATE_DIR/\$REPORT_DATE-morning.ok"
+SUPPLY_STATE="\$STATE_DIR/\$REPORT_DATE-supply-demand.ok"
 RESEARCH_RUNNER="$SUPPORT_DIR/palm-oil-research-notifier.sh"
+SUPPLY_RUNNER="$SUPPLY_RUNNER"
 FORBIDDEN='未实际调用|当前环境未暴露调用入口|这是测试报告|排版调试样稿'
 
 mkdir -p "\$STATE_DIR"
@@ -76,6 +107,23 @@ notify_morning_research() {
   fi
 }
 
+refresh_supply_demand() {
+  if [[ -f "\$SUPPLY_STATE" ]]; then
+    echo "[\$(TZ=Asia/Shanghai date '+%F %T')] supply-demand already checked for daily report, skip retry" >> "\$LOG"
+    return 0
+  fi
+  if [[ ! -x "\$SUPPLY_RUNNER" ]]; then
+    echo "[\$(TZ=Asia/Shanghai date '+%F %T')] supply-demand daily runner not installed" >> "\$LOG"
+    return 0
+  fi
+  if "\$SUPPLY_RUNNER" "\$REPORT_DATE" >> "\$LOG" 2>&1; then
+    touch "\$SUPPLY_STATE"
+    echo "[\$(TZ=Asia/Shanghai date '+%F %T')] supply-demand checked with daily report" >> "\$LOG"
+  else
+    echo "[\$(TZ=Asia/Shanghai date '+%F %T')] supply-demand check failed; daily report remains published" >> "\$LOG"
+  fi
+}
+
 if (( WEEKDAY < 1 || WEEKDAY > 5 )); then
   echo "[\$(TZ=Asia/Shanghai date '+%F %T')] not weekday, skip daily and oil-futures tab" >> "\$LOG"
   exit 0
@@ -85,6 +133,7 @@ if [[ -s "\$REPORT" && -s "\$DOWNLOAD" && -s "\$DATA" ]] \\
   && grep -q "\"date\": \"\$REPORT_DATE\"" "\$DATA" \\
   && ! grep -Eq "\$FORBIDDEN" "\$REPORT"; then
   notify_morning_research
+  refresh_supply_demand
   if [[ -f "\$MORNING_STATE" ]]; then
     echo "[\$(TZ=Asia/Shanghai date '+%F %T')] daily and morning market data already published, skip retry" >> "\$LOG"
     exit 0
@@ -111,6 +160,7 @@ if [[ -s "\$REPORT" && -s "\$DOWNLOAD" && -s "\$DATA" ]] \\
   && grep -q "\"date\": \"\$REPORT_DATE\"" "\$DATA" \\
   && ! grep -Eq "\$FORBIDDEN" "\$REPORT"; then
   notify_morning_research
+  refresh_supply_demand
   echo "[\$(TZ=Asia/Shanghai date '+%F %T')] daily backfill complete, refresh morning market data" >> "\$LOG"
   cd "\$ROOT"
   git pull --ff-only >> "\$LOG" 2>&1

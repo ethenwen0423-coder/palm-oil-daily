@@ -701,8 +701,8 @@ def merge_source_data(
 
 
 def validate_payload(payload: dict[str, object], strict: bool = False) -> None:
-    if payload.get("schema_version") not in {1, 2}:
-        raise ValueError("schema_version must be 1 or 2")
+    if payload.get("schema_version") not in {1, 2, 3}:
+        raise ValueError("schema_version must be 1, 2 or 3")
     countries = payload.get("countries")
     if not isinstance(countries, dict) or set(countries) != {"malaysia", "indonesia"}:
         raise ValueError("countries must contain malaysia and indonesia")
@@ -732,8 +732,20 @@ def validate_payload(payload: dict[str, object], strict: bool = False) -> None:
                 raise ValueError(f"{country_key}.{metric_key}: periods must be unique and sorted")
             if strict and not series:
                 raise ValueError(f"{country_key}.{metric_key}: no observations")
-    if payload.get("schema_version") == 2:
+    if int(payload.get("schema_version") or 0) >= 2:
         validate_supplemental(payload.get("supplemental"), strict=strict)
+    if payload.get("schema_version") == 3:
+        if payload.get("update_status") not in {"updated", "no_change", "source_error"}:
+            raise ValueError("update_status is invalid")
+        for field in ("checked_at", "data_updated_at"):
+            try:
+                datetime.fromisoformat(str(payload.get(field) or ""))
+            except ValueError as exc:
+                raise ValueError(f"{field} must be an ISO datetime") from exc
+        if not re.fullmatch(r"20\d{2}-\d{2}-\d{2}", str(payload.get("checked_for_report_date") or "")):
+            raise ValueError("checked_for_report_date must be YYYY-MM-DD")
+        if not str(payload.get("update_message") or "").strip():
+            raise ValueError("update_message is required")
 
 
 def validate_annual_series(
@@ -834,12 +846,58 @@ def semantic_content(payload: dict[str, object]) -> object:
     }
 
 
+def data_content(payload: dict[str, object]) -> object:
+    countries = payload.get("countries") if isinstance(payload, dict) else {}
+    country_series = {}
+    if isinstance(countries, dict):
+        for country_key, country in countries.items():
+            metrics = country.get("metrics", {}) if isinstance(country, dict) else {}
+            country_series[country_key] = {
+                metric_key: metric.get("series", [])
+                for metric_key, metric in metrics.items()
+                if isinstance(metric, dict)
+            }
+    supplemental = payload.get("supplemental") if isinstance(payload, dict) else {}
+    if not isinstance(supplemental, dict):
+        supplemental = {}
+    global_balance = supplemental.get("global_balance", {})
+    import_demand = supplemental.get("import_demand", {})
+    vegetable_oils = supplemental.get("vegetable_oils", {})
+    return {
+        "countries": country_series,
+        "global_balance": (
+            global_balance.get("series", [])
+            if isinstance(global_balance, dict)
+            else []
+        ),
+        "import_demand": [
+            {"key": market.get("key"), "series": market.get("series", [])}
+            for market in (
+                import_demand.get("markets", [])
+                if isinstance(import_demand, dict)
+                else []
+            )
+            if isinstance(market, dict)
+        ],
+        "vegetable_oils": [
+            {"key": oil.get("key"), "series": oil.get("series", [])}
+            for oil in (
+                vegetable_oils.get("oils", [])
+                if isinstance(vegetable_oils, dict)
+                else []
+            )
+            if isinstance(oil, dict)
+        ],
+    }
+
+
 def build_payload(
     now: datetime,
     existing: dict[str, object],
     malaysia_fetcher: Callable[[int], dict[str, list[dict[str, object]]]] = fetch_malaysia_year,
     indonesia_fetcher: Callable[[str], dict[str, list[dict[str, object]]]] = fetch_indonesia,
     usda_fetcher: Callable[[datetime], dict[str, object]] = fetch_usda_supplemental,
+    report_date: str | None = None,
 ) -> dict[str, object]:
     current_period = month_key(now.year, now.month)
     start_period = shift_month(current_period, -(MIN_HISTORY_MONTHS - 1))
@@ -899,16 +957,44 @@ def build_payload(
         supplemental["status_message"] = "本次USDA官方数据解析失败，继续展示上次成功数据；需进一步核验。"
 
     candidate: dict[str, object] = {
-        "schema_version": 2,
+        "schema_version": 3,
         "generated_at": now.astimezone(TIMEZONE).isoformat(timespec="seconds"),
         "timezone": "Asia/Shanghai",
         "display_months": DISPLAY_MONTHS,
         "countries": countries,
         "supplemental": supplemental,
     }
+    data_changed = not existing or data_content(candidate) != data_content(existing)
+    source_statuses = [
+        country.get("status")
+        for country in countries.values()
+    ] + [supplemental.get("status")]
+    checked_at = now.astimezone(TIMEZONE).isoformat(timespec="seconds")
+    if any(status in {"source_unreachable", "parse_error"} for status in source_statuses):
+        update_status = "source_error"
+        update_message = "今日已检查官方来源，部分官网暂时无法访问；继续展示上次成功数据，需进一步核验。"
+    elif data_changed:
+        update_status = "updated"
+        update_message = "今日检查发现官方新数据或历史修订，页面数据已完成更新。"
+    else:
+        update_status = "no_change"
+        update_message = "今日已检查官方来源，官网暂未更新数据，继续展示最近一期官方值。"
+    candidate.update(
+        {
+            "checked_at": checked_at,
+            "checked_for_report_date": report_date or now.date().isoformat(),
+            "data_updated_at": (
+                checked_at
+                if data_changed
+                else existing.get("data_updated_at")
+                or existing.get("generated_at")
+                or checked_at
+            ),
+            "update_status": update_status,
+            "update_message": update_message,
+        }
+    )
     validate_payload(candidate)
-    if existing and semantic_content(candidate) == semantic_content(existing):
-        candidate["generated_at"] = existing.get("generated_at", candidate["generated_at"])
     return candidate
 
 
@@ -923,6 +1009,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--existing", type=Path)
     parser.add_argument("--validate-only", type=Path)
     parser.add_argument("--strict", action="store_true")
+    parser.add_argument("--report-date")
     return parser.parse_args()
 
 
@@ -934,7 +1021,9 @@ def main() -> int:
         return 0
     existing_path = args.existing or (args.output if args.output.exists() else None)
     existing = load_existing(existing_path)
-    payload = build_payload(datetime.now(TIMEZONE), existing)
+    if args.report_date and not re.fullmatch(r"20\d{2}-\d{2}-\d{2}", args.report_date):
+        raise ValueError("--report-date must be YYYY-MM-DD")
+    payload = build_payload(datetime.now(TIMEZONE), existing, report_date=args.report_date)
     validate_payload(payload, strict=args.strict)
     write_payload(payload, args.output)
     statuses = {

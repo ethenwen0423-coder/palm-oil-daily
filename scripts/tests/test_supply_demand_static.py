@@ -16,7 +16,11 @@ class SupplyDemandStaticTests(unittest.TestCase):
 
     def test_public_json_has_six_metrics_and_valid_sources(self):
         payload = json.loads((ROOT / "data" / "supply-demand.json").read_text(encoding="utf-8"))
-        self.assertEqual(payload["schema_version"], 2)
+        self.assertEqual(payload["schema_version"], 3)
+        self.assertIn(payload["update_status"], {"updated", "no_change", "source_error"})
+        self.assertTrue(payload["update_message"])
+        self.assertTrue(payload["checked_at"])
+        self.assertTrue(payload["checked_for_report_date"])
         self.assertEqual(set(payload["countries"]), {"malaysia", "indonesia"})
         for country in payload["countries"].values():
             self.assertEqual(set(country["metrics"]), {"production", "exports", "stocks"})
@@ -44,16 +48,16 @@ class SupplyDemandStaticTests(unittest.TestCase):
             html = (ROOT / filename).read_text(encoding="utf-8")
             self.assertIn('href="supply-demand.html"', html, filename)
 
-    def test_automation_is_independent_and_uses_strict_allowlist(self):
+    def test_automation_follows_daily_report_and_uses_strict_allowlist(self):
         deploy = (ROOT / "scripts" / "deploy_supply_demand_data.sh").read_text(encoding="utf-8")
-        installer = (ROOT / "scripts" / "install_supply_demand_launchd.sh").read_text(encoding="utf-8")
+        installer = (ROOT / "scripts" / "install_daily_watchdog_launchd.sh").read_text(encoding="utf-8")
         self.assertIn('TARGET="data/supply-demand.json"', deploy)
         self.assertIn('changed_path" != "$TARGET', deploy)
         self.assertNotIn("deploy_report.sh", deploy)
-        self.assertIn("<integer>13</integer>", installer)
-        self.assertIn("<integer>15</integer>", installer)
-        self.assertIn("status --porcelain", installer)
-        self.assertIn("pull --ff-only", installer)
+        self.assertIn("$REPORT_DATE-supply-demand.ok", installer)
+        self.assertIn('refresh_supply_demand', installer)
+        self.assertIn("supply-demand checked with daily report", installer)
+        self.assertNotIn("com.vinsontesla.palm-oil-supply-demand", installer)
 
 
 if __name__ == "__main__":
