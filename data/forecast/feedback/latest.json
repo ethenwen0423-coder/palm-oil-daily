@@ -1,5 +1,5 @@
 {
-  "as_of": "2026-07-27",
+  "as_of": "2026-07-29",
   "consecutive_error_streaks": {},
   "core_view_confidence_cap": "low",
   "core_view_confidence_cap_stars": 2,
@@ -15,6 +15,13 @@
   "human_approval_required": false,
   "metrics_as_of": "2026-07-23",
   "minimum_active_trade_days": 5,
+  "overall_metrics": {
+    "close_range_coverage": 1.0,
+    "directional_accuracy": 0.2,
+    "interval_width_ratio": null,
+    "mean_brier_score": 0.376508,
+    "sample_count": 15
+  },
   "products": {
     "OI": {
       "action": "downgrade_directional_claim",
@@ -57,9 +64,7 @@
     }
   },
   "required_report_disclosures": [
-    "预测校准：P近5个交易日方向命中率20.0%，今日主线降级，核心置信度不高于★★☆☆☆。",
-    "预测校准：Y近5个交易日方向命中率20.0%，今日主线降级，核心置信度不高于★★☆☆☆。",
-    "预测校准：OI近5个交易日方向命中率20.0%，今日主线降级，核心置信度不高于★★☆☆☆。"
+    "预测校准：近5个有效交易日共15条评估，P/Y/OI方向命中率分别为20.0%/20.0%/20.0%，整体Brier分数0.377，收盘区间覆盖率100.0%，区间宽度质量暂无可复现指标；P/Y/OI今日主线降级，核心置信度不高于★★☆☆☆；样本仍有限，不据此声称准确率改善。"
   ],
   "schema_version": "forecast-generation-feedback-v1",
   "source_metrics": "data/forecast/metrics/latest.json",
