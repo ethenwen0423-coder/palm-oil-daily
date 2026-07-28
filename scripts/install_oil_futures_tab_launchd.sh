@@ -55,6 +55,12 @@ if [[ -f "\$STATE" ]]; then
   exit 0
 fi
 
+MORNING_STATE="\$STATE_DIR/\$TODAY-morning.ok"
+if [[ ! -f "\$MORNING_STATE" ]]; then
+  echo "[\$(TZ=Asia/Shanghai date '+%F %T')] morning report/fundamental snapshot not published, skip \$SESSION technical refresh" >> "\$LOG"
+  exit 0
+fi
+
 cd "\$ROOT"
 git pull --ff-only >> "\$LOG" 2>&1
 bash scripts/deploy_oil_futures_tab.sh "\$SESSION" >> "\$LOG" 2>&1

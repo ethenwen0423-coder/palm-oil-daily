@@ -20,6 +20,9 @@
   const updateLabel = data.updated_at
     ? `行情更新时间：${data.updated_at}${sessionNames[data.update_session] ? ` · ${sessionNames[data.update_session]}` : ""}（${data.timezone || "Asia/Shanghai"}）`
     : "行情数据等待更新";
+  const fundamentalUpdateLabel = data.fundamental_updated_at
+    ? `基本面更新时间：${data.fundamental_updated_at} · 晨间`
+    : "基本面更新时间：需进一步核验";
 
   function populateContracts() {
     const exchange = exchangeFilter.value;
@@ -59,7 +62,7 @@
     const direction = contract.change_pct > 0 ? "up" : contract.change_pct < 0 ? "down" : "flat";
     result.innerHTML = `
       <article class="analysis-head">
-        <div><p>${escapeHtml(contract.exchange)} · ${escapeHtml(contract.category)}</p><h2>${escapeHtml(contract.product)} <span>${escapeHtml(contract.symbol)}</span></h2><small>主力合约，交易日 ${escapeHtml(contract.trade_date || "需进一步核验")} · ${escapeHtml(updateLabel)}</small></div>
+        <div><p>${escapeHtml(contract.exchange)} · ${escapeHtml(contract.category)}</p><h2>${escapeHtml(contract.product)} <span>${escapeHtml(contract.symbol)}</span></h2><small>主力合约，交易日 ${escapeHtml(contract.trade_date || "需进一步核验")} · ${escapeHtml(updateLabel)} · ${escapeHtml(fundamentalUpdateLabel)}</small></div>
         <div class="analysis-price ${direction}"><strong>${formatNumber(contract.price)}</strong><span>${formatChange(contract.change_pct)}</span></div>
       </article>
       <div class="analysis-columns">
@@ -88,6 +91,6 @@
     result.innerHTML = contract ? "" : '<div class="analysis-empty">请选择有效的具体合约后确认。</div>';
     if (contract) renderAnalysis(contract);
   });
-  if (source) source.textContent = data.source ? `${updateLabel}${coverageLabel ? ` · ${coverageLabel}` : ""} · ${data.source}` : "数据集等待生成";
+  if (source) source.textContent = data.source ? `${updateLabel} · ${fundamentalUpdateLabel}${coverageLabel ? ` · ${coverageLabel}` : ""} · ${data.source}` : "数据集等待生成";
   populateContracts();
 })();

@@ -28,6 +28,13 @@ TODAY="$(TZ=Asia/Shanghai date +%F)"
 OIL_TMP="$TMP_DIR/oil_futures.js"
 EXCHANGE_TMP="$TMP_DIR/exchange_futures.js"
 SKIP_OIL=false
+OIL_FUNDAMENTAL_MODE="refresh"
+EXCHANGE_FUNDAMENTAL_MODE="refresh"
+
+if [[ "$SESSION" == "midday" || "$SESSION" == "close" ]]; then
+  OIL_FUNDAMENTAL_MODE="carry"
+  EXCHANGE_FUNDAMENTAL_MODE="carry"
+fi
 
 if [[ "$SESSION" == "morning" && -s data/oil_futures.js ]]; then
   if python3 - "$TODAY" <<'PY'
@@ -46,11 +53,39 @@ PY
 fi
 
 if [[ "$SKIP_OIL" == false ]]; then
-  python3 scripts/update_oil_futures_data.py --output "$OIL_TMP" --update-session "$SESSION"
+  python3 scripts/update_oil_futures_data.py \
+    --output "$OIL_TMP" \
+    --update-session "$SESSION" \
+    --fundamental-mode "$OIL_FUNDAMENTAL_MODE"
   python3 skills/data_quality_gate_skill/scripts/validate_data.py --oil-futures "$OIL_TMP" --strict
 fi
 
-python3 scripts/update_exchange_futures_data.py --output "$EXCHANGE_TMP" --update-session "$SESSION" --scope core
+if [[ "$SESSION" == "morning" && -s data/exchange_futures.js ]]; then
+  if python3 - "$TODAY" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+text = Path("data/exchange_futures.js").read_text(encoding="utf-8").strip()
+payload = json.loads(text.split("=", 1)[1].strip().removesuffix(";"))
+raise SystemExit(
+    0
+    if str(payload.get("fundamental_updated_at") or "").startswith(sys.argv[1])
+    and payload.get("fundamental_update_session") == "morning"
+    else 1
+)
+PY
+  then
+    EXCHANGE_FUNDAMENTAL_MODE="carry"
+    echo "morning exchange fundamentals already published; keep report-aligned snapshot"
+  fi
+fi
+
+python3 scripts/update_exchange_futures_data.py \
+  --output "$EXCHANGE_TMP" \
+  --update-session "$SESSION" \
+  --scope core \
+  --fundamental-mode "$EXCHANGE_FUNDAMENTAL_MODE"
 
 python3 - "$SESSION" "$TODAY" "$OIL_TMP" "$EXCHANGE_TMP" "$SKIP_OIL" <<'PY'
 import json
@@ -76,6 +111,16 @@ for name, payload in payloads:
         raise SystemExit(f"{name} timezone mismatch")
     if not payload.get("contracts"):
         raise SystemExit(f"{name} has no contracts")
+    if not str(payload.get("fundamental_updated_at") or "").startswith(today):
+        raise SystemExit(f"{name} fundamental snapshot is not from today")
+    if payload.get("fundamental_update_session") != "morning":
+        raise SystemExit(f"{name} fundamental snapshot is not aligned with morning report")
+    expected_mode = "carry" if session in {"midday", "close"} else {"refresh", "carry"}
+    if isinstance(expected_mode, set):
+        if payload.get("fundamental_mode") not in expected_mode:
+            raise SystemExit(f"{name} morning fundamental mode is invalid")
+    elif payload.get("fundamental_mode") != expected_mode:
+        raise SystemExit(f"{name} intraday fundamental mode must be carry")
 
 exchange = payloads[0][1]
 if exchange.get("scope") != "core":

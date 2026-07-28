@@ -445,7 +445,10 @@
     if (!data?.updated_at) return "行情数据等待更新";
     const sessionNames = { morning: "早盘", midday: "午盘", close: "收盘", manual: "手动" };
     const session = sessionNames[data.update_session] ? ` · ${sessionNames[data.update_session]}` : "";
-    return `行情更新时间：${data.updated_at}${session}（${data.timezone || "Asia/Shanghai"}）`;
+    const fundamental = data.fundamental_updated_at
+      ? `；基本面更新时间：${data.fundamental_updated_at} · 晨间`
+      : "";
+    return `行情更新时间：${data.updated_at}${session}（${data.timezone || "Asia/Shanghai"}）${fundamental}`;
   }
 
   function renderStrategyRecommendation(recommendation) {

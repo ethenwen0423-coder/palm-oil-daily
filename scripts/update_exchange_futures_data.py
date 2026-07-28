@@ -847,7 +847,37 @@ def fundamental_summary(
     }
 
 
-def build_contracts(scope: str = "core") -> list[dict[str, Any]]:
+def load_frozen_fundamentals(
+    source_path: Path = OUTPUT,
+    expected_date: str | None = None,
+) -> tuple[dict[str, Any], dict[str, dict[str, Any]]]:
+    if not source_path.exists():
+        raise RuntimeError("缺少晨间基本面快照，拒绝盘中重新计算基本面")
+    try:
+        payload = parse_js_payload(source_path.read_text(encoding="utf-8"))
+    except (ValueError, json.JSONDecodeError) as exc:
+        raise RuntimeError("晨间基本面快照无法解析，拒绝盘中重新计算基本面") from exc
+    report_date = expected_date or datetime.now(SHANGHAI).strftime("%Y-%m-%d")
+    fundamental_updated_at = str(payload.get("fundamental_updated_at") or "")
+    if (
+        not fundamental_updated_at.startswith(report_date)
+        or payload.get("fundamental_update_session") != "morning"
+    ):
+        raise RuntimeError(f"{report_date} 晨间基本面尚未冻结，拒绝盘中重新计算基本面")
+    records = {
+        str(item["product"]): item
+        for item in payload.get("contracts", [])
+        if isinstance(item, dict) and item.get("product")
+    }
+    if not records:
+        raise RuntimeError("晨间基本面快照没有合约记录，拒绝盘中重新计算基本面")
+    return payload, records
+
+
+def build_contracts(
+    scope: str = "core",
+    frozen_fundamentals: dict[str, dict[str, Any]] | None = None,
+) -> list[dict[str, Any]]:
     if ak is None:
         raise RuntimeError("AkShare 未安装，无法生成主力合约列表")
     if scope not in {"core", "all"}:
@@ -858,12 +888,13 @@ def build_contracts(scope: str = "core") -> list[dict[str, Any]]:
     symbols = symbols[symbols["exchange"].isin(EXCHANGE_LABELS)].copy()
     if scope == "core":
         symbols = symbols[symbols["symbol"].isin(CORE_PRODUCTS)].copy()
-    news = latest_news()
+    refresh_fundamentals = frozen_fundamentals is None
+    news = latest_news() if refresh_fundamentals else []
     fallback = previous_contracts()
-    warrant_snapshots = fetch_warrant_snapshots()
-    basis_snapshots = fetch_basis_snapshots()
-    index_snapshots = fetch_index_snapshots()
-    rate_snapshot = fetch_rate_snapshot()
+    warrant_snapshots = fetch_warrant_snapshots() if refresh_fundamentals else {}
+    basis_snapshots = fetch_basis_snapshots() if refresh_fundamentals else {}
+    index_snapshots = fetch_index_snapshots() if refresh_fundamentals else {}
+    rate_snapshot = fetch_rate_snapshot() if refresh_fundamentals else {}
     contracts = []
     total_products = len(symbols)
     for index, (_, item) in enumerate(symbols.iterrows(), start=1):
@@ -882,19 +913,27 @@ def build_contracts(scope: str = "core") -> list[dict[str, Any]]:
         if quotes is None or quotes.empty:
             previous = fallback.get(product_name)
             if previous:
-                contracts.append({
+                retained = {
                     **previous,
                     "data_quality": "本次实时请求未返回该品种，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。",
-                })
+                }
+                if frozen_fundamentals is not None and product_name in frozen_fundamentals:
+                    retained["fundamental"] = frozen_fundamentals[product_name].get("fundamental", {})
+                    retained["news_hotspots"] = frozen_fundamentals[product_name].get("news_hotspots", [])
+                contracts.append(retained)
             continue
         candidates = quotes[quotes["symbol"].map(is_contract)].copy()
         if candidates.empty:
             previous = fallback.get(product_name)
             if previous:
-                contracts.append({
+                retained = {
                     **previous,
                     "data_quality": "本次实时请求未返回有效具体合约，保留上一次已验证主力合约与日线分析；请在下一次刷新时复核。",
-                })
+                }
+                if frozen_fundamentals is not None and product_name in frozen_fundamentals:
+                    retained["fundamental"] = frozen_fundamentals[product_name].get("fundamental", {})
+                    retained["news_hotspots"] = frozen_fundamentals[product_name].get("news_hotspots", [])
+                contracts.append(retained)
             continue
         candidates["volume"] = candidates["volume"].fillna(0)
         candidates["position"] = candidates["position"].fillna(0)
@@ -905,19 +944,30 @@ def build_contracts(scope: str = "core") -> list[dict[str, Any]]:
         symbol = str(main["symbol"]).upper()
         price = as_number(main.get("trade"))
         category = category_for(product_name)
-        headlines = news_for(product_name, news)
+        frozen = (frozen_fundamentals or {}).get(product_name)
+        if frozen_fundamentals is not None and frozen is None:
+            raise RuntimeError(f"晨间基本面快照缺少 {product_name}，拒绝盘中重新计算基本面")
+        headlines = (
+            list(frozen.get("news_hotspots", []))
+            if frozen is not None
+            else news_for(product_name, news)
+        )
         history = fetch_history(symbol)
         variety = contract_variety(symbol)
-        fundamental = fundamental_summary(
-            product_name,
-            category,
-            headlines,
-            variety,
-            price,
-            warrant_snapshots,
-            basis_snapshots,
-            index_snapshots,
-            rate_snapshot,
+        fundamental = (
+            dict(frozen.get("fundamental", {}))
+            if frozen is not None
+            else fundamental_summary(
+                product_name,
+                category,
+                headlines,
+                variety,
+                price,
+                warrant_snapshots,
+                basis_snapshots,
+                index_snapshots,
+                rate_snapshot,
+            )
         )
         contracts.append({
             "symbol": symbol,
@@ -961,9 +1011,22 @@ def main() -> int:
         default="core",
         help="core 仅更新各行业代表品种；all 仅供人工全量排查",
     )
+    parser.add_argument(
+        "--fundamental-mode",
+        choices=("refresh", "carry"),
+        default="refresh",
+        help="refresh 仅供晨间刷新；carry 用于午盘/收盘沿用晨间冻结基本面",
+    )
     args = parser.parse_args()
-    contracts = build_contracts(scope=args.scope)
     now = datetime.now(SHANGHAI)
+    previous_payload: dict[str, Any] = {}
+    frozen_fundamentals: dict[str, dict[str, Any]] | None = None
+    if args.fundamental_mode == "carry":
+        previous_payload, frozen_fundamentals = load_frozen_fundamentals(
+            OUTPUT,
+            now.strftime("%Y-%m-%d"),
+        )
+    contracts = build_contracts(scope=args.scope, frozen_fundamentals=frozen_fundamentals)
     evidence_contracts = sum(
         item.get("fundamental", {}).get("evidence_status") == "observed"
         for item in contracts
@@ -974,9 +1037,26 @@ def main() -> int:
         "scope": args.scope,
         "timezone": "Asia/Shanghai",
         "source": (
-            "行情与技术指标来自 AkShare/新浪；商品基本面接入生意社期现基差与东方财富注册仓单，"
-            "股指接入新浪指数行情与中证估值，国债期货接入中债收益率曲线与 Shibor；"
-            "各字段按卡片日期使用，新闻仅来自标题级直接匹配。"
+            (
+                "行情与技术指标本时点刷新；基本面与新闻沿用当日晨报发布后冻结的快照，盘中不重新计算。"
+            )
+            if args.fundamental_mode == "carry"
+            else (
+                "行情与技术指标来自 AkShare/新浪；商品基本面接入生意社期现基差与东方财富注册仓单，"
+                "股指接入新浪指数行情与中证估值，国债期货接入中债收益率曲线与 Shibor；"
+                "各字段按卡片日期使用，新闻仅来自标题级直接匹配。"
+            )
+        ),
+        "fundamental_mode": args.fundamental_mode,
+        "fundamental_updated_at": (
+            previous_payload.get("fundamental_updated_at")
+            if args.fundamental_mode == "carry"
+            else now.strftime("%Y-%m-%d %H:%M")
+        ),
+        "fundamental_update_session": (
+            previous_payload.get("fundamental_update_session")
+            if args.fundamental_mode == "carry"
+            else "morning"
         ),
         "fundamental_coverage": {
             "observed_contracts": evidence_contracts,

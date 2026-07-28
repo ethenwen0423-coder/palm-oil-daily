@@ -788,6 +788,74 @@ def load_js_payload(path: Path) -> dict[str, Any]:
     return payload
 
 
+def oil_contract_freeze_key(contract: dict[str, Any]) -> tuple[str, Any, str]:
+    return (
+        str(contract.get("product") or contract.get("symbol") or ""),
+        contract.get("contract_rank"),
+        str(contract.get("market") or ""),
+    )
+
+
+def load_frozen_oil_fundamentals(
+    source_path: Path = OUTPUT,
+    expected_date: str | None = None,
+) -> tuple[dict[str, Any], dict[tuple[str, Any, str], dict[str, Any]]]:
+    if not source_path.exists():
+        raise RuntimeError("缺少晨间油脂基本面快照，拒绝盘中重新计算基本面")
+    try:
+        payload = load_js_payload(source_path)
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        raise RuntimeError("晨间油脂基本面快照无法解析，拒绝盘中重新计算基本面") from exc
+    report_date = expected_date or datetime.now(SHANGHAI).strftime("%Y-%m-%d")
+    fundamental_updated_at = str(payload.get("fundamental_updated_at") or "")
+    if (
+        not fundamental_updated_at.startswith(report_date)
+        or payload.get("fundamental_update_session") != "morning"
+    ):
+        raise RuntimeError(f"{report_date} 晨间油脂基本面尚未冻结，拒绝盘中重新计算基本面")
+    records = {
+        oil_contract_freeze_key(item): item
+        for item in payload.get("contracts", [])
+        if isinstance(item, dict)
+    }
+    if not records:
+        raise RuntimeError("晨间油脂基本面快照没有合约记录，拒绝盘中重新计算基本面")
+    return payload, records
+
+
+def carry_frozen_oil_fundamentals(
+    contracts: list[dict[str, Any]],
+    frozen_records: dict[tuple[str, Any, str], dict[str, Any]],
+) -> list[dict[str, Any]]:
+    carried = []
+    for contract in contracts:
+        key = oil_contract_freeze_key(contract)
+        frozen = frozen_records.get(key)
+        if frozen is None:
+            raise RuntimeError(f"晨间油脂基本面快照缺少 {key[0]} {key[1] or ''}，拒绝盘中重新计算基本面")
+        updated = dict(contract)
+        updated["fundamental_detail"] = list(frozen.get("fundamental_detail", []))
+        current_score = dict(updated.get("score") or {})
+        frozen_score = dict(frozen.get("score") or {})
+        if frozen_score.get("fundamental") is not None:
+            current_score["fundamental"] = frozen_score["fundamental"]
+            components = {
+                "technical": (as_float(current_score.get("technical")), 0.25),
+                "fundamental": (as_float(current_score.get("fundamental")), 0.25),
+                "driver": (as_float(current_score.get("driver")), 0.30),
+                "money_flow": (as_float(current_score.get("money_flow")), 0.20),
+            }
+            if all(value is not None for value, _ in components.values()):
+                current_score["total"] = round(
+                    sum(value * weight for value, weight in components.values() if value is not None),
+                    1,
+                )
+        updated["score"] = current_score
+        updated["fundamental_snapshot_note"] = "基本面沿用当日晨报发布后冻结的快照，午盘与收盘不重新计算。"
+        carried.append(updated)
+    return carried
+
+
 def update_external_contract_only(payload: dict[str, Any], spec: dict[str, str], snapshot: dict[str, Any], review_learning: dict[str, Any]) -> dict[str, Any]:
     contract = merge_external(spec, snapshot, review_learning)
     contracts = [item for item in payload.get("contracts", []) if str(item.get("symbol") or "").upper() != spec["symbol"]]
@@ -1113,6 +1181,12 @@ def main() -> int:
     parser.add_argument("--snapshot-date")
     parser.add_argument("--external-only", choices=("CPOTR",), help="只刷新指定海外合约，保留现有国内合约数据")
     parser.add_argument("--update-session", choices=("morning", "midday", "close", "manual"))
+    parser.add_argument(
+        "--fundamental-mode",
+        choices=("refresh", "carry"),
+        default="refresh",
+        help="refresh 仅供晨间刷新；carry 用于午盘/收盘沿用晨间冻结基本面",
+    )
     args = parser.parse_args()
 
     if args.print_time_metadata:
@@ -1188,17 +1262,37 @@ def main() -> int:
         for selected in discovery_products.get(spec["symbol"], [])
     ]
     contracts.extend(merge_external(spec, snapshot, review_learning) for spec in EXTERNAL)
+    previous_payload: dict[str, Any] = {}
+    if args.fundamental_mode == "carry":
+        previous_payload, frozen_records = load_frozen_oil_fundamentals(
+            OUTPUT,
+            datetime.now(SHANGHAI).strftime("%Y-%m-%d"),
+        )
+        contracts = carry_frozen_oil_fundamentals(contracts, frozen_records)
 
     source_note = "futures-oil-daily 最新快照"
     if snapshot_path:
         source_note += f"：{snapshot_path.relative_to(ROOT)}"
     source_note += "；国内合约名单先由 contract_selector_skill 选择，再由 contract_discovery_skill 按当月实时成交量、持仓量、成交额排序生成，海外产地盘展示马来 BMD FCPO 与印尼 ICDX CPOTR；内盘具体合约与日线缺口由 AkShare 补充，并用同花顺问财行情skill交叉验证"
+    if args.fundamental_mode == "carry":
+        source_note += "；基本面沿用当日晨报发布后冻结的快照，午盘与收盘仅刷新行情、技术面、驱动和资金"
     now = datetime.now(SHANGHAI)
     payload = {
         "updated_at": now.strftime("%Y-%m-%d %H:%M"),
         "update_session": args.update_session or infer_update_session(now),
         "timezone": "Asia/Shanghai",
         "source": source_note,
+        "fundamental_mode": args.fundamental_mode,
+        "fundamental_updated_at": (
+            previous_payload.get("fundamental_updated_at")
+            if args.fundamental_mode == "carry"
+            else now.strftime("%Y-%m-%d %H:%M")
+        ),
+        "fundamental_update_session": (
+            previous_payload.get("fundamental_update_session")
+            if args.fundamental_mode == "carry"
+            else "morning"
+        ),
         "contract_selector_skill": discovery.get("selector_skill", "contract_selector_skill"),
         "contract_discovery_skill": "contract_discovery_skill",
         "contract_discovery_month": discovery.get("month", ""),
