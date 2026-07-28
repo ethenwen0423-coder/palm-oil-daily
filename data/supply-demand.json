@@ -1,0 +1,902 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-07-28T23:10:55+08:00",
+  "timezone": "Asia/Shanghai",
+  "display_months": 24,
+  "countries": {
+    "malaysia": {
+      "name": "马来西亚",
+      "status": "ok",
+      "status_message": "官方月度数据已更新。",
+      "latest_period": "2026-06",
+      "source": {
+        "name": "Malaysian Palm Oil Board (MPOB)",
+        "url": "https://bepi.mpob.gov.my/"
+      },
+      "metrics": {
+        "production": {
+          "label": "CPO产量",
+          "unit": "tonnes",
+          "display_unit": "万吨",
+          "definition": "MPOB公布的马来西亚月度毛棕榈油（CPO）产量。",
+          "series": [
+            {
+              "period": "2024-06",
+              "value": 1615283,
+              "published_at": "2024-07-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202444"
+            },
+            {
+              "period": "2024-07",
+              "value": 1840999,
+              "published_at": "2024-08-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202444"
+            },
+            {
+              "period": "2024-08",
+              "value": 1893859,
+              "published_at": "2024-09-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202444"
+            },
+            {
+              "period": "2024-09",
+              "value": 1821933,
+              "published_at": "2024-10-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202444"
+            },
+            {
+              "period": "2024-10",
+              "value": 1797348,
+              "published_at": "2024-11-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202444"
+            },
+            {
+              "period": "2024-11",
+              "value": 1621294,
+              "published_at": "2024-12-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202444"
+            },
+            {
+              "period": "2024-12",
+              "value": 1486942,
+              "published_at": "2025-01-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202444"
+            },
+            {
+              "period": "2025-01",
+              "value": 1239895,
+              "published_at": "2025-02-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202544"
+            },
+            {
+              "period": "2025-02",
+              "value": 1188443,
+              "published_at": "2025-03-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202544"
+            },
+            {
+              "period": "2025-03",
+              "value": 1387616,
+              "published_at": "2025-04-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202544"
+            },
+            {
+              "period": "2025-04",
+              "value": 1686379,
+              "published_at": "2025-05-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202544"
+            },
+            {
+              "period": "2025-05",
+              "value": 1771621,
+              "published_at": "2025-06-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202544"
+            },
+            {
+              "period": "2025-06",
+              "value": 1692370,
+              "published_at": "2025-07-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202544"
+            },
+            {
+              "period": "2025-07",
+              "value": 1812467,
+              "published_at": "2025-08-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202544"
+            },
+            {
+              "period": "2025-08",
+              "value": 1854756,
+              "published_at": "2025-09-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202544"
+            },
+            {
+              "period": "2025-09",
+              "value": 1840983,
+              "published_at": "2025-10-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202544"
+            },
+            {
+              "period": "2025-10",
+              "value": 2043886,
+              "published_at": "2025-11-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202544"
+            },
+            {
+              "period": "2025-11",
+              "value": 1935510,
+              "published_at": "2025-12-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202544"
+            },
+            {
+              "period": "2025-12",
+              "value": 1829549,
+              "published_at": "2026-01-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202544"
+            },
+            {
+              "period": "2026-01",
+              "value": 1576683,
+              "published_at": "2026-02-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202644"
+            },
+            {
+              "period": "2026-02",
+              "value": 1284268,
+              "published_at": "2026-03-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202644"
+            },
+            {
+              "period": "2026-03",
+              "value": 1376849,
+              "published_at": "2026-04-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202644"
+            },
+            {
+              "period": "2026-04",
+              "value": 1629801,
+              "published_at": "2026-05-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202644"
+            },
+            {
+              "period": "2026-05",
+              "value": 1516327,
+              "published_at": "2026-06-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202644"
+            },
+            {
+              "period": "2026-06",
+              "value": 1638777,
+              "published_at": "2026-07-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202644"
+            }
+          ]
+        },
+        "exports": {
+          "label": "棕榈油出口",
+          "unit": "tonnes",
+          "display_unit": "万吨",
+          "definition": "MPOB公布的PALM OIL出口量，包含CPO与加工棕榈油。",
+          "series": [
+            {
+              "period": "2024-06",
+              "value": 1210309,
+              "published_at": "2024-07-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202434"
+            },
+            {
+              "period": "2024-07",
+              "value": 1698536,
+              "published_at": "2024-08-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202434"
+            },
+            {
+              "period": "2024-08",
+              "value": 1532905,
+              "published_at": "2024-09-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202434"
+            },
+            {
+              "period": "2024-09",
+              "value": 1559868,
+              "published_at": "2024-10-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202434"
+            },
+            {
+              "period": "2024-10",
+              "value": 1744265,
+              "published_at": "2024-11-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202434"
+            },
+            {
+              "period": "2024-11",
+              "value": 1490043,
+              "published_at": "2024-12-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202434"
+            },
+            {
+              "period": "2024-12",
+              "value": 1341936,
+              "published_at": "2025-01-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202434"
+            },
+            {
+              "period": "2025-01",
+              "value": 1179874,
+              "published_at": "2025-02-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202534"
+            },
+            {
+              "period": "2025-02",
+              "value": 996463,
+              "published_at": "2025-03-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202534"
+            },
+            {
+              "period": "2025-03",
+              "value": 1005664,
+              "published_at": "2025-04-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202534"
+            },
+            {
+              "period": "2025-04",
+              "value": 1104359,
+              "published_at": "2025-05-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202534"
+            },
+            {
+              "period": "2025-05",
+              "value": 1407603,
+              "published_at": "2025-06-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202534"
+            },
+            {
+              "period": "2025-06",
+              "value": 1260957,
+              "published_at": "2025-07-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202534"
+            },
+            {
+              "period": "2025-07",
+              "value": 1328798,
+              "published_at": "2025-08-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202534"
+            },
+            {
+              "period": "2025-08",
+              "value": 1326991,
+              "published_at": "2025-09-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202534"
+            },
+            {
+              "period": "2025-09",
+              "value": 1429575,
+              "published_at": "2025-10-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202534"
+            },
+            {
+              "period": "2025-10",
+              "value": 1687495,
+              "published_at": "2025-11-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202534"
+            },
+            {
+              "period": "2025-11",
+              "value": 1213150,
+              "published_at": "2025-12-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202534"
+            },
+            {
+              "period": "2025-12",
+              "value": 1331894,
+              "published_at": "2026-01-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202534"
+            },
+            {
+              "period": "2026-01",
+              "value": 1453163,
+              "published_at": "2026-02-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202634"
+            },
+            {
+              "period": "2026-02",
+              "value": 1065204,
+              "published_at": "2026-03-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202634"
+            },
+            {
+              "period": "2026-03",
+              "value": 1520693,
+              "published_at": "2026-04-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202634"
+            },
+            {
+              "period": "2026-04",
+              "value": 1292568,
+              "published_at": "2026-05-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202634"
+            },
+            {
+              "period": "2026-05",
+              "value": 1133879,
+              "published_at": "2026-06-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202634"
+            },
+            {
+              "period": "2026-06",
+              "value": 1204013,
+              "published_at": "2026-07-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202634"
+            }
+          ]
+        },
+        "stocks": {
+          "label": "期末库存",
+          "unit": "tonnes",
+          "display_unit": "万吨",
+          "definition": "MPOB公布的TOTAL PALM OIL月末库存，包含CPO与加工棕榈油。",
+          "series": [
+            {
+              "period": "2024-06",
+              "value": 1831571,
+              "published_at": "2024-07-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202411"
+            },
+            {
+              "period": "2024-07",
+              "value": 1754605,
+              "published_at": "2024-08-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202411"
+            },
+            {
+              "period": "2024-08",
+              "value": 1883465,
+              "published_at": "2024-09-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202411"
+            },
+            {
+              "period": "2024-09",
+              "value": 2012110,
+              "published_at": "2024-10-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202411"
+            },
+            {
+              "period": "2024-10",
+              "value": 1885194,
+              "published_at": "2024-11-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202411"
+            },
+            {
+              "period": "2024-11",
+              "value": 1835641,
+              "published_at": "2024-12-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202411"
+            },
+            {
+              "period": "2024-12",
+              "value": 1708756,
+              "published_at": "2025-01-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202411"
+            },
+            {
+              "period": "2025-01",
+              "value": 1580934,
+              "published_at": "2025-02-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202511"
+            },
+            {
+              "period": "2025-02",
+              "value": 1509942,
+              "published_at": "2025-03-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202511"
+            },
+            {
+              "period": "2025-03",
+              "value": 1563831,
+              "published_at": "2025-04-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202511"
+            },
+            {
+              "period": "2025-04",
+              "value": 1865536,
+              "published_at": "2025-05-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202511"
+            },
+            {
+              "period": "2025-05",
+              "value": 1982895,
+              "published_at": "2025-06-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202511"
+            },
+            {
+              "period": "2025-06",
+              "value": 2031249,
+              "published_at": "2025-07-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202511"
+            },
+            {
+              "period": "2025-07",
+              "value": 2113881,
+              "published_at": "2025-08-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202511"
+            },
+            {
+              "period": "2025-08",
+              "value": 2201618,
+              "published_at": "2025-09-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202511"
+            },
+            {
+              "period": "2025-09",
+              "value": 2359572,
+              "published_at": "2025-10-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202511"
+            },
+            {
+              "period": "2025-10",
+              "value": 2508396,
+              "published_at": "2025-11-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202511"
+            },
+            {
+              "period": "2025-11",
+              "value": 2835578,
+              "published_at": "2025-12-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202511"
+            },
+            {
+              "period": "2025-12",
+              "value": 3051147,
+              "published_at": "2026-01-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202511"
+            },
+            {
+              "period": "2026-01",
+              "value": 2814849,
+              "published_at": "2026-02-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202611"
+            },
+            {
+              "period": "2026-02",
+              "value": 2703521,
+              "published_at": "2026-03-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202611"
+            },
+            {
+              "period": "2026-03",
+              "value": 2270574,
+              "published_at": "2026-04-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202611"
+            },
+            {
+              "period": "2026-04",
+              "value": 2308944,
+              "published_at": "2026-05-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202611"
+            },
+            {
+              "period": "2026-05",
+              "value": 2427943,
+              "published_at": "2026-06-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202611"
+            },
+            {
+              "period": "2026-06",
+              "value": 2544066,
+              "published_at": "2026-07-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202611"
+            }
+          ]
+        }
+      }
+    },
+    "indonesia": {
+      "name": "印度尼西亚",
+      "status": "partial",
+      "status_message": "部分历史月份缺少可比的官方原始口径，图中保留断点；需进一步核验。",
+      "latest_period": "2026-05",
+      "source": {
+        "name": "Gabungan Pengusaha Kelapa Sawit Indonesia (GAPKI)",
+        "url": "https://gapki.id/"
+      },
+      "metrics": {
+        "production": {
+          "label": "CPO产量",
+          "unit": "tonnes",
+          "display_unit": "万吨",
+          "definition": "GAPKI月度行业稿披露的印度尼西亚CPO产量。",
+          "series": [
+            {
+              "period": "2024-06",
+              "value": 3691000,
+              "published_at": "2024-08-29",
+              "source_url": "https://gapki.id/news/2024/08/29/ekspor-melonjak-stok-turun/"
+            },
+            {
+              "period": "2024-07",
+              "value": 3617000,
+              "published_at": "2024-09-25",
+              "source_url": "https://gapki.id/news/2024/09/25/produksi-turun-stok-kembali-turun/"
+            },
+            {
+              "period": "2024-08",
+              "value": 3986000,
+              "published_at": "2024-10-22",
+              "source_url": "https://gapki.id/news/2024/10/22/produksi-ekspor-naik-stok-berkurang/"
+            },
+            {
+              "period": "2024-09",
+              "value": 4021000,
+              "published_at": "2024-11-21",
+              "source_url": "https://gapki.id/news/2024/11/21/ekspor-menurun-stok-bertambah/"
+            },
+            {
+              "period": "2024-11",
+              "value": 4333000,
+              "published_at": "2025-01-24",
+              "source_url": "https://gapki.id/news/2025/01/24/produksi-dan-ekspor-turun-stok-meningkat/"
+            },
+            {
+              "period": "2024-12",
+              "value": 3876000,
+              "published_at": "2025-03-06",
+              "source_url": "https://gapki.id/news/2025/03/06/produksi-menurun-pasar-indonesia-menyusut/"
+            },
+            {
+              "period": "2025-01",
+              "value": 3828000,
+              "published_at": "2025-03-27",
+              "source_url": "https://gapki.id/news/2025/03/27/konsumsi-ekspor-turun-stok-naik/"
+            },
+            {
+              "period": "2025-02",
+              "value": 3789000,
+              "published_at": "2025-04-30",
+              "source_url": "https://gapki.id/news/2025/04/30/sawit-februari-2025-produksi-turun-ekspor-melejit/"
+            },
+            {
+              "period": "2025-03",
+              "value": 4391000,
+              "published_at": "2025-05-31",
+              "source_url": "https://gapki.id/news/2025/05/31/stok-cpo-turun-produksi-dan-konsumsi-dalam-negeri-naik-tajam-di-maret-2025/"
+            },
+            {
+              "period": "2025-04",
+              "value": 4479000,
+              "published_at": "2025-06-24",
+              "source_url": "https://gapki.id/news/2025/06/24/produksi-cpo-naik-ekspor-anjlok/"
+            },
+            {
+              "period": "2025-05",
+              "value": 4165000,
+              "published_at": "2025-07-23",
+              "source_url": "https://gapki.id/news/2025/07/23/produksi-cpo-turun-di-mei-2025-tapi-ekspor-sawit-indonesia-naik-4975-tembus-us-282-miliar/"
+            },
+            {
+              "period": "2025-06",
+              "value": 4823000,
+              "published_at": "2025-08-21",
+              "source_url": "https://gapki.id/news/2025/08/21/ekspor-sawit-indonesia-juni-2025-meroket-35/"
+            },
+            {
+              "period": "2025-07",
+              "value": 5113000,
+              "published_at": "2025-09-24",
+              "source_url": "https://gapki.id/news/2025/09/24/produksi-bertahan-tinggi-ekspor-turun/"
+            },
+            {
+              "period": "2025-08",
+              "value": 5062000,
+              "published_at": "2025-10-29",
+              "source_url": "https://gapki.id/news/2025/10/29/konsumsi-meningkat-ekspor-turun/"
+            },
+            {
+              "period": "2025-09",
+              "value": 3932000,
+              "published_at": "2025-11-27",
+              "source_url": "https://gapki.id/news/2025/11/27/harga-naik-ekspor-sawit-merosot-analisis-kinerja-september-2025/"
+            },
+            {
+              "period": "2025-10",
+              "value": 4352000,
+              "published_at": "2025-12-19",
+              "source_url": "https://gapki.id/news/2025/12/19/produksi-cpo-naik-10-ekspor-sawit-capai-us-329-miliar-di-oktober-2025/"
+            },
+            {
+              "period": "2026-02",
+              "value": 5015000,
+              "published_at": "2026-04-21",
+              "source_url": "https://gapki.id/news/2026/04/21/kinerja-sawit-februari-2026-melesat-produksi-konsumsi-ekspor-naik-stok-menipis/"
+            },
+            {
+              "period": "2026-03",
+              "value": 4403000,
+              "published_at": "2026-05-25",
+              "source_url": "https://gapki.id/news/2026/05/25/anjlok-serentak-produksi-konsumsi-dan-ekspor-sawit-turun-di-maret-2026-apa-penyebabnya/"
+            },
+            {
+              "period": "2026-04",
+              "value": 4479000,
+              "published_at": "2026-06-29",
+              "source_url": "https://gapki.id/news/2026/06/29/kinerja-industri-sawit-indonesia-april-2026-menguat-produksi-dan-ekspor-naik-signifikan/"
+            },
+            {
+              "period": "2026-05",
+              "value": 4165000,
+              "published_at": "2026-07-15",
+              "source_url": "https://gapki.id/news/2026/07/15/ekspor-sawit-turun-28-stok-cpo-nasional-capai-304-juta-ton/"
+            }
+          ]
+        },
+        "exports": {
+          "label": "棕榈油产品出口",
+          "unit": "tonnes",
+          "display_unit": "万吨",
+          "definition": "GAPKI月度行业稿披露的棕榈油产品出口总量，采用协会原始口径。",
+          "series": [
+            {
+              "period": "2024-06",
+              "value": 3385000,
+              "published_at": "2024-08-29",
+              "source_url": "https://gapki.id/news/2024/08/29/ekspor-melonjak-stok-turun/"
+            },
+            {
+              "period": "2024-07",
+              "value": 2241000,
+              "published_at": "2024-09-25",
+              "source_url": "https://gapki.id/news/2024/09/25/produksi-turun-stok-kembali-turun/"
+            },
+            {
+              "period": "2024-08",
+              "value": 2384000,
+              "published_at": "2024-10-22",
+              "source_url": "https://gapki.id/news/2024/10/22/produksi-ekspor-naik-stok-berkurang/"
+            },
+            {
+              "period": "2024-09",
+              "value": 1860000,
+              "published_at": "2024-11-21",
+              "source_url": "https://gapki.id/news/2024/11/21/ekspor-menurun-stok-bertambah/"
+            },
+            {
+              "period": "2024-10",
+              "value": 2888000,
+              "published_at": "2024-12-24",
+              "source_url": "https://gapki.id/news/2024/12/24/produksi-dan-ekspor-naik-stok-berkurang/"
+            },
+            {
+              "period": "2024-11",
+              "value": 2637000,
+              "published_at": "2025-01-24",
+              "source_url": "https://gapki.id/news/2025/01/24/produksi-dan-ekspor-turun-stok-meningkat/"
+            },
+            {
+              "period": "2024-12",
+              "value": 2060000,
+              "published_at": "2025-03-06",
+              "source_url": "https://gapki.id/news/2025/03/06/produksi-menurun-pasar-indonesia-menyusut/"
+            },
+            {
+              "period": "2025-01",
+              "value": 1960000,
+              "published_at": "2025-03-27",
+              "source_url": "https://gapki.id/news/2025/03/27/konsumsi-ekspor-turun-stok-naik/"
+            },
+            {
+              "period": "2025-02",
+              "value": 2803000,
+              "published_at": "2025-04-30",
+              "source_url": "https://gapki.id/news/2025/04/30/sawit-februari-2025-produksi-turun-ekspor-melejit/"
+            },
+            {
+              "period": "2025-03",
+              "value": 2878000,
+              "published_at": "2025-05-31",
+              "source_url": "https://gapki.id/news/2025/05/31/stok-cpo-turun-produksi-dan-konsumsi-dalam-negeri-naik-tajam-di-maret-2025/"
+            },
+            {
+              "period": "2025-04",
+              "value": 1779000,
+              "published_at": "2025-06-24",
+              "source_url": "https://gapki.id/news/2025/06/24/produksi-cpo-naik-ekspor-anjlok/"
+            },
+            {
+              "period": "2025-05",
+              "value": 2664000,
+              "published_at": "2025-07-23",
+              "source_url": "https://gapki.id/news/2025/07/23/produksi-cpo-turun-di-mei-2025-tapi-ekspor-sawit-indonesia-naik-4975-tembus-us-282-miliar/"
+            },
+            {
+              "period": "2025-06",
+              "value": 3606000,
+              "published_at": "2025-08-21",
+              "source_url": "https://gapki.id/news/2025/08/21/ekspor-sawit-indonesia-juni-2025-meroket-35/"
+            },
+            {
+              "period": "2025-07",
+              "value": 3537000,
+              "published_at": "2025-09-24",
+              "source_url": "https://gapki.id/news/2025/09/24/produksi-bertahan-tinggi-ekspor-turun/"
+            },
+            {
+              "period": "2025-08",
+              "value": 3537000,
+              "published_at": "2025-10-29",
+              "source_url": "https://gapki.id/news/2025/10/29/konsumsi-meningkat-ekspor-turun/"
+            },
+            {
+              "period": "2025-09",
+              "value": 2200000,
+              "published_at": "2025-11-27",
+              "source_url": "https://gapki.id/news/2025/11/27/harga-naik-ekspor-sawit-merosot-analisis-kinerja-september-2025/"
+            },
+            {
+              "period": "2025-10",
+              "value": 2796000,
+              "published_at": "2025-12-19",
+              "source_url": "https://gapki.id/news/2025/12/19/produksi-cpo-naik-10-ekspor-sawit-capai-us-329-miliar-di-oktober-2025/"
+            },
+            {
+              "period": "2026-02",
+              "value": 3297000,
+              "published_at": "2026-04-21",
+              "source_url": "https://gapki.id/news/2026/04/21/kinerja-sawit-februari-2026-melesat-produksi-konsumsi-ekspor-naik-stok-menipis/"
+            },
+            {
+              "period": "2026-03",
+              "value": 2168000,
+              "published_at": "2026-05-25",
+              "source_url": "https://gapki.id/news/2026/05/25/anjlok-serentak-produksi-konsumsi-dan-ekspor-sawit-turun-di-maret-2026-apa-penyebabnya/"
+            },
+            {
+              "period": "2026-04",
+              "value": 2777000,
+              "published_at": "2026-06-29",
+              "source_url": "https://gapki.id/news/2026/06/29/kinerja-industri-sawit-indonesia-april-2026-menguat-produksi-dan-ekspor-naik-signifikan/"
+            },
+            {
+              "period": "2026-05",
+              "value": 1996000,
+              "published_at": "2026-07-15",
+              "source_url": "https://gapki.id/news/2026/07/15/ekspor-sawit-turun-28-stok-cpo-nasional-capai-304-juta-ton/"
+            }
+          ]
+        },
+        "stocks": {
+          "label": "期末库存",
+          "unit": "tonnes",
+          "display_unit": "万吨",
+          "definition": "GAPKI月度行业稿披露的行业期末库存，采用协会原始口径。",
+          "series": [
+            {
+              "period": "2024-06",
+              "value": 2818000,
+              "published_at": "2024-08-29",
+              "source_url": "https://gapki.id/news/2024/08/29/ekspor-melonjak-stok-turun/"
+            },
+            {
+              "period": "2024-07",
+              "value": 2513000,
+              "published_at": "2024-09-25",
+              "source_url": "https://gapki.id/news/2024/09/25/produksi-turun-stok-kembali-turun/"
+            },
+            {
+              "period": "2024-08",
+              "value": 2450000,
+              "published_at": "2024-10-22",
+              "source_url": "https://gapki.id/news/2024/10/22/produksi-ekspor-naik-stok-berkurang/"
+            },
+            {
+              "period": "2024-09",
+              "value": 3021000,
+              "published_at": "2024-11-21",
+              "source_url": "https://gapki.id/news/2024/11/21/ekspor-menurun-stok-bertambah/"
+            },
+            {
+              "period": "2024-10",
+              "value": 2502000,
+              "published_at": "2024-12-24",
+              "source_url": "https://gapki.id/news/2024/12/24/produksi-dan-ekspor-naik-stok-berkurang/"
+            },
+            {
+              "period": "2024-11",
+              "value": 2583000,
+              "published_at": "2025-01-24",
+              "source_url": "https://gapki.id/news/2025/01/24/produksi-dan-ekspor-turun-stok-meningkat/"
+            },
+            {
+              "period": "2024-12",
+              "value": 3145000,
+              "published_at": "2025-03-06",
+              "source_url": "https://gapki.id/news/2025/03/06/produksi-menurun-pasar-indonesia-menyusut/"
+            },
+            {
+              "period": "2025-01",
+              "value": 2936000,
+              "published_at": "2025-03-27",
+              "source_url": "https://gapki.id/news/2025/03/27/konsumsi-ekspor-turun-stok-naik/"
+            },
+            {
+              "period": "2025-02",
+              "value": 3789000,
+              "published_at": "2025-04-30",
+              "source_url": "https://gapki.id/news/2025/04/30/sawit-februari-2025-produksi-turun-ekspor-melejit/"
+            },
+            {
+              "period": "2025-03",
+              "value": 4391000,
+              "published_at": "2025-05-31",
+              "source_url": "https://gapki.id/news/2025/05/31/stok-cpo-turun-produksi-dan-konsumsi-dalam-negeri-naik-tajam-di-maret-2025/"
+            },
+            {
+              "period": "2025-04",
+              "value": 4479000,
+              "published_at": "2025-06-24",
+              "source_url": "https://gapki.id/news/2025/06/24/produksi-cpo-naik-ekspor-anjlok/"
+            },
+            {
+              "period": "2025-05",
+              "value": 2916000,
+              "published_at": "2025-07-23",
+              "source_url": "https://gapki.id/news/2025/07/23/produksi-cpo-turun-di-mei-2025-tapi-ekspor-sawit-indonesia-naik-4975-tembus-us-282-miliar/"
+            },
+            {
+              "period": "2025-06",
+              "value": 2530000,
+              "published_at": "2025-08-21",
+              "source_url": "https://gapki.id/news/2025/08/21/ekspor-sawit-indonesia-juni-2025-meroket-35/"
+            },
+            {
+              "period": "2025-07",
+              "value": 2568000,
+              "published_at": "2025-09-24",
+              "source_url": "https://gapki.id/news/2025/09/24/produksi-bertahan-tinggi-ekspor-turun/"
+            },
+            {
+              "period": "2025-08",
+              "value": 2543000,
+              "published_at": "2025-10-29",
+              "source_url": "https://gapki.id/news/2025/10/29/konsumsi-meningkat-ekspor-turun/"
+            },
+            {
+              "period": "2025-09",
+              "value": 2592000,
+              "published_at": "2025-11-27",
+              "source_url": "https://gapki.id/news/2025/11/27/harga-naik-ekspor-sawit-merosot-analisis-kinerja-september-2025/"
+            },
+            {
+              "period": "2025-10",
+              "value": 2333000,
+              "published_at": "2025-12-19",
+              "source_url": "https://gapki.id/news/2025/12/19/produksi-cpo-naik-10-ekspor-sawit-capai-us-329-miliar-di-oktober-2025/"
+            },
+            {
+              "period": "2026-02",
+              "value": 2026000,
+              "published_at": "2026-04-21",
+              "source_url": "https://gapki.id/news/2026/04/21/kinerja-sawit-februari-2026-melesat-produksi-konsumsi-ekspor-naik-stok-menipis/"
+            },
+            {
+              "period": "2026-03",
+              "value": 2568000,
+              "published_at": "2026-05-25",
+              "source_url": "https://gapki.id/news/2026/05/25/anjlok-serentak-produksi-konsumsi-dan-ekspor-sawit-turun-di-maret-2026-apa-penyebabnya/"
+            },
+            {
+              "period": "2026-04",
+              "value": 2558000,
+              "published_at": "2026-06-29",
+              "source_url": "https://gapki.id/news/2026/06/29/kinerja-industri-sawit-indonesia-april-2026-menguat-produksi-dan-ekspor-naik-signifikan/"
+            },
+            {
+              "period": "2026-05",
+              "value": 3042000,
+              "published_at": "2026-07-15",
+              "source_url": "https://gapki.id/news/2026/07/15/ekspor-sawit-turun-28-stok-cpo-nasional-capai-304-juta-ton/"
+            }
+          ]
+        }
+      }
+    }
+  }
+}
