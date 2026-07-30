@@ -33,6 +33,7 @@ fi
 OIL_TMP="$TMP_DIR/oil_futures.js"
 EXCHANGE_TMP="$TMP_DIR/exchange_futures.js"
 EXCHANGE_JSON_TMP="$TMP_DIR/exchange_futures.json"
+CONTRACT_TMP="$TMP_DIR/current_contracts.json"
 SKIP_OIL=false
 OIL_FUNDAMENTAL_MODE="refresh"
 EXCHANGE_FUNDAMENTAL_MODE="refresh"
@@ -64,6 +65,7 @@ if [[ "$SKIP_OIL" == false ]]; then
     --output "$OIL_TMP"
     --update-session "$SESSION"
     --fundamental-mode "$OIL_FUNDAMENTAL_MODE"
+    --contract-output "$CONTRACT_TMP"
   )
   if [[ "$OIL_FUNDAMENTAL_MODE" == "carry" ]]; then
     OIL_ARGS+=(--fundamental-date "$FUNDAMENTAL_DATE")
@@ -161,6 +163,8 @@ PY
 
 if [[ "$SKIP_OIL" == false ]]; then
   cp "$OIL_TMP" data/oil_futures.js
+  cp "$CONTRACT_TMP" data/contracts/current_contracts.json
+  cp "$CONTRACT_TMP" "data/contracts/${TODAY:0:7}.json"
   python3 scripts/sync_miniprogram_data.py oil-futures
 fi
 cp "$EXCHANGE_TMP" data/exchange_futures.js

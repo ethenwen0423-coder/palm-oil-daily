@@ -388,12 +388,12 @@ def concrete_contract(value: Any) -> str | None:
     return None
 
 
-def run_contract_selector(now_month: str) -> list[str]:
+def run_contract_selector(now_month: str) -> tuple[dict[str, Any] | None, list[str]]:
     selector = CONTRACT_SELECTOR_CLI if CONTRACT_SELECTOR_CLI.exists() else CONTRACT_DISCOVERY_CLI
     if not selector.exists():
-        return ["contract_selector_skill 和 contract_discovery_skill 均缺失，无法生成当月合约名单"]
+        return None, ["contract_selector_skill 和 contract_discovery_skill 均缺失，无法生成当月合约名单"]
     result = subprocess.run(
-        [sys.executable, str(selector)],
+        [sys.executable, str(selector), "--output-only"],
         cwd=str(ROOT),
         text=True,
         capture_output=True,
@@ -401,35 +401,88 @@ def run_contract_selector(now_month: str) -> list[str]:
         check=False,
     )
     if result.returncode != 0:
-        return [f"contract_selector_skill 调用失败：{result.stderr.strip() or result.stdout.strip()}"]
-    return []
+        return None, [f"contract_selector_skill 调用失败：{result.stderr.strip() or result.stdout.strip()}"]
+    try:
+        payload = json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        return None, [f"contract_selector_skill 输出无法解析：{exc}"]
+    if not isinstance(payload, dict) or payload.get("month") != now_month:
+        return None, ["contract_selector_skill 输出月份或结构不合法"]
+    return payload, []
 
 
 def load_contract_discovery() -> dict[str, Any]:
-    now_month = datetime.now().strftime("%Y-%m")
-    selector_warnings = run_contract_selector(now_month)
-    if CONTRACT_DISCOVERY_CURRENT.exists():
-        try:
-            payload = json.loads(CONTRACT_DISCOVERY_CURRENT.read_text(encoding="utf-8"))
-            if payload.get("month") == now_month:
-                payload["selector_skill"] = "contract_selector_skill"
-                payload["warnings"] = list(payload.get("warnings", [])) + selector_warnings
-                return payload
-        except Exception:
-            pass
-
+    now_month = datetime.now(SHANGHAI).strftime("%Y-%m")
+    previous: dict[str, Any] | None = None
     try:
-        payload = json.loads(CONTRACT_DISCOVERY_CURRENT.read_text(encoding="utf-8"))
-        payload["selector_skill"] = "contract_selector_skill"
-        payload["warnings"] = list(payload.get("warnings", [])) + selector_warnings
-        return payload
-    except Exception as exc:
+        loaded = json.loads(CONTRACT_DISCOVERY_CURRENT.read_text(encoding="utf-8"))
+        if isinstance(loaded, dict):
+            previous = loaded
+    except (FileNotFoundError, OSError, json.JSONDecodeError):
+        previous = None
+
+    fresh, selector_warnings = run_contract_selector(now_month)
+    if fresh is None:
+        if previous and previous.get("month") == now_month:
+            fallback = json.loads(json.dumps(previous, ensure_ascii=False))
+            fallback["selector_skill"] = "contract_selector_skill"
+            fallback["warnings"] = list(fallback.get("warnings", [])) + selector_warnings + [
+                "实时合约发现失败，沿用当月最近一次有效合约名单"
+            ]
+            return fallback
         return {
             "month": now_month,
             "products": {},
             "selector_skill": "contract_selector_skill",
-            "warnings": selector_warnings + [f"contract_selector_skill 已运行但名单读取失败：{exc}"],
+            "warnings": selector_warnings,
         }
+
+    products = fresh.get("products") if isinstance(fresh.get("products"), dict) else {}
+    previous_products = (
+        previous.get("products")
+        if previous and previous.get("month") == now_month and isinstance(previous.get("products"), dict)
+        else {}
+    )
+    warnings = list(fresh.get("warnings", [])) + selector_warnings
+    for spec in DOMESTIC:
+        symbol = spec["symbol"]
+        if products.get(symbol):
+            continue
+        fallback_contracts = previous_products.get(symbol) if isinstance(previous_products, dict) else None
+        if fallback_contracts:
+            products[symbol] = fallback_contracts
+            warnings.append(f"{symbol} 实时合约发现缺失，沿用当月最近一次有效合约名单")
+    fresh["products"] = products
+    fresh["selector_skill"] = "contract_selector_skill"
+    fresh["warnings"] = warnings
+    return fresh
+
+
+def write_contract_discovery(payload: dict[str, Any], output: Path) -> None:
+    products = payload.get("products") if isinstance(payload.get("products"), dict) else {}
+    missing = [spec["symbol"] for spec in DOMESTIC if not products.get(spec["symbol"])]
+    if missing:
+        raise RuntimeError(f"合约发现结果仍缺少：{', '.join(missing)}")
+    output.parent.mkdir(parents=True, exist_ok=True)
+    encoded = json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
+    handle, temporary = tempfile.mkstemp(prefix=f".{output.name}.", dir=output.parent)
+    try:
+        with os.fdopen(handle, "w", encoding="utf-8") as stream:
+            stream.write(encoded)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, output)
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
+
+
+def publish_contract_discovery(payload: dict[str, Any]) -> None:
+    month = str(payload.get("month") or "")
+    if not re.fullmatch(r"\d{4}-\d{2}", month):
+        raise RuntimeError("合约发现月份格式不合法")
+    write_contract_discovery(payload, CONTRACT_DISCOVERY_CURRENT)
+    write_contract_discovery(payload, CONTRACT_DISCOVERY_CURRENT.with_name(f"{month}.json"))
 
 
 def ak_realtime_contract(ak: Any, variety: str, preferred_contract: str | None = None) -> dict[str, Any] | None:
@@ -1179,6 +1232,11 @@ def build_actual_snapshot_payload(snapshot_date: str) -> dict[str, Any]:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Update static oil futures contract data.")
     parser.add_argument("--output", type=Path, default=OUTPUT)
+    parser.add_argument(
+        "--contract-output",
+        type=Path,
+        help="将候选合约名单写入临时路径；仅在行情质量门通过后写入",
+    )
     parser.add_argument("--report-date")
     parser.add_argument("--generated-at")
     parser.add_argument("--cutoff-at")
@@ -1214,14 +1272,23 @@ def main() -> int:
     if args.mode == "actual-snapshot":
         if not args.snapshot_date:
             parser.error("--mode actual-snapshot requires --snapshot-date")
-        if any([args.report_date, args.generated_at, args.cutoff_at]):
+        if any([args.report_date, args.generated_at, args.cutoff_at, args.contract_output]):
             parser.error("actual-snapshot mode does not accept forecast-freezing time arguments")
         if args.output.resolve() == OUTPUT.resolve():
             parser.error("actual-snapshot mode requires a non-official --output path")
     elif args.snapshot_date:
         parser.error("--snapshot-date is only valid with --mode actual-snapshot")
 
-    if args.external_only and any([args.report_date, args.generated_at, args.cutoff_at, args.snapshot_date, args.mode != "publish"]):
+    if args.external_only and any(
+        [
+            args.report_date,
+            args.generated_at,
+            args.cutoff_at,
+            args.snapshot_date,
+            args.contract_output,
+            args.mode != "publish",
+        ]
+    ):
         parser.error("--external-only cannot be combined with snapshot or forecast-freezing arguments")
 
     if args.mode == "actual-snapshot":
@@ -1344,12 +1411,22 @@ def main() -> int:
             finally:
                 tmp_output.unlink(missing_ok=True)
             write_js(payload, args.output)
+            if args.contract_output:
+                write_contract_discovery(discovery, args.contract_output)
+            else:
+                publish_contract_discovery(discovery)
             forecast_result = None
         else:
             forecast_result = validate_freeze_and_publish(payload, args.output, metadata)
+            if args.contract_output:
+                write_contract_discovery(discovery, args.contract_output)
+            else:
+                publish_contract_discovery(discovery)
     else:
         write_js(payload, args.output, publish=False)
         run_data_quality_gate(args.output)
+        if args.contract_output:
+            write_contract_discovery(discovery, args.contract_output)
         try:
             display_path = args.output.relative_to(ROOT)
         except ValueError:

@@ -3,7 +3,9 @@ import json
 import sys
 import tempfile
 import unittest
+from datetime import datetime
 from pathlib import Path
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -48,6 +50,10 @@ class FundamentalRefreshBoundaryTest(unittest.TestCase):
         self.assertIn("--fundamental-date", deploy)
         self.assertIn("data/contracts/current_contracts.json", deploy)
         self.assertIn('"data/contracts/${TODAY:0:7}.json"', deploy)
+        self.assertIn("--contract-output", deploy)
+        self.assertIn('CONTRACT_TMP="$TMP_DIR/current_contracts.json"', deploy)
+        self.assertIn('cp "$CONTRACT_TMP" data/contracts/current_contracts.json', deploy)
+        self.assertIn("--output-only", OIL.run_contract_selector.__code__.co_consts)
 
     def test_exchange_carry_requires_same_day_morning_snapshot(self):
         payload = {
@@ -139,6 +145,60 @@ class FundamentalRefreshBoundaryTest(unittest.TestCase):
             loaded, records = OIL.load_frozen_oil_fundamentals(path, "2026-07-30")
         self.assertEqual(loaded["fundamental_update_session"], "morning")
         self.assertIn(("P", 1, "DCE"), records)
+
+    def test_contract_discovery_falls_back_per_product_without_mutating_saved_file(self):
+        month = "2026-07"
+        previous = {
+            "month": month,
+            "generated_at": "2026-07-30 23:20:41",
+            "products": {
+                "P": [{"symbol": "P2609", "rank": 1}],
+                "Y": [{"symbol": "Y2609", "rank": 1}],
+                "OI": [{"symbol": "OI2609", "rank": 1}],
+                "M": [{"symbol": "M2609", "rank": 1}],
+                "RM": [{"symbol": "RM2609", "rank": 1}],
+            },
+            "warnings": [],
+        }
+        fresh = {
+            "month": month,
+            "generated_at": "2026-07-31 00:13:42",
+            "products": {
+                "P": [],
+                "Y": [{"symbol": "Y2609", "rank": 1}],
+                "OI": [{"symbol": "OI2609", "rank": 1}],
+                "M": [{"symbol": "M2609", "rank": 1}],
+                "RM": [{"symbol": "RM2609", "rank": 1}],
+            },
+            "warnings": ["P 合约实时行情获取失败"],
+        }
+        with tempfile.TemporaryDirectory() as temporary:
+            saved = Path(temporary) / "current_contracts.json"
+            saved.write_text(json.dumps(previous, ensure_ascii=False), encoding="utf-8")
+            before = saved.read_text(encoding="utf-8")
+            with (
+                mock.patch.object(OIL, "CONTRACT_DISCOVERY_CURRENT", saved),
+                mock.patch.object(OIL, "run_contract_selector", return_value=(fresh, [])),
+                mock.patch.object(OIL, "datetime") as mocked_datetime,
+            ):
+                mocked_datetime.now.return_value = datetime(2026, 7, 31, tzinfo=OIL.SHANGHAI)
+                result = OIL.load_contract_discovery()
+            self.assertEqual(result["products"]["P"], previous["products"]["P"])
+            self.assertIn("P 实时合约发现缺失", "；".join(result["warnings"]))
+            self.assertEqual(saved.read_text(encoding="utf-8"), before)
+
+    def test_contract_discovery_is_written_only_to_explicit_temporary_output(self):
+        payload = {
+            "month": "2026-07",
+            "products": {
+                symbol: [{"symbol": f"{symbol}2609"}]
+                for symbol in ("P", "Y", "OI", "M", "RM")
+            },
+        }
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "candidate.json"
+            OIL.write_contract_discovery(payload, output)
+            self.assertEqual(json.loads(output.read_text(encoding="utf-8"))["products"]["P"][0]["symbol"], "P2609")
 
 
 if __name__ == "__main__":
