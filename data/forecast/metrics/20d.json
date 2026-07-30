@@ -1,5 +1,5 @@
 {
-  "as_of": "2026-07-21",
+  "as_of": "2026-07-22",
   "latest_version_combination": {
     "key": "score-map-v1|outcome-v1-fixed-0.30pct",
     "outcome_rule_version": "outcome-v1-fixed-0.30pct",
@@ -42,52 +42,23 @@
         },
         "low": {
           "close_range_coverage": {
-            "denominator": 5,
-            "numerator": 5,
-            "rate": 1.0
-          },
-          "combined_grade": {
-            "HIT": 1,
-            "MISS": 0,
-            "PARTIAL": 4
-          },
-          "directional_accuracy": {
-            "denominator": 5,
-            "numerator": 1,
-            "rate": 0.2
-          },
-          "full_session_range_coverage": {
-            "denominator": 5,
-            "numerator": 5,
-            "rate": 1.0
-          },
-          "invalidation_rate": {
-            "denominator": 0,
-            "numerator": 0,
-            "rate": null
-          },
-          "mean_brier_score": 0.378758,
-          "sample_count": 5
-        },
-        "medium": {
-          "close_range_coverage": {
-            "denominator": 9,
-            "numerator": 9,
+            "denominator": 6,
+            "numerator": 6,
             "rate": 1.0
           },
           "combined_grade": {
             "HIT": 2,
             "MISS": 0,
-            "PARTIAL": 7
+            "PARTIAL": 4
           },
           "directional_accuracy": {
-            "denominator": 9,
+            "denominator": 6,
             "numerator": 2,
-            "rate": 0.222222
+            "rate": 0.333333
           },
           "full_session_range_coverage": {
-            "denominator": 9,
-            "numerator": 9,
+            "denominator": 6,
+            "numerator": 6,
             "rate": 1.0
           },
           "invalidation_rate": {
@@ -95,8 +66,37 @@
             "numerator": 0,
             "rate": null
           },
-          "mean_brier_score": 0.357263,
-          "sample_count": 9
+          "mean_brier_score": 0.318965,
+          "sample_count": 6
+        },
+        "medium": {
+          "close_range_coverage": {
+            "denominator": 11,
+            "numerator": 11,
+            "rate": 1.0
+          },
+          "combined_grade": {
+            "HIT": 2,
+            "MISS": 0,
+            "PARTIAL": 9
+          },
+          "directional_accuracy": {
+            "denominator": 11,
+            "numerator": 2,
+            "rate": 0.181818
+          },
+          "full_session_range_coverage": {
+            "denominator": 11,
+            "numerator": 11,
+            "rate": 1.0
+          },
+          "invalidation_rate": {
+            "denominator": 0,
+            "numerator": 0,
+            "rate": null
+          },
+          "mean_brier_score": 0.37144,
+          "sample_count": 11
         },
         "unknown": {
           "close_range_coverage": {
@@ -131,23 +131,23 @@
       "by_product": {
         "OI": {
           "close_range_coverage": {
-            "denominator": 5,
-            "numerator": 5,
+            "denominator": 6,
+            "numerator": 6,
             "rate": 1.0
           },
           "combined_grade": {
             "HIT": 2,
             "MISS": 0,
-            "PARTIAL": 3
+            "PARTIAL": 4
           },
           "directional_accuracy": {
-            "denominator": 5,
+            "denominator": 6,
             "numerator": 2,
-            "rate": 0.4
+            "rate": 0.333333
           },
           "full_session_range_coverage": {
-            "denominator": 5,
-            "numerator": 5,
+            "denominator": 6,
+            "numerator": 6,
             "rate": 1.0
           },
           "invalidation_rate": {
@@ -155,28 +155,28 @@
             "numerator": 0,
             "rate": null
           },
-          "mean_brier_score": 0.297141,
-          "sample_count": 5
+          "mean_brier_score": 0.317667,
+          "sample_count": 6
         },
         "P": {
           "close_range_coverage": {
-            "denominator": 5,
-            "numerator": 5,
+            "denominator": 6,
+            "numerator": 6,
             "rate": 1.0
           },
           "combined_grade": {
-            "HIT": 1,
+            "HIT": 2,
             "MISS": 0,
             "PARTIAL": 4
           },
           "directional_accuracy": {
-            "denominator": 5,
-            "numerator": 1,
-            "rate": 0.2
+            "denominator": 6,
+            "numerator": 2,
+            "rate": 0.333333
           },
           "full_session_range_coverage": {
-            "denominator": 5,
-            "numerator": 5,
+            "denominator": 6,
+            "numerator": 6,
             "rate": 1.0
           },
           "invalidation_rate": {
@@ -184,28 +184,28 @@
             "numerator": 0,
             "rate": null
           },
-          "mean_brier_score": 0.363607,
-          "sample_count": 5
+          "mean_brier_score": 0.306339,
+          "sample_count": 6
         },
         "Y": {
           "close_range_coverage": {
-            "denominator": 5,
-            "numerator": 5,
+            "denominator": 6,
+            "numerator": 6,
             "rate": 1.0
           },
           "combined_grade": {
             "HIT": 1,
             "MISS": 0,
-            "PARTIAL": 4
+            "PARTIAL": 5
           },
           "directional_accuracy": {
-            "denominator": 5,
+            "denominator": 6,
             "numerator": 1,
-            "rate": 0.2
+            "rate": 0.166667
           },
           "full_session_range_coverage": {
-            "denominator": 5,
-            "numerator": 5,
+            "denominator": 6,
+            "numerator": 6,
             "rate": 1.0
           },
           "invalidation_rate": {
@@ -213,33 +213,33 @@
             "numerator": 0,
             "rate": null
           },
-          "mean_brier_score": 0.365226,
-          "sample_count": 5
+          "mean_brier_score": 0.379385,
+          "sample_count": 6
         }
       },
-      "end_date": "2026-07-21",
-      "evaluated_forecast_count": 15,
+      "end_date": "2026-07-22",
+      "evaluated_forecast_count": 18,
       "evaluation_gap_count": 0,
       "outcome_rule_version": "outcome-v1-fixed-0.30pct",
       "overall": {
         "close_range_coverage": {
-          "denominator": 15,
-          "numerator": 15,
+          "denominator": 18,
+          "numerator": 18,
           "rate": 1.0
         },
         "combined_grade": {
-          "HIT": 4,
+          "HIT": 5,
           "MISS": 0,
-          "PARTIAL": 11
+          "PARTIAL": 13
         },
         "directional_accuracy": {
-          "denominator": 15,
-          "numerator": 4,
-          "rate": 0.266667
+          "denominator": 18,
+          "numerator": 5,
+          "rate": 0.277778
         },
         "full_session_range_coverage": {
-          "denominator": 15,
-          "numerator": 15,
+          "denominator": 18,
+          "numerator": 18,
           "rate": 1.0
         },
         "invalidation_rate": {
@@ -247,14 +247,14 @@
           "numerator": 0,
           "rate": null
         },
-        "mean_brier_score": 0.341991,
-        "sample_count": 15
+        "mean_brier_score": 0.334464,
+        "sample_count": 18
       },
       "probability_mapping_version": "score-map-v1",
       "public_display_allowed": false,
       "start_date": "2026-07-14",
       "status": "insufficient_sample",
-      "valid_trade_day_count": 5
+      "valid_trade_day_count": 6
     }
   },
   "window_trade_days": 20
