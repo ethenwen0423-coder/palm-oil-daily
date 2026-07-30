@@ -50,6 +50,29 @@ def source_payloads():
                 }
             ],
         },
+        "quant-model-signals": {
+            "generated_at": "2026-07-30T23:31:00+08:00",
+            "market_updated_at": "2026-07-30 23:28",
+            "default_model_id": "bollinger-rsi-ma6-v1",
+            "model_contracts": {
+                "bollinger-rsi-ma6-v1": [
+                    {
+                        "symbol": "P2609",
+                        "product": "P",
+                        "product_name": "棕榈油",
+                        "rank": 1,
+                        "model_scope_label": "成熟模型映射",
+                        "signals": {
+                            "flat": {
+                                "action": "WAIT",
+                                "execution": "none",
+                                "rationale": ["no new crossover"],
+                            }
+                        },
+                    }
+                ]
+            },
+        },
         "supply-demand": {
             "checked_at": "2026-07-30 06:30",
             "update_status": "no_change",
@@ -106,9 +129,14 @@ class MarketAssistantBriefTests(unittest.TestCase):
         ids = {item["id"] for item in context["evidence"]}
         self.assertIn("oil:P2609", ids)
         self.assertIn("exchange:au", ids)
+        self.assertIn("quant:bollinger-rsi-ma6-v1:P2609", ids)
         self.assertIn("supply:official-check", ids)
         self.assertLessEqual(len(context["evidence"]), 24)
         self.assertEqual(context["fixed_logic"], ["otc_structure_library", "quant_model_rules"])
+        self.assertEqual(
+            context["source_snapshot"]["quant-model-signals"],
+            "2026-07-30 23:28",
+        )
 
     def test_model_output_is_enriched_from_evidence_not_model_numbers(self):
         context = BRIEF.build_context(source_payloads())

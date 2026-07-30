@@ -29,6 +29,7 @@ SOURCE_FILES = {
     "reports": DATA_DIR / "reports.json",
     "oil-futures": DATA_DIR / "oil_futures.json",
     "exchange-futures": DATA_DIR / "exchange_futures.json",
+    "quant-model-signals": DATA_DIR / "quant_model_signals.json",
     "supply-demand": DATA_DIR / "supply-demand.json",
     "forecast-metrics": DATA_DIR / "forecast" / "metrics" / "latest.json",
     "contracts": DATA_DIR / "contracts" / "current_contracts.json",
@@ -111,6 +112,7 @@ def build_context(payloads: dict[str, Any]) -> dict[str, Any]:
     reports = payloads["reports"] if isinstance(payloads["reports"], list) else []
     oil = payloads["oil-futures"] if isinstance(payloads["oil-futures"], dict) else {}
     exchange = payloads["exchange-futures"] if isinstance(payloads["exchange-futures"], dict) else {}
+    quant = payloads["quant-model-signals"] if isinstance(payloads["quant-model-signals"], dict) else {}
     supply = payloads["supply-demand"] if isinstance(payloads["supply-demand"], dict) else {}
     forecast = payloads["forecast-metrics"] if isinstance(payloads["forecast-metrics"], dict) else {}
     contracts = payloads["contracts"] if isinstance(payloads["contracts"], dict) else {}
@@ -139,7 +141,7 @@ def build_context(payloads: dict[str, Any]) -> dict[str, Any]:
             item.get("contract_rank") == 1
             or str(item.get("symbol") or "").upper() in {"FCPO", "CPOTR"}
         )
-    ][:8]
+    ][:5]
     for index, item in enumerate(selected_oil):
         identity = clean_text(item.get("contract") or item.get("symbol") or item.get("product") or index, 50)
         price = clean_text(item.get("price") or "需进一步核验", 40)
@@ -171,7 +173,7 @@ def build_context(payloads: dict[str, Any]) -> dict[str, Any]:
         if isinstance(item, dict) and as_number(item.get("change_pct")) is not None
     ]
     priced_exchange.sort(key=lambda item: abs(as_number(item.get("change_pct")) or 0), reverse=True)
-    for index, item in enumerate(priced_exchange[:10]):
+    for index, item in enumerate(priced_exchange[:8]):
         identity = clean_text(item.get("symbol") or item.get("contract") or item.get("product") or index, 50)
         price = clean_text(item.get("price") or "需进一步核验", 40)
         change = clean_text(item.get("change_pct"), 30)
@@ -183,6 +185,54 @@ def build_context(payloads: dict[str, Any]) -> dict[str, Any]:
                 f"{price}；涨跌 {change}%",
                 observed_at=clean_text(exchange.get("updated_at"), 40),
                 detail=clean_text((item.get("fundamental") or {}).get("summary"), 180),
+            )
+        )
+
+    model_id = clean_text(quant.get("default_model_id"), 80)
+    model_contracts = quant.get("model_contracts")
+    selected_signals = (
+        model_contracts.get(model_id)
+        if model_id and isinstance(model_contracts, dict)
+        else []
+    )
+    if not isinstance(selected_signals, list):
+        selected_signals = []
+    selected_signals = [
+        item
+        for item in selected_signals
+        if isinstance(item, dict) and item.get("rank") == 1
+    ][:5]
+    for index, item in enumerate(selected_signals):
+        signals = item.get("signals") if isinstance(item.get("signals"), dict) else {}
+        flat_signal = signals.get("flat") if isinstance(signals.get("flat"), dict) else {}
+        symbol = clean_text(item.get("symbol") or index, 40)
+        action = clean_text(flat_signal.get("action") or "需进一步核验", 60)
+        execution = clean_text(flat_signal.get("execution") or "需进一步核验", 80)
+        rationale = flat_signal.get("rationale")
+        rationale_text = "；".join(
+            clean_text(value, 100)
+            for value in (rationale[:2] if isinstance(rationale, list) else [])
+            if clean_text(value, 100)
+        )
+        detail = "；".join(
+            value
+            for value in (
+                clean_text(item.get("model_scope_label"), 60),
+                rationale_text,
+            )
+            if value
+        )
+        evidence.append(
+            evidence_record(
+                f"quant:{model_id or 'default'}:{symbol}",
+                "quant-model-signals",
+                f"{clean_text(item.get('product_name') or item.get('product') or symbol, 50)}动态量化信号",
+                f"{action}；执行 {execution}",
+                observed_at=clean_text(
+                    quant.get("market_updated_at") or quant.get("generated_at"),
+                    40,
+                ),
+                detail=detail,
             )
         )
 
@@ -229,6 +279,10 @@ def build_context(payloads: dict[str, Any]) -> dict[str, Any]:
         "reports": clean_text(latest_report.get("generated_at") or latest_report.get("date"), 40),
         "oil-futures": clean_text(oil.get("updated_at"), 40),
         "exchange-futures": clean_text(exchange.get("updated_at"), 40),
+        "quant-model-signals": clean_text(
+            quant.get("market_updated_at") or quant.get("generated_at"),
+            40,
+        ),
         "supply-demand": clean_text(supply.get("checked_at") or supply.get("generated_at"), 40),
         "forecast-metrics": clean_text(forecast.get("generated_at") or forecast.get("as_of"), 40),
         "contracts": clean_text(contracts.get("generated_at"), 40),

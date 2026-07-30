@@ -6,6 +6,8 @@
     reports: ["/api/reports", "data/reports.json"],
     oil: ["/api/oil-futures", "data/oil_futures.json"],
     exchange: ["/api/exchange-futures", "data/exchange_futures.json"],
+    quant: ["/api/quant-model-signals", "data/quant_model_signals.json"],
+    contracts: ["/api/contracts/current", "data/contracts/current_contracts.json"],
     supply: ["/api/supply-demand", "data/supply-demand.json"],
     forecast: ["/api/forecast/metrics/latest", "data/forecast/metrics/latest.json"],
     brief: ["/api/assistant/brief", "data/market_assistant_brief.json"],
@@ -99,6 +101,8 @@
       reports: "研究报告",
       oil: "油脂行情",
       exchange: "全品种行情",
+      quant: "动态量化信号",
+      contracts: "主力合约",
       supply: "供需资料",
       forecast: "预测评估",
       brief: "AI 盯盘简报",
@@ -199,6 +203,57 @@
     element("monitor-supply-message").textContent = payload.update_message || "官方资料检查状态需进一步核验。";
     element("monitor-supply-checked").textContent = formatDateTime(payload.checked_at || payload.generated_at);
     element("monitor-supply-updated").textContent = formatDateTime(payload.data_updated_at);
+  }
+
+  function renderQuant(result) {
+    const payload = result?.payload || {};
+    const modelId = payload.default_model_id || "";
+    const grouped = payload.model_contracts || {};
+    const contracts = Array.isArray(grouped[modelId]) ? grouped[modelId] : [];
+    const signals = contracts.filter((item) => item?.rank === 1).slice(0, 5);
+    element("monitor-quant-updated").textContent = payload.market_updated_at
+      ? `${formatDateTime(payload.market_updated_at)} · ${SESSION_LABELS[payload.market_update_session] || "模型输出"}`
+      : "动态信号更新时间需进一步核验";
+    element("monitor-quant-list").innerHTML = signals.length
+      ? signals.map((item) => {
+          const flat = item?.signals?.flat || {};
+          return `
+            <div class="quote-row">
+              <div>
+                <strong>${escapeHtml(item.product_name || item.product || item.symbol)}</strong>
+                <small>${escapeHtml(item.symbol || "")} · ${escapeHtml(item.model_scope_label || "规则试算")}</small>
+              </div>
+              <b>${escapeHtml(flat.action || "需核验")}</b>
+              <span>${escapeHtml(flat.execution || "none")}</span>
+            </div>
+          `;
+        }).join("")
+      : '<p class="monitor-meta">暂无可验证的动态量化输出；模型规则本身仍保持固定。</p>';
+  }
+
+  function renderContracts(result) {
+    const payload = result?.payload || {};
+    const products = payload.products && typeof payload.products === "object"
+      ? payload.products
+      : {};
+    const entries = Object.entries(products).slice(0, 8);
+    element("monitor-contracts-updated").textContent = payload.generated_at
+      ? `${formatDateTime(payload.generated_at)} · ${escapeHtml(payload.source || "来源需核验")}`
+      : "合约识别时间需进一步核验";
+    element("monitor-contracts-list").innerHTML = entries.length
+      ? entries.map(([product, items]) => {
+          const ranked = Array.isArray(items)
+            ? items.filter((item) => item?.rank === 1 || item?.rank === 2).slice(0, 2)
+            : [];
+          const symbols = ranked.map((item) => `${item.label || `第${item.rank}位`} ${item.symbol || "--"}`);
+          return `
+            <div class="mover-row">
+              <span>${escapeHtml(ranked[0]?.product_name || product)}</span>
+              <b>${escapeHtml(symbols.join(" · ") || "需核验")}</b>
+            </div>
+          `;
+        }).join("")
+      : '<p class="monitor-meta">暂无主力与次主力合约识别结果。</p>';
   }
 
   function renderForecast(result) {
@@ -321,6 +376,8 @@
       renderReport(results.reports);
       renderOil(results.oil);
       renderMovers(results.exchange);
+      renderQuant(results.quant);
+      renderContracts(results.contracts);
       renderSupply(results.supply);
       renderForecast(results.forecast);
       renderBrief(results.brief, status, results);

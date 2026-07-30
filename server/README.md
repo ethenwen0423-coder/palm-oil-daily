@@ -46,8 +46,11 @@ backend have been configured.
 The API should mount `/srv/palm-oil-daily/live-data` at `/site/data:ro`.
 Repository synchronization owns reports, supply-demand data and forecast
 metrics. Once `.server-market-ready.json` exists, the server collector owns
-market quotes, exchange quotes, quant-model outputs, current contracts and the
-grounded market brief; a later Git update will not overwrite them.
+market quotes, exchange quotes, dynamic quant-model outputs and current
+contracts; a later Git update will not overwrite them. The AI brief remains
+upstream-owned until a successful server AI generation writes
+`.server-ai-ready.json`, so moving market collection alone cannot freeze newer
+AI briefs produced by the existing automation.
 
 Preview the collector's session selection without changing files:
 

@@ -38,7 +38,7 @@ def write_dataset(root: Path, relative: str, marker: str) -> None:
 
 
 def write_all_datasets(root: Path, marker: str) -> None:
-    for relative in SYNC.UPSTREAM_PATHS + SYNC.MARKET_PATHS:
+    for relative in SYNC.UPSTREAM_PATHS + SYNC.MARKET_PATHS + SYNC.AI_PATHS:
         write_dataset(root, relative, marker)
 
 
@@ -104,6 +104,7 @@ class ServerMarketCollectorTests(unittest.TestCase):
             write_all_datasets(upstream, "bootstrap")
             first = SYNC.sync_upstream(upstream, live)
             self.assertEqual(first["bootstrapped"], list(SYNC.MARKET_PATHS))
+            self.assertEqual(first["ai_copied"], list(SYNC.AI_PATHS))
 
             write_all_datasets(market, "server")
             SYNC.sync_market(market, live, session="midday")
@@ -120,6 +121,43 @@ class ServerMarketCollectorTests(unittest.TestCase):
             self.assertEqual(
                 json.loads(
                     (live / "oil_futures.json").read_text(encoding="utf-8")
+                )["marker"],
+                "server",
+            )
+            self.assertEqual(
+                json.loads(
+                    (live / "market_assistant_brief.json").read_text(
+                        encoding="utf-8"
+                    )
+                )["marker"],
+                "new-upstream",
+            )
+
+    def test_ai_ownership_is_independent_from_market_ownership(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            upstream = base / "upstream"
+            server = base / "server"
+            live = base / "live"
+            write_all_datasets(upstream, "bootstrap")
+            SYNC.sync_upstream(upstream, live)
+            write_all_datasets(server, "server")
+
+            SYNC.sync_market(server, live, session="midday")
+            self.assertFalse((live / SYNC.AI_READY_MARKER).exists())
+            SYNC.sync_ai(server, live, session="midday")
+            self.assertTrue((live / SYNC.AI_READY_MARKER).exists())
+
+            write_all_datasets(upstream, "new-upstream")
+            result = SYNC.sync_upstream(upstream, live)
+            self.assertTrue(result["server_market_owned"])
+            self.assertTrue(result["server_ai_owned"])
+            self.assertEqual(result["ai_copied"], [])
+            self.assertEqual(
+                json.loads(
+                    (live / "market_assistant_brief.json").read_text(
+                        encoding="utf-8"
+                    )
                 )["marker"],
                 "server",
             )

@@ -13,6 +13,8 @@ class MarketAssistantStaticTests(unittest.TestCase):
         self.assertIn('id="monitor-report-headline"', html)
         self.assertIn('id="monitor-oil-list"', html)
         self.assertIn('id="monitor-gainers"', html)
+        self.assertIn('id="monitor-quant-list"', html)
+        self.assertIn('id="monitor-contracts-list"', html)
         self.assertIn('id="monitor-supply-message"', html)
         self.assertIn('id="monitor-forecast-status"', html)
         self.assertIn('id="monitor-ai-headline"', html)
@@ -28,6 +30,8 @@ class MarketAssistantStaticTests(unittest.TestCase):
             ("/api/reports", "data/reports.json"),
             ("/api/oil-futures", "data/oil_futures.json"),
             ("/api/exchange-futures", "data/exchange_futures.json"),
+            ("/api/quant-model-signals", "data/quant_model_signals.json"),
+            ("/api/contracts/current", "data/contracts/current_contracts.json"),
             ("/api/supply-demand", "data/supply-demand.json"),
             ("/api/forecast/metrics/latest", "data/forecast/metrics/latest.json"),
             ("/api/assistant/brief", "data/market_assistant_brief.json"),

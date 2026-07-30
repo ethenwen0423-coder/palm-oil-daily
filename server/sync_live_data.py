@@ -14,7 +14,10 @@ from zoneinfo import ZoneInfo
 
 
 SHANGHAI = ZoneInfo("Asia/Shanghai")
-READY_MARKER = ".server-market-ready.json"
+MARKET_READY_MARKER = ".server-market-ready.json"
+AI_READY_MARKER = ".server-ai-ready.json"
+# Backwards-compatible name for callers that only know about market ownership.
+READY_MARKER = MARKET_READY_MARKER
 UPSTREAM_PATHS = (
     "reports.json",
     "supply-demand.json",
@@ -28,6 +31,8 @@ MARKET_PATHS = (
     "quant_model_signals.js",
     "quant_model_signals.json",
     "contracts/current_contracts.json",
+)
+AI_PATHS = (
     "market_assistant_brief.json",
 )
 JSON_PATHS = {
@@ -110,14 +115,20 @@ def synchronize_paths(
     return copied
 
 
-def write_marker(target_root: Path, session: str) -> None:
-    target = target_root / READY_MARKER
+def write_marker(
+    target_root: Path,
+    marker_name: str,
+    *,
+    session: str,
+    owner: str,
+) -> None:
+    target = target_root / marker_name
     target.parent.mkdir(parents=True, exist_ok=True)
     payload = {
         "schema_version": 1,
         "generated_at": datetime.now(SHANGHAI).isoformat(timespec="seconds"),
         "session": session,
-        "owner": "server-market-collector",
+        "owner": owner,
     }
     temporary: Path | None = None
     try:
@@ -140,29 +151,34 @@ def write_marker(target_root: Path, session: str) -> None:
 
 
 def sync_upstream(source_root: Path, target_root: Path) -> dict[str, object]:
-    if not (target_root / READY_MARKER).exists():
-        synchronized = synchronize_paths(
-            source_root,
-            target_root,
-            UPSTREAM_PATHS + MARKET_PATHS,
-            required=True,
-        )
-        copied = synchronized[: len(UPSTREAM_PATHS)]
-        bootstrapped = synchronized[len(UPSTREAM_PATHS) :]
-    else:
-        copied = synchronize_paths(
-            source_root,
-            target_root,
-            UPSTREAM_PATHS,
-            required=True,
-        )
-        bootstrapped = []
+    market_owned = (target_root / MARKET_READY_MARKER).exists()
+    ai_owned = (target_root / AI_READY_MARKER).exists()
+    requested = UPSTREAM_PATHS
+    if not market_owned:
+        requested += MARKET_PATHS
+    if not ai_owned:
+        requested += AI_PATHS
+    synchronized = synchronize_paths(
+        source_root,
+        target_root,
+        requested,
+        required=True,
+    )
+    offset = len(UPSTREAM_PATHS)
+    copied = synchronized[:offset]
+    bootstrapped = []
+    if not market_owned:
+        bootstrapped = synchronized[offset : offset + len(MARKET_PATHS)]
+        offset += len(MARKET_PATHS)
+    ai_copied = [] if ai_owned else synchronized[offset : offset + len(AI_PATHS)]
     return {
         "status": "ok",
         "mode": "upstream",
         "copied": copied,
         "bootstrapped": bootstrapped,
-        "server_market_owned": (target_root / READY_MARKER).exists(),
+        "ai_copied": ai_copied,
+        "server_market_owned": market_owned,
+        "server_ai_owned": ai_owned,
     }
 
 
@@ -178,7 +194,12 @@ def sync_market(
         MARKET_PATHS,
         required=True,
     )
-    write_marker(target_root, session)
+    write_marker(
+        target_root,
+        MARKET_READY_MARKER,
+        session=session,
+        owner="server-market-collector",
+    )
     return {
         "status": "ok",
         "mode": "market",
@@ -188,9 +209,36 @@ def sync_market(
     }
 
 
+def sync_ai(
+    source_root: Path,
+    target_root: Path,
+    *,
+    session: str,
+) -> dict[str, object]:
+    copied = synchronize_paths(
+        source_root,
+        target_root,
+        AI_PATHS,
+        required=True,
+    )
+    write_marker(
+        target_root,
+        AI_READY_MARKER,
+        session=session,
+        owner="server-ai-brief",
+    )
+    return {
+        "status": "ok",
+        "mode": "ai",
+        "session": session,
+        "copied": copied,
+        "server_ai_owned": True,
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--mode", choices=("upstream", "market"), required=True)
+    parser.add_argument("--mode", choices=("upstream", "market", "ai"), required=True)
     parser.add_argument("--source", type=Path, required=True)
     parser.add_argument("--target", type=Path, required=True)
     parser.add_argument("--session", default="manual")
@@ -198,15 +246,20 @@ def main() -> int:
     source_root = args.source.resolve()
     target_root = args.target.resolve()
     try:
-        payload = (
-            sync_upstream(source_root, target_root)
-            if args.mode == "upstream"
-            else sync_market(
+        if args.mode == "upstream":
+            payload = sync_upstream(source_root, target_root)
+        elif args.mode == "market":
+            payload = sync_market(
                 source_root,
                 target_root,
                 session=args.session,
             )
-        )
+        else:
+            payload = sync_ai(
+                source_root,
+                target_root,
+                session=args.session,
+            )
     except (OSError, SyncError) as exc:
         print(
             json.dumps(
