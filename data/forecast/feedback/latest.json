@@ -1,5 +1,5 @@
 {
-  "as_of": "2026-07-29",
+  "as_of": "2026-07-30",
   "consecutive_error_streaks": {},
   "core_view_confidence_cap": "low",
   "core_view_confidence_cap_stars": 2,
@@ -13,33 +13,33 @@
     "sample_count": 1
   },
   "human_approval_required": false,
-  "metrics_as_of": "2026-07-29",
+  "metrics_as_of": "2026-07-30",
   "minimum_active_trade_days": 5,
   "overall_metrics": {
-    "close_range_coverage": 0.966667,
-    "directional_accuracy": 0.2,
+    "close_range_coverage": 0.969697,
+    "directional_accuracy": 0.272727,
     "interval_width_ratio": null,
-    "mean_brier_score": 0.371251,
-    "sample_count": 30
+    "mean_brier_score": 0.340752,
+    "sample_count": 33
   },
   "products": {
     "OI": {
       "action": "downgrade_directional_claim",
-      "close_range_coverage": 0.9,
-      "directional_accuracy": 0.2,
+      "close_range_coverage": 0.909091,
+      "directional_accuracy": 0.272727,
       "max_confidence": "low",
       "max_confidence_stars": 2,
-      "miss_rate": 0.1,
+      "miss_rate": 0.090909,
       "product": "OI",
       "reasons": [
         "方向命中率低于45%"
       ],
-      "sample_count": 10
+      "sample_count": 11
     },
     "P": {
       "action": "downgrade_directional_claim",
       "close_range_coverage": 1.0,
-      "directional_accuracy": 0.2,
+      "directional_accuracy": 0.272727,
       "max_confidence": "low",
       "max_confidence_stars": 2,
       "miss_rate": 0.0,
@@ -47,12 +47,12 @@
       "reasons": [
         "方向命中率低于45%"
       ],
-      "sample_count": 10
+      "sample_count": 11
     },
     "Y": {
       "action": "downgrade_directional_claim",
       "close_range_coverage": 1.0,
-      "directional_accuracy": 0.2,
+      "directional_accuracy": 0.272727,
       "max_confidence": "low",
       "max_confidence_stars": 2,
       "miss_rate": 0.0,
@@ -60,15 +60,15 @@
       "reasons": [
         "方向命中率低于45%"
       ],
-      "sample_count": 10
+      "sample_count": 11
     }
   },
   "required_report_disclosures": [
-    "预测校准：近10个有效交易日共30条评估，P/Y/OI方向命中率分别为20.0%/20.0%/20.0%，整体Brier分数0.371，收盘区间覆盖率96.7%，区间宽度质量暂无可复现指标；P/Y/OI今日主线降级，核心置信度不高于★★☆☆☆；样本仍有限，不据此声称准确率改善。"
+    "预测校准：近11个有效交易日共33条评估，P/Y/OI方向命中率分别为27.3%/27.3%/27.3%，整体Brier分数0.341，收盘区间覆盖率97.0%，区间宽度质量暂无可复现指标；P/Y/OI今日主线降级，核心置信度不高于★★☆☆☆；样本仍有限，不据此声称准确率改善。"
   ],
   "schema_version": "forecast-generation-feedback-v1",
   "source_metrics": "data/forecast/metrics/latest.json",
   "status": "active",
-  "valid_trade_day_count": 10,
+  "valid_trade_day_count": 11,
   "version_key": "score-map-v1|outcome-v1-fixed-0.30pct"
 }
