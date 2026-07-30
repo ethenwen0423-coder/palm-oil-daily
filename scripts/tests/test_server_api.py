@@ -61,6 +61,20 @@ class ServerApiStatusTests(unittest.TestCase):
         self.assertEqual(status["datasets"]["/api/supply-demand"]["state"], "missing")
         self.assertEqual(status["status"], "degraded")
 
+    def test_automated_dataset_stale_thresholds_surface_missed_runs(self):
+        self.assertEqual(
+            API.DATASET_RULES["/api/supply-demand"]["stale_after_seconds"],
+            60 * 60 * 72,
+        )
+        self.assertEqual(
+            API.DATASET_RULES["/api/contracts/current"]["stale_after_seconds"],
+            60 * 60 * 72,
+        )
+        self.assertEqual(
+            API.DATASET_RULES["/api/forecast/metrics/latest"]["stale_after_seconds"],
+            60 * 60 * 96,
+        )
+
     def test_report_array_uses_latest_report_date(self):
         now = datetime(2026, 7, 30, 14, 0, tzinfo=timezone.utc)
         self.write_json("reports.json", [{"date": "2026-07-30"}, {"date": "2026-07-29"}])

@@ -36,7 +36,7 @@ class DailyWatchdogLaunchdTests(unittest.TestCase):
         )
         self.assertEqual(schedule, [("0", "21", "15"), ("0", "21", "40")])
 
-    def test_intraday_market_refresh_runs_after_midday_and_close(self) -> None:
+    def test_market_refresh_covers_midday_close_night_and_overnight(self) -> None:
         text = INTRADAY_INSTALLER.read_text(encoding="utf-8")
         schedule = re.findall(
             r"<key>Weekday</key><integer>(\d+)</integer>"
@@ -44,13 +44,29 @@ class DailyWatchdogLaunchdTests(unittest.TestCase):
             r"<key>Minute</key><integer>(\d+)</integer>",
             text,
         )
-        expected = [
+        weekday_sessions = [
             (str(day), hour, minute)
-            for hour, minute in (("11", "35"), ("11", "50"), ("15", "5"), ("15", "20"))
+            for hour, minute in (
+                ("11", "35"),
+                ("11", "50"),
+                ("15", "5"),
+                ("15", "20"),
+                ("16", "0"),
+                ("21", "20"),
+                ("21", "40"),
+                ("23", "10"),
+                ("23", "30"),
+            )
             for day in range(1, 6)
         ]
+        overnight_sessions = [
+            (str(day), hour, minute)
+            for hour, minute in (("2", "40"), ("3", "0"))
+            for day in range(2, 7)
+        ]
+        expected = weekday_sessions + overnight_sessions
         self.assertEqual(schedule, expected)
-        self.assertIn(r"\$TODAY-\$SESSION.ok", text)
+        self.assertIn(r"\$FUNDAMENTAL_DATE-\$SESSION.ok", text)
         self.assertIn("already published, skip retry", text)
 
     def test_market_deploy_updates_both_technical_datasets(self) -> None:

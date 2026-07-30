@@ -2,7 +2,7 @@
 set -euo pipefail
 
 LABEL="com.vinsontesla.palm-oil-prediction-review"
-RUNTIME_ROOT="/Users/ethen/Sites/palm-oil-daily"
+RUNTIME_ROOT="${PALM_OIL_PREDICTION_RUNTIME_ROOT:-$HOME/Sites/palm-oil-daily-runtime}"
 PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"
 LOG_DIR="$HOME/Library/Application Support/VinsonTesla/palm-oil-prediction-review"
 RUNNER="$LOG_DIR/run-prediction-review.sh"
@@ -35,6 +35,7 @@ while (($#)); do
 done
 
 DEPENDENCIES=(
+  "scripts/prediction_review_watchdog.py"
   "scripts/review_prediction.py"
   "skills/forecast_tracking_skill/scripts/evaluate_forecast.py"
   "skills/forecast_tracking_skill/scripts/build_metrics.py"
@@ -110,12 +111,12 @@ payload = {
     "persistence_confirmed": boolean("PERSISTENCE_VALUE"),
     "launch_agent_label": os.environ["LABEL_VALUE"],
     "plist_path": os.environ["PLIST_VALUE"],
-    "schedule": ["15:20", "15:40"],
+    "schedule": ["RunAtLoad", "every 15 minutes", "same-day reviews become due after 15:20"],
     "timezone": os.environ["TIMEZONE_VALUE"],
     "working_directory": os.environ["ROOT_VALUE"],
     "log_directory": os.environ["LOG_DIR_VALUE"],
     "runner_path": os.environ["RUNNER_VALUE"],
-    "command": "python3 scripts/review_prediction.py --date <Asia/Shanghai current date>",
+    "command": "python3 scripts/prediction_review_watchdog.py",
     "publish_command": "bash scripts/publish_prediction_review.sh --publish --confirm-persistence-reviewed --date <Asia/Shanghai current date>",
     "missing_dependencies": missing,
     "persistent_outputs_requiring_manual_confirmation": persistent,
@@ -153,86 +154,20 @@ cat > "$RUNNER" <<'RUNNER'
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT="/Users/ethen/Sites/palm-oil-daily"
-LOG_DIR="$HOME/Library/Application Support/VinsonTesla/palm-oil-prediction-review"
-LOG="$LOG_DIR/prediction-review.log"
-PRIVATE_ENV="$HOME/Library/Application Support/VinsonTesla/private.env"
-
-if [[ -f "$PRIVATE_ENV" ]]; then
-  set -a
-  source "$PRIVATE_ENV"
-  set +a
-fi
-
-read -r REPORT_DATE RUN_SLOT WEEKDAY <<EOF
-$(python3 - <<'PY'
-from datetime import datetime
-from zoneinfo import ZoneInfo
-
-now = datetime.now(ZoneInfo("Asia/Shanghai"))
-print(now.date().isoformat(), now.strftime("%H:%M"), now.weekday())
-PY
-)
-EOF
-
-if (( WEEKDAY > 4 )); then
-  exit 0
-fi
-if [[ "$RUN_SLOT" != "15:20" && "$RUN_SLOT" != "15:40" ]]; then
-  exit 0
-fi
-
-mkdir -p "$LOG_DIR"
-echo "[$(python3 -c 'from datetime import datetime; from zoneinfo import ZoneInfo; print(datetime.now(ZoneInfo("Asia/Shanghai")).isoformat(timespec="seconds"))')] slot=$RUN_SLOT date=$REPORT_DATE" >> "$LOG"
-cd "$ROOT"
-
-if [[ "$RUN_SLOT" == "15:40" ]]; then
-  EVALUATED="data/forecast/evaluated/$REPORT_DATE.json"
-  LATEST="data/forecast/metrics/latest.json"
-  FEEDBACK="data/forecast/feedback/latest.json"
-  if [[ -s "$EVALUATED" && -s "$LATEST" && -s "$FEEDBACK" ]] \
-    && python3 skills/forecast_tracking_skill/scripts/validate_forecast.py --forecast "$EVALUATED" >/dev/null 2>&1 \
-    && python3 - "$EVALUATED" "$LATEST" "$FEEDBACK" "$REPORT_DATE" <<'PY'
-import json
+ROOT="__RUNTIME_ROOT__"
+export PALM_OIL_PREDICTION_RUNTIME_ROOT="$ROOT"
+exec python3 "$ROOT/scripts/prediction_review_watchdog.py"
+RUNNER
+python3 - "$RUNNER" "$RUNTIME_ROOT" <<'PY'
 import sys
 from pathlib import Path
 
-evaluated = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
-latest = json.loads(Path(sys.argv[2]).read_text(encoding="utf-8"))
-feedback = json.loads(Path(sys.argv[3]).read_text(encoding="utf-8"))
-report_date = sys.argv[4]
-records = evaluated.get("records")
-valid = (
-    evaluated.get("report_date") == report_date
-    and isinstance(records, list)
-    and len(records) == 3
-    and all(isinstance(record, dict) and record.get("evaluation_status") == "evaluated" for record in records)
-    and latest.get("schema_version") == "forecast-metrics-v1"
-    and latest.get("as_of") == report_date
-    and isinstance(latest.get("versions"), dict)
-    and feedback.get("schema_version") == "forecast-generation-feedback-v1"
-    and feedback.get("as_of") == report_date
-    and isinstance(feedback.get("required_report_disclosures"), list)
+path = Path(sys.argv[1])
+path.write_text(
+    path.read_text(encoding="utf-8").replace("__RUNTIME_ROOT__", sys.argv[2]),
+    encoding="utf-8",
 )
-raise SystemExit(0 if valid else 1)
 PY
-  then
-    echo "[$REPORT_DATE $RUN_SLOT] evaluated forecast and latest metrics already valid; retry allowlisted publish only" >> "$LOG"
-    bash scripts/publish_prediction_review.sh \
-      --publish \
-      --confirm-persistence-reviewed \
-      --date "$REPORT_DATE" >> "$LOG" 2>&1
-    exit $?
-  fi
-fi
-
-git pull --ff-only >> "$LOG" 2>&1
-python3 scripts/review_prediction.py --date "$REPORT_DATE" >> "$LOG" 2>&1
-bash scripts/publish_prediction_review.sh \
-  --publish \
-  --confirm-persistence-reviewed \
-  --date "$REPORT_DATE" >> "$LOG" 2>&1
-RUNNER
 chmod 755 "$RUNNER"
 
 cat > "$PLIST" <<PLIST
@@ -249,19 +184,12 @@ cat > "$PLIST" <<PLIST
   </array>
   <key>WorkingDirectory</key>
   <string>$RUNTIME_ROOT</string>
-  <key>StartCalendarInterval</key>
-  <array>
-    <dict><key>Weekday</key><integer>2</integer><key>Hour</key><integer>15</integer><key>Minute</key><integer>20</integer></dict>
-    <dict><key>Weekday</key><integer>3</integer><key>Hour</key><integer>15</integer><key>Minute</key><integer>20</integer></dict>
-    <dict><key>Weekday</key><integer>4</integer><key>Hour</key><integer>15</integer><key>Minute</key><integer>20</integer></dict>
-    <dict><key>Weekday</key><integer>5</integer><key>Hour</key><integer>15</integer><key>Minute</key><integer>20</integer></dict>
-    <dict><key>Weekday</key><integer>6</integer><key>Hour</key><integer>15</integer><key>Minute</key><integer>20</integer></dict>
-    <dict><key>Weekday</key><integer>2</integer><key>Hour</key><integer>15</integer><key>Minute</key><integer>40</integer></dict>
-    <dict><key>Weekday</key><integer>3</integer><key>Hour</key><integer>15</integer><key>Minute</key><integer>40</integer></dict>
-    <dict><key>Weekday</key><integer>4</integer><key>Hour</key><integer>15</integer><key>Minute</key><integer>40</integer></dict>
-    <dict><key>Weekday</key><integer>5</integer><key>Hour</key><integer>15</integer><key>Minute</key><integer>40</integer></dict>
-    <dict><key>Weekday</key><integer>6</integer><key>Hour</key><integer>15</integer><key>Minute</key><integer>40</integer></dict>
-  </array>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>StartInterval</key>
+  <integer>900</integer>
+  <key>ThrottleInterval</key>
+  <integer>60</integer>
   <key>StandardOutPath</key>
   <string>$LOG_DIR/stdout.log</string>
   <key>StandardErrorPath</key>
@@ -270,9 +198,10 @@ cat > "$PLIST" <<PLIST
 </plist>
 PLIST
 chmod 644 "$PLIST"
+plutil -lint "$PLIST"
 
 launchctl bootout "gui/$(id -u)" "$PLIST" >/dev/null 2>&1 || true
-launchctl bootstrap "gui/$(id -u)" "$PLIST"
 launchctl enable "gui/$(id -u)/$LABEL"
+launchctl bootstrap "gui/$(id -u)" "$PLIST"
 
-emit_summary "installed" "验证LaunchAgent状态和首次15:20运行日志" true true
+emit_summary "installed" "验证LaunchAgent状态、RunAtLoad恢复和最新metrics日期" true true

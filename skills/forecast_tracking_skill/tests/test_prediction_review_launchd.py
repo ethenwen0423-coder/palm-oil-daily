@@ -10,7 +10,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
 INSTALL_SCRIPT = ROOT / "scripts" / "install_prediction_review_launchd.sh"
-PRODUCTION_ROOT = "/Users/ethen/Sites/palm-oil-daily"
+PRODUCTION_ROOT = "/Users/ethen/Sites/palm-oil-daily-runtime"
 
 
 class PredictionReviewLaunchdDryRunTest(unittest.TestCase):
@@ -26,6 +26,7 @@ class PredictionReviewLaunchdDryRunTest(unittest.TestCase):
         fake_bin.mkdir()
 
         dependencies = (
+            "scripts/prediction_review_watchdog.py",
             "scripts/review_prediction.py",
             "skills/forecast_tracking_skill/scripts/evaluate_forecast.py",
             "skills/forecast_tracking_skill/scripts/build_metrics.py",
@@ -70,6 +71,7 @@ class PredictionReviewLaunchdDryRunTest(unittest.TestCase):
             "PATH": f"{fake_bin}:{os.environ['PATH']}",
             "LAUNCHCTL_LOG": str(launchctl_log),
             "FAKE_GIT_STATUS": "?? dirty.txt\n" if dirty else "",
+            "PALM_OIL_PREDICTION_RUNTIME_ROOT": str(repo),
         }
         return repo, home, launchctl_log, env
 
@@ -127,21 +129,29 @@ class PredictionReviewLaunchdDryRunTest(unittest.TestCase):
             check=False,
         )
         payload = json.loads(result.stdout)
-        self.assertEqual(payload["schedule"], ["15:20", "15:40"])
+        self.assertEqual(
+            payload["schedule"],
+            ["RunAtLoad", "every 15 minutes", "same-day reviews become due after 15:20"],
+        )
         self.assertEqual(payload["timezone"], "Asia/Shanghai")
         self.assertEqual(payload["working_directory"], PRODUCTION_ROOT)
         self.assertEqual(payload["launch_agent_label"], "com.vinsontesla.palm-oil-prediction-review")
-        self.assertIn("review_prediction.py --date", payload["command"])
+        self.assertEqual(payload["command"], "python3 scripts/prediction_review_watchdog.py")
 
     def test_script_syntax_and_retry_guard_contract(self) -> None:
         syntax = subprocess.run(["bash", "-n", str(INSTALL_SCRIPT)], text=True, capture_output=True, check=False)
         self.assertEqual(syntax.returncode, 0, syntax.stderr)
         text = INSTALL_SCRIPT.read_text(encoding="utf-8")
-        self.assertIn('RUN_SLOT" == "15:40', text)
-        self.assertIn("validate_forecast.py --forecast", text)
-        self.assertIn('latest.get("as_of") == report_date', text)
-        self.assertIn('feedback.get("as_of") == report_date', text)
-        self.assertIn("publish_prediction_review.sh", text)
+        watchdog = (ROOT / "scripts" / "prediction_review_watchdog.py").read_text(encoding="utf-8")
+        self.assertIn("<key>RunAtLoad</key>", text)
+        self.assertIn("<key>StartInterval</key>", text)
+        self.assertIn("<integer>900</integer>", text)
+        self.assertIn("prediction_review_watchdog.py", text)
+        self.assertIn("market-data-deploy.lock", watchdog)
+        self.assertIn('["git", "fetch", "origin", "main"]', watchdog)
+        self.assertIn("sync_forecast_inputs", watchdog)
+        self.assertIn("rollback_generated", watchdog)
+        self.assertIn("publish_prediction_review.sh", watchdog)
         weekday_values = [
             int(value)
             for value in re.findall(
@@ -149,67 +159,13 @@ class PredictionReviewLaunchdDryRunTest(unittest.TestCase):
                 text,
             )
         ]
-        self.assertEqual(weekday_values, [2, 3, 4, 5, 6, 2, 3, 4, 5, 6])
+        self.assertEqual(weekday_values, [])
 
-    def run_generated_runner(self, review_exit: int) -> list[str]:
-        temporary = tempfile.TemporaryDirectory()
-        self.addCleanup(temporary.cleanup)
-        root = Path(temporary.name)
-        home = root / "home"
-        fake_bin = root / "fake-bin"
-        home.mkdir()
-        fake_bin.mkdir()
-        (root / "scripts").mkdir()
-        (root / "scripts" / "review_prediction.py").write_text("# fixture\n", encoding="utf-8")
-        (root / "scripts" / "publish_prediction_review.sh").write_text("# fixture\n", encoding="utf-8")
-        event_log = root / "events.log"
-
-        installer = INSTALL_SCRIPT.read_text(encoding="utf-8")
-        runner = installer.split('cat > "$RUNNER" <<\'RUNNER\'\n', 1)[1].split("\nRUNNER\n", 1)[0]
-        runner_path = root / "runner.sh"
-        runner_path.write_text(runner.replace(PRODUCTION_ROOT, str(root)), encoding="utf-8")
-
-        fake_python = fake_bin / "python3"
-        fake_python.write_text(
-            """#!/bin/bash
-set -euo pipefail
-if [[ "${1:-}" == "-" ]]; then
-  printf '%s\n' '2026-07-14 15:20 1'
-  exit 0
-fi
-if [[ "${1:-}" == "-c" ]]; then
-  printf '%s\n' '2026-07-14T15:20:00+08:00'
-  exit 0
-fi
-if [[ "${1:-}" == "scripts/review_prediction.py" ]]; then
-  echo review >> "$EVENT_LOG"
-  exit "$REVIEW_EXIT"
-fi
-exit 99
-""",
-            encoding="utf-8",
-        )
-        fake_git = fake_bin / "git"
-        fake_git.write_text('#!/bin/bash\necho pull >> "$EVENT_LOG"\nexit 0\n', encoding="utf-8")
-        fake_bash = fake_bin / "bash"
-        fake_bash.write_text('#!/bin/bash\necho publish >> "$EVENT_LOG"\nexit 0\n', encoding="utf-8")
-        for executable in (fake_python, fake_git, fake_bash):
-            executable.chmod(0o755)
-        env = {
-            **os.environ,
-            "HOME": str(home),
-            "PATH": f"{fake_bin}:{os.environ['PATH']}",
-            "EVENT_LOG": str(event_log),
-            "REVIEW_EXIT": str(review_exit),
-        }
-        subprocess.run(["/bin/bash", str(runner_path)], cwd=root, env=env, check=False)
-        return event_log.read_text(encoding="utf-8").splitlines() if event_log.exists() else []
-
-    def test_runner_publishes_only_after_successful_review(self) -> None:
-        self.assertEqual(self.run_generated_runner(0), ["pull", "review", "publish"])
-
-    def test_runner_does_not_publish_when_review_or_metrics_chain_fails(self) -> None:
-        self.assertEqual(self.run_generated_runner(7), ["pull", "review"])
+    def test_generated_runner_delegates_to_clean_runtime_watchdog(self) -> None:
+        text = INSTALL_SCRIPT.read_text(encoding="utf-8")
+        runner = text.split('cat > "$RUNNER" <<\'RUNNER\'\n', 1)[1].split("\nRUNNER\n", 1)[0]
+        self.assertIn('ROOT="__RUNTIME_ROOT__"', runner)
+        self.assertIn('exec python3 "$ROOT/scripts/prediction_review_watchdog.py"', runner)
 
 
 if __name__ == "__main__":

@@ -50,17 +50,17 @@ DATASET_RULES = {
     },
     "/api/supply-demand": {
         "label": "供需资料",
-        "stale_after_seconds": 60 * 60 * 24 * 40,
+        "stale_after_seconds": 60 * 60 * 72,
         "timestamp_fields": ("checked_at", "generated_at"),
     },
     "/api/contracts/current": {
         "label": "主力合约",
-        "stale_after_seconds": 60 * 60 * 24 * 35,
+        "stale_after_seconds": 60 * 60 * 72,
         "timestamp_fields": ("generated_at",),
     },
     "/api/forecast/metrics/latest": {
         "label": "预测评估",
-        "stale_after_seconds": 60 * 60 * 24 * 14,
+        "stale_after_seconds": 60 * 60 * 96,
         "timestamp_fields": ("generated_at", "as_of"),
     },
     "/api/assistant/brief": {

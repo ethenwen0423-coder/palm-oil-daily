@@ -96,10 +96,12 @@ AI 简报只分析已经发布的数据，并返回所引用的证据编号、�
 - `scripts/deploy_oil_futures_tab.sh`：刷新并发布油脂与跨市场行情数据。
 - `scripts/update_market_assistant_brief.py`：基于已发布数据生成带证据引用的只读 AI 简报。
 - `scripts/deploy_market_assistant_brief.sh`：幂等生成并发布 AI 简报。
+- `scripts/prediction_review_watchdog.py`：发现并补评所有已到期但尚未评估的预测，网络恢复后自动补推送。
 - `scripts/install_daily_watchdog_launchd.sh`：安装工作日日报补检任务。
 - `scripts/install_weekly_watchdog_launchd.sh`：安装周末周报补检任务。
 - `scripts/install_oil_futures_tab_launchd.sh`：安装午间、收盘、夜盘和凌晨行情刷新任务。
 - `scripts/install_market_assistant_launchd.sh`：安装每 15 分钟运行的 AI 盯盘任务。
+- `scripts/install_prediction_review_launchd.sh`：安装每 15 分钟自恢复的收盘预测评估任务。
 
 ## 自动化调度
 
@@ -128,6 +130,10 @@ AI 简报只分析已经发布的数据，并返回所引用的证据编号、�
 - `com.vinsontesla.market-assistant-ai`
   - 每 15 分钟检查源数据指纹
   - 源数据变化时生成并发布 AI 简报；失败时保留上一份有效简报
+- `com.vinsontesla.palm-oil-prediction-review`
+  - 启动时及每 15 分钟检查两个历史运行目录中的预测输入
+  - 当日预测 15:20 后可评估；休眠、断网或数据源失败造成的遗漏会在后续轮次补评
+  - 与行情、AI 发布共用锁；失败回滚未发布结果，推送失败则在网络恢复后重试
 
 安装或刷新调度：
 
@@ -136,6 +142,7 @@ bash scripts/install_daily_watchdog_launchd.sh
 bash scripts/install_weekly_watchdog_launchd.sh
 bash scripts/install_oil_futures_tab_launchd.sh
 bash scripts/install_market_assistant_launchd.sh
+bash scripts/install_prediction_review_launchd.sh --confirm-persistence-reviewed
 ```
 
 ## 手动发布流程
