@@ -1,9 +1,9 @@
 window.QUANT_MODEL_SIGNALS = {
   "status": "ok",
   "schema_version": 2,
-  "generated_at": "2026-07-31T00:30:11+08:00",
-  "market_updated_at": "2026-07-31 00:25",
-  "market_update_session": "overnight",
+  "generated_at": "2026-07-31T06:22:47+08:00",
+  "market_updated_at": "2026-07-31 06:13",
+  "market_update_session": "morning",
   "market_timezone": "Asia/Shanghai",
   "default_model_id": "bollinger-rsi-ma6-v1",
   "models": [
@@ -592,7 +592,7 @@ window.QUANT_MODEL_SIGNALS = {
           "change": "-0.19%",
           "direction": "↓",
           "trade_date": "2026-07-31",
-          "source": "akshare:futures_zh_realtime",
+          "source": "AkShare + 同花顺问财行情skill",
           "unit": "元/吨"
         }
       },
@@ -1957,7 +1957,7 @@ window.QUANT_MODEL_SIGNALS = {
         "change": "-0.19%",
         "direction": "↓",
         "trade_date": "2026-07-31",
-        "source": "akshare:futures_zh_realtime",
+        "source": "AkShare + 同花顺问财行情skill",
         "unit": "元/吨"
       }
     },
