@@ -74,7 +74,7 @@
       </div>
     </footer>
 
-    <script src="assets/api-data-loader.js?v=20260730-api1"></script>
+    <script src="assets/api-data-loader.js?v=20260730-api2"></script>
     <script>
       window.PalmOilDataLoader.boot({
         endpoint: "/api/quant-model-signals",
@@ -82,6 +82,7 @@
         fallbackSrc: "data/quant_model_signals.js",
         consumerSrc: "assets/quant-model-detail.js",
         cacheBust: window.QUANT_DETAIL_CACHE_BUST,
+        pollIntervalMs: 60000,
       });
     </script>
   </body>

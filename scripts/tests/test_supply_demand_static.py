@@ -13,6 +13,10 @@ class SupplyDemandStaticTests(unittest.TestCase):
         self.assertIn('src="assets/supply-demand.js?v=', html)
         self.assertTrue((ROOT / "assets" / "styles.css").is_file())
         self.assertTrue((ROOT / "assets" / "supply-demand.js").is_file())
+        script = (ROOT / "assets" / "supply-demand.js").read_text(encoding="utf-8")
+        self.assertIn('API_URL = "/api/supply-demand"', script)
+        self.assertIn('STATIC_DATA_URL = "data/supply-demand.json"', script)
+        self.assertIn("POLL_INTERVAL_MS = 300000", script)
 
     def test_public_json_has_six_metrics_and_valid_sources(self):
         payload = json.loads((ROOT / "data" / "supply-demand.json").read_text(encoding="utf-8"))
@@ -58,6 +62,15 @@ class SupplyDemandStaticTests(unittest.TestCase):
         self.assertIn('refresh_supply_demand', installer)
         self.assertIn("supply-demand checked with daily report", installer)
         self.assertNotIn("com.vinsontesla.palm-oil-supply-demand", installer)
+
+    def test_exchange_futures_has_json_api_payload_and_deploy_allowlist(self):
+        wrapped = (ROOT / "data" / "exchange_futures.js").read_text(encoding="utf-8")
+        wrapped_payload = json.loads(wrapped.split("=", 1)[1].strip().removesuffix(";"))
+        json_payload = json.loads((ROOT / "data" / "exchange_futures.json").read_text(encoding="utf-8"))
+        self.assertEqual(json_payload, wrapped_payload)
+        deploy = (ROOT / "scripts" / "deploy_oil_futures_tab.sh").read_text(encoding="utf-8")
+        self.assertIn("data/exchange_futures.json", deploy)
+        self.assertIn("EXCHANGE_JSON_TMP", deploy)
 
 
 if __name__ == "__main__":

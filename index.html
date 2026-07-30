@@ -54,6 +54,7 @@
           </div>
 
           <div class="hero-actions" aria-label="报告入口">
+            <a class="hero-button hero-button-primary" href="assistant.html">打开 24h 盯盘助手 <span aria-hidden="true">↗</span></a>
             <a id="daily-report-link" class="hero-button hero-button-primary" href="reports.html">阅读今日晨报 <span aria-hidden="true">↗</span></a>
             <a id="weekly-report-link" class="hero-button hero-button-secondary" href="reports.html">查看本周周报 <span aria-hidden="true">→</span></a>
             <a class="hero-button hero-button-secondary" href="oil-futures.html">查看油脂主力 <span aria-hidden="true">→</span></a>
@@ -76,6 +77,7 @@
       <nav class="home-anchor-nav" aria-label="首页分区导航">
         <strong><span aria-hidden="true"></span> Market Intelligence</strong>
         <div>
+          <a href="assistant.html">24h 盯盘</a>
           <a href="#overview">今日概览</a>
           <a href="reports.html">报告归档</a>
           <a href="oil-futures.html">油脂主力</a>
@@ -181,11 +183,16 @@
       </div>
     </footer>
 
+    <script src="assets/api-data-loader.js?v=20260730-api2"></script>
     <script>
-      document.write('<script src="data/reports.js?v=' + window.PALM_OIL_CACHE_BUST + '"><\/script>');
-    </script>
-    <script>
-      document.write('<script src="assets/app.js?v=' + window.PALM_OIL_CACHE_BUST + '"><\/script>');
+      window.PalmOilDataLoader.boot({
+        endpoint: "/api/reports",
+        globalName: "PALM_OIL_REPORTS",
+        fallbackSrc: "data/reports.js",
+        consumerSrc: "assets/app.js",
+        cacheBust: window.PALM_OIL_CACHE_BUST,
+        pollIntervalMs: 60000,
+      });
     </script>
   </body>
 </html>

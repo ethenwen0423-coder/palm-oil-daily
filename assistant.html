@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>24h 盯盘助手 | Vinson Research</title>
+    <meta
+      name="description"
+      content="自动汇总棕榈油研究、行情走势、全品种异动、供需资料与数据健康状态。"
+    />
+    <meta name="theme-color" content="#061410" />
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="assets/market-assistant.css?v=20260730-1" />
+  </head>
+  <body>
+    <header class="monitor-header">
+      <div class="monitor-shell monitor-nav">
+        <a href="index.html" class="monitor-brand">
+          <span>Vinson Research</span>
+          <strong>24h Market Assistant</strong>
+        </a>
+        <nav aria-label="盯盘助手导航">
+          <a href="oil-futures.html">油脂行情</a>
+          <a href="futures.html">全品种</a>
+          <a href="reports.html">AI 报告</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="monitor-shell">
+      <section class="monitor-hero">
+        <div>
+          <p>Collect · Monitor · Analyze</p>
+          <h1>24h 盯盘助手</h1>
+          <span>资料自动归集，走势集中观察，AI 研究结果随数据链更新。</span>
+        </div>
+        <aside>
+          <span id="monitor-overall-state" class="monitor-state is-loading">正在连接数据链</span>
+          <strong id="monitor-clock">--:--:--</strong>
+          <small id="monitor-refresh-note">每 60 秒检查一次更新</small>
+        </aside>
+      </section>
+
+      <section class="monitor-section" aria-labelledby="data-health-title">
+        <header class="monitor-section-heading">
+          <div><span>Data Health</span><h2 id="data-health-title">自动更新状态</h2></div>
+          <p>“延迟”表示仍在展示最近一次有效数据，不等于实时。</p>
+        </header>
+        <div id="monitor-data-health" class="health-grid">
+          <article class="monitor-placeholder">正在读取数据更新时间…</article>
+        </div>
+      </section>
+
+      <section class="monitor-grid monitor-grid-primary">
+        <article class="monitor-card monitor-report-card">
+          <header><span>Latest AI Research</span><a id="monitor-report-link" href="reports.html">查看全文 →</a></header>
+          <time id="monitor-report-date">等待报告</time>
+          <h2 id="monitor-report-headline">正在读取最新研究结论</h2>
+          <p id="monitor-report-summary">AI 报告会按照既有日报与周报流程自动发布。</p>
+        </article>
+
+        <article class="monitor-card monitor-task-card">
+          <header><span>AI Work Queue</span><small>由当前数据状态生成</small></header>
+          <h2>当前应处理什么</h2>
+          <ul id="monitor-task-list">
+            <li>正在识别缺失资料与主要异动…</li>
+          </ul>
+        </article>
+      </section>
+
+      <section class="monitor-grid">
+        <article class="monitor-card">
+          <header><span>Oils Watch</span><a href="oil-futures.html">打开油脂行情 →</a></header>
+          <h2>油脂主力走势</h2>
+          <p id="monitor-oil-updated" class="monitor-meta">等待行情更新时间</p>
+          <div id="monitor-oil-list" class="quote-list"></div>
+        </article>
+
+        <article class="monitor-card">
+          <header><span>Market Movers</span><a href="futures.html">打开全品种 →</a></header>
+          <h2>全品种涨跌异动</h2>
+          <p id="monitor-exchange-updated" class="monitor-meta">等待行情更新时间</p>
+          <div class="mover-columns">
+            <div><strong>涨幅靠前</strong><div id="monitor-gainers" class="mover-list"></div></div>
+            <div><strong>跌幅靠前</strong><div id="monitor-losers" class="mover-list"></div></div>
+          </div>
+        </article>
+      </section>
+
+      <section class="monitor-grid">
+        <article class="monitor-card">
+          <header><span>Official Data</span><a href="supply-demand.html">查看供需详情 →</a></header>
+          <h2>官方供需资料检查</h2>
+          <p id="monitor-supply-message">正在读取 MPOB、GAPKI 与 USDA 数据检查状态。</p>
+          <dl class="monitor-facts">
+            <div><dt>最近检查</dt><dd id="monitor-supply-checked">--</dd></div>
+            <div><dt>数据更新</dt><dd id="monitor-supply-updated">--</dd></div>
+          </dl>
+        </article>
+
+        <article class="monitor-card">
+          <header><span>Model Evidence</span><a href="quant-model.html">查看量化模型 →</a></header>
+          <h2>预测评估状态</h2>
+          <p id="monitor-forecast-status">正在读取样本与评估状态。</p>
+          <dl class="monitor-facts">
+            <div><dt>评估截至</dt><dd id="monitor-forecast-date">--</dd></div>
+            <div><dt>公开状态</dt><dd id="monitor-forecast-public">--</dd></div>
+          </dl>
+        </article>
+      </section>
+
+      <section class="monitor-boundary">
+        <strong>固定逻辑边界</strong>
+        <p>场外结构类型与量化模型规则保持版本化固定；行情、报告、供需、合约、评估和数据健康状态自动更新。</p>
+      </section>
+    </main>
+
+    <footer class="monitor-footer">
+      <div class="monitor-shell">
+        <span>Vinson Research · 24h Market Assistant</span>
+        <p>仅作研究与信息整理，不构成投资建议。过期或缺失数据会明确标记。</p>
+      </div>
+    </footer>
+
+    <script src="assets/market-assistant.js?v=20260730-1"></script>
+  </body>
+</html>

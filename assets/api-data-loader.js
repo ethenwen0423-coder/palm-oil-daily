@@ -2,6 +2,7 @@
   "use strict";
 
   const DEFAULT_TIMEOUT_MS = 5000;
+  const MIN_POLL_INTERVAL_MS = 15000;
 
   function versionedSource(source, cacheBust) {
     if (!cacheBust) return source;
@@ -23,6 +24,10 @@
       );
       document.body.appendChild(script);
     });
+  }
+
+  function validPayload(payload) {
+    return Boolean(payload) && typeof payload === "object";
   }
 
   async function fetchJson(endpoint, timeoutMs) {
@@ -48,7 +53,7 @@
         throw new Error(`API 返回 HTTP ${response.status}`);
       }
       const payload = await response.json();
-      if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+      if (!validPayload(payload)) {
         throw new Error("API 返回的数据结构无效");
       }
       return payload;
@@ -64,6 +69,52 @@
     document.dispatchEvent(new CustomEvent("palm-oil:data-load-state", { detail: state }));
   }
 
+  function payloadFingerprint(payload) {
+    try {
+      return JSON.stringify(payload);
+    } catch (_error) {
+      return "";
+    }
+  }
+
+  function scheduleRefresh(options, initialPayload, initialSource) {
+    const interval = Number(options.pollIntervalMs);
+    if (!Number.isFinite(interval) || interval < MIN_POLL_INTERVAL_MS) return;
+
+    let fingerprint = payloadFingerprint(initialPayload);
+    global.setInterval(async () => {
+      if (document.visibilityState === "hidden") return;
+      try {
+        const payload = await fetchJson(options.endpoint, options.timeoutMs);
+        const nextFingerprint = payloadFingerprint(payload);
+        if (initialSource !== "api" || nextFingerprint !== fingerprint) {
+          global[options.globalName] = payload;
+          fingerprint = nextFingerprint;
+          updateState({
+            status: "updating",
+            source: "api",
+            endpoint: options.endpoint,
+            globalName: options.globalName,
+          });
+          document.dispatchEvent(
+            new CustomEvent("palm-oil:data-updated", {
+              detail: { endpoint: options.endpoint, globalName: options.globalName },
+            }),
+          );
+          global.location.reload();
+        }
+      } catch (error) {
+        updateState({
+          status: "ready",
+          source: initialSource,
+          endpoint: options.endpoint,
+          globalName: options.globalName,
+          lastRefreshError: String(error.message || error),
+        });
+      }
+    }, interval);
+  }
+
   async function boot(options) {
     const {
       endpoint,
@@ -72,6 +123,7 @@
       consumerSrc,
       cacheBust = Date.now(),
       timeoutMs = DEFAULT_TIMEOUT_MS,
+      pollIntervalMs = 0,
     } = options || {};
 
     if (!endpoint || !globalName || !fallbackSrc || !consumerSrc) {
@@ -89,13 +141,13 @@
       apiError = error;
       await loadScript(fallbackSrc, cacheBust, "fallback");
       const fallbackData = global[globalName];
-      if (!fallbackData || typeof fallbackData !== "object") {
+      if (!validPayload(fallbackData)) {
         throw new Error(`静态回退数据未提供 ${globalName}`);
       }
     }
 
     const state = {
-      status: "ready",
+      status: "rendering",
       source,
       endpoint,
       globalName,
@@ -103,7 +155,14 @@
     };
     updateState(state);
     await loadScript(consumerSrc, cacheBust, "consumer");
-    return state;
+    const readyState = { ...state, status: "ready" };
+    updateState(readyState);
+    scheduleRefresh(
+      { endpoint, globalName, timeoutMs, pollIntervalMs },
+      global[globalName],
+      source,
+    );
+    return readyState;
   }
 
   global.PalmOilDataLoader = Object.freeze({
@@ -116,7 +175,7 @@
           globalName: options?.globalName || "",
           error: String(error.message || error),
         });
-        global.console?.error("行情数据加载失败", error);
+        global.console?.error("动态数据加载失败", error);
         return null;
       });
     },

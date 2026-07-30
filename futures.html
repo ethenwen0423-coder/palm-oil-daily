@@ -56,7 +56,16 @@
     </main>
 
     <footer class="futures-page-footer"><div class="shell"><span id="futures-data-source">数据源等待加载</span><span>仅作研究跟踪，不构成投资建议。</span></div></footer>
-    <script>document.write('<script src="data/exchange_futures.js?v=' + window.FUTURES_CACHE_BUST + '"><\/script>');</script>
-    <script>document.write('<script src="assets/futures-analysis.js?v=' + window.FUTURES_CACHE_BUST + '"><\/script>');</script>
+    <script src="assets/api-data-loader.js?v=20260730-api2"></script>
+    <script>
+      window.PalmOilDataLoader.boot({
+        endpoint: "/api/exchange-futures",
+        globalName: "EXCHANGE_FUTURES_DATA",
+        fallbackSrc: "data/exchange_futures.js",
+        consumerSrc: "assets/futures-analysis.js",
+        cacheBust: window.FUTURES_CACHE_BUST,
+        pollIntervalMs: 60000,
+      });
+    </script>
   </body>
 </html>

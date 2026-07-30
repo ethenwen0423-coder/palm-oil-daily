@@ -1,7 +1,9 @@
 (() => {
   "use strict";
 
-  const DATA_URL = "data/supply-demand.json";
+  const API_URL = "/api/supply-demand";
+  const STATIC_DATA_URL = "data/supply-demand.json";
+  const POLL_INTERVAL_MS = 300000;
   const METRIC_ORDER = ["production", "exports", "stocks"];
   const STATUS_LABELS = {
     ok: "数据正常",
@@ -432,6 +434,34 @@
     generated.textContent = "数据更新时间读取失败";
   }
 
+  function setDataState(source, status, error = "") {
+    document.documentElement.dataset.supplyDemandSource = source;
+    document.documentElement.dataset.supplyDemandStatus = status;
+    window.PALM_OIL_SUPPLY_DEMAND_STATE = Object.freeze({
+      source,
+      status,
+      error,
+    });
+  }
+
+  async function fetchPayload(url) {
+    const response = await fetch(url, {
+      cache: "no-store",
+      credentials: "same-origin",
+      headers: { Accept: "application/json" },
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const payload = await response.json();
+    if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+      throw new Error("供需 API 返回的数据结构无效");
+    }
+    return payload;
+  }
+
+  function fingerprint(payload) {
+    return JSON.stringify(payload);
+  }
+
   let resizeTimer;
   window.addEventListener("resize", () => {
     window.clearTimeout(resizeTimer);
@@ -442,11 +472,42 @@
     }, 120);
   });
 
-  fetch(DATA_URL, { cache: "no-store" })
-    .then((response) => {
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      return response.json();
+  let currentFingerprint = "";
+
+  fetchPayload(API_URL)
+    .then((payload) => {
+      currentFingerprint = fingerprint(payload);
+      setDataState("api", "ready");
+      render(payload);
     })
-    .then(render)
-    .catch(renderError);
+    .catch((apiError) => fetchPayload(STATIC_DATA_URL)
+      .then((payload) => {
+        currentFingerprint = fingerprint(payload);
+        setDataState("static", "ready", String(apiError.message || apiError));
+        render(payload);
+      }))
+    .catch(() => {
+      setDataState("error", "error");
+      renderError();
+    });
+
+  window.setInterval(() => {
+    if (document.visibilityState === "hidden") return;
+    fetchPayload(API_URL)
+      .then((payload) => {
+        const nextFingerprint = fingerprint(payload);
+        setDataState("api", "ready");
+        if (nextFingerprint !== currentFingerprint) {
+          currentFingerprint = nextFingerprint;
+          render(payload);
+        }
+      })
+      .catch((error) => {
+        setDataState(
+          document.documentElement.dataset.supplyDemandSource || "static",
+          "ready",
+          String(error.message || error),
+        );
+      });
+  }, POLL_INTERVAL_MS);
 })();

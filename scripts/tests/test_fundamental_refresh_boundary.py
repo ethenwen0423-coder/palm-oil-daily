@@ -33,6 +33,10 @@ class FundamentalRefreshBoundaryTest(unittest.TestCase):
         self.assertIn("--fundamental-mode", deploy)
         self.assertIn('OIL_FUNDAMENTAL_MODE="carry"', deploy)
         self.assertIn('EXCHANGE_FUNDAMENTAL_MODE="carry"', deploy)
+        self.assertIn("pull_with_retry", installer)
+        self.assertIn("attempt * 10", installer)
+        self.assertIn("keep state open for next recovery", installer)
+        self.assertIn("<integer>16</integer><key>Minute</key><integer>0</integer>", installer)
 
     def test_exchange_carry_requires_same_day_morning_snapshot(self):
         payload = {

@@ -75,7 +75,7 @@
       </div>
     </footer>
 
-    <script src="assets/api-data-loader.js?v=20260730-api1"></script>
+    <script src="assets/api-data-loader.js?v=20260730-api2"></script>
     <script>
       window.PalmOilDataLoader.boot({
         endpoint: "/api/oil-futures",
@@ -83,6 +83,7 @@
         fallbackSrc: "data/oil_futures.js",
         consumerSrc: "assets/otc-structure.js",
         cacheBust: window.OTC_CACHE_BUST,
+        pollIntervalMs: 60000,
       });
     </script>
   </body>

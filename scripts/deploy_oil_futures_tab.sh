@@ -27,6 +27,7 @@ trap cleanup EXIT
 TODAY="$(TZ=Asia/Shanghai date +%F)"
 OIL_TMP="$TMP_DIR/oil_futures.js"
 EXCHANGE_TMP="$TMP_DIR/exchange_futures.js"
+EXCHANGE_JSON_TMP="$TMP_DIR/exchange_futures.json"
 SKIP_OIL=false
 OIL_FUNDAMENTAL_MODE="refresh"
 EXCHANGE_FUNDAMENTAL_MODE="refresh"
@@ -87,12 +88,12 @@ python3 scripts/update_exchange_futures_data.py \
   --scope core \
   --fundamental-mode "$EXCHANGE_FUNDAMENTAL_MODE"
 
-python3 - "$SESSION" "$TODAY" "$OIL_TMP" "$EXCHANGE_TMP" "$SKIP_OIL" <<'PY'
+python3 - "$SESSION" "$TODAY" "$OIL_TMP" "$EXCHANGE_TMP" "$EXCHANGE_JSON_TMP" "$SKIP_OIL" <<'PY'
 import json
 import sys
 from pathlib import Path
 
-session, today, oil_path, exchange_path, skip_oil = sys.argv[1:]
+session, today, oil_path, exchange_path, exchange_json_path, skip_oil = sys.argv[1:]
 
 def load_wrapped(path: str) -> dict:
     text = Path(path).read_text(encoding="utf-8").strip()
@@ -130,6 +131,11 @@ if len(exchange["contracts"]) != exchange.get("universe_expected"):
 priced = [item for item in exchange["contracts"] if isinstance(item.get("price"), (int, float))]
 if len(exchange["contracts"]) < 30 or len(priced) < 25:
     raise SystemExit("exchange_futures coverage is too small; refusing partial publish")
+
+Path(exchange_json_path).write_text(
+    json.dumps(exchange, ensure_ascii=False, indent=2) + "\n",
+    encoding="utf-8",
+)
 PY
 
 if [[ "$SKIP_OIL" == false ]]; then
@@ -137,6 +143,7 @@ if [[ "$SKIP_OIL" == false ]]; then
   python3 scripts/sync_miniprogram_data.py oil-futures
 fi
 cp "$EXCHANGE_TMP" data/exchange_futures.js
+cp "$EXCHANGE_JSON_TMP" data/exchange_futures.json
 python3 scripts/update_quant_model_data.py
 
 ALLOWED=(
@@ -144,6 +151,7 @@ ALLOWED=(
   data/oil_futures.json
   miniprogram/data/oil_futures.js
   data/exchange_futures.js
+  data/exchange_futures.json
   data/quant_model_signals.js
   data/quant_model_signals.json
 )

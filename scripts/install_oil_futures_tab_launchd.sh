@@ -62,7 +62,24 @@ if [[ ! -f "\$MORNING_STATE" ]]; then
 fi
 
 cd "\$ROOT"
-git pull --ff-only >> "\$LOG" 2>&1
+pull_with_retry() {
+  local attempt
+  for attempt in 1 2 3; do
+    if GIT_TERMINAL_PROMPT=0 git pull --ff-only >> "\$LOG" 2>&1; then
+      return 0
+    fi
+    echo "[\$(TZ=Asia/Shanghai date '+%F %T')] git pull failed (attempt \$attempt/3)" >> "\$LOG"
+    if (( attempt < 3 )); then
+      sleep \$((attempt * 10))
+    fi
+  done
+  return 1
+}
+
+if ! pull_with_retry; then
+  echo "[\$(TZ=Asia/Shanghai date '+%F %T')] source sync unavailable after retries; keep state open for next recovery" >> "\$LOG"
+  exit 1
+fi
 bash scripts/deploy_oil_futures_tab.sh "\$SESSION" >> "\$LOG" 2>&1
 touch "\$STATE"
 find "\$STATE_DIR" -type f -name '*.ok' -mtime +14 -delete
@@ -102,6 +119,11 @@ cat > "$PLIST" <<PLIST
     <dict><key>Weekday</key><integer>3</integer><key>Hour</key><integer>15</integer><key>Minute</key><integer>20</integer></dict>
     <dict><key>Weekday</key><integer>4</integer><key>Hour</key><integer>15</integer><key>Minute</key><integer>20</integer></dict>
     <dict><key>Weekday</key><integer>5</integer><key>Hour</key><integer>15</integer><key>Minute</key><integer>20</integer></dict>
+    <dict><key>Weekday</key><integer>1</integer><key>Hour</key><integer>16</integer><key>Minute</key><integer>0</integer></dict>
+    <dict><key>Weekday</key><integer>2</integer><key>Hour</key><integer>16</integer><key>Minute</key><integer>0</integer></dict>
+    <dict><key>Weekday</key><integer>3</integer><key>Hour</key><integer>16</integer><key>Minute</key><integer>0</integer></dict>
+    <dict><key>Weekday</key><integer>4</integer><key>Hour</key><integer>16</integer><key>Minute</key><integer>0</integer></dict>
+    <dict><key>Weekday</key><integer>5</integer><key>Hour</key><integer>16</integer><key>Minute</key><integer>0</integer></dict>
   </array>
   <key>StandardOutPath</key><string>$SUPPORT_DIR/oil-futures-tab.stdout.log</string>
   <key>StandardErrorPath</key><string>$SUPPORT_DIR/oil-futures-tab.stderr.log</string>
