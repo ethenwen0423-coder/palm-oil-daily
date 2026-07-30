@@ -1,9 +1,9 @@
 window.EXCHANGE_FUTURES_DATA = {
-  "updated_at": "2026-07-30 23:23",
-  "update_session": "close",
+  "updated_at": "2026-07-31 00:25",
+  "update_session": "overnight",
   "scope": "core",
   "timezone": "Asia/Shanghai",
-  "source": "行情与技术指标本时点刷新；基本面与新闻沿用当日晨报发布后冻结的快照，盘中不重新计算。",
+  "source": "行情与技术指标本时点刷新；基本面与新闻沿用最近交易日晨报发布后冻结的快照，盘中、夜盘与凌晨尾盘不重新计算。",
   "fundamental_mode": "carry",
   "fundamental_updated_at": "2026-07-30 06:16",
   "fundamental_update_session": "morning",
@@ -2272,10 +2272,10 @@ window.EXCHANGE_FUTURES_DATA = {
       "product": "沪铜",
       "exchange": "SHFE",
       "category": "有色金属",
-      "price": 105400.0,
-      "change_pct": 0.68,
-      "volume": 36639,
-      "open_interest": 197001,
+      "price": 105560.0,
+      "change_pct": 0.83,
+      "volume": 39190,
+      "open_interest": 197215,
       "trade_date": "2026-07-31",
       "technical": {
         "status": "ok",
@@ -2285,7 +2285,7 @@ window.EXCHANGE_FUTURES_DATA = {
         "details": [
           {
             "title": "趋势",
-            "text": "日线趋势判定为偏多，MA20 104192.5，MA60 104413.0。"
+            "text": "日线趋势判定为偏多，MA20 104200.5，MA60 104415.67。"
           },
           {
             "title": "动量",
@@ -2293,7 +2293,7 @@ window.EXCHANGE_FUTURES_DATA = {
           },
           {
             "title": "波动",
-            "text": "ATR14 为 1142.86，布林区间 102139.2 至 106245.8。"
+            "text": "ATR14 为 1142.86，布林区间 102126.25 至 106274.75。"
           },
           {
             "title": "关键位",
@@ -2301,14 +2301,14 @@ window.EXCHANGE_FUTURES_DATA = {
           }
         ],
         "indicators": {
-          "MA5": 104980.0,
-          "MA20": 104192.5,
-          "MA60": 104413.0,
-          "MACD": 126.15,
-          "RSI12": 58.58,
-          "KDJ_J": 60.44,
-          "BOLL上轨": 106245.8,
-          "BOLL下轨": 102139.2,
+          "MA5": 105012.0,
+          "MA20": 104200.5,
+          "MA60": 104415.67,
+          "MACD": 136.36,
+          "RSI12": 59.62,
+          "KDJ_J": 64.7,
+          "BOLL上轨": 106274.75,
+          "BOLL下轨": 102126.25,
           "ATR14": 1142.86
         },
         "levels": {
@@ -2362,10 +2362,10 @@ window.EXCHANGE_FUTURES_DATA = {
       "product": "沪铝",
       "exchange": "SHFE",
       "category": "有色金属",
-      "price": 23665.0,
-      "change_pct": 0.17,
-      "volume": 48508,
-      "open_interest": 248917,
+      "price": 23700.0,
+      "change_pct": 0.32,
+      "volume": 53298,
+      "open_interest": 248192,
       "trade_date": "2026-07-31",
       "technical": {
         "status": "ok",
@@ -2375,7 +2375,7 @@ window.EXCHANGE_FUTURES_DATA = {
         "details": [
           {
             "title": "趋势",
-            "text": "日线趋势判定为偏多，MA20 23174.5，MA60 23817.92。"
+            "text": "日线趋势判定为偏多，MA20 23176.25，MA60 23818.5。"
           },
           {
             "title": "动量",
@@ -2383,7 +2383,7 @@ window.EXCHANGE_FUTURES_DATA = {
           },
           {
             "title": "波动",
-            "text": "ATR14 为 262.14，布林区间 22802.59 至 23546.41。"
+            "text": "ATR14 为 262.14，布林区间 22794.43 至 23558.07。"
           },
           {
             "title": "关键位",
@@ -2391,14 +2391,14 @@ window.EXCHANGE_FUTURES_DATA = {
           }
         ],
         "indicators": {
-          "MA5": 23352.0,
-          "MA20": 23174.5,
-          "MA60": 23817.92,
-          "MACD": 92.07,
-          "RSI12": 62.22,
-          "KDJ_J": 100.97,
-          "BOLL上轨": 23546.41,
-          "BOLL下轨": 22802.59,
+          "MA5": 23359.0,
+          "MA20": 23176.25,
+          "MA60": 23818.5,
+          "MACD": 94.31,
+          "RSI12": 63.18,
+          "KDJ_J": 105.11,
+          "BOLL上轨": 23558.07,
+          "BOLL下轨": 22794.43,
           "ATR14": 262.14
         },
         "levels": {
@@ -2452,10 +2452,10 @@ window.EXCHANGE_FUTURES_DATA = {
       "product": "沪锌",
       "exchange": "SHFE",
       "category": "有色金属",
-      "price": 24885.0,
-      "change_pct": 0.75,
-      "volume": 50314,
-      "open_interest": 108256,
+      "price": 24890.0,
+      "change_pct": 0.77,
+      "volume": 53304,
+      "open_interest": 108345,
       "trade_date": "2026-07-31",
       "technical": {
         "status": "ok",
@@ -2465,7 +2465,7 @@ window.EXCHANGE_FUTURES_DATA = {
         "details": [
           {
             "title": "趋势",
-            "text": "日线趋势判定为偏多，MA20 24710.75，MA60 24710.08。"
+            "text": "日线趋势判定为偏多，MA20 24711.0，MA60 24710.17。"
           },
           {
             "title": "动量",
@@ -2473,7 +2473,7 @@ window.EXCHANGE_FUTURES_DATA = {
           },
           {
             "title": "波动",
-            "text": "ATR14 为 244.64，布林区间 24356.92 至 25064.58。"
+            "text": "ATR14 为 244.64，布林区间 24356.65 至 25065.35。"
           },
           {
             "title": "关键位",
@@ -2481,14 +2481,14 @@ window.EXCHANGE_FUTURES_DATA = {
           }
         ],
         "indicators": {
-          "MA5": 24820.0,
-          "MA20": 24710.75,
-          "MA60": 24710.08,
-          "MACD": 22.91,
-          "RSI12": 51.52,
-          "KDJ_J": 90.75,
-          "BOLL上轨": 25064.58,
-          "BOLL下轨": 24356.92,
+          "MA5": 24821.0,
+          "MA20": 24711.0,
+          "MA60": 24710.17,
+          "MACD": 23.23,
+          "RSI12": 51.68,
+          "KDJ_J": 91.44,
+          "BOLL上轨": 25065.35,
+          "BOLL下轨": 24356.65,
           "ATR14": 244.64
         },
         "levels": {
@@ -2542,10 +2542,10 @@ window.EXCHANGE_FUTURES_DATA = {
       "product": "沪镍",
       "exchange": "SHFE",
       "category": "有色金属",
-      "price": 132170.0,
-      "change_pct": 0.68,
-      "volume": 100489,
-      "open_interest": 161783,
+      "price": 132270.0,
+      "change_pct": 0.75,
+      "volume": 107647,
+      "open_interest": 161191,
       "trade_date": "2026-07-31",
       "technical": {
         "status": "ok",
@@ -2555,7 +2555,7 @@ window.EXCHANGE_FUTURES_DATA = {
         "details": [
           {
             "title": "趋势",
-            "text": "日线趋势判定为偏多，MA20 129828.0，MA60 136565.5。"
+            "text": "日线趋势判定为偏多，MA20 129833.0，MA60 136567.17。"
           },
           {
             "title": "动量",
@@ -2563,7 +2563,7 @@ window.EXCHANGE_FUTURES_DATA = {
           },
           {
             "title": "波动",
-            "text": "ATR14 为 2757.14，布林区间 124906.9 至 134749.1。"
+            "text": "ATR14 为 2757.14，布林区间 124901.69 至 134764.31。"
           },
           {
             "title": "关键位",
@@ -2571,14 +2571,14 @@ window.EXCHANGE_FUTURES_DATA = {
           }
         ],
         "indicators": {
-          "MA5": 132280.0,
-          "MA20": 129828.0,
-          "MA60": 136565.5,
-          "MACD": 678.26,
-          "RSI12": 56.9,
-          "KDJ_J": 54.58,
-          "BOLL上轨": 134749.1,
-          "BOLL下轨": 124906.9,
+          "MA5": 132300.0,
+          "MA20": 129833.0,
+          "MA60": 136567.17,
+          "MACD": 684.64,
+          "RSI12": 57.13,
+          "KDJ_J": 56.4,
+          "BOLL上轨": 134764.31,
+          "BOLL下轨": 124901.69,
           "ATR14": 2757.14
         },
         "levels": {
@@ -2632,10 +2632,10 @@ window.EXCHANGE_FUTURES_DATA = {
       "product": "原油",
       "exchange": "SHFE",
       "category": "能源化工",
-      "price": 555.0,
-      "change_pct": -2.32,
-      "volume": 51847,
-      "open_interest": 38225,
+      "price": 550.6,
+      "change_pct": -3.1,
+      "volume": 67991,
+      "open_interest": 37896,
       "trade_date": "2026-07-31",
       "technical": {
         "status": "ok",
@@ -2645,7 +2645,7 @@ window.EXCHANGE_FUTURES_DATA = {
         "details": [
           {
             "title": "趋势",
-            "text": "日线趋势判定为偏多，MA20 513.76，MA60 553.93。"
+            "text": "日线趋势判定为偏多，MA20 513.54，MA60 553.86。"
           },
           {
             "title": "动量",
@@ -2653,7 +2653,7 @@ window.EXCHANGE_FUTURES_DATA = {
           },
           {
             "title": "波动",
-            "text": "ATR14 为 28.7，布林区间 425.25 至 602.28。"
+            "text": "ATR14 为 28.7，布林区间 425.44 至 601.65。"
           },
           {
             "title": "关键位",
@@ -2661,14 +2661,14 @@ window.EXCHANGE_FUTURES_DATA = {
           }
         ],
         "indicators": {
-          "MA5": 552.68,
-          "MA20": 513.76,
-          "MA60": 553.93,
-          "MACD": 6.6,
-          "RSI12": 58.68,
-          "KDJ_J": 31.62,
-          "BOLL上轨": 602.28,
-          "BOLL下轨": 425.25,
+          "MA5": 551.8,
+          "MA20": 513.54,
+          "MA60": 553.86,
+          "MACD": 6.32,
+          "RSI12": 57.78,
+          "KDJ_J": 26.56,
+          "BOLL上轨": 601.65,
+          "BOLL下轨": 425.44,
           "ATR14": 28.7
         },
         "levels": {
@@ -3001,10 +3001,10 @@ window.EXCHANGE_FUTURES_DATA = {
       "product": "白银",
       "exchange": "SHFE",
       "category": "贵金属",
-      "price": 14284.0,
-      "change_pct": 1.8,
-      "volume": 383978,
-      "open_interest": 285361,
+      "price": 14389.0,
+      "change_pct": 2.54,
+      "volume": 471087,
+      "open_interest": 289601,
       "trade_date": "2026-07-31",
       "technical": {
         "status": "ok",
@@ -3014,7 +3014,7 @@ window.EXCHANGE_FUTURES_DATA = {
         "details": [
           {
             "title": "趋势",
-            "text": "日线趋势判定为偏空，MA20 14406.25，MA60 16401.97。"
+            "text": "日线趋势判定为偏空，MA20 14411.5，MA60 16403.72。"
           },
           {
             "title": "动量",
@@ -3022,7 +3022,7 @@ window.EXCHANGE_FUTURES_DATA = {
           },
           {
             "title": "波动",
-            "text": "ATR14 为 551.0，布林区间 13533.56 至 15278.94。"
+            "text": "ATR14 为 551.0，布林区间 13540.64 至 15282.36。"
           },
           {
             "title": "关键位",
@@ -3030,14 +3030,14 @@ window.EXCHANGE_FUTURES_DATA = {
           }
         ],
         "indicators": {
-          "MA5": 14270.4,
-          "MA20": 14406.25,
-          "MA60": 16401.97,
-          "MACD": 117.84,
-          "RSI12": 50.68,
-          "KDJ_J": 55.87,
-          "BOLL上轨": 15278.94,
-          "BOLL下轨": 13533.56,
+          "MA5": 14291.4,
+          "MA20": 14411.5,
+          "MA60": 16403.72,
+          "MACD": 124.54,
+          "RSI12": 52.19,
+          "KDJ_J": 62.58,
+          "BOLL上轨": 15282.36,
+          "BOLL下轨": 13540.64,
           "ATR14": 551.0
         },
         "levels": {
@@ -3091,20 +3091,20 @@ window.EXCHANGE_FUTURES_DATA = {
       "product": "黄金",
       "exchange": "SHFE",
       "category": "贵金属",
-      "price": 892.14,
-      "change_pct": 1.22,
-      "volume": 148900,
-      "open_interest": 178946,
+      "price": 896.76,
+      "change_pct": 1.74,
+      "volume": 172645,
+      "open_interest": 181058,
       "trade_date": "2026-07-31",
       "technical": {
         "status": "ok",
-        "trend": "偏空",
-        "score": 37,
-        "summary": "价格位于20日均线下方；中期均线结构偏空；MACD快线位于慢线上方",
+        "trend": "偏多",
+        "score": 65,
+        "summary": "价格位于20日均线上方；MACD快线位于慢线上方",
         "details": [
           {
             "title": "趋势",
-            "text": "日线趋势判定为偏空，MA20 892.97，MA60 939.31。"
+            "text": "日线趋势判定为偏多，MA20 893.2，MA60 939.39。"
           },
           {
             "title": "动量",
@@ -3112,7 +3112,7 @@ window.EXCHANGE_FUTURES_DATA = {
           },
           {
             "title": "波动",
-            "text": "ATR14 为 15.53，布林区间 870.28 至 915.67。"
+            "text": "ATR14 为 15.53，布林区间 870.45 至 915.96。"
           },
           {
             "title": "关键位",
@@ -3120,14 +3120,14 @@ window.EXCHANGE_FUTURES_DATA = {
           }
         ],
         "indicators": {
-          "MA5": 888.2,
-          "MA20": 892.97,
-          "MA60": 939.31,
-          "MACD": 2.89,
-          "RSI12": 56.0,
-          "KDJ_J": 48.57,
-          "BOLL上轨": 915.67,
-          "BOLL下轨": 870.28,
+          "MA5": 889.13,
+          "MA20": 893.2,
+          "MA60": 939.39,
+          "MACD": 3.19,
+          "RSI12": 58.37,
+          "KDJ_J": 58.91,
+          "BOLL上轨": 915.96,
+          "BOLL下轨": 870.45,
           "ATR14": 15.53
         },
         "levels": {

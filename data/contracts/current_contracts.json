@@ -1,6 +1,6 @@
 {
   "month": "2026-07",
-  "generated_at": "2026-07-30 23:20:41",
+  "generated_at": "2026-07-31 00:22:34",
   "source": "akshare:futures_zh_realtime",
   "products": {
     "P": [
@@ -164,5 +164,6 @@
       }
     ]
   },
-  "warnings": []
+  "warnings": [],
+  "selector_skill": "contract_selector_skill"
 }
