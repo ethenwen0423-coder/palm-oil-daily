@@ -1,6 +1,6 @@
 # Palm Oil Data API
 
-The public server mounts the repository `data/` directory at `/data` and runs
+The public server mounts the repository `data/` directory at `/site/data` and runs
 `server/api.py` in a small Python container. All dynamic endpoints are
 read-only and return `Cache-Control: no-store`.
 

@@ -27,6 +27,7 @@ class ServerApiStatusTests(unittest.TestCase):
         target.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
 
     def test_all_dynamic_datasets_have_routes(self):
+        self.assertEqual(API.DATA_ROOT, Path("/site/data"))
         self.assertEqual(API.ROUTES["/api/exchange-futures"], "exchange_futures.json")
         self.assertEqual(API.ROUTES["/api/supply-demand"], "supply-demand.json")
         self.assertEqual(API.ROUTES["/api/reports"], "reports.json")

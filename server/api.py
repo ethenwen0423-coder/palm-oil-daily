@@ -11,7 +11,7 @@ from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
 
 
-DATA_ROOT = Path(os.environ.get("PALM_OIL_DATA_ROOT", "/data"))
+DATA_ROOT = Path(os.environ.get("PALM_OIL_DATA_ROOT", "/site/data"))
 HOST = os.environ.get("PALM_OIL_API_HOST", "0.0.0.0")
 PORT = int(os.environ.get("PALM_OIL_API_PORT", "8000"))
 SHANGHAI = ZoneInfo("Asia/Shanghai")
@@ -192,11 +192,17 @@ class Handler(BaseHTTPRequestHandler):
         path = urlsplit(self.path).path.rstrip("/") or "/"
         if path in {"/healthz", "/api/health"}:
             payload = build_status(DATA_ROOT)
+            unavailable = {
+                route: item
+                for route, item in payload["datasets"].items()
+                if item["state"] in {"missing", "invalid"}
+            }
             self._send_json(
-                200,
+                503 if unavailable else 200,
                 {
-                    "status": "ok",
+                    "status": "degraded" if unavailable else "ok",
                     "served_at": payload["served_at"],
+                    "unavailable_datasets": list(unavailable),
                     "files": {
                         route: {
                             "available": item["available"],
