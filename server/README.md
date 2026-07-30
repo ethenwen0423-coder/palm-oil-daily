@@ -13,6 +13,7 @@ Dynamic datasets:
 - `/api/supply-demand`
 - `/api/contracts/current`
 - `/api/forecast/metrics/latest`
+- `/api/assistant/brief`
 
 Operational endpoints:
 
@@ -20,4 +21,6 @@ Operational endpoints:
 - `/api/status` reports availability, observation time, age and stale state.
 
 The server-side Git sync remains responsible for refreshing the mounted site
-checkout. The API never mutates research data or model rules.
+checkout. The AI brief is generated from the published datasets, cites the
+evidence records it used, and never mutates research data, OTC structure
+definitions or quant-model rules.

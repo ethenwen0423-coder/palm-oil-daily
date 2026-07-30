@@ -59,11 +59,49 @@
           <p id="monitor-report-summary">AI 报告会按照既有日报与周报流程自动发布。</p>
         </article>
 
+        <article class="monitor-card monitor-ai-card">
+          <header><span>Live AI Brief</span><small id="monitor-ai-generated">等待生成</small></header>
+          <h2 id="monitor-ai-headline">正在生成证据约束的盯盘简报</h2>
+          <p id="monitor-ai-summary">AI 只读取已发布数据，不修改场外结构库或量化模型规则。</p>
+          <dl class="monitor-facts">
+            <div><dt>市场状态</dt><dd id="monitor-ai-state">--</dd></div>
+            <div><dt>置信度</dt><dd id="monitor-ai-confidence">--</dd></div>
+          </dl>
+        </article>
+      </section>
+
+      <section class="monitor-grid monitor-grid-ai">
         <article class="monitor-card monitor-task-card">
-          <header><span>AI Work Queue</span><small>由当前数据状态生成</small></header>
-          <h2>当前应处理什么</h2>
+          <header><span>AI Work Queue</span><small id="monitor-ai-status">只读证据约束生成</small></header>
+          <h2>AI 已完成与正在处理</h2>
           <ul id="monitor-task-list">
             <li>正在识别缺失资料与主要异动…</li>
+          </ul>
+        </article>
+
+        <article class="monitor-card monitor-evidence-card">
+          <header><span>Grounded Moves</span><small>数值由证据自动回填</small></header>
+          <h2>关键异动与解释</h2>
+          <ul id="monitor-key-moves">
+            <li>正在读取来源与观测时间…</li>
+          </ul>
+        </article>
+      </section>
+
+      <section class="monitor-grid monitor-grid-ai">
+        <article class="monitor-card monitor-watch-card">
+          <header><span>Watchlist</span><small>触发后重新生成</small></header>
+          <h2>下一步关注</h2>
+          <ul id="monitor-watch-list">
+            <li>等待 AI 建立关注队列…</li>
+          </ul>
+        </article>
+
+        <article class="monitor-card monitor-risk-card">
+          <header><span>Risk Gate</span><small>缺失与冲突必须显式标记</small></header>
+          <h2>当前风险与限制</h2>
+          <ul id="monitor-risk-list">
+            <li>正在核验数据时间与来源完整性…</li>
           </ul>
         </article>
       </section>
@@ -122,6 +160,6 @@
       </div>
     </footer>
 
-    <script src="assets/market-assistant.js?v=20260730-1"></script>
+    <script src="assets/market-assistant.js?v=20260731-1"></script>
   </body>
 </html>

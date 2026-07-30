@@ -24,6 +24,7 @@ ROUTES = {
     "/api/supply-demand": "supply-demand.json",
     "/api/contracts/current": "contracts/current_contracts.json",
     "/api/forecast/metrics/latest": "forecast/metrics/latest.json",
+    "/api/assistant/brief": "market_assistant_brief.json",
 }
 
 DATASET_RULES = {
@@ -61,6 +62,11 @@ DATASET_RULES = {
         "label": "预测评估",
         "stale_after_seconds": 60 * 60 * 24 * 14,
         "timestamp_fields": ("generated_at", "as_of"),
+    },
+    "/api/assistant/brief": {
+        "label": "AI 盯盘简报",
+        "stale_after_seconds": 60 * 60 * 6,
+        "timestamp_fields": ("generated_at",),
     },
 }
 

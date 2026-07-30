@@ -1004,7 +1004,15 @@ def build_contracts(
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, default=OUTPUT)
-    parser.add_argument("--update-session", choices=("morning", "midday", "close", "manual"), default="manual")
+    parser.add_argument(
+        "--update-session",
+        choices=("morning", "midday", "close", "night_open", "night_close", "overnight", "manual"),
+        default="manual",
+    )
+    parser.add_argument(
+        "--fundamental-date",
+        help="carry 模式沿用的晨间基本面日期；凌晨尾盘通常为前一交易日",
+    )
     parser.add_argument(
         "--scope",
         choices=("core", "all"),
@@ -1018,13 +1026,15 @@ def main() -> int:
         help="refresh 仅供晨间刷新；carry 用于午盘/收盘沿用晨间冻结基本面",
     )
     args = parser.parse_args()
+    if args.fundamental_date and args.fundamental_mode != "carry":
+        parser.error("--fundamental-date is only valid with --fundamental-mode carry")
     now = datetime.now(SHANGHAI)
     previous_payload: dict[str, Any] = {}
     frozen_fundamentals: dict[str, dict[str, Any]] | None = None
     if args.fundamental_mode == "carry":
         previous_payload, frozen_fundamentals = load_frozen_fundamentals(
             OUTPUT,
-            now.strftime("%Y-%m-%d"),
+            args.fundamental_date or now.strftime("%Y-%m-%d"),
         )
     contracts = build_contracts(scope=args.scope, frozen_fundamentals=frozen_fundamentals)
     evidence_contracts = sum(
@@ -1038,7 +1048,7 @@ def main() -> int:
         "timezone": "Asia/Shanghai",
         "source": (
             (
-                "行情与技术指标本时点刷新；基本面与新闻沿用当日晨报发布后冻结的快照，盘中不重新计算。"
+                "行情与技术指标本时点刷新；基本面与新闻沿用最近交易日晨报发布后冻结的快照，盘中、夜盘与凌晨尾盘不重新计算。"
             )
             if args.fundamental_mode == "carry"
             else (

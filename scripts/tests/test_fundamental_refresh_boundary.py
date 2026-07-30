@@ -28,7 +28,7 @@ class FundamentalRefreshBoundaryTest(unittest.TestCase):
     def test_intraday_schedule_requires_morning_snapshot_and_carry_mode(self):
         installer = INTRADAY_INSTALLER.read_text(encoding="utf-8")
         deploy = MARKET_DEPLOY.read_text(encoding="utf-8")
-        self.assertIn(r"\$TODAY-morning.ok", installer)
+        self.assertIn(r"\$FUNDAMENTAL_DATE-morning.ok", installer)
         self.assertIn("morning report/fundamental snapshot not published", installer)
         self.assertIn("--fundamental-mode", deploy)
         self.assertIn('OIL_FUNDAMENTAL_MODE="carry"', deploy)
@@ -36,7 +36,16 @@ class FundamentalRefreshBoundaryTest(unittest.TestCase):
         self.assertIn("pull_with_retry", installer)
         self.assertIn("attempt * 10", installer)
         self.assertIn("keep state open for next recovery", installer)
+        self.assertIn("$HOME/Sites/palm-oil-daily-runtime", installer)
+        self.assertIn("oil-futures runtime must be a clean main checkout", installer)
         self.assertIn("<integer>16</integer><key>Minute</key><integer>0</integer>", installer)
+        self.assertIn('SESSION="night_open"', installer)
+        self.assertIn('SESSION="night_close"', installer)
+        self.assertIn('SESSION="overnight"', installer)
+        self.assertIn('date -v-1d +%F', installer)
+        self.assertIn('<integer>23</integer><key>Minute</key><integer>10</integer>', installer)
+        self.assertIn('<integer>2</integer><key>Minute</key><integer>40</integer>', installer)
+        self.assertIn("--fundamental-date", deploy)
         self.assertIn("data/contracts/current_contracts.json", deploy)
         self.assertIn('"data/contracts/${TODAY:0:7}.json"', deploy)
 
@@ -107,6 +116,29 @@ class FundamentalRefreshBoundaryTest(unittest.TestCase):
         self.assertEqual(result["score"]["technical"], 70)
         self.assertEqual(result["score"]["total"], 57.5)
         self.assertIn("午盘与收盘不重新计算", result["fundamental_snapshot_note"])
+
+    def test_overnight_carry_accepts_previous_trading_day_snapshot(self):
+        payload = {
+            "fundamental_updated_at": "2026-07-30 06:18",
+            "fundamental_update_session": "morning",
+            "contracts": [
+                {
+                    "product": "P",
+                    "contract_rank": 1,
+                    "market": "DCE",
+                    "fundamental_detail": [],
+                }
+            ],
+        }
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "oil.js"
+            path.write_text(
+                f"window.OIL_FUTURES_CONTRACTS = {json.dumps(payload, ensure_ascii=False)};\n",
+                encoding="utf-8",
+            )
+            loaded, records = OIL.load_frozen_oil_fundamentals(path, "2026-07-30")
+        self.assertEqual(loaded["fundamental_update_session"], "morning")
+        self.assertIn(("P", 1, "DCE"), records)
 
 
 if __name__ == "__main__":

@@ -443,7 +443,15 @@
 
   function marketUpdateLabel(data) {
     if (!data?.updated_at) return "行情数据等待更新";
-    const sessionNames = { morning: "早盘", midday: "午盘", close: "收盘", manual: "手动" };
+    const sessionNames = {
+      morning: "早盘",
+      midday: "午盘",
+      close: "收盘",
+      night_open: "夜盘开盘",
+      night_close: "夜盘收盘",
+      overnight: "凌晨尾盘",
+      manual: "手动",
+    };
     const session = sessionNames[data.update_session] ? ` · ${sessionNames[data.update_session]}` : "";
     const fundamental = data.fundamental_updated_at
       ? `；基本面更新时间：${data.fundamental_updated_at} · 晨间`

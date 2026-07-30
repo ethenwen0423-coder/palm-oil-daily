@@ -1,0 +1,34 @@
+{
+  "headline": "油脂与全市场波动继续分化",
+  "market_state": "分化",
+  "summary": "油脂内部强弱并不一致，全市场异动也未形成单一主线，当前应优先等待跨市场证据确认。",
+  "key_moves": [
+    {
+      "evidence_id": "supply:official-check",
+      "interpretation": "官方资料检查未形成新的方向确认，旧值只能作为最近有效参考。"
+    }
+  ],
+  "watchlist": [
+    {
+      "priority": "高",
+      "item": "油脂与外盘共振",
+      "trigger": "波动扩大",
+      "why": "当前市场分化，单一品种变化不足以确认整体方向。",
+      "evidence_ids": [
+        "supply:official-check"
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "status": "monitoring",
+      "task": "核验跨市场方向一致性",
+      "result": "当前证据仍然分化，继续等待下一轮行情刷新。",
+      "next_check": "下一次行情刷新"
+    }
+  ],
+  "risks": [
+    "官方资料没有更新时只能沿用最近有效值，不能把无变化解释成方向信号。"
+  ],
+  "confidence": "中"
+}

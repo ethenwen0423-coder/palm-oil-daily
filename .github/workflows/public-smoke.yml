@@ -43,6 +43,7 @@ jobs:
               "/api/supply-demand",
               "/api/contracts/current",
               "/api/forecast/metrics/latest",
+              "/api/assistant/brief",
           }
           status = json.loads(Path("status.json").read_text(encoding="utf-8"))
           datasets = status.get("datasets", {})

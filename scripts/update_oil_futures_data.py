@@ -44,11 +44,17 @@ ICDX_CPOTR_API = "https://www.icdx.co.id/cms/api/table-price-all/get"
 def infer_update_session(now: datetime | None = None) -> str:
     current = now or datetime.now(SHANGHAI)
     minutes = current.hour * 60 + current.minute
+    if minutes < 3 * 60 + 30:
+        return "overnight"
     if minutes < 11 * 60 + 30:
         return "morning"
     if minutes < 15 * 60:
         return "midday"
-    return "close"
+    if minutes < 21 * 60:
+        return "close"
+    if minutes < 23 * 60:
+        return "night_open"
+    return "night_close"
 
 
 def load_private_env() -> None:
@@ -1180,7 +1186,14 @@ def main() -> int:
     parser.add_argument("--mode", choices=("publish", "actual-snapshot"), default="publish")
     parser.add_argument("--snapshot-date")
     parser.add_argument("--external-only", choices=("CPOTR",), help="只刷新指定海外合约，保留现有国内合约数据")
-    parser.add_argument("--update-session", choices=("morning", "midday", "close", "manual"))
+    parser.add_argument(
+        "--update-session",
+        choices=("morning", "midday", "close", "night_open", "night_close", "overnight", "manual"),
+    )
+    parser.add_argument(
+        "--fundamental-date",
+        help="carry 模式沿用的晨间基本面日期；凌晨尾盘通常为前一交易日",
+    )
     parser.add_argument(
         "--fundamental-mode",
         choices=("refresh", "carry"),
@@ -1188,6 +1201,9 @@ def main() -> int:
         help="refresh 仅供晨间刷新；carry 用于午盘/收盘沿用晨间冻结基本面",
     )
     args = parser.parse_args()
+
+    if args.fundamental_date and args.fundamental_mode != "carry":
+        parser.error("--fundamental-date is only valid with --fundamental-mode carry")
 
     if args.print_time_metadata:
         if not args.report_date:
@@ -1266,7 +1282,7 @@ def main() -> int:
     if args.fundamental_mode == "carry":
         previous_payload, frozen_records = load_frozen_oil_fundamentals(
             OUTPUT,
-            datetime.now(SHANGHAI).strftime("%Y-%m-%d"),
+            args.fundamental_date or datetime.now(SHANGHAI).strftime("%Y-%m-%d"),
         )
         contracts = carry_frozen_oil_fundamentals(contracts, frozen_records)
 
@@ -1275,7 +1291,7 @@ def main() -> int:
         source_note += f"：{snapshot_path.relative_to(ROOT)}"
     source_note += "；国内合约名单先由 contract_selector_skill 选择，再由 contract_discovery_skill 按当月实时成交量、持仓量、成交额排序生成，海外产地盘展示马来 BMD FCPO 与印尼 ICDX CPOTR；内盘具体合约与日线缺口由 AkShare 补充，并用同花顺问财行情skill交叉验证"
     if args.fundamental_mode == "carry":
-        source_note += "；基本面沿用当日晨报发布后冻结的快照，午盘与收盘仅刷新行情、技术面、驱动和资金"
+        source_note += "；基本面沿用最近交易日晨报发布后冻结的快照，盘中、夜盘与凌晨尾盘仅刷新行情、技术面、驱动和资金"
     now = datetime.now(SHANGHAI)
     payload = {
         "updated_at": now.strftime("%Y-%m-%d %H:%M"),

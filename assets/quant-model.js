@@ -49,6 +49,9 @@
       morning: "早盘",
       midday: "午盘",
       close: "收盘",
+      night_open: "夜盘开盘",
+      night_close: "夜盘收盘",
+      overnight: "凌晨尾盘",
     }[session] || "行情";
   }
 

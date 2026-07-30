@@ -1,0 +1,153 @@
+{
+  "schema_version": 1,
+  "status": "ready",
+  "generated_at": "2026-07-31T00:00:44+08:00",
+  "update_session": "close",
+  "generator": "codex-cli-default",
+  "generation_contract": "read-only, source-grounded, structured-output",
+  "source_fingerprint": "a599da9b1fbb4517a1d715a91037007facb2c8e48574b5d66ed95d55e38093ee",
+  "source_snapshot": {
+    "reports": "2026-07-30",
+    "oil-futures": "2026-07-30 23:23",
+    "exchange-futures": "2026-07-30 23:23",
+    "supply-demand": "2026-07-30T06:15:30+08:00",
+    "forecast-metrics": "2026-07-23",
+    "contracts": "2026-07-30 23:20:41"
+  },
+  "fixed_logic": [
+    "otc_structure_library",
+    "quant_model_rules"
+  ],
+  "headline": "商品普遍承压，贵金属逆势走强，油脂维持分歧震荡",
+  "market_state": "分化",
+  "summary": "收盘表现分化，碳酸锂与股指期货跌幅突出，能源与黑色板块偏弱，贵金属逆势上行。油脂内盘小幅回落，但既有研究仍以震荡和分歧震荡为主，尚无共振突破确认。",
+  "key_moves": [
+    {
+      "evidence_id": "exchange:LC2609",
+      "label": "碳酸锂",
+      "value": "141060.0；涨跌 -4.62%",
+      "source": "exchange-futures",
+      "observed_at": "2026-07-30 23:23",
+      "interpretation": "碳酸锂显著走弱，成为当前最突出的下行波动，但基本面证据较少，驱动归因需进一步核验。"
+    },
+    {
+      "evidence_id": "exchange:IC2609",
+      "label": "中证500指数期货",
+      "value": "7245.6；涨跌 -2.8%",
+      "source": "exchange-futures",
+      "observed_at": "2026-07-30 23:23",
+      "interpretation": "股指期货明显回落，反映风险偏好承压，但单一合约表现不足以确认全面转弱。"
+    },
+    {
+      "evidence_id": "exchange:SC2609",
+      "label": "原油",
+      "value": "555.0；涨跌 -2.32%",
+      "source": "exchange-futures",
+      "observed_at": "2026-07-30 23:23",
+      "interpretation": "原油与燃油同步下行，能源链短线偏弱，且与此前原油走强预期不一致。"
+    },
+    {
+      "evidence_id": "exchange:AG2610",
+      "label": "白银",
+      "value": "14284.0；涨跌 1.8%",
+      "source": "exchange-futures",
+      "observed_at": "2026-07-30 23:23",
+      "interpretation": "白银逆势上涨，与黄金共同体现贵金属相对强势。"
+    },
+    {
+      "evidence_id": "oil:P2609",
+      "label": "棕榈油",
+      "value": "9370；涨跌 -0.24%",
+      "source": "oil-futures",
+      "observed_at": "2026-07-30 23:23",
+      "interpretation": "棕榈油价格回落，但研究观点仍为震荡偏强，价格与观点暂有分歧，需等待完整信号确认。"
+    }
+  ],
+  "watchlist": [
+    {
+      "priority": "高",
+      "item": "碳酸锂波动延续情况",
+      "trigger": "波动扩大",
+      "why": "当前下行波动最突出，但驱动证据有限，需防止波动继续放大。",
+      "evidence_ids": [
+        "exchange:LC2609"
+      ]
+    },
+    {
+      "priority": "高",
+      "item": "油脂共振突破与观点失效条件",
+      "trigger": "上破观察位",
+      "why": "既有报告明确将三油共振上破视为震荡判断失效条件，目前尚未确认。",
+      "evidence_ids": [
+        "report:2026-07-30",
+        "oil:P2609",
+        "oil:Y2609",
+        "oil:OI2609"
+      ]
+    },
+    {
+      "priority": "中",
+      "item": "能源链弱势是否延续",
+      "trigger": "下破观察位",
+      "why": "原油与燃油同步回落，且与此前预期存在偏差，需要新增行情确认。",
+      "evidence_ids": [
+        "exchange:SC2609",
+        "exchange:FU2609",
+        "report:2026-07-30"
+      ]
+    },
+    {
+      "priority": "中",
+      "item": "贵金属相对强势持续性",
+      "trigger": "波动扩大",
+      "why": "黄金与白银逆势上行，是当前市场分化的重要来源。",
+      "evidence_ids": [
+        "exchange:AG2610",
+        "exchange:AU2610"
+      ]
+    },
+    {
+      "priority": "中",
+      "item": "官方供需资料更新状态",
+      "trigger": "官方数据更新",
+      "why": "官方来源已完成检查但暂未更新，现阶段只能继续使用最近一期数据。",
+      "evidence_ids": [
+        "supply:official-check"
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "status": "completed",
+      "task": "完成收盘跨品种强弱扫描",
+      "result": "识别出碳酸锂与股指偏弱、能源承压、贵金属偏强及油脂震荡分歧。",
+      "next_check": "下一次行情刷新"
+    },
+    {
+      "status": "monitoring",
+      "task": "监控油脂共振突破条件",
+      "result": "当前未见既有报告所述的共振突破确认，继续等待完整日线信号。",
+      "next_check": "下一次行情刷新"
+    },
+    {
+      "status": "blocked",
+      "task": "评估预测能力可靠性",
+      "result": "评估样本不足，无法形成可靠能力判断。",
+      "next_check": "下一次报告更新"
+    },
+    {
+      "status": "monitoring",
+      "task": "跟踪官方供需资料",
+      "result": "官方来源已检查但尚无更新，继续展示最近一期官方值。",
+      "next_check": "下一次官方数据检查"
+    }
+  ],
+  "risks": [
+    "不同数据源的有效时间并不完全一致，部分基本面证据早于行情快照。",
+    "油脂观点与当日价格表现存在分歧，方向结论尚未获得共振确认。",
+    "多个品种仅有少量可验证基本面证据，不能由单项数据直接推导方向。",
+    "预测评估样本不足，历史结论不得包装为可靠预测能力。",
+    "官方供需资料暂无更新不等于数据缺失，但信息时效性仍受限制。"
+  ],
+  "confidence": "低"
+}

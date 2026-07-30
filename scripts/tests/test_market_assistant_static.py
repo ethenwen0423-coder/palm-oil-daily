@@ -15,6 +15,10 @@ class MarketAssistantStaticTests(unittest.TestCase):
         self.assertIn('id="monitor-gainers"', html)
         self.assertIn('id="monitor-supply-message"', html)
         self.assertIn('id="monitor-forecast-status"', html)
+        self.assertIn('id="monitor-ai-headline"', html)
+        self.assertIn('id="monitor-key-moves"', html)
+        self.assertIn('id="monitor-watch-list"', html)
+        self.assertIn('id="monitor-risk-list"', html)
         self.assertTrue((ROOT / "assets" / "market-assistant.css").is_file())
         self.assertTrue((ROOT / "assets" / "market-assistant.js").is_file())
 
@@ -26,6 +30,7 @@ class MarketAssistantStaticTests(unittest.TestCase):
             ("/api/exchange-futures", "data/exchange_futures.json"),
             ("/api/supply-demand", "data/supply-demand.json"),
             ("/api/forecast/metrics/latest", "data/forecast/metrics/latest.json"),
+            ("/api/assistant/brief", "data/market_assistant_brief.json"),
         )
         for api, fallback in expected:
             with self.subTest(api=api):

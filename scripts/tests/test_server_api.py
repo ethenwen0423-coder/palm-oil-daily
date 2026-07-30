@@ -31,6 +31,7 @@ class ServerApiStatusTests(unittest.TestCase):
         self.assertEqual(API.ROUTES["/api/exchange-futures"], "exchange_futures.json")
         self.assertEqual(API.ROUTES["/api/supply-demand"], "supply-demand.json")
         self.assertEqual(API.ROUTES["/api/reports"], "reports.json")
+        self.assertEqual(API.ROUTES["/api/assistant/brief"], "market_assistant_brief.json")
 
     def test_server_update_runner_validates_all_mutable_payloads(self):
         runner = (ROOT / "server" / "update-site.sh").read_text(encoding="utf-8")
@@ -40,6 +41,7 @@ class ServerApiStatusTests(unittest.TestCase):
             "data/exchange_futures.json",
             "data/quant_model_signals.json",
             "data/supply-demand.json",
+            "data/market_assistant_brief.json",
         ):
             self.assertIn(path, runner)
         self.assertIn('cmp -s server/api.py "$DEPLOY_ROOT/api.py"', runner)

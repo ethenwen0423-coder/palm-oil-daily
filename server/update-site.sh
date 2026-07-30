@@ -14,7 +14,8 @@ for payload in \
   data/oil_futures.json \
   data/exchange_futures.json \
   data/quant_model_signals.json \
-  data/supply-demand.json
+  data/supply-demand.json \
+  data/market_assistant_brief.json
 do
   python3 -m json.tool "$payload" >/dev/null
 done

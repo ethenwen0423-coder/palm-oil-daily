@@ -5,7 +5,7 @@ cd "$(dirname "$0")/.."
 
 SESSION="${1:-manual}"
 case "$SESSION" in
-  morning|midday|close|manual) ;;
+  morning|midday|close|night_open|night_close|overnight|manual) ;;
   *) echo "invalid market update session: $SESSION" >&2; exit 2 ;;
 esac
 
@@ -25,6 +25,11 @@ cleanup() {
 trap cleanup EXIT
 
 TODAY="$(TZ=Asia/Shanghai date +%F)"
+FUNDAMENTAL_DATE="${2:-$TODAY}"
+if [[ ! "$FUNDAMENTAL_DATE" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+  echo "invalid fundamental date: $FUNDAMENTAL_DATE" >&2
+  exit 2
+fi
 OIL_TMP="$TMP_DIR/oil_futures.js"
 EXCHANGE_TMP="$TMP_DIR/exchange_futures.js"
 EXCHANGE_JSON_TMP="$TMP_DIR/exchange_futures.json"
@@ -32,7 +37,7 @@ SKIP_OIL=false
 OIL_FUNDAMENTAL_MODE="refresh"
 EXCHANGE_FUNDAMENTAL_MODE="refresh"
 
-if [[ "$SESSION" == "midday" || "$SESSION" == "close" ]]; then
+if [[ "$SESSION" == "midday" || "$SESSION" == "close" || "$SESSION" == "night_open" || "$SESSION" == "night_close" || "$SESSION" == "overnight" ]]; then
   OIL_FUNDAMENTAL_MODE="carry"
   EXCHANGE_FUNDAMENTAL_MODE="carry"
 fi
@@ -54,10 +59,16 @@ PY
 fi
 
 if [[ "$SKIP_OIL" == false ]]; then
-  python3 scripts/update_oil_futures_data.py \
-    --output "$OIL_TMP" \
-    --update-session "$SESSION" \
+  OIL_ARGS=(
+    scripts/update_oil_futures_data.py
+    --output "$OIL_TMP"
+    --update-session "$SESSION"
     --fundamental-mode "$OIL_FUNDAMENTAL_MODE"
+  )
+  if [[ "$OIL_FUNDAMENTAL_MODE" == "carry" ]]; then
+    OIL_ARGS+=(--fundamental-date "$FUNDAMENTAL_DATE")
+  fi
+  python3 "${OIL_ARGS[@]}"
   python3 skills/data_quality_gate_skill/scripts/validate_data.py --oil-futures "$OIL_TMP" --strict
 fi
 
@@ -82,18 +93,24 @@ PY
   fi
 fi
 
-python3 scripts/update_exchange_futures_data.py \
-  --output "$EXCHANGE_TMP" \
-  --update-session "$SESSION" \
-  --scope core \
+EXCHANGE_ARGS=(
+  scripts/update_exchange_futures_data.py
+  --output "$EXCHANGE_TMP"
+  --update-session "$SESSION"
+  --scope core
   --fundamental-mode "$EXCHANGE_FUNDAMENTAL_MODE"
+)
+if [[ "$EXCHANGE_FUNDAMENTAL_MODE" == "carry" ]]; then
+  EXCHANGE_ARGS+=(--fundamental-date "$FUNDAMENTAL_DATE")
+fi
+python3 "${EXCHANGE_ARGS[@]}"
 
-python3 - "$SESSION" "$TODAY" "$OIL_TMP" "$EXCHANGE_TMP" "$EXCHANGE_JSON_TMP" "$SKIP_OIL" <<'PY'
+python3 - "$SESSION" "$TODAY" "$FUNDAMENTAL_DATE" "$OIL_TMP" "$EXCHANGE_TMP" "$EXCHANGE_JSON_TMP" "$SKIP_OIL" <<'PY'
 import json
 import sys
 from pathlib import Path
 
-session, today, oil_path, exchange_path, exchange_json_path, skip_oil = sys.argv[1:]
+session, today, fundamental_date, oil_path, exchange_path, exchange_json_path, skip_oil = sys.argv[1:]
 
 def load_wrapped(path: str) -> dict:
     text = Path(path).read_text(encoding="utf-8").strip()
@@ -112,11 +129,15 @@ for name, payload in payloads:
         raise SystemExit(f"{name} timezone mismatch")
     if not payload.get("contracts"):
         raise SystemExit(f"{name} has no contracts")
-    if not str(payload.get("fundamental_updated_at") or "").startswith(today):
-        raise SystemExit(f"{name} fundamental snapshot is not from today")
+    if not str(payload.get("fundamental_updated_at") or "").startswith(fundamental_date):
+        raise SystemExit(f"{name} fundamental snapshot is not from {fundamental_date}")
     if payload.get("fundamental_update_session") != "morning":
         raise SystemExit(f"{name} fundamental snapshot is not aligned with morning report")
-    expected_mode = "carry" if session in {"midday", "close"} else {"refresh", "carry"}
+    expected_mode = (
+        "carry"
+        if session in {"midday", "close", "night_open", "night_close", "overnight"}
+        else {"refresh", "carry"}
+    )
     if isinstance(expected_mode, set):
         if payload.get("fundamental_mode") not in expected_mode:
             raise SystemExit(f"{name} morning fundamental mode is invalid")

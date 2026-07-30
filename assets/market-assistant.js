@@ -8,6 +8,7 @@
     exchange: ["/api/exchange-futures", "data/exchange_futures.json"],
     supply: ["/api/supply-demand", "data/supply-demand.json"],
     forecast: ["/api/forecast/metrics/latest", "data/forecast/metrics/latest.json"],
+    brief: ["/api/assistant/brief", "data/market_assistant_brief.json"],
   };
   const STATUS_LABELS = {
     ready: "正常",
@@ -19,6 +20,9 @@
     morning: "早盘",
     midday: "午盘",
     close: "收盘",
+    night_open: "夜盘开盘",
+    night_close: "夜盘收盘",
+    overnight: "凌晨尾盘",
     manual: "手动",
   };
 
@@ -97,6 +101,7 @@
       exchange: "全品种行情",
       supply: "供需资料",
       forecast: "预测评估",
+      brief: "AI 盯盘简报",
     };
     const datasets = {};
     Object.entries(results).forEach(([key, result]) => {
@@ -208,7 +213,7 @@
     }
   }
 
-  function renderTasks(status, results) {
+  function renderFallbackTasks(status, results) {
     const tasks = [];
     const degraded = Object.values(status?.datasets || {})
       .filter((item) => item.state !== "ready")
@@ -227,6 +232,62 @@
     if (report?.summary) tasks.push(`沿用最新报告触发器：${report.summary}`);
     if (!tasks.length) tasks.push("数据链无明显异常，继续等待下一次行情或官方资料更新。");
     element("monitor-task-list").innerHTML = tasks.map((item) => `<li>${escapeHtml(item)}</li>`).join("");
+    element("monitor-ai-status").textContent = "AI 简报暂不可用，当前展示规则化回退队列";
+  }
+
+  function renderBrief(result, status, results) {
+    const payload = result?.payload;
+    if (!payload || payload.status !== "ready") {
+      element("monitor-ai-headline").textContent = "AI 简报暂不可用";
+      element("monitor-ai-summary").textContent = "继续展示最近有效数据，并等待下一次自动生成。";
+      element("monitor-ai-generated").textContent = "生成时间需进一步核验";
+      element("monitor-ai-state").textContent = "数据不足";
+      element("monitor-ai-confidence").textContent = "低";
+      element("monitor-key-moves").innerHTML = "";
+      element("monitor-watch-list").innerHTML = "";
+      element("monitor-risk-list").innerHTML = "<li>AI 结果缺失，不将规则回退包装成模型结论。</li>";
+      renderFallbackTasks(status, results);
+      return;
+    }
+
+    element("monitor-ai-headline").textContent = payload.headline || "AI 盯盘简报";
+    element("monitor-ai-summary").textContent = payload.summary || "摘要需进一步核验。";
+    element("monitor-ai-generated").textContent = payload.generated_at
+      ? `${formatDateTime(payload.generated_at)} · ${SESSION_LABELS[payload.update_session] || "自动"}`
+      : "生成时间需进一步核验";
+    element("monitor-ai-state").textContent = payload.market_state || "需核验";
+    element("monitor-ai-confidence").textContent = payload.confidence || "需核验";
+    element("monitor-ai-status").textContent = "只读证据约束生成 · 数值由数据源回填";
+
+    const keyMoves = Array.isArray(payload.key_moves) ? payload.key_moves : [];
+    element("monitor-key-moves").innerHTML = keyMoves.map((item) => `
+      <li>
+        <strong>${escapeHtml(item.label || item.evidence_id)}</strong>
+        <b>${escapeHtml(item.value || "需核验")}</b>
+        <span>${escapeHtml(item.interpretation || "")}</span>
+        <small>${escapeHtml(item.source || "")} · ${escapeHtml(formatDateTime(item.observed_at))}</small>
+      </li>
+    `).join("");
+
+    const watchlist = Array.isArray(payload.watchlist) ? payload.watchlist : [];
+    element("monitor-watch-list").innerHTML = watchlist.map((item) => `
+      <li>
+        <strong>${escapeHtml(item.priority || "中")} · ${escapeHtml(item.item || "")}</strong>
+        <span>${escapeHtml(item.trigger || "")}：${escapeHtml(item.why || "")}</span>
+      </li>
+    `).join("");
+
+    const actions = Array.isArray(payload.actions) ? payload.actions : [];
+    element("monitor-task-list").innerHTML = actions.map((item) => `
+      <li>
+        <strong>${escapeHtml(item.task || "")}</strong>
+        <span>${escapeHtml(item.result || "")}</span>
+        <small>${escapeHtml(item.status || "")} · ${escapeHtml(item.next_check || "")}</small>
+      </li>
+    `).join("");
+
+    const risks = Array.isArray(payload.risks) ? payload.risks : [];
+    element("monitor-risk-list").innerHTML = risks.map((item) => `<li>${escapeHtml(item)}</li>`).join("");
   }
 
   let lastFingerprint = "";
@@ -262,7 +323,7 @@
       renderMovers(results.exchange);
       renderSupply(results.supply);
       renderForecast(results.forecast);
-      renderTasks(status, results);
+      renderBrief(results.brief, status, results);
       element("monitor-refresh-note").textContent = `最近检查：${new Date().toLocaleTimeString("zh-CN", { hour12: false })} · 每 60 秒自动检查`;
     } catch (error) {
       const badge = element("monitor-overall-state");

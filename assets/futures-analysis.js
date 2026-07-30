@@ -12,7 +12,15 @@
   const escapeHtml = (value) => String(value ?? "需进一步核验").replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[char]);
   const formatNumber = (value) => typeof value === "number" ? value.toLocaleString("zh-CN", { maximumFractionDigits: 2 }) : "需进一步核验";
   const formatChange = (value) => typeof value === "number" ? `${value > 0 ? "+" : ""}${value.toFixed(2)}%` : "需进一步核验";
-  const sessionNames = { morning: "早盘", midday: "午盘", close: "收盘", manual: "手动" };
+  const sessionNames = {
+    morning: "早盘",
+    midday: "午盘",
+    close: "收盘",
+    night_open: "夜盘开盘",
+    night_close: "夜盘收盘",
+    overnight: "凌晨尾盘",
+    manual: "手动",
+  };
   const coverage = data.fundamental_coverage || {};
   const coverageLabel = Number.isInteger(coverage.observed_contracts) && Number.isInteger(coverage.total_contracts)
     ? `基本面证据覆盖 ${coverage.observed_contracts}/${coverage.total_contracts}`
