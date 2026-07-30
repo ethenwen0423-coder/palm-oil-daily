@@ -9,8 +9,66 @@ UPDATE = importlib.util.module_from_spec(SPEC)
 assert SPEC and SPEC.loader
 SPEC.loader.exec_module(UPDATE)
 
+RUNTIME_SCRIPT = (
+    Path(__file__).resolve().parents[2]
+    / "skills"
+    / "technical_basic_analysis_skill"
+    / "scripts"
+    / "runtime_indicators.py"
+)
+RUNTIME_SPEC = importlib.util.spec_from_file_location(
+    "technical_runtime_indicators",
+    RUNTIME_SCRIPT,
+)
+RUNTIME = importlib.util.module_from_spec(RUNTIME_SPEC)
+assert RUNTIME_SPEC and RUNTIME_SPEC.loader
+RUNTIME_SPEC.loader.exec_module(RUNTIME)
+
 
 class ExchangeFuturesFundamentalTest(unittest.TestCase):
+    def test_repository_indicator_runtime_supports_linux_collection(self):
+        closes = [
+            100 + index * 0.2 + ((index % 7) - 3) * 0.5
+            for index in range(100)
+        ]
+        highs = [
+            value + 1 + (index % 3) * 0.1
+            for index, value in enumerate(closes)
+        ]
+        lows = [
+            value - 1 - (index % 4) * 0.1
+            for index, value in enumerate(closes)
+        ]
+
+        self.assertAlmostEqual(RUNTIME.calculate_ma(closes)["ma20"], 117.925)
+        self.assertAlmostEqual(
+            RUNTIME.calculate_rsi(closes)["rsi12"],
+            55.55555555555552,
+        )
+        self.assertAlmostEqual(
+            RUNTIME.calculate_macd(closes)["dif"],
+            1.3298755246659084,
+        )
+        self.assertAlmostEqual(
+            RUNTIME.calculate_macd(closes)["dea"],
+            1.4073208669180746,
+        )
+        self.assertAlmostEqual(
+            RUNTIME.calculate_atr(highs, lows, closes),
+            2.499999999999999,
+        )
+        self.assertEqual(
+            set(RUNTIME.identify_support_resistance(closes, highs, lows)),
+            {
+                "resistance_levels",
+                "support_levels",
+                "fibonacci",
+                "nearest_resistance",
+                "nearest_support",
+                "current_price",
+            },
+        )
+
     def test_core_universe_covers_every_research_category(self):
         self.assertGreaterEqual(len(UPDATE.CORE_PRODUCTS), 30)
         self.assertEqual(

@@ -24,3 +24,19 @@ The server-side Git sync remains responsible for refreshing the mounted site
 checkout. The AI brief is generated from the published datasets, cites the
 evidence records it used, and never mutates research data, OTC structure
 definitions or quant-model rules.
+
+## 24-hour automation readiness audit
+
+Before moving market collection or AI generation from macOS to the server, run
+the read-only audit from the synchronized checkout:
+
+```bash
+cd /srv/palm-oil-daily/site
+python3 server/audit_runtime.py --network
+```
+
+The audit reports Docker/API mounts, systemd timers, Python modules, repository
+dependencies and unattended AI capabilities. Credential values are never
+printed; only capability booleans are returned. A blocked result is expected
+until the Python market-data dependencies, live-data mount and one unattended AI
+backend have been configured.

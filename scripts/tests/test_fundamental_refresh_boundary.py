@@ -55,6 +55,19 @@ class FundamentalRefreshBoundaryTest(unittest.TestCase):
         self.assertIn('cp "$CONTRACT_TMP" data/contracts/current_contracts.json', deploy)
         self.assertIn("--output-only", OIL.run_contract_selector.__code__.co_consts)
 
+    def test_market_collector_paths_can_run_outside_macos(self):
+        deploy = MARKET_DEPLOY.read_text(encoding="utf-8")
+        oil_updater = (ROOT / "scripts" / "update_oil_futures_data.py").read_text(
+            encoding="utf-8"
+        )
+        exchange_updater = (
+            ROOT / "scripts" / "update_exchange_futures_data.py"
+        ).read_text(encoding="utf-8")
+        self.assertIn("PALM_OIL_SUPPORT_DIR", deploy)
+        self.assertIn("PALM_OIL_PRIVATE_ENV", oil_updater)
+        self.assertNotIn('TECHNICAL_HELPER = Path.home() / ".codex"', exchange_updater)
+        self.assertIn("runtime_indicators.py", exchange_updater)
+
     def test_exchange_carry_requires_same_day_morning_snapshot(self):
         payload = {
             "fundamental_updated_at": "2026-07-28 06:18",

@@ -33,7 +33,18 @@ CONTRACT_DISCOVERY_CURRENT = ROOT / "data" / "contracts" / "current_contracts.js
 DATA_QUALITY_GATE_CLI = ROOT / "skills" / "data_quality_gate_skill" / "scripts" / "validate_data.py"
 FORECAST_RECORDER_CLI = ROOT / "skills" / "forecast_tracking_skill" / "scripts" / "record_forecast.py"
 FORECAST_DAILY_DIR = ROOT / "data" / "forecast" / "daily"
-PRIVATE_ENV = Path.home() / "Library" / "Application Support" / "VinsonTesla" / "private.env"
+PRIVATE_ENV = Path(
+    os.environ.get(
+        "PALM_OIL_PRIVATE_ENV",
+        str(
+            Path.home()
+            / "Library"
+            / "Application Support"
+            / "VinsonTesla"
+            / "private.env"
+        ),
+    )
+)
 SHANGHAI = ZoneInfo("Asia/Shanghai")
 PRICE_TOLERANCE = 2.0
 PRICE_REL_TOLERANCE = 0.002

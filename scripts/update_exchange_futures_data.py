@@ -25,8 +25,14 @@ except ImportError:  # pragma: no cover - deployment dependency
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "data" / "exchange_futures.js"
 SHANGHAI = ZoneInfo("Asia/Shanghai")
-TECHNICAL_HELPER = Path.home() / ".codex" / "skills" / "technical-analysis-helper" / "scripts" / "calculate_indicators.py"
-LEVELS_HELPER = Path.home() / ".codex" / "skills" / "technical-analysis-helper" / "scripts" / "identify_levels.py"
+TECHNICAL_HELPER = (
+    ROOT
+    / "skills"
+    / "technical_basic_analysis_skill"
+    / "scripts"
+    / "runtime_indicators.py"
+)
+LEVELS_HELPER = TECHNICAL_HELPER
 NEWS_GLOB = ROOT / "source_runs" / "*" / "raw" / "mx_search_news.json"
 SINA_DAILY_URL = "https://stock2.finance.sina.com.cn/futures/api/jsonp.php/var_V21052021_4_12=/InnerFuturesNewService.getDailyKLine"
 SINA_INDEX_URL = "https://hq.sinajs.cn/list=s_sh000300,s_sh000016,s_sh000905,s_sh000852"

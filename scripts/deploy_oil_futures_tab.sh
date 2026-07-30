@@ -9,7 +9,7 @@ case "$SESSION" in
   *) echo "invalid market update session: $SESSION" >&2; exit 2 ;;
 esac
 
-SUPPORT_DIR="$HOME/Library/Application Support/VinsonTesla"
+SUPPORT_DIR="${PALM_OIL_SUPPORT_DIR:-$HOME/Library/Application Support/VinsonTesla}"
 LOCK_DIR="$SUPPORT_DIR/market-data-deploy.lock"
 mkdir -p "$SUPPORT_DIR"
 if ! mkdir "$LOCK_DIR" 2>/dev/null; then
