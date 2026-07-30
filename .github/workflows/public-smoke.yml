@@ -1,0 +1,65 @@
+name: Public site smoke check
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "*/15 * * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: public-site-smoke
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Fetch public pages and API status
+        env:
+          SITE_URL: https://palm.vinsontesla.com
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --retry 3 --retry-all-errors \
+            --max-time 20 "$SITE_URL/healthz" > health.txt
+          curl --fail --silent --show-error --retry 3 --retry-all-errors \
+            --max-time 20 "$SITE_URL/api/status" > status.json
+          curl --fail --silent --show-error --retry 3 --retry-all-errors \
+            --max-time 20 "$SITE_URL/assistant.html" > assistant.html
+
+      - name: Validate dynamic datasets and assistant page
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          required = {
+              "/api/reports",
+              "/api/oil-futures",
+              "/api/exchange-futures",
+              "/api/quant-model-signals",
+              "/api/supply-demand",
+              "/api/contracts/current",
+              "/api/forecast/metrics/latest",
+          }
+          status = json.loads(Path("status.json").read_text(encoding="utf-8"))
+          datasets = status.get("datasets", {})
+          missing_routes = sorted(required - set(datasets))
+          unavailable = sorted(
+              route
+              for route in required
+              if datasets.get(route, {}).get("state") in {"missing", "invalid"}
+          )
+          if missing_routes:
+              raise SystemExit(f"status endpoint missing routes: {missing_routes}")
+          if unavailable:
+              raise SystemExit(f"public datasets unavailable: {unavailable}")
+
+          assistant = Path("assistant.html").read_text(encoding="utf-8")
+          for marker in ("24h 盯盘助手", "assets/market-assistant.js"):
+              if marker not in assistant:
+                  raise SystemExit(f"assistant page missing marker: {marker}")
+          print(f"public smoke check passed: status={status.get('status')}, datasets={len(datasets)}")
+          PY
