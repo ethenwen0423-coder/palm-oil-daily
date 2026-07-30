@@ -1,9 +1,9 @@
 window.QUANT_MODEL_SIGNALS = {
   "status": "ok",
   "schema_version": 2,
-  "generated_at": "2026-07-30T06:19:32+08:00",
-  "market_updated_at": "2026-07-30 06:13",
-  "market_update_session": "morning",
+  "generated_at": "2026-07-30T23:28:04+08:00",
+  "market_updated_at": "2026-07-30 23:23",
+  "market_update_session": "close",
   "market_timezone": "Asia/Shanghai",
   "default_model_id": "bollinger-rsi-ma6-v1",
   "models": [
@@ -93,7 +93,7 @@ window.QUANT_MODEL_SIGNALS = {
         "market_date": "2026-07-29",
         "data_source": "akshare:futures_zh_daily_sina",
         "bar_completed": true,
-        "bar_note": "latest source bar treated as completed",
+        "bar_note": "latest same-day bar excluded because it may still be forming",
         "model_scope": "validated_mapping",
         "model_scope_label": "成熟模型映射",
         "market": {
@@ -205,9 +205,9 @@ window.QUANT_MODEL_SIGNALS = {
         },
         "current_quote": {
           "price": 9370.0,
-          "change": "-0.16%",
+          "change": "-0.24%",
           "direction": "↓",
-          "trade_date": "2026-07-30",
+          "trade_date": "2026-07-31",
           "source": "AkShare + 同花顺问财行情skill",
           "unit": "元/吨"
         }
@@ -221,7 +221,7 @@ window.QUANT_MODEL_SIGNALS = {
         "market_date": "2026-07-29",
         "data_source": "akshare:futures_zh_daily_sina",
         "bar_completed": true,
-        "bar_note": "latest source bar treated as completed",
+        "bar_note": "latest same-day bar excluded because it may still be forming",
         "model_scope": "validated_mapping",
         "model_scope_label": "成熟模型映射",
         "market": {
@@ -332,11 +332,11 @@ window.QUANT_MODEL_SIGNALS = {
           }
         },
         "current_quote": {
-          "price": 9645.0,
-          "change": "-0.20%",
+          "price": 9644.0,
+          "change": "-0.17%",
           "direction": "↓",
-          "trade_date": "2026-07-30",
-          "source": "akshare:futures_zh_realtime",
+          "trade_date": "2026-07-31",
+          "source": "AkShare + 同花顺问财行情skill",
           "unit": "元/吨"
         }
       },
@@ -349,7 +349,7 @@ window.QUANT_MODEL_SIGNALS = {
         "market_date": "2026-07-29",
         "data_source": "akshare:futures_zh_daily_sina",
         "bar_completed": true,
-        "bar_note": "latest source bar treated as completed",
+        "bar_note": "latest same-day bar excluded because it may still be forming",
         "model_scope": "rule_trial",
         "model_scope_label": "同规则试算",
         "market": {
@@ -460,10 +460,10 @@ window.QUANT_MODEL_SIGNALS = {
           }
         },
         "current_quote": {
-          "price": 8392.0,
-          "change": "-0.24%",
+          "price": 8400.0,
+          "change": "-0.08%",
           "direction": "↓",
-          "trade_date": "2026-07-30",
+          "trade_date": "2026-07-31",
           "source": "AkShare + 同花顺问财行情skill",
           "unit": "元/吨"
         }
@@ -477,7 +477,7 @@ window.QUANT_MODEL_SIGNALS = {
         "market_date": "2026-07-29",
         "data_source": "akshare:futures_zh_daily_sina",
         "bar_completed": true,
-        "bar_note": "latest source bar treated as completed",
+        "bar_note": "latest same-day bar excluded because it may still be forming",
         "model_scope": "rule_trial",
         "model_scope_label": "同规则试算",
         "market": {
@@ -588,10 +588,10 @@ window.QUANT_MODEL_SIGNALS = {
           }
         },
         "current_quote": {
-          "price": 8428.0,
-          "change": "-0.25%",
+          "price": 8420.0,
+          "change": "-0.19%",
           "direction": "↓",
-          "trade_date": "2026-07-30",
+          "trade_date": "2026-07-31",
           "source": "AkShare + 同花顺问财行情skill",
           "unit": "元/吨"
         }
@@ -605,7 +605,7 @@ window.QUANT_MODEL_SIGNALS = {
         "market_date": "2026-07-29",
         "data_source": "akshare:futures_zh_daily_sina",
         "bar_completed": true,
-        "bar_note": "latest source bar treated as completed",
+        "bar_note": "latest same-day bar excluded because it may still be forming",
         "model_scope": "rule_trial",
         "model_scope_label": "同规则试算",
         "market": {
@@ -716,10 +716,10 @@ window.QUANT_MODEL_SIGNALS = {
           }
         },
         "current_quote": {
-          "price": 9893.0,
-          "change": "-0.29%",
+          "price": 9879.0,
+          "change": "-0.14%",
           "direction": "↓",
-          "trade_date": "2026-07-29",
+          "trade_date": "2026-07-30",
           "source": "AkShare + 同花顺问财行情skill",
           "unit": "元/吨"
         }
@@ -733,7 +733,7 @@ window.QUANT_MODEL_SIGNALS = {
         "market_date": "2026-07-29",
         "data_source": "akshare:futures_zh_daily_sina",
         "bar_completed": true,
-        "bar_note": "latest source bar treated as completed",
+        "bar_note": "latest same-day bar excluded because it may still be forming",
         "model_scope": "rule_trial",
         "model_scope_label": "同规则试算",
         "market": {
@@ -844,10 +844,10 @@ window.QUANT_MODEL_SIGNALS = {
           }
         },
         "current_quote": {
-          "price": 9779.0,
-          "change": "-0.49%",
+          "price": 9776.0,
+          "change": "-0.03%",
           "direction": "↓",
-          "trade_date": "2026-07-29",
+          "trade_date": "2026-07-30",
           "source": "akshare:futures_zh_realtime",
           "unit": "元/吨"
         }
@@ -861,7 +861,7 @@ window.QUANT_MODEL_SIGNALS = {
         "market_date": "2026-07-29",
         "data_source": "akshare:futures_zh_daily_sina",
         "bar_completed": true,
-        "bar_note": "latest source bar treated as completed",
+        "bar_note": "latest same-day bar excluded because it may still be forming",
         "model_scope": "rule_trial",
         "model_scope_label": "同规则试算",
         "market": {
@@ -972,10 +972,10 @@ window.QUANT_MODEL_SIGNALS = {
           }
         },
         "current_quote": {
-          "price": 3092.0,
-          "change": "-0.55%",
-          "direction": "↓",
-          "trade_date": "2026-07-30",
+          "price": 3075.0,
+          "change": "+0.03%",
+          "direction": "↑",
+          "trade_date": "2026-07-31",
           "source": "AkShare + 同花顺问财行情skill",
           "unit": "元/吨"
         }
@@ -989,7 +989,7 @@ window.QUANT_MODEL_SIGNALS = {
         "market_date": "2026-07-29",
         "data_source": "akshare:futures_zh_daily_sina",
         "bar_completed": true,
-        "bar_note": "latest source bar treated as completed",
+        "bar_note": "latest same-day bar excluded because it may still be forming",
         "model_scope": "rule_trial",
         "model_scope_label": "同规则试算",
         "market": {
@@ -1100,11 +1100,11 @@ window.QUANT_MODEL_SIGNALS = {
           }
         },
         "current_quote": {
-          "price": 3150.0,
-          "change": "-0.72%",
+          "price": 3136.0,
+          "change": "-0.03%",
           "direction": "↓",
-          "trade_date": "2026-07-30",
-          "source": "AkShare + 同花顺问财行情skill",
+          "trade_date": "2026-07-31",
+          "source": "akshare:futures_zh_realtime",
           "unit": "元/吨"
         }
       },
@@ -1117,7 +1117,7 @@ window.QUANT_MODEL_SIGNALS = {
         "market_date": "2026-07-29",
         "data_source": "akshare:futures_zh_daily_sina",
         "bar_completed": true,
-        "bar_note": "latest source bar treated as completed",
+        "bar_note": "latest same-day bar excluded because it may still be forming",
         "model_scope": "rule_trial",
         "model_scope_label": "同规则试算",
         "market": {
@@ -1228,10 +1228,10 @@ window.QUANT_MODEL_SIGNALS = {
           }
         },
         "current_quote": {
-          "price": 2313.0,
-          "change": "-1.03%",
-          "direction": "↓",
-          "trade_date": "2026-07-29",
+          "price": 2299.0,
+          "change": "+0.44%",
+          "direction": "↑",
+          "trade_date": "2026-07-30",
           "source": "akshare:futures_zh_realtime",
           "unit": "元/吨"
         }
@@ -1245,7 +1245,7 @@ window.QUANT_MODEL_SIGNALS = {
         "market_date": "2026-07-29",
         "data_source": "akshare:futures_zh_daily_sina",
         "bar_completed": true,
-        "bar_note": "latest source bar treated as completed",
+        "bar_note": "latest same-day bar excluded because it may still be forming",
         "model_scope": "rule_trial",
         "model_scope_label": "同规则试算",
         "market": {
@@ -1356,10 +1356,10 @@ window.QUANT_MODEL_SIGNALS = {
           }
         },
         "current_quote": {
-          "price": 2271.0,
-          "change": "-1.13%",
+          "price": 2242.0,
+          "change": "-0.13%",
           "direction": "↓",
-          "trade_date": "2026-07-29",
+          "trade_date": "2026-07-30",
           "source": "akshare:futures_zh_realtime",
           "unit": "元/吨"
         }
@@ -1450,7 +1450,7 @@ window.QUANT_MODEL_SIGNALS = {
       "market_date": "2026-07-29",
       "data_source": "akshare:futures_zh_daily_sina",
       "bar_completed": true,
-      "bar_note": "latest source bar treated as completed",
+      "bar_note": "latest same-day bar excluded because it may still be forming",
       "model_scope": "validated_mapping",
       "model_scope_label": "成熟模型映射",
       "market": {
@@ -1562,9 +1562,9 @@ window.QUANT_MODEL_SIGNALS = {
       },
       "current_quote": {
         "price": 9370.0,
-        "change": "-0.16%",
+        "change": "-0.24%",
         "direction": "↓",
-        "trade_date": "2026-07-30",
+        "trade_date": "2026-07-31",
         "source": "AkShare + 同花顺问财行情skill",
         "unit": "元/吨"
       }
@@ -1578,7 +1578,7 @@ window.QUANT_MODEL_SIGNALS = {
       "market_date": "2026-07-29",
       "data_source": "akshare:futures_zh_daily_sina",
       "bar_completed": true,
-      "bar_note": "latest source bar treated as completed",
+      "bar_note": "latest same-day bar excluded because it may still be forming",
       "model_scope": "validated_mapping",
       "model_scope_label": "成熟模型映射",
       "market": {
@@ -1689,11 +1689,11 @@ window.QUANT_MODEL_SIGNALS = {
         }
       },
       "current_quote": {
-        "price": 9645.0,
-        "change": "-0.20%",
+        "price": 9644.0,
+        "change": "-0.17%",
         "direction": "↓",
-        "trade_date": "2026-07-30",
-        "source": "akshare:futures_zh_realtime",
+        "trade_date": "2026-07-31",
+        "source": "AkShare + 同花顺问财行情skill",
         "unit": "元/吨"
       }
     },
@@ -1706,7 +1706,7 @@ window.QUANT_MODEL_SIGNALS = {
       "market_date": "2026-07-29",
       "data_source": "akshare:futures_zh_daily_sina",
       "bar_completed": true,
-      "bar_note": "latest source bar treated as completed",
+      "bar_note": "latest same-day bar excluded because it may still be forming",
       "model_scope": "rule_trial",
       "model_scope_label": "同规则试算",
       "market": {
@@ -1817,10 +1817,10 @@ window.QUANT_MODEL_SIGNALS = {
         }
       },
       "current_quote": {
-        "price": 8392.0,
-        "change": "-0.24%",
+        "price": 8400.0,
+        "change": "-0.08%",
         "direction": "↓",
-        "trade_date": "2026-07-30",
+        "trade_date": "2026-07-31",
         "source": "AkShare + 同花顺问财行情skill",
         "unit": "元/吨"
       }
@@ -1834,7 +1834,7 @@ window.QUANT_MODEL_SIGNALS = {
       "market_date": "2026-07-29",
       "data_source": "akshare:futures_zh_daily_sina",
       "bar_completed": true,
-      "bar_note": "latest source bar treated as completed",
+      "bar_note": "latest same-day bar excluded because it may still be forming",
       "model_scope": "rule_trial",
       "model_scope_label": "同规则试算",
       "market": {
@@ -1945,10 +1945,10 @@ window.QUANT_MODEL_SIGNALS = {
         }
       },
       "current_quote": {
-        "price": 8428.0,
-        "change": "-0.25%",
+        "price": 8420.0,
+        "change": "-0.19%",
         "direction": "↓",
-        "trade_date": "2026-07-30",
+        "trade_date": "2026-07-31",
         "source": "AkShare + 同花顺问财行情skill",
         "unit": "元/吨"
       }
@@ -1962,7 +1962,7 @@ window.QUANT_MODEL_SIGNALS = {
       "market_date": "2026-07-29",
       "data_source": "akshare:futures_zh_daily_sina",
       "bar_completed": true,
-      "bar_note": "latest source bar treated as completed",
+      "bar_note": "latest same-day bar excluded because it may still be forming",
       "model_scope": "rule_trial",
       "model_scope_label": "同规则试算",
       "market": {
@@ -2073,10 +2073,10 @@ window.QUANT_MODEL_SIGNALS = {
         }
       },
       "current_quote": {
-        "price": 9893.0,
-        "change": "-0.29%",
+        "price": 9879.0,
+        "change": "-0.14%",
         "direction": "↓",
-        "trade_date": "2026-07-29",
+        "trade_date": "2026-07-30",
         "source": "AkShare + 同花顺问财行情skill",
         "unit": "元/吨"
       }
@@ -2090,7 +2090,7 @@ window.QUANT_MODEL_SIGNALS = {
       "market_date": "2026-07-29",
       "data_source": "akshare:futures_zh_daily_sina",
       "bar_completed": true,
-      "bar_note": "latest source bar treated as completed",
+      "bar_note": "latest same-day bar excluded because it may still be forming",
       "model_scope": "rule_trial",
       "model_scope_label": "同规则试算",
       "market": {
@@ -2201,10 +2201,10 @@ window.QUANT_MODEL_SIGNALS = {
         }
       },
       "current_quote": {
-        "price": 9779.0,
-        "change": "-0.49%",
+        "price": 9776.0,
+        "change": "-0.03%",
         "direction": "↓",
-        "trade_date": "2026-07-29",
+        "trade_date": "2026-07-30",
         "source": "akshare:futures_zh_realtime",
         "unit": "元/吨"
       }
@@ -2218,7 +2218,7 @@ window.QUANT_MODEL_SIGNALS = {
       "market_date": "2026-07-29",
       "data_source": "akshare:futures_zh_daily_sina",
       "bar_completed": true,
-      "bar_note": "latest source bar treated as completed",
+      "bar_note": "latest same-day bar excluded because it may still be forming",
       "model_scope": "rule_trial",
       "model_scope_label": "同规则试算",
       "market": {
@@ -2329,10 +2329,10 @@ window.QUANT_MODEL_SIGNALS = {
         }
       },
       "current_quote": {
-        "price": 3092.0,
-        "change": "-0.55%",
-        "direction": "↓",
-        "trade_date": "2026-07-30",
+        "price": 3075.0,
+        "change": "+0.03%",
+        "direction": "↑",
+        "trade_date": "2026-07-31",
         "source": "AkShare + 同花顺问财行情skill",
         "unit": "元/吨"
       }
@@ -2346,7 +2346,7 @@ window.QUANT_MODEL_SIGNALS = {
       "market_date": "2026-07-29",
       "data_source": "akshare:futures_zh_daily_sina",
       "bar_completed": true,
-      "bar_note": "latest source bar treated as completed",
+      "bar_note": "latest same-day bar excluded because it may still be forming",
       "model_scope": "rule_trial",
       "model_scope_label": "同规则试算",
       "market": {
@@ -2457,11 +2457,11 @@ window.QUANT_MODEL_SIGNALS = {
         }
       },
       "current_quote": {
-        "price": 3150.0,
-        "change": "-0.72%",
+        "price": 3136.0,
+        "change": "-0.03%",
         "direction": "↓",
-        "trade_date": "2026-07-30",
-        "source": "AkShare + 同花顺问财行情skill",
+        "trade_date": "2026-07-31",
+        "source": "akshare:futures_zh_realtime",
         "unit": "元/吨"
       }
     },
@@ -2474,7 +2474,7 @@ window.QUANT_MODEL_SIGNALS = {
       "market_date": "2026-07-29",
       "data_source": "akshare:futures_zh_daily_sina",
       "bar_completed": true,
-      "bar_note": "latest source bar treated as completed",
+      "bar_note": "latest same-day bar excluded because it may still be forming",
       "model_scope": "rule_trial",
       "model_scope_label": "同规则试算",
       "market": {
@@ -2585,10 +2585,10 @@ window.QUANT_MODEL_SIGNALS = {
         }
       },
       "current_quote": {
-        "price": 2313.0,
-        "change": "-1.03%",
-        "direction": "↓",
-        "trade_date": "2026-07-29",
+        "price": 2299.0,
+        "change": "+0.44%",
+        "direction": "↑",
+        "trade_date": "2026-07-30",
         "source": "akshare:futures_zh_realtime",
         "unit": "元/吨"
       }
@@ -2602,7 +2602,7 @@ window.QUANT_MODEL_SIGNALS = {
       "market_date": "2026-07-29",
       "data_source": "akshare:futures_zh_daily_sina",
       "bar_completed": true,
-      "bar_note": "latest source bar treated as completed",
+      "bar_note": "latest same-day bar excluded because it may still be forming",
       "model_scope": "rule_trial",
       "model_scope_label": "同规则试算",
       "market": {
@@ -2713,10 +2713,10 @@ window.QUANT_MODEL_SIGNALS = {
         }
       },
       "current_quote": {
-        "price": 2271.0,
-        "change": "-1.13%",
+        "price": 2242.0,
+        "change": "-0.13%",
         "direction": "↓",
-        "trade_date": "2026-07-29",
+        "trade_date": "2026-07-30",
         "source": "akshare:futures_zh_realtime",
         "unit": "元/吨"
       }
