@@ -21,6 +21,7 @@ DEFAULT_SITE_ROOT = Path("/srv/palm-oil-daily/site")
 DEFAULT_DEPLOY_ROOT = Path("/srv/palm-oil-daily/deploy")
 REQUIRED_PYTHON_MODULES = ("requests", "akshare", "pandas", "numpy")
 REQUIRED_REPOSITORY_PATHS = (
+    "server/run_ai_brief.py",
     "server/run_market_collector.py",
     "server/sync_live_data.py",
     "scripts/deploy_oil_futures_tab.sh",
@@ -240,8 +241,16 @@ def python_status(site_root: Path) -> dict[str, Any]:
 
 
 def credential_capabilities(deploy_root: Path) -> dict[str, bool]:
+    configured_codex = os.environ.get("CODEX_BIN", "").strip()
     return {
-        "codex_cli_present": shutil.which("codex") is not None,
+        "codex_cli_present": bool(
+            shutil.which("codex")
+            or (
+                configured_codex
+                and os.path.isfile(configured_codex)
+                and os.access(configured_codex, os.X_OK)
+            )
+        ),
         "openai_api_key_present": bool(os.environ.get("OPENAI_API_KEY")),
         "github_token_present": bool(os.environ.get("GITHUB_TOKEN")),
         "git_credential_helper_configured": bool(
@@ -277,13 +286,7 @@ def build_audit(
         blockers.append(f"missing Python modules: {', '.join(missing_modules)}")
     if not python["technical_runtime_present"]:
         blockers.append("repository technical-indicator runtime is missing")
-    ai_backend = (
-        "codex-cli"
-        if credentials["codex_cli_present"]
-        else "openai-api"
-        if credentials["openai_api_key_present"]
-        else "missing"
-    )
+    ai_backend = "codex-cli" if credentials["codex_cli_present"] else "missing"
     if ai_backend == "missing":
         blockers.append("no unattended AI backend is configured")
     api_data_mount = next(

@@ -57,10 +57,13 @@ Preview the collector's session selection without changing files:
 ```bash
 cd /srv/palm-oil-daily/site
 python3 server/run_market_collector.py --dry-run
+python3 server/run_ai_brief.py --dry-run
 ```
 
 Production is designed to call the collector from a systemd timer every ten
 minutes. A successful session writes an idempotency marker. A failed session
-writes no marker, so the next timer interval retries it. AI generation remains
-a separate unattended capability and must not be enabled until its backend and
-credentials pass the readiness audit.
+writes no marker, so the next timer interval retries it. AI generation uses a
+separate runner and the same collection lock. Its first server-owned publish is
+forced through the real structured-output backend before the AI ownership marker
+is written. It must not be enabled until the Codex CLI backend and its
+unattended credentials pass the readiness audit and a real generation succeeds.
