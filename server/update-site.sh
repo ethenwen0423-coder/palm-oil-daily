@@ -4,6 +4,9 @@ set -eu
 SITE_ROOT="${PALM_OIL_SITE_ROOT:-/srv/palm-oil-daily/site}"
 DEPLOY_ROOT="${PALM_OIL_DEPLOY_ROOT:-/srv/palm-oil-daily/deploy}"
 RUNNER_PATH="${PALM_OIL_UPDATE_RUNNER:-/srv/palm-oil-daily/update-site.sh}"
+LIVE_DATA_ROOT="${PALM_OIL_LIVE_DATA_ROOT:-/srv/palm-oil-daily/live-data}"
+COMPOSE_FILE="${PALM_OIL_COMPOSE_FILE:-$DEPLOY_ROOT/compose.yaml}"
+COMPOSE_OVERRIDE="${PALM_OIL_COMPOSE_OVERRIDE:-$DEPLOY_ROOT/compose.automation.yaml}"
 
 cd "$SITE_ROOT"
 git fetch --depth 1 origin main
@@ -15,10 +18,17 @@ for payload in \
   data/exchange_futures.json \
   data/quant_model_signals.json \
   data/supply-demand.json \
+  data/contracts/current_contracts.json \
+  data/forecast/metrics/latest.json \
   data/market_assistant_brief.json
 do
   python3 -m json.tool "$payload" >/dev/null
 done
+
+python3 server/sync_live_data.py \
+  --mode upstream \
+  --source data \
+  --target "$LIVE_DATA_ROOT"
 
 api_changed=false
 if ! cmp -s server/api.py "$DEPLOY_ROOT/api.py"; then
@@ -31,8 +41,16 @@ if ! cmp -s server/update-site.sh "$RUNNER_PATH"; then
   chmod 755 "$RUNNER_PATH"
 fi
 
+compose() {
+  if [ -f "$COMPOSE_OVERRIDE" ]; then
+    docker compose -f "$COMPOSE_FILE" -f "$COMPOSE_OVERRIDE" "$@"
+  else
+    docker compose -f "$COMPOSE_FILE" "$@"
+  fi
+}
+
 if [ "$api_changed" = true ]; then
-  docker compose -f "$DEPLOY_ROOT/compose.yaml" restart api
+  compose restart api
 fi
 
 check_endpoint() {

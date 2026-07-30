@@ -21,6 +21,8 @@ DEFAULT_SITE_ROOT = Path("/srv/palm-oil-daily/site")
 DEFAULT_DEPLOY_ROOT = Path("/srv/palm-oil-daily/deploy")
 REQUIRED_PYTHON_MODULES = ("requests", "akshare", "pandas", "numpy")
 REQUIRED_REPOSITORY_PATHS = (
+    "server/run_market_collector.py",
+    "server/sync_live_data.py",
     "scripts/deploy_oil_futures_tab.sh",
     "scripts/update_oil_futures_data.py",
     "scripts/update_exchange_futures_data.py",

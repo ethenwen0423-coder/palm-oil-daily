@@ -10,6 +10,11 @@ case "$SESSION" in
 esac
 
 SUPPORT_DIR="${PALM_OIL_SUPPORT_DIR:-$HOME/Library/Application Support/VinsonTesla}"
+PUBLISH_MODE="${PALM_OIL_PUBLISH_MODE:-git}"
+case "$PUBLISH_MODE" in
+  git|files) ;;
+  *) echo "invalid PALM_OIL_PUBLISH_MODE: $PUBLISH_MODE" >&2; exit 2 ;;
+esac
 LOCK_DIR="$SUPPORT_DIR/market-data-deploy.lock"
 mkdir -p "$SUPPORT_DIR"
 if ! mkdir "$LOCK_DIR" 2>/dev/null; then
@@ -182,6 +187,26 @@ ALLOWED=(
   data/contracts/current_contracts.json
   "data/contracts/${TODAY:0:7}.json"
 )
+
+if [[ "$PUBLISH_MODE" == "files" ]]; then
+  python3 - "$SESSION" "$FUNDAMENTAL_DATE" <<'PY'
+import json
+import sys
+
+print(
+    json.dumps(
+        {
+            "status": "ok",
+            "publish_mode": "files",
+            "session": sys.argv[1],
+            "fundamental_date": sys.argv[2],
+        },
+        ensure_ascii=False,
+    )
+)
+PY
+  exit 0
+fi
 
 while IFS= read -r staged; do
   [[ -z "$staged" ]] && continue

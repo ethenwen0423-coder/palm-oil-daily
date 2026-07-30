@@ -40,3 +40,24 @@ dependencies and unattended AI capabilities. Credential values are never
 printed; only capability booleans are returned. A blocked result is expected
 until the Python market-data dependencies, live-data mount and one unattended AI
 backend have been configured.
+
+## Server-owned live market data
+
+The API should mount `/srv/palm-oil-daily/live-data` at `/site/data:ro`.
+Repository synchronization owns reports, supply-demand data and forecast
+metrics. Once `.server-market-ready.json` exists, the server collector owns
+market quotes, exchange quotes, quant-model outputs, current contracts and the
+grounded market brief; a later Git update will not overwrite them.
+
+Preview the collector's session selection without changing files:
+
+```bash
+cd /srv/palm-oil-daily/site
+python3 server/run_market_collector.py --dry-run
+```
+
+Production is designed to call the collector from a systemd timer every ten
+minutes. A successful session writes an idempotency marker. A failed session
+writes no marker, so the next timer interval retries it. AI generation remains
+a separate unattended capability and must not be enabled until its backend and
+credentials pass the readiness audit.
