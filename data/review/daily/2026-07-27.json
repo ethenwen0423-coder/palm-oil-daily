@@ -1,0 +1,118 @@
+{
+  "date": "2026-07-27",
+  "status": "OK",
+  "review_result": [
+    {
+      "contract": "OI2609",
+      "product": "OI",
+      "contract_rank": 1,
+      "previous_view": "分歧震荡",
+      "actual_result": "-2.8207372823655286，高 10240.0 / 低 9966.0 / 收 9991.0",
+      "hit_status": "HIT",
+      "error_type": [],
+      "actual_market": {
+        "open": 10240.0,
+        "high": 10240.0,
+        "low": 9966.0,
+        "close": 9991.0,
+        "change_pct": -2.8207372823655286,
+        "volume_change": 590.9729166666667,
+        "open_interest_change": 27.005866249511147,
+        "intraday_direction": "down",
+        "whether_break_upper": false,
+        "whether_break_lower": false,
+        "whether_close_above_upper": false,
+        "whether_close_below_lower": false
+      }
+    },
+    {
+      "contract": "P2609",
+      "product": "P",
+      "contract_rank": 1,
+      "previous_view": "震荡偏强",
+      "actual_result": "-1.9853709508881923，高 9532.0 / 低 9351.0 / 收 9380.0",
+      "hit_status": "PARTIAL",
+      "error_type": [],
+      "actual_market": {
+        "open": 9518.0,
+        "high": 9532.0,
+        "low": 9351.0,
+        "close": 9380.0,
+        "change_pct": -1.9853709508881923,
+        "volume_change": 349.38500851788757,
+        "open_interest_change": 9.593234792495736,
+        "intraday_direction": "down",
+        "whether_break_upper": false,
+        "whether_break_lower": false,
+        "whether_close_above_upper": false,
+        "whether_close_below_lower": false
+      }
+    },
+    {
+      "contract": "Y2609",
+      "product": "Y",
+      "contract_rank": 1,
+      "previous_view": "震荡偏强",
+      "actual_result": "-1.7285382830626452，高 8610.0 / 低 8465.0 / 收 8471.0",
+      "hit_status": "PARTIAL",
+      "error_type": [],
+      "actual_market": {
+        "open": 8589.0,
+        "high": 8610.0,
+        "low": 8465.0,
+        "close": 8471.0,
+        "change_pct": -1.7285382830626452,
+        "volume_change": 357.99058084772366,
+        "open_interest_change": 13.284154535274356,
+        "intraday_direction": "down",
+        "whether_break_upper": false,
+        "whether_break_lower": false,
+        "whether_close_above_upper": false,
+        "whether_close_below_lower": false
+      }
+    }
+  ],
+  "error_type": [],
+  "suggested_improvement": [],
+  "whether_update_rule": false,
+  "human_approval_required": false,
+  "review_markdown": "## 昨日判断复盘\n\n| 合约 | 昨日观点 | 今日实际 | 结果 | 偏差原因 |\n|---|---|---|---|---|\n| OI2609 | 分歧震荡 | -2.8207372823655286，高 10240.0 / 低 9966.0 / 收 9991.0 | HIT | 无 |\n| P2609 | 震荡偏强 | -1.9853709508881923，高 9532.0 / 低 9351.0 / 收 9380.0 | PARTIAL | 无 |\n| Y2609 | 震荡偏强 | -1.7285382830626452，高 8610.0 / 低 8465.0 / 收 8471.0 | PARTIAL | 无 |\n\n## 偏差归因\n\n- 今日无 MISS，暂不生成偏差归因。\n\n## 改进建议\n\n- 今日无 MISS，不建议调整核心规则。",
+  "learning_notes": [
+    {
+      "date": "2026-07-27",
+      "contract": "OI2609",
+      "previous_view": "分歧震荡",
+      "actual_result": "-2.8207372823655286，高 10240.0 / 低 9966.0 / 收 9991.0",
+      "hit_status": "HIT",
+      "error_type": [],
+      "root_cause": "昨日观点基本被今日行情验证",
+      "suggested_rule_change": [],
+      "confidence_adjustment": "MISS时下调一档；HIT保持；PARTIAL维持中性观察",
+      "requires_human_approval": false
+    },
+    {
+      "date": "2026-07-27",
+      "contract": "P2609",
+      "previous_view": "震荡偏强",
+      "actual_result": "-1.9853709508881923，高 9532.0 / 低 9351.0 / 收 9380.0",
+      "hit_status": "PARTIAL",
+      "error_type": [],
+      "root_cause": "昨日观点基本被今日行情验证",
+      "suggested_rule_change": [],
+      "confidence_adjustment": "MISS时下调一档；HIT保持；PARTIAL维持中性观察",
+      "requires_human_approval": false
+    },
+    {
+      "date": "2026-07-27",
+      "contract": "Y2609",
+      "previous_view": "震荡偏强",
+      "actual_result": "-1.7285382830626452，高 8610.0 / 低 8465.0 / 收 8471.0",
+      "hit_status": "PARTIAL",
+      "error_type": [],
+      "root_cause": "昨日观点基本被今日行情验证",
+      "suggested_rule_change": [],
+      "confidence_adjustment": "MISS时下调一档；HIT保持；PARTIAL维持中性观察",
+      "requires_human_approval": false
+    }
+  ]
+}
