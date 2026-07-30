@@ -75,7 +75,15 @@
       </div>
     </footer>
 
-    <script>document.write('<script src="data/oil_futures.js?v=' + window.OTC_CACHE_BUST + '"><\/script>');</script>
-    <script>document.write('<script src="assets/otc-structure.js?v=' + window.OTC_CACHE_BUST + '"><\/script>');</script>
+    <script src="assets/api-data-loader.js?v=20260730-api1"></script>
+    <script>
+      window.PalmOilDataLoader.boot({
+        endpoint: "/api/oil-futures",
+        globalName: "OIL_FUTURES_CONTRACTS",
+        fallbackSrc: "data/oil_futures.js",
+        consumerSrc: "assets/otc-structure.js",
+        cacheBust: window.OTC_CACHE_BUST,
+      });
+    </script>
   </body>
 </html>

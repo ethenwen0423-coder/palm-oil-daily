@@ -74,9 +74,15 @@
       </div>
     </footer>
 
+    <script src="assets/api-data-loader.js?v=20260730-api1"></script>
     <script>
-      document.write('<script src="data/quant_model_signals.js?v=' + window.QUANT_DETAIL_CACHE_BUST + '"><\/script>');
-      document.write('<script src="assets/quant-model-detail.js?v=' + window.QUANT_DETAIL_CACHE_BUST + '"><\/script>');
+      window.PalmOilDataLoader.boot({
+        endpoint: "/api/quant-model-signals",
+        globalName: "QUANT_MODEL_SIGNALS",
+        fallbackSrc: "data/quant_model_signals.js",
+        consumerSrc: "assets/quant-model-detail.js",
+        cacheBust: window.QUANT_DETAIL_CACHE_BUST,
+      });
     </script>
   </body>
 </html>

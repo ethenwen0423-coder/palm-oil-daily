@@ -58,11 +58,15 @@
       </div>
     </footer>
 
+    <script src="assets/api-data-loader.js?v=20260730-api1"></script>
     <script>
-      document.write('<script src="data/oil_futures.js?v=' + window.PALM_OIL_CACHE_BUST + '"><\/script>');
-    </script>
-    <script>
-      document.write('<script src="assets/app.js?v=' + window.PALM_OIL_CACHE_BUST + '"><\/script>');
+      window.PalmOilDataLoader.boot({
+        endpoint: "/api/oil-futures",
+        globalName: "OIL_FUTURES_CONTRACTS",
+        fallbackSrc: "data/oil_futures.js",
+        consumerSrc: "assets/app.js",
+        cacheBust: window.PALM_OIL_CACHE_BUST,
+      });
     </script>
   </body>
 </html>
