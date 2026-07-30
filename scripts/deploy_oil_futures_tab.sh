@@ -154,6 +154,8 @@ ALLOWED=(
   data/exchange_futures.json
   data/quant_model_signals.js
   data/quant_model_signals.json
+  data/contracts/current_contracts.json
+  "data/contracts/${TODAY:0:7}.json"
 )
 
 while IFS= read -r staged; do

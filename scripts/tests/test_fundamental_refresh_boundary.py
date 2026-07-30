@@ -37,6 +37,8 @@ class FundamentalRefreshBoundaryTest(unittest.TestCase):
         self.assertIn("attempt * 10", installer)
         self.assertIn("keep state open for next recovery", installer)
         self.assertIn("<integer>16</integer><key>Minute</key><integer>0</integer>", installer)
+        self.assertIn("data/contracts/current_contracts.json", deploy)
+        self.assertIn('"data/contracts/${TODAY:0:7}.json"', deploy)
 
     def test_exchange_carry_requires_same_day_morning_snapshot(self):
         payload = {
