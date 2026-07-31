@@ -25,6 +25,8 @@ class ServerAutomationInstallerTests(unittest.TestCase):
         self.assertIn("server/sync_live_data.py", script)
         self.assertIn("compose.automation.yaml", script)
         self.assertIn("$LIVE_DATA_ROOT:/site/data:ro", script)
+        self.assertIn('python3 -m venv --clear "$VENV_ROOT"', script)
+        self.assertIn('"$VENV_ROOT/bin/python" -m pip --version', script)
         self.assertIn("systemd-analyze verify", script)
         self.assertIn("systemctl enable --now palm-oil-market-collector.timer", script)
         self.assertNotIn("systemctl enable --now palm-oil-ai-brief.timer", script)

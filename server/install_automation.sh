@@ -123,8 +123,10 @@ for runtime_root in "$MARKET_RUNTIME_ROOT" "$AI_RUNTIME_ROOT"; do
   fi
 done
 
-if [[ ! -x "$VENV_ROOT/bin/python" ]]; then
-  python3 -m venv "$VENV_ROOT"
+if [[ ! -x "$VENV_ROOT/bin/python" ]] || \
+  ! "$VENV_ROOT/bin/python" -m pip --version >/dev/null 2>&1
+then
+  python3 -m venv --clear "$VENV_ROOT"
 fi
 "$VENV_ROOT/bin/python" -m pip install \
   --disable-pip-version-check \
