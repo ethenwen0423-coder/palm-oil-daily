@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-import importlib.util
 import json
 import os
 import platform
@@ -19,8 +18,11 @@ from urllib.parse import urlsplit
 
 DEFAULT_SITE_ROOT = Path("/srv/palm-oil-daily/site")
 DEFAULT_DEPLOY_ROOT = Path("/srv/palm-oil-daily/deploy")
+DEFAULT_MARKET_PYTHON = Path("/srv/palm-oil-daily/venv/bin/python")
 REQUIRED_PYTHON_MODULES = ("requests", "akshare", "pandas", "numpy")
 REQUIRED_REPOSITORY_PATHS = (
+    "server/install_automation.sh",
+    "server/requirements-market.txt",
     "server/run_ai_brief.py",
     "server/run_market_collector.py",
     "server/sync_live_data.py",
@@ -221,10 +223,35 @@ def systemd_status() -> dict[str, Any]:
     return {"available": available, "unit_files": units, "timers": timers}
 
 
-def python_status(site_root: Path) -> dict[str, Any]:
-    modules = {
-        name: importlib.util.find_spec(name) is not None for name in REQUIRED_PYTHON_MODULES
-    }
+def probe_python_modules(executable: Path) -> tuple[str | None, dict[str, bool]]:
+    script = (
+        "import importlib.util,json,platform;"
+        f"names={REQUIRED_PYTHON_MODULES!r};"
+        "print(json.dumps({'version':platform.python_version(),"
+        "'modules':{name:importlib.util.find_spec(name) is not None for name in names}}))"
+    )
+    result = run([str(executable), "-c", script])
+    if result.returncode != 0:
+        return None, {name: False for name in REQUIRED_PYTHON_MODULES}
+    try:
+        payload = json.loads(result.stdout)
+    except json.JSONDecodeError:
+        return None, {name: False for name in REQUIRED_PYTHON_MODULES}
+    modules = payload.get("modules")
+    if not isinstance(modules, dict):
+        modules = {}
+    return (
+        str(payload.get("version") or "") or None,
+        {name: bool(modules.get(name)) for name in REQUIRED_PYTHON_MODULES},
+    )
+
+
+def python_status(
+    site_root: Path,
+    market_python: Path = DEFAULT_MARKET_PYTHON,
+) -> dict[str, Any]:
+    executable = market_python if market_python.is_file() else Path(sys.executable)
+    version, modules = probe_python_modules(executable)
     technical_runtime = (
         site_root
         / "skills"
@@ -233,8 +260,8 @@ def python_status(site_root: Path) -> dict[str, Any]:
         / "runtime_indicators.py"
     )
     return {
-        "executable": sys.executable,
-        "version": platform.python_version(),
+        "executable": str(executable),
+        "version": version,
         "modules": modules,
         "technical_runtime_present": technical_runtime.exists(),
     }

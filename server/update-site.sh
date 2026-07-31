@@ -5,8 +5,16 @@ SITE_ROOT="${PALM_OIL_SITE_ROOT:-/srv/palm-oil-daily/site}"
 DEPLOY_ROOT="${PALM_OIL_DEPLOY_ROOT:-/srv/palm-oil-daily/deploy}"
 RUNNER_PATH="${PALM_OIL_UPDATE_RUNNER:-/srv/palm-oil-daily/update-site.sh}"
 LIVE_DATA_ROOT="${PALM_OIL_LIVE_DATA_ROOT:-/srv/palm-oil-daily/live-data}"
+STATE_ROOT="${PALM_OIL_SERVER_STATE_ROOT:-/srv/palm-oil-daily/state}"
 COMPOSE_FILE="${PALM_OIL_COMPOSE_FILE:-$DEPLOY_ROOT/compose.yaml}"
 COMPOSE_OVERRIDE="${PALM_OIL_COMPOSE_OVERRIDE:-$DEPLOY_ROOT/compose.automation.yaml}"
+
+mkdir -p "$STATE_ROOT"
+exec 9>"$STATE_ROOT/automation.lock"
+if ! flock -n 9; then
+  echo '{"status":"busy","reason":"server automation lock is held","retry":true}'
+  exit 0
+fi
 
 cd "$SITE_ROOT"
 git fetch --depth 1 origin main

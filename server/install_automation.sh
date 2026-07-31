@@ -1,0 +1,263 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SITE_ROOT="${PALM_OIL_SITE_ROOT:-/srv/palm-oil-daily/site}"
+DEPLOY_ROOT="${PALM_OIL_DEPLOY_ROOT:-/srv/palm-oil-daily/deploy}"
+LIVE_DATA_ROOT="${PALM_OIL_LIVE_DATA_ROOT:-/srv/palm-oil-daily/live-data}"
+STATE_ROOT="${PALM_OIL_SERVER_STATE_ROOT:-/srv/palm-oil-daily/state}"
+MARKET_RUNTIME_ROOT="${PALM_OIL_MARKET_RUNTIME_ROOT:-/srv/palm-oil-daily/market-runtime}"
+AI_RUNTIME_ROOT="${PALM_OIL_AI_RUNTIME_ROOT:-/srv/palm-oil-daily/ai-runtime}"
+VENV_ROOT="${PALM_OIL_VENV_ROOT:-/srv/palm-oil-daily/venv}"
+UNIT_ROOT="${PALM_OIL_SYSTEMD_UNIT_ROOT:-/etc/systemd/system}"
+COMPOSE_FILE="${PALM_OIL_COMPOSE_FILE:-$DEPLOY_ROOT/compose.yaml}"
+COMPOSE_OVERRIDE="${PALM_OIL_COMPOSE_OVERRIDE:-$DEPLOY_ROOT/compose.automation.yaml}"
+REQUIREMENTS="$SITE_ROOT/server/requirements-market.txt"
+MODE="${1:---dry-run}"
+
+case "$MODE" in
+  --dry-run|--apply) ;;
+  *)
+    echo "usage: sudo bash server/install_automation.sh [--dry-run|--apply]" >&2
+    exit 2
+    ;;
+esac
+
+for command in python3 docker systemctl systemd-analyze flock install; do
+  command -v "$command" >/dev/null 2>&1 || {
+    echo "required command is unavailable: $command" >&2
+    exit 2
+  }
+done
+docker compose version >/dev/null
+
+for required in \
+  "$SITE_ROOT/.git" \
+  "$SITE_ROOT/server/run_market_collector.py" \
+  "$SITE_ROOT/server/run_ai_brief.py" \
+  "$SITE_ROOT/server/sync_live_data.py" \
+  "$REQUIREMENTS" \
+  "$COMPOSE_FILE"
+do
+  [[ -e "$required" ]] || {
+    echo "required deployment input is missing: $required" >&2
+    exit 2
+  }
+done
+
+branch="$(git -c safe.directory="$SITE_ROOT" -C "$SITE_ROOT" branch --show-current)"
+dirty="$(git -c safe.directory="$SITE_ROOT" -C "$SITE_ROOT" status --porcelain --untracked-files=all)"
+[[ "$branch" == "main" && -z "$dirty" ]] || {
+  echo "server site checkout must be a clean main branch" >&2
+  exit 2
+}
+
+if [[ "$MODE" == "--dry-run" ]]; then
+  python3 - "$SITE_ROOT" "$LIVE_DATA_ROOT" "$STATE_ROOT" "$MARKET_RUNTIME_ROOT" \
+    "$AI_RUNTIME_ROOT" "$VENV_ROOT" "$COMPOSE_FILE" "$COMPOSE_OVERRIDE" <<'PY'
+import json
+import sys
+
+keys = (
+    "site_root",
+    "live_data_root",
+    "state_root",
+    "market_runtime_root",
+    "ai_runtime_root",
+    "venv_root",
+    "compose_file",
+    "compose_override",
+)
+print(json.dumps(
+    {
+        "status": "planned",
+        "mode": "dry-run",
+        **dict(zip(keys, sys.argv[1:])),
+        "market_timer": "every 10 minutes with retry",
+        "ai_timer": "installed disabled until backend acceptance",
+    },
+    sort_keys=True,
+))
+PY
+  exit 0
+fi
+
+[[ "$(id -u)" -eq 0 ]] || {
+  echo "--apply must run as root" >&2
+  exit 2
+}
+for target in \
+  "$SITE_ROOT" "$DEPLOY_ROOT" "$LIVE_DATA_ROOT" "$STATE_ROOT" \
+  "$MARKET_RUNTIME_ROOT" "$AI_RUNTIME_ROOT" "$VENV_ROOT"
+do
+  case "$target" in
+    /srv/palm-oil-daily|/srv/palm-oil-daily/*) ;;
+    *)
+      echo "refusing unsafe deployment path: $target" >&2
+      exit 2
+      ;;
+  esac
+done
+
+install -d -m 0755 \
+  "$LIVE_DATA_ROOT" \
+  "$STATE_ROOT" \
+  "$STATE_ROOT/home" \
+  "$STATE_ROOT/cache"
+
+for runtime_root in "$MARKET_RUNTIME_ROOT" "$AI_RUNTIME_ROOT"; do
+  if [[ -e "$runtime_root" && ! -d "$runtime_root/.git" ]]; then
+    if [[ -d "$runtime_root" && -z "$(find "$runtime_root" -mindepth 1 -print -quit)" ]]; then
+      rmdir "$runtime_root"
+    else
+      echo "runtime path exists but is not an empty or valid Git checkout: $runtime_root" >&2
+      exit 2
+    fi
+  fi
+  if [[ ! -d "$runtime_root/.git" ]]; then
+    git clone \
+      --branch main \
+      --single-branch \
+      --no-hardlinks \
+      "$SITE_ROOT" \
+      "$runtime_root"
+  fi
+done
+
+if [[ ! -x "$VENV_ROOT/bin/python" ]]; then
+  python3 -m venv "$VENV_ROOT"
+fi
+"$VENV_ROOT/bin/python" -m pip install \
+  --disable-pip-version-check \
+  --no-cache-dir \
+  --requirement "$REQUIREMENTS"
+
+python3 "$SITE_ROOT/server/sync_live_data.py" \
+  --mode upstream \
+  --source "$SITE_ROOT/data" \
+  --target "$LIVE_DATA_ROOT"
+
+temporary_root="$(mktemp -d /tmp/palm-oil-automation.XXXXXX)"
+cleanup() {
+  rm -rf "$temporary_root"
+}
+trap cleanup EXIT
+
+cat >"$temporary_root/compose.automation.yaml" <<EOF
+services:
+  api:
+    volumes:
+      - $LIVE_DATA_ROOT:/site/data:ro
+EOF
+docker compose \
+  -f "$COMPOSE_FILE" \
+  -f "$temporary_root/compose.automation.yaml" \
+  config >/dev/null
+
+write_service() {
+  local target="$1"
+  local description="$2"
+  local command="$3"
+  cat >"$target" <<EOF
+[Unit]
+Description=$description
+After=network-online.target palm-oil-site-update.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+WorkingDirectory=$SITE_ROOT
+Environment=HOME=$STATE_ROOT/home
+Environment=XDG_CACHE_HOME=$STATE_ROOT/cache
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=GIT_CONFIG_COUNT=1
+Environment=GIT_CONFIG_KEY_0=safe.directory
+Environment=GIT_CONFIG_VALUE_0=$SITE_ROOT
+ExecStart=$VENV_ROOT/bin/python $SITE_ROOT/server/$command
+TimeoutStartSec=45min
+UMask=0027
+Nice=10
+NoNewPrivileges=true
+PrivateDevices=true
+PrivateTmp=true
+ProtectHome=read-only
+ProtectSystem=strict
+ReadOnlyPaths=$SITE_ROOT $VENV_ROOT
+ReadWritePaths=$LIVE_DATA_ROOT $STATE_ROOT $MARKET_RUNTIME_ROOT $AI_RUNTIME_ROOT
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+LockPersonality=true
+EOF
+}
+
+write_timer() {
+  local target="$1"
+  local description="$2"
+  local service="$3"
+  cat >"$target" <<EOF
+[Unit]
+Description=$description
+
+[Timer]
+OnCalendar=*-*-* *:0/10:00
+AccuracySec=30s
+RandomizedDelaySec=30s
+Persistent=true
+Unit=$service
+
+[Install]
+WantedBy=timers.target
+EOF
+}
+
+write_service \
+  "$temporary_root/palm-oil-market-collector.service" \
+  "Refresh palm oil market datasets into the live API mount" \
+  "run_market_collector.py"
+write_timer \
+  "$temporary_root/palm-oil-market-collector.timer" \
+  "Retry palm oil market refresh every ten minutes" \
+  "palm-oil-market-collector.service"
+write_service \
+  "$temporary_root/palm-oil-ai-brief.service" \
+  "Generate a source-grounded palm oil AI market brief" \
+  "run_ai_brief.py"
+write_timer \
+  "$temporary_root/palm-oil-ai-brief.timer" \
+  "Retry palm oil AI brief generation every ten minutes" \
+  "palm-oil-ai-brief.service"
+
+systemd-analyze verify \
+  "$temporary_root/palm-oil-market-collector.service" \
+  "$temporary_root/palm-oil-market-collector.timer" \
+  "$temporary_root/palm-oil-ai-brief.service" \
+  "$temporary_root/palm-oil-ai-brief.timer"
+
+install -m 0644 "$temporary_root/compose.automation.yaml" "$COMPOSE_OVERRIDE"
+for unit in \
+  palm-oil-market-collector.service \
+  palm-oil-market-collector.timer \
+  palm-oil-ai-brief.service \
+  palm-oil-ai-brief.timer
+do
+  install -m 0644 "$temporary_root/$unit" "$UNIT_ROOT/$unit"
+done
+
+systemctl daemon-reload
+docker compose -f "$COMPOSE_FILE" -f "$COMPOSE_OVERRIDE" up -d api web
+systemctl enable --now palm-oil-market-collector.timer
+systemctl start palm-oil-market-collector.service
+
+systemctl --no-pager --full status palm-oil-market-collector.service || true
+systemctl --no-pager list-timers palm-oil-market-collector.timer
+docker compose -f "$COMPOSE_FILE" -f "$COMPOSE_OVERRIDE" ps
+set +e
+python3 "$SITE_ROOT/server/audit_runtime.py"
+audit_status=$?
+set -e
+if [[ "$audit_status" -ne 0 && "$audit_status" -ne 2 ]]; then
+  exit "$audit_status"
+fi
+
+echo "AI service units installed but timer intentionally left disabled."

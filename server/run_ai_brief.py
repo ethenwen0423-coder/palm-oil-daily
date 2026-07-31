@@ -141,7 +141,7 @@ def main() -> int:
         )
         return 2
 
-    lock = support.acquire_lock(state_root / "market-collector.lock")
+    lock = support.acquire_lock(state_root / "automation.lock")
     if lock is None:
         print(json.dumps({"status": "busy", "retry": True}, ensure_ascii=False))
         return 0

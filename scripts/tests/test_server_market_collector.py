@@ -184,8 +184,11 @@ class ServerMarketCollectorTests(unittest.TestCase):
         deploy = (ROOT / "scripts" / "deploy_oil_futures_tab.sh").read_text(
             encoding="utf-8"
         )
+        collector = COLLECTOR_SCRIPT.read_text(encoding="utf-8")
         self.assertIn("server/sync_live_data.py", update_site)
         self.assertIn("compose.automation.yaml", update_site)
+        self.assertIn('"$STATE_ROOT/automation.lock"', update_site)
+        self.assertIn('state_root / "automation.lock"', collector)
         self.assertIn('PUBLISH_MODE="${PALM_OIL_PUBLISH_MODE:-git}"', deploy)
         self.assertIn('"publish_mode": "files"', deploy)
         self.assertLess(

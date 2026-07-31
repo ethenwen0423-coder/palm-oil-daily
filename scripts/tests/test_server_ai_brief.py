@@ -90,7 +90,7 @@ class ServerAiBriefTests(unittest.TestCase):
 
     def test_first_server_generation_is_forced_before_ai_ownership(self):
         script = SCRIPT.read_text(encoding="utf-8")
-        self.assertIn('state_root / "market-collector.lock"', script)
+        self.assertIn('state_root / "automation.lock"', script)
         self.assertIn('command.append("--force")', script)
         self.assertIn("sync_module.sync_ai(", script)
         self.assertLess(

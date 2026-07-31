@@ -32,7 +32,7 @@ the read-only audit from the synchronized checkout:
 
 ```bash
 cd /srv/palm-oil-daily/site
-python3 server/audit_runtime.py --network
+sudo python3 server/audit_runtime.py --network
 ```
 
 The audit reports Docker/API mounts, systemd timers, Python modules, repository
@@ -40,6 +40,20 @@ dependencies and unattended AI capabilities. Credential values are never
 printed; only capability booleans are returned. A blocked result is expected
 until the Python market-data dependencies, live-data mount and one unattended AI
 backend have been configured.
+
+After reviewing the audit, preview and apply the reproducible server install:
+
+```bash
+cd /srv/palm-oil-daily/site
+sudo bash server/install_automation.sh --dry-run
+sudo bash server/install_automation.sh --apply
+```
+
+The installer creates a pinned Python virtual environment, bootstraps the
+live-data directory, replaces only the API container's `/site/data` mount,
+installs hardened market/AI systemd units and enables the ten-minute market
+timer. The AI timer is installed but deliberately left disabled until a real
+unattended backend generation passes its acceptance gate.
 
 ## Server-owned live market data
 
