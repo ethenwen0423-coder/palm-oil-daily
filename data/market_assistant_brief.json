@@ -1,155 +1,152 @@
 {
   "schema_version": 1,
   "status": "ready",
-  "generated_at": "2026-07-31T01:49:53+08:00",
-  "update_session": "overnight",
+  "generated_at": "2026-07-31T14:36:36+08:00",
+  "update_session": "morning",
   "generator": "codex-cli-default",
   "generation_contract": "read-only, source-grounded, structured-output",
-  "source_fingerprint": "7c72912ac6c98db60d57704e44444613ba9ecedc956b0f3d36df8d1503881574",
+  "source_fingerprint": "ce4b66d01c65c821ff27d436b29d58bb66bececb5537754ca2a8592d930083b5",
   "source_snapshot": {
-    "reports": "2026-07-30",
-    "oil-futures": "2026-07-31 00:25",
-    "exchange-futures": "2026-07-31 00:25",
-    "quant-model-signals": "2026-07-31 00:25",
-    "supply-demand": "2026-07-30T06:15:30+08:00",
+    "reports": "2026-07-31",
+    "oil-futures": "2026-07-31 06:13",
+    "exchange-futures": "2026-07-31 06:18",
+    "quant-model-signals": "2026-07-31 06:13",
+    "supply-demand": "2026-07-31T06:17:45+08:00",
     "forecast-metrics": "2026-07-30",
-    "contracts": "2026-07-31 00:22:34"
+    "contracts": "2026-07-31 06:12:06"
   },
   "fixed_logic": [
     "otc_structure_library",
     "quant_model_rules"
   ],
-  "headline": "贵金属走强而能源与黑色承压，油脂维持分歧震荡",
+  "headline": "贵金属逆势偏强，商品整体承压且油脂未现共振",
   "market_state": "分化",
-  "summary": "夜盘跨品种表现显著分化，贵金属偏强，能源、黑色及碳酸锂承压；油脂跌幅有限但内部信号不一致，既有量化规则未给出油脂新增信号。基本面资料与行情快照存在时点差异，预测样本亦不足，当前判断保持谨慎。",
+  "summary": "早盘呈明显分化：碳酸锂、股指与能化偏弱，金银走强；油脂整体仍属震荡，量化信号未形成一致确认。粕类模型出现偏空变化，但仅作研究观察，不构成自动交易指令。",
   "key_moves": [
-    {
-      "evidence_id": "exchange:AG2610",
-      "label": "白银",
-      "value": "14389.0；涨跌 2.54%",
-      "source": "exchange-futures",
-      "observed_at": "2026-07-31 00:25",
-      "interpretation": "白银领涨，贵金属相对强势特征突出。"
-    },
-    {
-      "evidence_id": "exchange:SC2609",
-      "label": "原油",
-      "value": "550.6；涨跌 -3.1%",
-      "source": "exchange-futures",
-      "observed_at": "2026-07-31 00:25",
-      "interpretation": "原油明显走弱，能源链情绪受到压制。"
-    },
     {
       "evidence_id": "exchange:LC2609",
       "label": "碳酸锂",
       "value": "141060.0；涨跌 -4.62%",
       "source": "exchange-futures",
-      "observed_at": "2026-07-31 00:25",
-      "interpretation": "碳酸锂跌幅居前，短线波动与下行压力较大。"
+      "observed_at": "2026-07-31 06:18",
+      "interpretation": "碳酸锂显著走弱，是当前商品承压的突出来源。"
     },
     {
-      "evidence_id": "oil:P2609",
-      "label": "棕榈油",
-      "value": "9370；涨跌 -0.24%",
-      "source": "oil-futures",
-      "observed_at": "2026-07-31 00:25",
-      "interpretation": "棕榈油价格小幅回落，但综合观点仍偏强震荡，价格表现与驱动判断尚未完全一致。"
+      "evidence_id": "exchange:IC2609",
+      "label": "中证500指数期货",
+      "value": "7245.6；涨跌 -2.8%",
+      "source": "exchange-futures",
+      "observed_at": "2026-07-31 06:18",
+      "interpretation": "股指期货明显回落，反映风险偏好偏弱。"
+    },
+    {
+      "evidence_id": "exchange:AG2610",
+      "label": "白银",
+      "value": "14402.0；涨跌 2.64%",
+      "source": "exchange-futures",
+      "observed_at": "2026-07-31 06:18",
+      "interpretation": "白银逆势走强，与多数商品形成鲜明分化。"
+    },
+    {
+      "evidence_id": "exchange:SC2609",
+      "label": "原油",
+      "value": "553.2；涨跌 -2.64%",
+      "source": "exchange-futures",
+      "observed_at": "2026-07-31 06:18",
+      "interpretation": "原油走弱，能化板块缺少上行驱动。"
     },
     {
       "evidence_id": "quant:bollinger-rsi-ma6-v1:M2609",
       "label": "豆粕动态量化信号",
       "value": "OPEN_SHORT；执行 next_trading_day_open",
       "source": "quant-model-signals",
-      "observed_at": "2026-07-31 00:25",
-      "interpretation": "豆粕完整收盘形成均线下破信号，但这里只记录模型状态，不构成交易指令。"
+      "observed_at": "2026-07-31 06:13",
+      "interpretation": "豆粕模型出现偏空变化，但仅作为后续行情验证线索。流程未生成自动交易指令。对于交易指令仍需结合自身风险偏好判断。投资有风险，入市需谨慎。该内容仅供参考，不构成投资建议。"
     }
   ],
   "watchlist": [
     {
       "priority": "高",
-      "item": "碳酸锂波动状态",
-      "trigger": "波动扩大",
-      "why": "当前跌幅突出，需观察弱势是否继续向相关品种扩散。",
-      "evidence_ids": [
-        "exchange:LC2609"
-      ]
-    },
-    {
-      "priority": "高",
-      "item": "原油与燃油弱势联动",
-      "trigger": "下破观察位",
-      "why": "能源品种同步承压，若弱势延续可能影响整体商品风险偏好。",
-      "evidence_ids": [
-        "exchange:SC2609",
-        "exchange:FU2609"
-      ]
-    },
-    {
-      "priority": "中",
-      "item": "油脂共振方向确认",
+      "item": "油脂共振确认",
       "trigger": "上破观察位",
-      "why": "油脂现货行情偏弱而综合驱动相对友好，需等待完整行情确认既有震荡判断是否失效。",
+      "why": "棕榈油、豆油与菜油尚未形成同步方向，需观察联动能否增强。",
       "evidence_ids": [
-        "report:2026-07-30",
+        "report:2026-07-31",
         "oil:P2609",
         "oil:Y2609",
         "oil:OI2609"
       ]
     },
     {
-      "priority": "中",
-      "item": "粕类均线下破信号延续性",
-      "trigger": "下破观察位",
-      "why": "粕类量化状态出现完整收盘下破，但基本面与盘面强弱仍有分歧。",
+      "priority": "高",
+      "item": "碳酸锂弱势是否扩散",
+      "trigger": "波动扩大",
+      "why": "当前跌势突出，若波动继续放大，可能加剧商品风险偏好压力。",
       "evidence_ids": [
-        "quant:bollinger-rsi-ma6-v1:M2609",
-        "quant:bollinger-rsi-ma6-v1:RM2609",
-        "oil:M2609",
-        "oil:RM2609"
+        "exchange:LC2609"
       ]
     },
     {
       "priority": "中",
-      "item": "官方供需资料状态",
+      "item": "粕类偏空变化延续性",
+      "trigger": "下破观察位",
+      "why": "豆粕与菜粕模型均出现偏空变化，仍需后续完成行情确认。",
+      "evidence_ids": [
+        "quant:bollinger-rsi-ma6-v1:M2609",
+        "quant:bollinger-rsi-ma6-v1:RM2609"
+      ]
+    },
+    {
+      "priority": "中",
+      "item": "官方供需资料",
       "trigger": "官方数据更新",
-      "why": "官方来源已检查但暂未更新，新增资料可能改变油脂基本面背景。",
+      "why": "官方来源已经检查但尚无新增资料，当前背景仍沿用最近一期数据。",
       "evidence_ids": [
         "supply:official-check"
+      ]
+    },
+    {
+      "priority": "低",
+      "item": "预测能力评估",
+      "trigger": "报告更新",
+      "why": "现有评估样本不足，暂不能据此判断预测可靠性。",
+      "evidence_ids": [
+        "forecast:latest"
       ]
     }
   ],
   "actions": [
     {
       "status": "completed",
-      "task": "完成夜盘跨品种强弱归纳",
-      "result": "识别出贵金属偏强、能源与黑色偏弱、油脂分歧震荡的市场结构。",
+      "task": "梳理跨品种强弱与证据时点",
+      "result": "确认市场呈分化格局，贵金属偏强，碳酸锂、股指与能化偏弱。",
       "next_check": "下一次行情刷新"
     },
     {
       "status": "monitoring",
-      "task": "监控油脂共振与粕类均线信号",
-      "result": "油脂尚无新增量化信号，粕类下破状态等待后续行情验证。",
-      "next_check": "下一次行情刷新"
+      "task": "监控油脂联动与粕类模型变化",
+      "result": "油脂方向尚未共振，粕类偏空变化等待后续行情验证。",
+      "next_check": "持续监控"
     },
     {
       "status": "blocked",
-      "task": "评估预测结论的稳定性",
-      "result": "有效评估样本不足，暂不能形成可靠能力判断。",
+      "task": "评估预测稳定性",
+      "result": "样本不足，无法形成可靠能力判断。",
       "next_check": "下一次报告更新"
     },
     {
       "status": "monitoring",
-      "task": "跟踪官方供需资料更新",
-      "result": "官方来源已完成检查，当前继续沿用最近一期公开资料。",
+      "task": "跟踪官方供需来源",
+      "result": "本次检查未发现新增资料，继续等待官网更新。",
       "next_check": "下一次官方数据检查"
     }
   ],
   "risks": [
-    "行情快照与部分基本面证据的有效日期不一致，因果解释可能滞后。",
-    "官方供需资料尚未更新，当前基本面背景不代表夜盘新增信息。",
-    "预测评估样本不足，不能将当前观点包装为稳定预测能力。",
-    "油脂价格表现、驱动判断与技术结构存在分歧，方向确认度有限。",
-    "量化信号仅反映既定规则状态，不构成自动交易指令。"
+    "交易所品种的基本面有效日不完全一致，部分仅到前一日，跨品种比较可能失真。",
+    "当前为早间快照，后续盘中波动可能改变强弱排序。",
+    "油脂技术信号、外盘驱动与基本面背景存在分歧，方向置信度有限。",
+    "粕类模型变化来自既定规则试算，不代表行情必然延续，也不构成自动交易指令。",
+    "预测评估样本不足，不能包装为可靠预测能力。"
   ],
   "confidence": "低"
 }
