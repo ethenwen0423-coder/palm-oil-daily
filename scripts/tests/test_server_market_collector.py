@@ -189,6 +189,7 @@ class ServerMarketCollectorTests(unittest.TestCase):
         self.assertIn("compose.automation.yaml", update_site)
         self.assertIn('"$STATE_ROOT/automation.lock"', update_site)
         self.assertIn('state_root / "automation.lock"', collector)
+        self.assertIn('["git", "fetch", "--depth", "1", "origin", "main"]', collector)
         self.assertIn('PUBLISH_MODE="${PALM_OIL_PUBLISH_MODE:-git}"', deploy)
         self.assertIn('"publish_mode": "files"', deploy)
         self.assertLess(

@@ -127,7 +127,11 @@ def ensure_runtime(site_root: Path, runtime_root: Path) -> None:
             ],
             timeout=180,
         )
-    run_checked(["git", "fetch", "origin", "main"], cwd=runtime_root, timeout=120)
+    run_checked(
+        ["git", "fetch", "--depth", "1", "origin", "main"],
+        cwd=runtime_root,
+        timeout=120,
+    )
     run_checked(["git", "reset", "--hard", "origin/main"], cwd=runtime_root, timeout=60)
     run_checked(["git", "clean", "-fdx"], cwd=runtime_root, timeout=60)
 
