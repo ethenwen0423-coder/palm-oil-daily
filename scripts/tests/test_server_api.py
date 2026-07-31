@@ -45,6 +45,9 @@ class ServerApiStatusTests(unittest.TestCase):
         ):
             self.assertIn(path, runner)
         self.assertIn('cmp -s server/api.py "$DEPLOY_ROOT/api.py"', runner)
+        self.assertIn('cp server/update-site.sh "$RUNNER_CANDIDATE"', runner)
+        self.assertIn('mv -f "$RUNNER_CANDIDATE" "$RUNNER_PATH"', runner)
+        self.assertNotIn('cp server/update-site.sh "$RUNNER_PATH"', runner)
         self.assertIn('restart api', runner)
         self.assertIn('/api/status', runner)
         self.assertIn('while [ "$attempt" -le 10 ]', runner)

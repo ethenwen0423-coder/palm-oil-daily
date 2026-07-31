@@ -4,6 +4,7 @@ set -eu
 SITE_ROOT="${PALM_OIL_SITE_ROOT:-/srv/palm-oil-daily/site}"
 DEPLOY_ROOT="${PALM_OIL_DEPLOY_ROOT:-/srv/palm-oil-daily/deploy}"
 RUNNER_PATH="${PALM_OIL_UPDATE_RUNNER:-/srv/palm-oil-daily/update-site.sh}"
+RUNNER_CANDIDATE="${RUNNER_PATH}.new"
 LIVE_DATA_ROOT="${PALM_OIL_LIVE_DATA_ROOT:-/srv/palm-oil-daily/live-data}"
 STATE_ROOT="${PALM_OIL_SERVER_STATE_ROOT:-/srv/palm-oil-daily/state}"
 COMPOSE_FILE="${PALM_OIL_COMPOSE_FILE:-$DEPLOY_ROOT/compose.yaml}"
@@ -45,8 +46,9 @@ if ! cmp -s server/api.py "$DEPLOY_ROOT/api.py"; then
 fi
 
 if ! cmp -s server/update-site.sh "$RUNNER_PATH"; then
-  cp server/update-site.sh "$RUNNER_PATH"
-  chmod 755 "$RUNNER_PATH"
+  cp server/update-site.sh "$RUNNER_CANDIDATE"
+  chmod 755 "$RUNNER_CANDIDATE"
+  mv -f "$RUNNER_CANDIDATE" "$RUNNER_PATH"
 fi
 
 compose() {
