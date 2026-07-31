@@ -9,6 +9,7 @@ LIVE_DATA_ROOT="${PALM_OIL_LIVE_DATA_ROOT:-/srv/palm-oil-daily/live-data}"
 STATE_ROOT="${PALM_OIL_SERVER_STATE_ROOT:-/srv/palm-oil-daily/state}"
 COMPOSE_FILE="${PALM_OIL_COMPOSE_FILE:-$DEPLOY_ROOT/compose.yaml}"
 COMPOSE_OVERRIDE="${PALM_OIL_COMPOSE_OVERRIDE:-$DEPLOY_ROOT/compose.automation.yaml}"
+GIT_FETCH_TIMEOUT_SECONDS="${PALM_OIL_GIT_FETCH_TIMEOUT_SECONDS:-75}"
 
 mkdir -p "$STATE_ROOT"
 exec 9>"$STATE_ROOT/automation.lock"
@@ -18,7 +19,7 @@ if ! flock -n 9; then
 fi
 
 cd "$SITE_ROOT"
-git fetch --depth 1 origin main
+timeout "${GIT_FETCH_TIMEOUT_SECONDS}s" git fetch --depth 1 origin main
 git reset --hard FETCH_HEAD
 
 for payload in \

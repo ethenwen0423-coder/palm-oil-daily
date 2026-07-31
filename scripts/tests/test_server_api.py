@@ -48,6 +48,10 @@ class ServerApiStatusTests(unittest.TestCase):
         self.assertIn('cp server/update-site.sh "$RUNNER_CANDIDATE"', runner)
         self.assertIn('mv -f "$RUNNER_CANDIDATE" "$RUNNER_PATH"', runner)
         self.assertNotIn('cp server/update-site.sh "$RUNNER_PATH"', runner)
+        self.assertIn(
+            'timeout "${GIT_FETCH_TIMEOUT_SECONDS}s" git fetch --depth 1 origin main',
+            runner,
+        )
         self.assertIn('restart api', runner)
         self.assertIn('/api/status', runner)
         self.assertIn('while [ "$attempt" -le 10 ]', runner)
