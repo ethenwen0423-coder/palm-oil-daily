@@ -48,6 +48,11 @@ class ServerAutomationInstallerTests(unittest.TestCase):
             "$MARKET_RUNTIME_ROOT $AI_RUNTIME_ROOT",
             installer,
         )
+        self.assertIn(
+            "Environment=PATH=$VENV_ROOT/bin:/usr/local/sbin:/usr/local/bin:"
+            "/usr/sbin:/usr/bin:/sbin:/bin",
+            installer,
+        )
         self.assertIn("OnCalendar=*-*-* *:0/10:00", installer)
 
     def test_market_dependencies_are_pinned_to_the_verified_runtime(self):

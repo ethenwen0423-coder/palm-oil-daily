@@ -174,6 +174,7 @@ Environment=HOME=$STATE_ROOT/home
 Environment=XDG_CACHE_HOME=$STATE_ROOT/cache
 Environment=PYTHONUNBUFFERED=1
 Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=PATH=$VENV_ROOT/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 Environment=GIT_CONFIG_COUNT=1
 Environment=GIT_CONFIG_KEY_0=safe.directory
 Environment=GIT_CONFIG_VALUE_0=$SITE_ROOT
