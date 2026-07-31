@@ -25,6 +25,7 @@ REQUIRED_REPOSITORY_PATHS = (
     "server/requirements-market.txt",
     "server/run_ai_brief.py",
     "server/run_market_collector.py",
+    "server/run_supply_demand.py",
     "server/sync_live_data.py",
     "scripts/deploy_oil_futures_tab.sh",
     "scripts/update_oil_futures_data.py",

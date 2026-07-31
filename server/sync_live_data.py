@@ -16,13 +16,14 @@ from zoneinfo import ZoneInfo
 SHANGHAI = ZoneInfo("Asia/Shanghai")
 MARKET_READY_MARKER = ".server-market-ready.json"
 AI_READY_MARKER = ".server-ai-ready.json"
+SUPPLY_READY_MARKER = ".server-supply-ready.json"
 # Backwards-compatible name for callers that only know about market ownership.
 READY_MARKER = MARKET_READY_MARKER
 UPSTREAM_PATHS = (
     "reports.json",
-    "supply-demand.json",
     "forecast/metrics/latest.json",
 )
+SUPPLY_PATHS = ("supply-demand.json",)
 MARKET_PATHS = (
     "oil_futures.js",
     "oil_futures.json",
@@ -153,7 +154,10 @@ def write_marker(
 def sync_upstream(source_root: Path, target_root: Path) -> dict[str, object]:
     market_owned = (target_root / MARKET_READY_MARKER).exists()
     ai_owned = (target_root / AI_READY_MARKER).exists()
+    supply_owned = (target_root / SUPPLY_READY_MARKER).exists()
     requested = UPSTREAM_PATHS
+    if not supply_owned:
+        requested += SUPPLY_PATHS
     if not market_owned:
         requested += MARKET_PATHS
     if not ai_owned:
@@ -167,6 +171,10 @@ def sync_upstream(source_root: Path, target_root: Path) -> dict[str, object]:
     offset = len(UPSTREAM_PATHS)
     copied = synchronized[:offset]
     bootstrapped = []
+    supply_copied = []
+    if not supply_owned:
+        supply_copied = synchronized[offset : offset + len(SUPPLY_PATHS)]
+        offset += len(SUPPLY_PATHS)
     if not market_owned:
         bootstrapped = synchronized[offset : offset + len(MARKET_PATHS)]
         offset += len(MARKET_PATHS)
@@ -175,8 +183,10 @@ def sync_upstream(source_root: Path, target_root: Path) -> dict[str, object]:
         "status": "ok",
         "mode": "upstream",
         "copied": copied,
+        "supply_copied": supply_copied,
         "bootstrapped": bootstrapped,
         "ai_copied": ai_copied,
+        "server_supply_owned": supply_owned,
         "server_market_owned": market_owned,
         "server_ai_owned": ai_owned,
     }
@@ -236,9 +246,40 @@ def sync_ai(
     }
 
 
+def sync_supply(
+    source_root: Path,
+    target_root: Path,
+    *,
+    session: str,
+) -> dict[str, object]:
+    copied = synchronize_paths(
+        source_root,
+        target_root,
+        SUPPLY_PATHS,
+        required=True,
+    )
+    write_marker(
+        target_root,
+        SUPPLY_READY_MARKER,
+        session=session,
+        owner="server-supply-collector",
+    )
+    return {
+        "status": "ok",
+        "mode": "supply",
+        "session": session,
+        "copied": copied,
+        "server_supply_owned": True,
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--mode", choices=("upstream", "market", "ai"), required=True)
+    parser.add_argument(
+        "--mode",
+        choices=("upstream", "market", "ai", "supply"),
+        required=True,
+    )
     parser.add_argument("--source", type=Path, required=True)
     parser.add_argument("--target", type=Path, required=True)
     parser.add_argument("--session", default="manual")
@@ -254,8 +295,14 @@ def main() -> int:
                 target_root,
                 session=args.session,
             )
-        else:
+        elif args.mode == "ai":
             payload = sync_ai(
+                source_root,
+                target_root,
+                session=args.session,
+            )
+        else:
+            payload = sync_supply(
                 source_root,
                 target_root,
                 session=args.session,

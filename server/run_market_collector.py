@@ -58,6 +58,16 @@ def select_session(now: datetime) -> tuple[str, str] | None:
     return None
 
 
+def refresh_slot(now: datetime, interval_minutes: int = 10) -> str:
+    """Return the idempotency slot for one scheduled market refresh."""
+    if interval_minutes <= 0 or 60 % interval_minutes:
+        raise ValueError("interval_minutes must be a positive divisor of 60")
+    minute = now.minute - (now.minute % interval_minutes)
+    return now.replace(minute=minute, second=0, microsecond=0).strftime(
+        "%Y%m%dT%H%M"
+    )
+
+
 def validate_runtime_paths(
     site_root: Path,
     runtime_root: Path,
@@ -241,6 +251,7 @@ def main() -> int:
         return 0
 
     session, fundamental_date = selected
+    slot = refresh_slot(now)
     site_root = args.site_root.resolve()
     runtime_root = args.runtime_root.resolve()
     live_data_root = args.live_data_root.resolve()
@@ -251,26 +262,36 @@ def main() -> int:
         print(json.dumps({"status": "error", "reason": str(exc)}, ensure_ascii=False))
         return 2
     state_marker = state_root / "sessions" / f"{fundamental_date}-{session}.ok.json"
+    slot_marker = (
+        state_root
+        / "market-runs"
+        / fundamental_date
+        / session
+        / f"{slot}.ok.json"
+    )
     plan = {
         "status": "planned",
         "session": session,
         "fundamental_date": fundamental_date,
+        "refresh_slot": slot,
         "site_root": str(site_root),
         "runtime_root": str(runtime_root),
         "live_data_root": str(live_data_root),
-        "state_marker": str(state_marker),
+        "latest_state_marker": str(state_marker),
+        "slot_marker": str(slot_marker),
     }
     if args.dry_run:
         print(json.dumps({**plan, "dry_run": True}, ensure_ascii=False, sort_keys=True))
         return 0
-    if state_marker.exists():
+    if slot_marker.exists():
         print(
             json.dumps(
                 {
                     "status": "noop",
-                    "reason": "session_already_published",
+                    "reason": "refresh_slot_already_published",
                     "session": session,
                     "fundamental_date": fundamental_date,
+                    "refresh_slot": slot,
                 },
                 ensure_ascii=False,
             )
@@ -321,10 +342,12 @@ def main() -> int:
             "status": "ok",
             "session": session,
             "fundamental_date": fundamental_date,
+            "refresh_slot": slot,
             "completed_at": datetime.now(SHANGHAI).isoformat(timespec="seconds"),
             "copied": synced["copied"],
         }
         atomic_state_marker(state_marker, completed)
+        atomic_state_marker(slot_marker, completed)
         print(json.dumps(completed, ensure_ascii=False, sort_keys=True))
         return 0
     except (CollectorError, OSError, RuntimeError) as exc:

@@ -42,6 +42,8 @@ class MarketAssistantStaticTests(unittest.TestCase):
                 self.assertIn(f'"{fallback}"', script)
         self.assertIn('fetchJson("/api/status")', script)
         self.assertIn("POLL_INTERVAL_MS = 60000", script)
+        self.assertIn('"server-market-collector": "服务器行情任务"', script)
+        self.assertIn("item.owner", script)
 
     def test_assistant_preserves_fixed_logic_boundary(self):
         html = (ROOT / "assistant.html").read_text(encoding="utf-8")

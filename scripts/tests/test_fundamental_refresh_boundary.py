@@ -53,6 +53,12 @@ class FundamentalRefreshBoundaryTest(unittest.TestCase):
         self.assertIn("--contract-output", deploy)
         self.assertIn('CONTRACT_TMP="$TMP_DIR/current_contracts.json"', deploy)
         self.assertIn('cp "$CONTRACT_TMP" data/contracts/current_contracts.json', deploy)
+        self.assertIn('OIL_FUNDAMENTAL_MODE="carry"', deploy)
+        self.assertIn(
+            "morning oil fundamentals already frozen; refresh quotes and technicals only",
+            deploy,
+        )
+        self.assertNotIn("SKIP_OIL", deploy)
         self.assertIn("--output-only", OIL.run_contract_selector.__code__.co_consts)
 
     def test_market_collector_paths_can_run_outside_macos(self):

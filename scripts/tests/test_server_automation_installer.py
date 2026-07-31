@@ -29,6 +29,8 @@ class ServerAutomationInstallerTests(unittest.TestCase):
         self.assertIn('"$VENV_ROOT/bin/python" -m pip --version', script)
         self.assertIn("systemd-analyze verify", script)
         self.assertIn("systemctl enable --now palm-oil-market-collector.timer", script)
+        self.assertIn("systemctl enable --now palm-oil-supply-demand.timer", script)
+        self.assertIn("systemctl start palm-oil-supply-demand.service", script)
         self.assertNotIn("systemctl enable --now palm-oil-ai-brief.timer", script)
         self.assertIn("AI service units installed but timer intentionally left disabled", script)
 
@@ -37,9 +39,13 @@ class ServerAutomationInstallerTests(unittest.TestCase):
         market = (ROOT / "server" / "run_market_collector.py").read_text(
             encoding="utf-8"
         )
+        supply = (ROOT / "server" / "run_supply_demand.py").read_text(
+            encoding="utf-8"
+        )
         ai = (ROOT / "server" / "run_ai_brief.py").read_text(encoding="utf-8")
         updater = (ROOT / "server" / "update-site.sh").read_text(encoding="utf-8")
         self.assertIn('state_root / "automation.lock"', market)
+        self.assertIn('state_root / "automation.lock"', supply)
         self.assertIn('state_root / "automation.lock"', ai)
         self.assertIn('"$STATE_ROOT/automation.lock"', updater)
         self.assertIn("ProtectSystem=strict", installer)
@@ -53,7 +59,9 @@ class ServerAutomationInstallerTests(unittest.TestCase):
             "/usr/sbin:/usr/bin:/sbin:/bin",
             installer,
         )
-        self.assertIn("OnCalendar=*-*-* *:0/10:00", installer)
+        self.assertIn('"*-*-* *:0/10:00"', installer)
+        self.assertIn('"*-*-* *:02/10:00"', installer)
+        self.assertIn('"*-*-* 09:20:00 Asia/Shanghai"', installer)
 
     def test_market_dependencies_are_pinned_to_the_verified_runtime(self):
         lines = {

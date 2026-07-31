@@ -50,7 +50,7 @@ DATASET_RULES = {
     },
     "/api/supply-demand": {
         "label": "供需资料",
-        "stale_after_seconds": 60 * 60 * 72,
+        "stale_after_seconds": 60 * 60 * 36,
         "timestamp_fields": ("checked_at", "generated_at"),
     },
     "/api/contracts/current": {
@@ -68,6 +68,33 @@ DATASET_RULES = {
         "stale_after_seconds": 60 * 60 * 6,
         "timestamp_fields": ("generated_at",),
     },
+}
+
+AUTOMATION_MARKERS = {
+    "market": {
+        "label": "服务器行情采集",
+        "path": ".server-market-ready.json",
+        "routes": (
+            "/api/oil-futures",
+            "/api/exchange-futures",
+            "/api/quant-model-signals",
+            "/api/contracts/current",
+        ),
+    },
+    "supply": {
+        "label": "服务器官方资料检查",
+        "path": ".server-supply-ready.json",
+        "routes": ("/api/supply-demand",),
+    },
+    "ai": {
+        "label": "服务器 AI 简报",
+        "path": ".server-ai-ready.json",
+        "routes": ("/api/assistant/brief",),
+    },
+}
+UPSTREAM_ROUTES = {
+    "/api/reports",
+    "/api/forecast/metrics/latest",
 }
 
 
@@ -162,12 +189,60 @@ def dataset_status(
     return result
 
 
+def automation_status(data_root: Path) -> dict[str, dict[str, Any]]:
+    status: dict[str, dict[str, Any]] = {}
+    for key, rule in AUTOMATION_MARKERS.items():
+        target = data_root / rule["path"]
+        item: dict[str, Any] = {
+            "label": rule["label"],
+            "state": "pending",
+            "owner": None,
+            "last_success_at": None,
+            "session": None,
+        }
+        try:
+            payload = load_json(target)
+        except FileNotFoundError:
+            status[key] = item
+            continue
+        except (OSError, json.JSONDecodeError):
+            item["state"] = "invalid"
+            status[key] = item
+            continue
+        if not isinstance(payload, dict):
+            item["state"] = "invalid"
+            status[key] = item
+            continue
+        generated_at = parse_timestamp(payload.get("generated_at"))
+        owner = str(payload.get("owner") or "").strip()
+        if generated_at is None or not owner:
+            item["state"] = "invalid"
+        else:
+            item.update(
+                {
+                    "state": "ready",
+                    "owner": owner,
+                    "last_success_at": generated_at.isoformat(),
+                    "session": payload.get("session"),
+                }
+            )
+        status[key] = item
+    return status
+
+
 def build_status(data_root: Path, *, now: datetime | None = None) -> dict[str, Any]:
     current = now or datetime.now(timezone.utc)
     datasets = {
         route: dataset_status(data_root, route, relative, now=current)
         for route, relative in ROUTES.items()
     }
+    automation = automation_status(data_root)
+    for route in UPSTREAM_ROUTES:
+        datasets[route]["owner"] = "upstream-sync"
+    for key, rule in AUTOMATION_MARKERS.items():
+        owner = automation[key].get("owner") or "upstream-sync"
+        for route in rule["routes"]:
+            datasets[route]["owner"] = owner
     degraded = [route for route, item in datasets.items() if item["state"] != "ready"]
     return {
         "status": "degraded" if degraded else "ok",
@@ -176,6 +251,7 @@ def build_status(data_root: Path, *, now: datetime | None = None) -> dict[str, A
         "public_sync_interval_seconds": 120,
         "datasets": datasets,
         "degraded_datasets": degraded,
+        "automation": automation,
         "fixed_logic": ["otc_structure_library", "quant_model_rules"],
     }
 

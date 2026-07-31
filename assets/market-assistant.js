@@ -27,6 +27,14 @@
     overnight: "凌晨尾盘",
     manual: "手动",
   };
+  const OWNER_LABELS = {
+    "server-market-collector": "服务器行情任务",
+    "server-supply-collector": "服务器官方资料任务",
+    "server-ai-brief": "服务器 AI 任务",
+    "upstream-sync": "自动发布同步",
+    "server-api": "服务器 API",
+    "static-fallback": "静态回退",
+  };
 
   const element = (id) => document.getElementById(id);
   const escapeHtml = (value) => String(value ?? "")
@@ -115,6 +123,7 @@
         observed_at: null,
         age_seconds: null,
         source: result?.source || "missing",
+        owner: result?.source === "api" ? "server-api" : "static-fallback",
       };
     });
     return {
@@ -133,7 +142,10 @@
             <strong>${escapeHtml(item.label || item.route || "数据集")}</strong>
             <span>${escapeHtml(STATUS_LABELS[state] || state)}</span>
           </header>
-          <p>${escapeHtml(item.observed_at ? `${formatAge(item.age_seconds)} · ${formatDateTime(item.observed_at)}` : "观测时间需进一步核验")}</p>
+          <p>${escapeHtml([
+            OWNER_LABELS[item.owner] || item.owner || "来源需进一步核验",
+            item.observed_at ? `${formatAge(item.age_seconds)} · ${formatDateTime(item.observed_at)}` : "观测时间需进一步核验",
+          ].join(" · "))}</p>
         </article>
       `;
     });

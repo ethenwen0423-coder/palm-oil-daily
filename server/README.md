@@ -21,9 +21,10 @@ Operational endpoints:
 - `/api/status` reports availability, observation time, age and stale state.
 
 The server-side Git sync remains responsible for refreshing the mounted site
-checkout. The AI brief is generated from the published datasets, cites the
-evidence records it used, and never mutates research data, OTC structure
-definitions or quant-model rules.
+checkout. The server also checks official supply-demand sources daily. The AI
+brief is generated from the published datasets, cites the evidence records it
+used, and never mutates research data, OTC structure definitions or quant-model
+rules.
 
 ## 24-hour automation readiness audit
 
@@ -51,15 +52,17 @@ sudo bash server/install_automation.sh --apply
 
 The installer creates a pinned Python virtual environment, bootstraps the
 live-data directory, replaces only the API container's `/site/data` mount,
-installs hardened market/AI systemd units and enables the ten-minute market
-timer. The AI timer is installed but deliberately left disabled until a real
-unattended backend generation passes its acceptance gate.
+installs hardened market, official-data and AI systemd units, enables the
+ten-minute market timer and the daily official-data timer. The AI timer is
+installed but deliberately left disabled until a real unattended backend
+generation passes its acceptance gate.
 
 ## Server-owned live market data
 
 The API should mount `/srv/palm-oil-daily/live-data` at `/site/data:ro`.
-Repository synchronization owns reports, supply-demand data and forecast
-metrics. Once `.server-market-ready.json` exists, the server collector owns
+Repository synchronization owns reports and forecast metrics. Once
+`.server-supply-ready.json` exists, the daily server collector owns
+supply-demand checks. Once `.server-market-ready.json` exists, the server owns
 market quotes, exchange quotes, dynamic quant-model outputs and current
 contracts; a later Git update will not overwrite them. The AI brief remains
 upstream-owned until a successful server AI generation writes
@@ -74,10 +77,13 @@ python3 server/run_market_collector.py --dry-run
 python3 server/run_ai_brief.py --dry-run
 ```
 
-Production is designed to call the collector from a systemd timer every ten
-minutes. A successful session writes an idempotency marker. A failed session
-writes no marker, so the next timer interval retries it. AI generation uses a
-separate runner and the same collection lock. Its first server-owned publish is
+Production calls the collector from a systemd timer every ten minutes. Each
+ten-minute window has its own idempotency marker, while the latest session
+marker remains available for acceptance checks. A failed window writes no
+marker, so the next timer interval retries it. Repeated morning updates refresh
+quotes, technicals and dynamic model output while carrying the first verified
+morning fundamental snapshot. AI generation runs two minutes after the market
+schedule and uses the same collection lock. Its first server-owned publish is
 forced through the real structured-output backend before the AI ownership marker
 is written. It must not be enabled until the Codex CLI backend and its
 unattended credentials pass the readiness audit and a real generation succeeds.

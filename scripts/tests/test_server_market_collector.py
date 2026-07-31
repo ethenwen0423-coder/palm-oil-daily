@@ -38,7 +38,12 @@ def write_dataset(root: Path, relative: str, marker: str) -> None:
 
 
 def write_all_datasets(root: Path, marker: str) -> None:
-    for relative in SYNC.UPSTREAM_PATHS + SYNC.MARKET_PATHS + SYNC.AI_PATHS:
+    for relative in (
+        SYNC.UPSTREAM_PATHS
+        + SYNC.SUPPLY_PATHS
+        + SYNC.MARKET_PATHS
+        + SYNC.AI_PATHS
+    ):
         write_dataset(root, relative, marker)
 
 
@@ -60,6 +65,26 @@ class ServerMarketCollectorTests(unittest.TestCase):
         self.assertIsNone(
             COLLECTOR.select_session(datetime(2026, 8, 2, 12, 0, tzinfo=timezone))
         )
+
+    def test_refresh_slots_allow_one_publish_per_ten_minute_window(self):
+        timezone = COLLECTOR.SHANGHAI
+        self.assertEqual(
+            COLLECTOR.refresh_slot(
+                datetime(2026, 7, 31, 11, 35, 29, tzinfo=timezone)
+            ),
+            "20260731T1130",
+        )
+        self.assertEqual(
+            COLLECTOR.refresh_slot(
+                datetime(2026, 7, 31, 11, 40, 1, tzinfo=timezone)
+            ),
+            "20260731T1140",
+        )
+        with self.assertRaises(ValueError):
+            COLLECTOR.refresh_slot(
+                datetime(2026, 7, 31, 11, 40, tzinfo=timezone),
+                interval_minutes=7,
+            )
 
     def test_dry_run_does_not_create_runtime_or_state(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -104,6 +129,7 @@ class ServerMarketCollectorTests(unittest.TestCase):
             write_all_datasets(upstream, "bootstrap")
             first = SYNC.sync_upstream(upstream, live)
             self.assertEqual(first["bootstrapped"], list(SYNC.MARKET_PATHS))
+            self.assertEqual(first["supply_copied"], list(SYNC.SUPPLY_PATHS))
             self.assertEqual(first["ai_copied"], list(SYNC.AI_PATHS))
 
             write_all_datasets(market, "server")
@@ -131,6 +157,31 @@ class ServerMarketCollectorTests(unittest.TestCase):
                     )
                 )["marker"],
                 "new-upstream",
+            )
+
+    def test_supply_ownership_is_independent_and_stops_upstream_overwrites(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            upstream = base / "upstream"
+            server = base / "server"
+            live = base / "live"
+            write_all_datasets(upstream, "bootstrap")
+            SYNC.sync_upstream(upstream, live)
+            write_all_datasets(server, "server")
+
+            result = SYNC.sync_supply(server, live, session="daily")
+            self.assertTrue(result["server_supply_owned"])
+            self.assertTrue((live / SYNC.SUPPLY_READY_MARKER).exists())
+
+            write_all_datasets(upstream, "new-upstream")
+            second = SYNC.sync_upstream(upstream, live)
+            self.assertTrue(second["server_supply_owned"])
+            self.assertEqual(second["supply_copied"], [])
+            self.assertEqual(
+                json.loads((live / "supply-demand.json").read_text(encoding="utf-8"))[
+                    "marker"
+                ],
+                "server",
             )
 
     def test_ai_ownership_is_independent_from_market_ownership(self):
@@ -189,6 +240,9 @@ class ServerMarketCollectorTests(unittest.TestCase):
         self.assertIn("compose.automation.yaml", update_site)
         self.assertIn('"$STATE_ROOT/automation.lock"', update_site)
         self.assertIn('state_root / "automation.lock"', collector)
+        self.assertIn('"refresh_slot_already_published"', collector)
+        self.assertIn('/ "market-runs"', collector)
+        self.assertNotIn("if state_marker.exists()", collector)
         self.assertIn('["git", "fetch", "--depth", "1", "origin", "main"]', collector)
         self.assertIn('PUBLISH_MODE="${PALM_OIL_PUBLISH_MODE:-git}"', deploy)
         self.assertIn('"publish_mode": "files"', deploy)

@@ -39,7 +39,6 @@ OIL_TMP="$TMP_DIR/oil_futures.js"
 EXCHANGE_TMP="$TMP_DIR/exchange_futures.js"
 EXCHANGE_JSON_TMP="$TMP_DIR/exchange_futures.json"
 CONTRACT_TMP="$TMP_DIR/current_contracts.json"
-SKIP_OIL=false
 OIL_FUNDAMENTAL_MODE="refresh"
 EXCHANGE_FUNDAMENTAL_MODE="refresh"
 
@@ -59,25 +58,23 @@ payload = json.loads(text.split("=", 1)[1].strip().removesuffix(";"))
 raise SystemExit(0 if payload.get("updated_at", "").startswith(sys.argv[1]) and payload.get("update_session") == "morning" else 1)
 PY
   then
-    SKIP_OIL=true
-    echo "morning oil-futures data already published; keep report-aligned snapshot"
+    OIL_FUNDAMENTAL_MODE="carry"
+    echo "morning oil fundamentals already frozen; refresh quotes and technicals only"
   fi
 fi
 
-if [[ "$SKIP_OIL" == false ]]; then
-  OIL_ARGS=(
-    scripts/update_oil_futures_data.py
-    --output "$OIL_TMP"
-    --update-session "$SESSION"
-    --fundamental-mode "$OIL_FUNDAMENTAL_MODE"
-    --contract-output "$CONTRACT_TMP"
-  )
-  if [[ "$OIL_FUNDAMENTAL_MODE" == "carry" ]]; then
-    OIL_ARGS+=(--fundamental-date "$FUNDAMENTAL_DATE")
-  fi
-  python3 "${OIL_ARGS[@]}"
-  python3 skills/data_quality_gate_skill/scripts/validate_data.py --oil-futures "$OIL_TMP" --strict
+OIL_ARGS=(
+  scripts/update_oil_futures_data.py
+  --output "$OIL_TMP"
+  --update-session "$SESSION"
+  --fundamental-mode "$OIL_FUNDAMENTAL_MODE"
+  --contract-output "$CONTRACT_TMP"
+)
+if [[ "$OIL_FUNDAMENTAL_MODE" == "carry" ]]; then
+  OIL_ARGS+=(--fundamental-date "$FUNDAMENTAL_DATE")
 fi
+python3 "${OIL_ARGS[@]}"
+python3 skills/data_quality_gate_skill/scripts/validate_data.py --oil-futures "$OIL_TMP" --strict
 
 if [[ "$SESSION" == "morning" && -s data/exchange_futures.js ]]; then
   if python3 - "$TODAY" <<'PY'
@@ -112,20 +109,21 @@ if [[ "$EXCHANGE_FUNDAMENTAL_MODE" == "carry" ]]; then
 fi
 python3 "${EXCHANGE_ARGS[@]}"
 
-python3 - "$SESSION" "$TODAY" "$FUNDAMENTAL_DATE" "$OIL_TMP" "$EXCHANGE_TMP" "$EXCHANGE_JSON_TMP" "$SKIP_OIL" <<'PY'
+python3 - "$SESSION" "$TODAY" "$FUNDAMENTAL_DATE" "$OIL_TMP" "$EXCHANGE_TMP" "$EXCHANGE_JSON_TMP" <<'PY'
 import json
 import sys
 from pathlib import Path
 
-session, today, fundamental_date, oil_path, exchange_path, exchange_json_path, skip_oil = sys.argv[1:]
+session, today, fundamental_date, oil_path, exchange_path, exchange_json_path = sys.argv[1:]
 
 def load_wrapped(path: str) -> dict:
     text = Path(path).read_text(encoding="utf-8").strip()
     return json.loads(text.split("=", 1)[1].strip().removesuffix(";"))
 
-payloads = [("exchange_futures", load_wrapped(exchange_path))]
-if skip_oil != "true":
-    payloads.append(("oil_futures", load_wrapped(oil_path)))
+payloads = [
+    ("exchange_futures", load_wrapped(exchange_path)),
+    ("oil_futures", load_wrapped(oil_path)),
+]
 
 for name, payload in payloads:
     if payload.get("update_session") != session:
@@ -166,12 +164,10 @@ Path(exchange_json_path).write_text(
 )
 PY
 
-if [[ "$SKIP_OIL" == false ]]; then
-  cp "$OIL_TMP" data/oil_futures.js
-  cp "$CONTRACT_TMP" data/contracts/current_contracts.json
-  cp "$CONTRACT_TMP" "data/contracts/${TODAY:0:7}.json"
-  python3 scripts/sync_miniprogram_data.py oil-futures
-fi
+cp "$OIL_TMP" data/oil_futures.js
+cp "$CONTRACT_TMP" data/contracts/current_contracts.json
+cp "$CONTRACT_TMP" "data/contracts/${TODAY:0:7}.json"
+python3 scripts/sync_miniprogram_data.py oil-futures
 cp "$EXCHANGE_TMP" data/exchange_futures.js
 cp "$EXCHANGE_JSON_TMP" data/exchange_futures.json
 python3 scripts/update_quant_model_data.py

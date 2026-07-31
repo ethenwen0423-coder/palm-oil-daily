@@ -71,7 +71,7 @@ class ServerApiStatusTests(unittest.TestCase):
     def test_automated_dataset_stale_thresholds_surface_missed_runs(self):
         self.assertEqual(
             API.DATASET_RULES["/api/supply-demand"]["stale_after_seconds"],
-            60 * 60 * 72,
+            60 * 60 * 36,
         )
         self.assertEqual(
             API.DATASET_RULES["/api/contracts/current"]["stale_after_seconds"],
@@ -81,6 +81,28 @@ class ServerApiStatusTests(unittest.TestCase):
             API.DATASET_RULES["/api/forecast/metrics/latest"]["stale_after_seconds"],
             60 * 60 * 96,
         )
+
+    def test_status_exposes_automation_ownership_without_credentials(self):
+        now = datetime(2026, 7, 30, 14, 0, tzinfo=timezone.utc)
+        self.write_json("oil_futures.json", {"updated_at": "2026-07-30 20:00"})
+        self.write_json(
+            ".server-market-ready.json",
+            {
+                "generated_at": "2026-07-30T21:50:00+08:00",
+                "session": "night_open",
+                "owner": "server-market-collector",
+            },
+        )
+
+        status = API.build_status(self.data_root, now=now)
+
+        self.assertEqual(status["automation"]["market"]["state"], "ready")
+        self.assertEqual(
+            status["datasets"]["/api/oil-futures"]["owner"],
+            "server-market-collector",
+        )
+        self.assertEqual(status["automation"]["supply"]["state"], "pending")
+        self.assertNotIn("credential", json.dumps(status))
 
     def test_report_array_uses_latest_report_date(self):
         now = datetime(2026, 7, 30, 14, 0, tzinfo=timezone.utc)

@@ -33,6 +33,7 @@ docker compose version >/dev/null
 for required in \
   "$SITE_ROOT/.git" \
   "$SITE_ROOT/server/run_market_collector.py" \
+  "$SITE_ROOT/server/run_supply_demand.py" \
   "$SITE_ROOT/server/run_ai_brief.py" \
   "$SITE_ROOT/server/sync_live_data.py" \
   "$REQUIREMENTS" \
@@ -73,6 +74,7 @@ print(json.dumps(
         "mode": "dry-run",
         **dict(zip(keys, sys.argv[1:])),
         "market_timer": "every 10 minutes with retry",
+        "supply_timer": "daily official-source check",
         "ai_timer": "installed disabled until backend acceptance",
     },
     sort_keys=True,
@@ -198,14 +200,16 @@ write_timer() {
   local target="$1"
   local description="$2"
   local service="$3"
+  local schedule="$4"
+  local randomized_delay="$5"
   cat >"$target" <<EOF
 [Unit]
 Description=$description
 
 [Timer]
-OnCalendar=*-*-* *:0/10:00
+OnCalendar=$schedule
 AccuracySec=30s
-RandomizedDelaySec=30s
+RandomizedDelaySec=$randomized_delay
 Persistent=true
 Unit=$service
 
@@ -221,7 +225,19 @@ write_service \
 write_timer \
   "$temporary_root/palm-oil-market-collector.timer" \
   "Retry palm oil market refresh every ten minutes" \
-  "palm-oil-market-collector.service"
+  "palm-oil-market-collector.service" \
+  "*-*-* *:0/10:00" \
+  "30s"
+write_service \
+  "$temporary_root/palm-oil-supply-demand.service" \
+  "Check official palm oil supply-demand sources" \
+  "run_supply_demand.py"
+write_timer \
+  "$temporary_root/palm-oil-supply-demand.timer" \
+  "Check official palm oil supply-demand sources every day" \
+  "palm-oil-supply-demand.service" \
+  "*-*-* 09:20:00 Asia/Shanghai" \
+  "5m"
 write_service \
   "$temporary_root/palm-oil-ai-brief.service" \
   "Generate a source-grounded palm oil AI market brief" \
@@ -229,11 +245,15 @@ write_service \
 write_timer \
   "$temporary_root/palm-oil-ai-brief.timer" \
   "Retry palm oil AI brief generation every ten minutes" \
-  "palm-oil-ai-brief.service"
+  "palm-oil-ai-brief.service" \
+  "*-*-* *:02/10:00" \
+  "30s"
 
 systemd-analyze verify \
   "$temporary_root/palm-oil-market-collector.service" \
   "$temporary_root/palm-oil-market-collector.timer" \
+  "$temporary_root/palm-oil-supply-demand.service" \
+  "$temporary_root/palm-oil-supply-demand.timer" \
   "$temporary_root/palm-oil-ai-brief.service" \
   "$temporary_root/palm-oil-ai-brief.timer"
 
@@ -241,6 +261,8 @@ install -m 0644 "$temporary_root/compose.automation.yaml" "$COMPOSE_OVERRIDE"
 for unit in \
   palm-oil-market-collector.service \
   palm-oil-market-collector.timer \
+  palm-oil-supply-demand.service \
+  palm-oil-supply-demand.timer \
   palm-oil-ai-brief.service \
   palm-oil-ai-brief.timer
 do
@@ -250,10 +272,13 @@ done
 systemctl daemon-reload
 docker compose -f "$COMPOSE_FILE" -f "$COMPOSE_OVERRIDE" up -d api web
 systemctl enable --now palm-oil-market-collector.timer
+systemctl enable --now palm-oil-supply-demand.timer
 systemctl start palm-oil-market-collector.service
+systemctl start palm-oil-supply-demand.service
 
 systemctl --no-pager --full status palm-oil-market-collector.service || true
 systemctl --no-pager list-timers palm-oil-market-collector.timer
+systemctl --no-pager list-timers palm-oil-supply-demand.timer
 docker compose -f "$COMPOSE_FILE" -f "$COMPOSE_OVERRIDE" ps
 set +e
 python3 "$SITE_ROOT/server/audit_runtime.py"
