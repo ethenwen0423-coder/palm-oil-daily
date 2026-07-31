@@ -136,6 +136,49 @@ class FundamentalRefreshBoundaryTest(unittest.TestCase):
         self.assertEqual(result["score"]["total"], 57.5)
         self.assertIn("午盘与收盘不重新计算", result["fundamental_snapshot_note"])
 
+    def test_oil_market_source_failure_carries_same_contract_with_audit_label(self):
+        previous = {
+            "symbol": "P2609",
+            "contract": "P2609",
+            "price": "9,370",
+            "change": "+1.25%",
+            "volume": "12.50 万手",
+            "open_interest": "30.00 万手",
+            "open": "9,300",
+            "high": "9,420",
+            "low": "9,280",
+            "preclose": "9,254",
+            "settle": "9,360",
+            "trade_date": "2026-07-31",
+            "source": "AkShare",
+        }
+        with (
+            mock.patch.object(
+                OIL,
+                "hithink_contract",
+                return_value={"status": "missing", "message": "测试无实时源"},
+            ),
+            mock.patch.object(
+                OIL,
+                "call_master_analysis",
+                return_value={"score": {}, "view": "需进一步核验"},
+            ),
+        ):
+            result = OIL.merge_domestic(
+                OIL.DOMESTIC[0],
+                {"symbol": "P2609", "rank": 1, "label": "主力"},
+                {},
+                None,
+                {},
+                previous,
+            )
+        self.assertEqual(result["price"], "9370")
+        self.assertEqual(result["change"], "+1.25%")
+        self.assertEqual(result["volume"], "12.50 万手")
+        self.assertEqual(result["trade_date"], "2026-07-31")
+        self.assertIn("需进一步核验", result["source"])
+        self.assertIn("沿用 2026-07-31", result["verification"])
+
     def test_overnight_carry_accepts_previous_trading_day_snapshot(self):
         payload = {
             "fundamental_updated_at": "2026-07-30 06:18",

@@ -177,6 +177,21 @@ def as_int(value: Any) -> int | None:
         return None
 
 
+def as_percent(value: Any) -> float | None:
+    if isinstance(value, str):
+        value = value.replace("%", "").strip()
+    return as_float(value)
+
+
+def as_lots(value: Any) -> int | None:
+    if not isinstance(value, str):
+        return as_int(value)
+    text = value.replace(",", "").replace("手", "").strip()
+    multiplier = 10000 if "万" in text else 1
+    number = as_float(text.replace("万", ""))
+    return int(number * multiplier) if number is not None else None
+
+
 def fmt_number(value: Any, digits: int = 2) -> str:
     number = as_float(value)
     if number is None:
@@ -703,12 +718,61 @@ def verification_note(ak_source: dict[str, Any], hithink: dict[str, Any]) -> str
     return "；".join(notes)
 
 
+def previous_market_source(
+    previous_contract: dict[str, Any] | None,
+    expected_contract: str | None,
+) -> dict[str, Any]:
+    previous = previous_contract if isinstance(previous_contract, dict) else {}
+    expected = concrete_contract(expected_contract)
+    candidate = concrete_contract(previous.get("contract") or previous.get("symbol"))
+    price = as_float(previous.get("price"))
+    if expected is None or candidate != expected or price is None:
+        return {}
+    trade_date = str(previous.get("trade_date") or "")
+    original_source = str(previous.get("source") or "最近一次有效快照")
+    return {
+        "contract": candidate,
+        "price": price,
+        "change_pct": as_percent(previous.get("change")),
+        "open": as_float(previous.get("open")),
+        "high": as_float(previous.get("high")),
+        "low": as_float(previous.get("low")),
+        "preclose": as_float(previous.get("preclose")),
+        "settle": as_float(previous.get("settle")),
+        "volume": as_lots(previous.get("volume")),
+        "open_interest": as_lots(previous.get("open_interest")),
+        "tradedate": trade_date,
+        "source": (
+            f"{original_source}；实时行情源暂不可用，沿用"
+            f"{trade_date or '最近一次'}有效快照，需进一步核验"
+        ),
+        "_carried_market": True,
+    }
+
+
+def matching_previous_contract(
+    previous_payload: dict[str, Any],
+    selected_contract: dict[str, Any],
+) -> dict[str, Any] | None:
+    selected = concrete_contract(selected_contract.get("symbol"))
+    if selected is None:
+        return None
+    for item in previous_payload.get("contracts", []):
+        if (
+            isinstance(item, dict)
+            and concrete_contract(item.get("contract") or item.get("symbol")) == selected
+        ):
+            return item
+    return None
+
+
 def merge_domestic(
     spec: dict[str, Any],
     selected_contract: dict[str, Any],
     snapshot: dict[str, Any] | None,
     ak: Any,
     review_learning: dict[str, Any] | None = None,
+    previous_contract: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     skill_record = (snapshot or {}).get("domestic", {}).get(spec["key"], {})
     selected_symbol = concrete_contract(selected_contract.get("symbol"))
@@ -720,6 +784,8 @@ def merge_domestic(
     source = skill_record if skill_record.get("status") == "ok" else {}
     if not source:
       source = realtime or daily or {}
+    if not source:
+        source = previous_market_source(previous_contract, fallback_contract)
     if realtime:
         source = {**source, **{key: value for key, value in realtime.items() if value is not None}}
     if daily:
@@ -727,7 +793,12 @@ def merge_domestic(
 
     contract = concrete_contract(source.get("contract")) or fallback_contract or selected_contract.get("symbol") or spec["symbol"]
     hithink = hithink_contract(contract) if concrete_contract(contract) else {"status": "missing", "message": "缺少可核验的具体合约代码"}
-    verification = verification_note(source, hithink)
+    verification = (
+        f"实时行情源暂不可用；沿用 {source.get('tradedate') or '最近一次'} "
+        "同合约有效快照，需进一步核验。"
+        if source.get("_carried_market")
+        else verification_note(source, hithink)
+    )
     price = as_float(source.get("price"))
     rank = selected_contract.get("rank")
     contract_label = selected_contract.get("label") or ("主力" if rank == 1 else "次主力" if rank else "")
@@ -1325,6 +1396,10 @@ def main() -> int:
         validate_forecast_time_arguments(metadata, args.generated_at, args.cutoff_at)
         run_manifest_quality_gate(SOURCE_RUNS / f"{args.report_date}-daily" / "manifest.json")
 
+    try:
+        previous_payload = load_js_payload(OUTPUT)
+    except (OSError, ValueError, json.JSONDecodeError):
+        previous_payload = {}
     snapshot, snapshot_path = latest_market_snapshot(args.report_date if freeze_forecast else None)
     snapshot = dict(snapshot or {})
     snapshot["external"] = {
@@ -1351,12 +1426,18 @@ def main() -> int:
     ak = load_akshare()
     discovery_products = discovery.get("products", {}) if isinstance(discovery, dict) else {}
     contracts = [
-        merge_domestic(spec, selected, snapshot, ak, review_learning)
+        merge_domestic(
+            spec,
+            selected,
+            snapshot,
+            ak,
+            review_learning,
+            matching_previous_contract(previous_payload, selected),
+        )
         for spec in DOMESTIC
         for selected in discovery_products.get(spec["symbol"], [])
     ]
     contracts.extend(merge_external(spec, snapshot, review_learning) for spec in EXTERNAL)
-    previous_payload: dict[str, Any] = {}
     if args.fundamental_mode == "carry":
         previous_payload, frozen_records = load_frozen_oil_fundamentals(
             OUTPUT,
