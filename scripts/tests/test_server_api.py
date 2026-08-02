@@ -53,6 +53,9 @@ class ServerApiStatusTests(unittest.TestCase):
             runner,
         )
         self.assertIn('restart api', runner)
+        self.assertIn('PUBLIC_ACCESS_MODE="${PALM_OIL_PUBLIC_ACCESS_MODE:-private}"', runner)
+        self.assertIn('compose exec -T api python3 -c', runner)
+        self.assertIn('compose stop web || true', runner)
         self.assertIn('/api/status', runner)
         self.assertIn('while [ "$attempt" -le 10 ]', runner)
 
