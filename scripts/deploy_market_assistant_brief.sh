@@ -26,21 +26,7 @@ if [[ -n "$(git status --porcelain --untracked-files=all)" ]]; then
   exit 2
 fi
 
-pull_with_retry() {
-  local attempt
-  for attempt in 1 2 3; do
-    if GIT_TERMINAL_PROMPT=0 git pull --ff-only origin main >> "$LOG" 2>&1; then
-      return 0
-    fi
-    echo "[$(TZ=Asia/Shanghai date '+%F %T')] AI brief git pull failed (attempt $attempt/3)" >> "$LOG"
-    if (( attempt < 3 )); then
-      sleep $((attempt * 10))
-    fi
-  done
-  return 1
-}
-
-if ! pull_with_retry; then
+if ! python3 scripts/sync_automation_runtime.py --root "$PWD" >> "$LOG" 2>&1; then
   echo "source sync unavailable after retries; keep previous AI brief" >&2
   exit 1
 fi
@@ -81,4 +67,4 @@ fi
 
 git add -- "$TARGET"
 git commit -m "Update market assistant AI brief"
-git push origin HEAD:main
+python3 scripts/sync_automation_runtime.py --root "$PWD"

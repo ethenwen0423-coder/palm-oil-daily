@@ -104,7 +104,7 @@ def run_backfill(report_date: str, dry_run: bool) -> int:
 原因：到 08:50 仍未检测到 {report_date} 的正式日报已经发布到网站数据。
 
 请严格按原日报自动任务执行，但使用固定报告日期 {report_date}，不要改成其他日期。
-必须先运行 git pull --ff-only。
+必须先运行 python3 scripts/sync_automation_runtime.py --root .，安全同步远端源码与本地生成数据提交。
 必须先读取并调用 skills/master_report_skill/SKILL.md，按 market_data_skill、data_quality_gate_skill、oil_report_freshness、report_writer_skill、headline_skill、report_quality_gate 顺序调度。
 必须调用 scripts/run_financial_skills.py 并读取 source_runs/{report_date}-daily/manifest.json。
 必须运行 python3 skills/data_quality_gate_skill/scripts/validate_data.py --manifest source_runs/{report_date}-daily/manifest.json --strict；未通过时停止发布。

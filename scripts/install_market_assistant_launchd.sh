@@ -22,7 +22,7 @@ if [[ "$(git -C "$RUNTIME_ROOT" branch --show-current)" != "main" ]] \
   echo "market-assistant runtime must be a clean main checkout: $RUNTIME_ROOT" >&2
   exit 2
 fi
-git -C "$RUNTIME_ROOT" pull --ff-only origin main
+python3 "$ROOT/scripts/sync_automation_runtime.py" --root "$RUNTIME_ROOT"
 
 cat > "$RUNNER" <<RUNNER
 #!/usr/bin/env bash

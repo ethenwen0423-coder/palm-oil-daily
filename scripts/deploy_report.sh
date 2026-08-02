@@ -123,4 +123,4 @@ if git diff --cached --name-only -- data/forecast/daily data/review/runtime_snap
   exit 2
 fi
 git commit -m "Update palm oil report"
-git push
+python3 scripts/sync_automation_runtime.py --root "$PWD"

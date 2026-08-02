@@ -223,4 +223,4 @@ fi
 
 git add -- "${ALLOWED[@]}"
 git commit -m "Update ${SESSION} market data"
-git push
+python3 scripts/sync_automation_runtime.py --root "$PWD"

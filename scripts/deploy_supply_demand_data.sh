@@ -66,4 +66,4 @@ done < <(git diff --cached --name-only)
 
 git add -- "$TARGET"
 git commit -m "Check palm oil supply-demand data for $REPORT_DATE"
-git push origin main
+python3 scripts/sync_automation_runtime.py --root "$PWD"
