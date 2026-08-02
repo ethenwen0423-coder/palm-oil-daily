@@ -82,6 +82,13 @@ class DailyWatchdogLaunchdTests(unittest.TestCase):
         self.assertIn("daily and morning market data already published, skip retry", text)
         self.assertIn("deploy_oil_futures_tab.sh morning", text)
 
+    def test_automation_runtimes_reconcile_generated_data_without_hard_reset(self) -> None:
+        for installer in (INSTALLER, INTRADAY_INSTALLER):
+            text = installer.read_text(encoding="utf-8")
+            self.assertIn("sync_automation_runtime.py", text)
+            self.assertNotIn("git pull --ff-only", text)
+            self.assertNotIn("git reset --hard", text)
+
     def test_watchdogs_follow_codex_default_model(self) -> None:
         for installer in (INSTALLER, WEEKLY_INSTALLER):
             text = installer.read_text(encoding="utf-8")

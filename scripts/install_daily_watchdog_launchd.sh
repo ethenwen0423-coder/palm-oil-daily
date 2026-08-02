@@ -17,7 +17,7 @@ if [[ "$ROOT" != "$RUNTIME_ROOT" ]]; then
   if [[ ! -d "$RUNTIME_ROOT/.git" ]]; then
     git clone "$(git -C "$ROOT" remote get-url origin)" "$RUNTIME_ROOT"
   else
-    git -C "$RUNTIME_ROOT" pull --ff-only
+    python3 "$ROOT/scripts/sync_automation_runtime.py" --root "$RUNTIME_ROOT"
   fi
 fi
 
@@ -29,7 +29,7 @@ else
     echo "supply-demand runtime must be a clean main checkout: $SUPPLY_RUNTIME" >&2
     exit 2
   fi
-  git -C "$SUPPLY_RUNTIME" pull --ff-only origin main
+  python3 "$ROOT/scripts/sync_automation_runtime.py" --root "$SUPPLY_RUNTIME"
 fi
 
 cat > "$SUPPLY_RUNNER" <<SUPPLY_RUNNER
@@ -42,7 +42,7 @@ LOG="$SUPPORT_DIR/palm-oil-supply-demand-daily.log"
 
 echo "[\$(TZ=Asia/Shanghai date '+%F %T')] start supply-demand check for \$REPORT_DATE" >> "\$LOG"
 cd "\$ROOT"
-git pull --ff-only origin main >> "\$LOG" 2>&1
+python3 scripts/sync_automation_runtime.py --root "\$ROOT" >> "\$LOG" 2>&1
 scripts/deploy_supply_demand_data.sh "\$REPORT_DATE" >> "\$LOG" 2>&1
 echo "[\$(TZ=Asia/Shanghai date '+%F %T')] finish supply-demand check for \$REPORT_DATE" >> "\$LOG"
 SUPPLY_RUNNER
@@ -129,6 +129,9 @@ if (( WEEKDAY < 1 || WEEKDAY > 5 )); then
   exit 0
 fi
 
+python3 "\$ROOT/scripts/sync_automation_runtime.py" \
+  --root "\$ROOT" >> "\$LOG" 2>&1
+
 if [[ -s "\$REPORT" && -s "\$DOWNLOAD" && -s "\$DATA" ]] \\
   && grep -q "\"date\": \"\$REPORT_DATE\"" "\$DATA" \\
   && ! grep -Eq "\$FORBIDDEN" "\$REPORT"; then
@@ -140,7 +143,6 @@ if [[ -s "\$REPORT" && -s "\$DOWNLOAD" && -s "\$DATA" ]] \\
   fi
   echo "[\$(TZ=Asia/Shanghai date '+%F %T')] daily published, refresh morning market data" >> "\$LOG"
   cd "\$ROOT"
-  git pull --ff-only >> "\$LOG" 2>&1
   bash scripts/deploy_oil_futures_tab.sh morning >> "\$LOG" 2>&1
   touch "\$MORNING_STATE"
   exit 0
@@ -163,7 +165,6 @@ if [[ -s "\$REPORT" && -s "\$DOWNLOAD" && -s "\$DATA" ]] \\
   refresh_supply_demand
   echo "[\$(TZ=Asia/Shanghai date '+%F %T')] daily backfill complete, refresh morning market data" >> "\$LOG"
   cd "\$ROOT"
-  git pull --ff-only >> "\$LOG" 2>&1
   bash scripts/deploy_oil_futures_tab.sh morning >> "\$LOG" 2>&1
   touch "\$MORNING_STATE"
 else

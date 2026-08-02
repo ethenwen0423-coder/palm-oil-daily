@@ -15,7 +15,7 @@ if [[ "$ROOT" != "$RUNTIME_ROOT" ]]; then
   if [[ ! -d "$RUNTIME_ROOT/.git" ]]; then
     git clone "$(git -C "$ROOT" remote get-url origin)" "$RUNTIME_ROOT"
   else
-    git -C "$RUNTIME_ROOT" pull --ff-only
+    python3 "$ROOT/scripts/sync_automation_runtime.py" --root "$RUNTIME_ROOT"
   fi
 fi
 
@@ -35,7 +35,7 @@ LOG="$SUPPORT_DIR/contract-selector.log"
 
 echo "[\$(TZ=Asia/Shanghai date '+%F %T')] start contract selector" >> "\$LOG"
 cd "\$ROOT"
-git pull --ff-only >> "\$LOG" 2>&1 || true
+python3 scripts/sync_automation_runtime.py --root "\$ROOT" >> "\$LOG" 2>&1 || true
 python3 skills/contract_selector_skill/scripts/select_contracts.py >> "\$LOG" 2>&1
 echo "[\$(TZ=Asia/Shanghai date '+%F %T')] finish contract selector" >> "\$LOG"
 RUNNER

@@ -202,60 +202,18 @@ def sync_git(root: Path, log: Path, environment: dict[str, str]) -> None:
     if dirty:
         raise WatchdogError("prediction review runtime 不是干净工作区")
 
-    fetched = False
-    for attempt in range(1, 4):
-        result = run_logged(
-            ["git", "fetch", "origin", "main"],
-            root=root,
-            log=log,
-            environment=environment,
-            timeout=90,
-        )
-        if result.returncode == 0:
-            fetched = True
-            break
-        append_log(log, f"git fetch failed attempt={attempt}/3")
-        if attempt < 3:
-            time.sleep(attempt * 10)
-    if not fetched:
-        raise WatchdogError("git fetch 连续失败，等待下一轮恢复")
-
-    head = git_output(root, "rev-parse", "HEAD")
-    remote = git_output(root, "rev-parse", "origin/main")
-    if head != remote and subprocess.run(
-        ["git", "merge-base", "--is-ancestor", remote, head],
-        cwd=root,
-        check=False,
-    ).returncode == 0:
-        pushed = False
-        for attempt in range(1, 4):
-            result = run_logged(
-                ["git", "push", "origin", "main"],
-                root=root,
-                log=log,
-                environment=environment,
-                timeout=90,
-            )
-            if result.returncode == 0:
-                pushed = True
-                break
-            append_log(log, f"pending prediction-review push failed attempt={attempt}/3")
-            if attempt < 3:
-                time.sleep(attempt * 10)
-        if not pushed:
-            raise WatchdogError("本地待推送评估提交仍未同步")
-        remote = git_output(root, "rev-parse", "origin/main")
-
-    if git_output(root, "rev-parse", "HEAD") != remote:
-        result = run_logged(
-            ["git", "merge", "--ff-only", "origin/main"],
-            root=root,
-            log=log,
-            environment=environment,
-            timeout=60,
-        )
-        if result.returncode != 0:
-            raise WatchdogError("prediction review runtime 无法 fast-forward 到 origin/main")
+    sync_script = root / "scripts" / "sync_automation_runtime.py"
+    if not sync_script.is_file():
+        raise WatchdogError("prediction review runtime 缺少安全同步器")
+    result = run_logged(
+        [sys.executable, str(sync_script), "--root", str(root)],
+        root=root,
+        log=log,
+        environment=environment,
+        timeout=300,
+    )
+    if result.returncode != 0:
+        raise WatchdogError("prediction review runtime 安全同步失败")
 
 
 def rollback_generated(root: Path, report_date: str, head: str, log: Path) -> None:

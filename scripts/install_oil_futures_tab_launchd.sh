@@ -21,7 +21,7 @@ if [[ "$(git -C "$RUNTIME_ROOT" branch --show-current)" != "main" ]] \
   echo "oil-futures runtime must be a clean main checkout: $RUNTIME_ROOT" >&2
   exit 2
 fi
-git -C "$RUNTIME_ROOT" pull --ff-only origin main
+python3 "$ROOT/scripts/sync_automation_runtime.py" --root "$RUNTIME_ROOT"
 
 cat > "$RUNNER" <<RUNNER
 #!/usr/bin/env bash
@@ -70,22 +70,8 @@ if [[ ! -f "\$MORNING_STATE" ]]; then
 fi
 
 cd "\$ROOT"
-pull_with_retry() {
-  local attempt
-  for attempt in 1 2 3; do
-    if GIT_TERMINAL_PROMPT=0 git pull --ff-only >> "\$LOG" 2>&1; then
-      return 0
-    fi
-    echo "[\$(TZ=Asia/Shanghai date '+%F %T')] git pull failed (attempt \$attempt/3)" >> "\$LOG"
-    if (( attempt < 3 )); then
-      sleep \$((attempt * 10))
-    fi
-  done
-  return 1
-}
-
-if ! pull_with_retry; then
-  echo "[\$(TZ=Asia/Shanghai date '+%F %T')] source sync unavailable after retries; keep state open for next recovery" >> "\$LOG"
+if ! python3 scripts/sync_automation_runtime.py --root "\$ROOT" >> "\$LOG" 2>&1; then
+  echo "[\$(TZ=Asia/Shanghai date '+%F %T')] safe source synchronization failed; keep state open for next recovery" >> "\$LOG"
   exit 1
 fi
 bash scripts/deploy_oil_futures_tab.sh "\$SESSION" "\$FUNDAMENTAL_DATE" >> "\$LOG" 2>&1
