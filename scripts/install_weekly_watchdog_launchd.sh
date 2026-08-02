@@ -15,7 +15,7 @@ if [[ "$ROOT" != "$RUNTIME_ROOT" ]]; then
   if [[ ! -d "$RUNTIME_ROOT/.git" ]]; then
     git clone "$(git -C "$ROOT" remote get-url origin)" "$RUNTIME_ROOT"
   else
-    git -C "$RUNTIME_ROOT" pull --ff-only
+    python3 "$ROOT/scripts/sync_automation_runtime.py" --root "$RUNTIME_ROOT"
   fi
 fi
 
@@ -65,6 +65,9 @@ if [[ "\$WEEKDAY" != "0" ]]; then
   echo "[\$(TZ=Asia/Shanghai date '+%F %T')] not Sunday, skip weekly watchdog" >> "\$LOG"
   exit 0
 fi
+
+python3 "\$ROOT/scripts/sync_automation_runtime.py" \
+  --root "\$ROOT" >> "\$LOG" 2>&1
 
 if [[ -s "\$REPORT" && -s "\$DOWNLOAD" && -s "\$DATA" ]] \\
   && grep -q "\"date\": \"\$REPORT_ID\"" "\$DATA" \\
