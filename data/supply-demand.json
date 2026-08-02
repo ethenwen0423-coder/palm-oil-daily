@@ -1,6 +1,6 @@
 {
   "schema_version": 3,
-  "generated_at": "2026-07-31T06:17:45+08:00",
+  "generated_at": "2026-08-02T22:24:18+08:00",
   "timezone": "Asia/Shanghai",
   "display_months": 24,
   "countries": {
@@ -294,19 +294,19 @@
             },
             {
               "period": "2026-01",
-              "value": 1453163,
+              "value": 1453143,
               "published_at": "2026-02-10",
               "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202634"
             },
             {
               "period": "2026-02",
-              "value": 1065204,
+              "value": 1075944,
               "published_at": "2026-03-10",
               "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202634"
             },
             {
               "period": "2026-03",
-              "value": 1520693,
+              "value": 1509953,
               "published_at": "2026-04-10",
               "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202634"
             },
@@ -324,7 +324,7 @@
             },
             {
               "period": "2026-06",
-              "value": 1204013,
+              "value": 1198567,
               "published_at": "2026-07-10",
               "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202634"
             }
@@ -1770,9 +1770,9 @@
       ]
     }
   },
-  "checked_at": "2026-07-31T06:17:45+08:00",
-  "checked_for_report_date": "2026-07-31",
-  "data_updated_at": "2026-07-28T23:28:46+08:00",
-  "update_status": "no_change",
-  "update_message": "今日已检查官方来源，官网暂未更新数据，继续展示最近一期官方值。"
+  "checked_at": "2026-08-02T22:24:18+08:00",
+  "checked_for_report_date": "2026-08-02",
+  "data_updated_at": "2026-08-02T22:24:18+08:00",
+  "update_status": "updated",
+  "update_message": "今日检查发现官方新数据或历史修订，页面数据已完成更新。"
 }
