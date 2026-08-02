@@ -52,10 +52,23 @@ class ServerRuntimeAuditTests(unittest.TestCase):
                     "GITHUB_TOKEN": "super-secret-github",
                 },
             ):
-                payload = AUDIT.credential_capabilities(deploy_root)
+                with mock.patch.object(AUDIT, "run") as run_mock:
+                    run_mock.return_value = subprocess.CompletedProcess(
+                        ["codex", "login", "status"], 0, "Logged in", ""
+                    )
+                    with mock.patch.object(
+                        AUDIT.shutil,
+                        "which",
+                        return_value="/usr/bin/codex",
+                    ):
+                        payload = AUDIT.credential_capabilities(
+                            deploy_root,
+                            deploy_root / "state",
+                        )
         rendered = json.dumps(payload, sort_keys=True)
         self.assertTrue(payload["openai_api_key_present"])
         self.assertTrue(payload["github_token_present"])
+        self.assertTrue(payload["codex_cli_authenticated"])
         self.assertNotIn("super-secret", rendered)
 
     def test_cli_is_read_only_and_returns_valid_json_when_blocked(self):
