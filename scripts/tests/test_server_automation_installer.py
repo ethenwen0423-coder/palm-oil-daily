@@ -8,6 +8,7 @@ ROOT = Path(__file__).resolve().parents[2]
 INSTALLER = ROOT / "server" / "install_automation.sh"
 AUDIT = ROOT / "server" / "audit_runtime.py"
 REQUIREMENTS = ROOT / "server" / "requirements-market.txt"
+AI_ENABLEMENT = ROOT / "server" / "enable_ai_automation.sh"
 
 
 class ServerAutomationInstallerTests(unittest.TestCase):
@@ -24,6 +25,7 @@ class ServerAutomationInstallerTests(unittest.TestCase):
         self.assertIn('PUBLIC_ACCESS_MODE="${PALM_OIL_PUBLIC_ACCESS_MODE:-private}"', script)
         self.assertIn('"--apply must run as root"', script)
         self.assertIn("server/sync_live_data.py", script)
+        self.assertIn("server/enable_ai_automation.sh", script)
         self.assertIn("compose.automation.yaml", script)
         self.assertIn("$LIVE_DATA_ROOT:/site/data:ro", script)
         self.assertIn('python3 -m venv --clear "$VENV_ROOT"', script)
@@ -38,6 +40,7 @@ class ServerAutomationInstallerTests(unittest.TestCase):
         self.assertIn('stop web || true', script)
         self.assertIn('up -d --no-deps api', script)
         self.assertIn('--access-mode "$PUBLIC_ACCESS_MODE"', script)
+        self.assertIn("Environment=CODEX_HOME=$STATE_ROOT/home/.codex", script)
 
     def test_systemd_units_share_lock_and_only_write_scoped_runtime_paths(self):
         installer = INSTALLER.read_text(encoding="utf-8")
@@ -86,6 +89,23 @@ class ServerAutomationInstallerTests(unittest.TestCase):
                 "requests==2.32.5",
             },
         )
+
+    def test_ai_timer_enablement_requires_login_and_real_generation(self):
+        result = subprocess.run(
+            ["bash", "-n", str(AI_ENABLEMENT)],
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        script = AI_ENABLEMENT.read_text(encoding="utf-8")
+        self.assertIn("login --device-auth", script)
+        self.assertIn("login status", script)
+        self.assertIn("systemctl disable --now palm-oil-ai-brief.timer", script)
+        self.assertIn("run_ai_brief.py", script)
+        self.assertIn(".server-ai-ready.json", script)
+        self.assertIn("systemctl enable --now palm-oil-ai-brief.timer", script)
+        self.assertNotIn("--mock-response", script)
 
     def test_runtime_audit_probes_the_server_venv_when_present(self):
         import importlib.util

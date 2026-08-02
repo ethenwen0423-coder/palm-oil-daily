@@ -19,8 +19,10 @@ from urllib.parse import urlsplit
 DEFAULT_SITE_ROOT = Path("/srv/palm-oil-daily/site")
 DEFAULT_DEPLOY_ROOT = Path("/srv/palm-oil-daily/deploy")
 DEFAULT_MARKET_PYTHON = Path("/srv/palm-oil-daily/venv/bin/python")
+DEFAULT_STATE_ROOT = Path("/srv/palm-oil-daily/state")
 REQUIRED_PYTHON_MODULES = ("requests", "akshare", "pandas", "numpy")
 REQUIRED_REPOSITORY_PATHS = (
+    "server/enable_ai_automation.sh",
     "server/install_automation.sh",
     "server/requirements-market.txt",
     "server/run_ai_brief.py",
@@ -41,6 +43,7 @@ def run(
     *,
     cwd: Path | None = None,
     timeout: int = 15,
+    environment: dict[str, str] | None = None,
 ) -> subprocess.CompletedProcess[str]:
     try:
         return subprocess.run(
@@ -50,7 +53,11 @@ def run(
             capture_output=True,
             timeout=timeout,
             check=False,
-            env={**os.environ, "GIT_TERMINAL_PROMPT": "0"},
+            env={
+                **os.environ,
+                **(environment or {}),
+                "GIT_TERMINAL_PROMPT": "0",
+            },
         )
     except (OSError, subprocess.TimeoutExpired) as exc:
         return subprocess.CompletedProcess(arguments, 127, "", str(exc))
@@ -292,17 +299,35 @@ def python_status(
     }
 
 
-def credential_capabilities(deploy_root: Path) -> dict[str, bool]:
+def credential_capabilities(
+    deploy_root: Path,
+    state_root: Path = DEFAULT_STATE_ROOT,
+) -> dict[str, bool]:
     configured_codex = os.environ.get("CODEX_BIN", "").strip()
+    codex_bin = (
+        configured_codex
+        if configured_codex
+        and os.path.isfile(configured_codex)
+        and os.access(configured_codex, os.X_OK)
+        else shutil.which("codex") or ""
+    )
+    codex_home = state_root / "home" / ".codex"
+    codex_authenticated = bool(
+        codex_bin
+        and run(
+            [codex_bin, "login", "status"],
+            timeout=20,
+            environment={
+                "HOME": str(state_root / "home"),
+                "CODEX_HOME": str(codex_home),
+                "XDG_CACHE_HOME": str(state_root / "cache"),
+            },
+        ).returncode
+        == 0
+    )
     return {
-        "codex_cli_present": bool(
-            shutil.which("codex")
-            or (
-                configured_codex
-                and os.path.isfile(configured_codex)
-                and os.access(configured_codex, os.X_OK)
-            )
-        ),
+        "codex_cli_present": bool(codex_bin),
+        "codex_cli_authenticated": codex_authenticated,
         "openai_api_key_present": bool(os.environ.get("OPENAI_API_KEY")),
         "github_token_present": bool(os.environ.get("GITHUB_TOKEN")),
         "git_credential_helper_configured": bool(
@@ -319,12 +344,13 @@ def build_audit(
     *,
     network: bool = False,
     access_mode: str = "private",
+    state_root: Path = DEFAULT_STATE_ROOT,
 ) -> dict[str, Any]:
     repository = repository_status(site_root, network=network)
     docker = docker_status(deploy_root)
     python = python_status(site_root)
     systemd = systemd_status()
-    credentials = credential_capabilities(deploy_root)
+    credentials = credential_capabilities(deploy_root, state_root)
     public_listeners = public_web_listeners()
     blockers: list[str] = []
     if platform.system() != "Linux":
@@ -344,9 +370,14 @@ def build_audit(
         blockers.append(f"missing Python modules: {', '.join(missing_modules)}")
     if not python["technical_runtime_present"]:
         blockers.append("repository technical-indicator runtime is missing")
-    ai_backend = "codex-cli" if credentials["codex_cli_present"] else "missing"
+    ai_backend = (
+        "codex-cli"
+        if credentials["codex_cli_present"]
+        and credentials["codex_cli_authenticated"]
+        else "missing"
+    )
     if ai_backend == "missing":
-        blockers.append("no unattended AI backend is configured")
+        blockers.append("no authenticated unattended AI backend is configured")
     api_data_mount = next(
         (
             item
@@ -417,12 +448,18 @@ def main() -> int:
         default=os.environ.get("PALM_OIL_PUBLIC_ACCESS_MODE", "private"),
         help="expected public-access state; private fails when web listeners exist",
     )
+    parser.add_argument(
+        "--state-root",
+        type=Path,
+        default=Path(os.environ.get("PALM_OIL_SERVER_STATE_ROOT", DEFAULT_STATE_ROOT)),
+    )
     args = parser.parse_args()
     payload = build_audit(
         args.site_root.resolve(),
         args.deploy_root.resolve(),
         network=args.network,
         access_mode=args.access_mode,
+        state_root=args.state_root.resolve(),
     )
     print(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))
     return 0 if payload["status"] == "ready" else 2

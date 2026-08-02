@@ -74,6 +74,20 @@ ten-minute market timer and the daily official-data timer. The AI timer is
 installed but deliberately left disabled until a real unattended backend
 generation passes its acceptance gate.
 
+服务器 AI 使用独立凭证目录，不读取或复制个人电脑上的登录文件。先在腾讯云终端
+完成一次设备登录，再通过真实简报生成验收后启用定时器：
+
+```bash
+cd /srv/palm-oil-daily/site
+sudo bash server/enable_ai_automation.sh --login
+sudo bash server/enable_ai_automation.sh --enable
+sudo bash server/enable_ai_automation.sh --status
+```
+
+`--enable` 会先保持 AI 定时器关闭，检查专用账号登录状态，运行一次真实生成并
+验证服务器所有权标记，全部成功后才启用无人值守定时器。任何一步失败都不会把
+测试响应或不完整简报写入正式数据目录。
+
 ## Server-owned live market data
 
 The API should mount `/srv/palm-oil-daily/live-data` at `/site/data:ro`.

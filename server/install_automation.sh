@@ -41,6 +41,7 @@ docker compose version >/dev/null
 
 for required in \
   "$SITE_ROOT/.git" \
+  "$SITE_ROOT/server/enable_ai_automation.sh" \
   "$SITE_ROOT/server/run_market_collector.py" \
   "$SITE_ROOT/server/run_supply_demand.py" \
   "$SITE_ROOT/server/run_ai_brief.py" \
@@ -117,6 +118,7 @@ install -d -m 0755 \
   "$STATE_ROOT" \
   "$STATE_ROOT/home" \
   "$STATE_ROOT/cache"
+install -d -m 0700 "$STATE_ROOT/home/.codex"
 
 for runtime_root in "$MARKET_RUNTIME_ROOT" "$AI_RUNTIME_ROOT"; do
   if [[ -e "$runtime_root" && ! -d "$runtime_root/.git" ]]; then
@@ -185,6 +187,7 @@ User=root
 Group=root
 WorkingDirectory=$SITE_ROOT
 Environment=HOME=$STATE_ROOT/home
+Environment=CODEX_HOME=$STATE_ROOT/home/.codex
 Environment=XDG_CACHE_HOME=$STATE_ROOT/cache
 Environment=PYTHONUNBUFFERED=1
 Environment=PYTHONDONTWRITEBYTECODE=1
