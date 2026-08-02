@@ -11,6 +11,7 @@ VENV_ROOT="${PALM_OIL_VENV_ROOT:-/srv/palm-oil-daily/venv}"
 UNIT_ROOT="${PALM_OIL_SYSTEMD_UNIT_ROOT:-/etc/systemd/system}"
 COMPOSE_FILE="${PALM_OIL_COMPOSE_FILE:-$DEPLOY_ROOT/compose.yaml}"
 COMPOSE_OVERRIDE="${PALM_OIL_COMPOSE_OVERRIDE:-$DEPLOY_ROOT/compose.automation.yaml}"
+PUBLIC_ACCESS_MODE="${PALM_OIL_PUBLIC_ACCESS_MODE:-private}"
 REQUIREMENTS="$SITE_ROOT/server/requirements-market.txt"
 MODE="${1:---dry-run}"
 
@@ -18,6 +19,14 @@ case "$MODE" in
   --dry-run|--apply) ;;
   *)
     echo "usage: sudo bash server/install_automation.sh [--dry-run|--apply]" >&2
+    exit 2
+    ;;
+esac
+
+case "$PUBLIC_ACCESS_MODE" in
+  private|public) ;;
+  *)
+    echo "PALM_OIL_PUBLIC_ACCESS_MODE must be private or public" >&2
     exit 2
     ;;
 esac
@@ -54,7 +63,8 @@ dirty="$(git -c safe.directory="$SITE_ROOT" -C "$SITE_ROOT" status --porcelain -
 
 if [[ "$MODE" == "--dry-run" ]]; then
   python3 - "$SITE_ROOT" "$LIVE_DATA_ROOT" "$STATE_ROOT" "$MARKET_RUNTIME_ROOT" \
-    "$AI_RUNTIME_ROOT" "$VENV_ROOT" "$COMPOSE_FILE" "$COMPOSE_OVERRIDE" <<'PY'
+    "$AI_RUNTIME_ROOT" "$VENV_ROOT" "$COMPOSE_FILE" "$COMPOSE_OVERRIDE" \
+    "$PUBLIC_ACCESS_MODE" <<'PY'
 import json
 import sys
 
@@ -67,6 +77,7 @@ keys = (
     "venv_root",
     "compose_file",
     "compose_override",
+    "public_access_mode",
 )
 print(json.dumps(
     {
@@ -76,6 +87,7 @@ print(json.dumps(
         "market_timer": "every 10 minutes with retry",
         "supply_timer": "daily official-source check",
         "ai_timer": "installed disabled until backend acceptance",
+        "web_service": "stopped" if sys.argv[-1] == "private" else "running",
     },
     sort_keys=True,
 ))
@@ -270,7 +282,13 @@ do
 done
 
 systemctl daemon-reload
-docker compose -f "$COMPOSE_FILE" -f "$COMPOSE_OVERRIDE" up -d api web
+if [[ "$PUBLIC_ACCESS_MODE" == "private" ]]; then
+  docker compose -f "$COMPOSE_FILE" -f "$COMPOSE_OVERRIDE" stop web || true
+  docker compose -f "$COMPOSE_FILE" -f "$COMPOSE_OVERRIDE" up -d --no-deps api
+  docker compose -f "$COMPOSE_FILE" -f "$COMPOSE_OVERRIDE" stop web || true
+else
+  docker compose -f "$COMPOSE_FILE" -f "$COMPOSE_OVERRIDE" up -d api web
+fi
 systemctl enable --now palm-oil-market-collector.timer
 systemctl enable --now palm-oil-supply-demand.timer
 systemctl start palm-oil-market-collector.service
@@ -281,7 +299,7 @@ systemctl --no-pager list-timers palm-oil-market-collector.timer
 systemctl --no-pager list-timers palm-oil-supply-demand.timer
 docker compose -f "$COMPOSE_FILE" -f "$COMPOSE_OVERRIDE" ps
 set +e
-python3 "$SITE_ROOT/server/audit_runtime.py"
+python3 "$SITE_ROOT/server/audit_runtime.py" --access-mode "$PUBLIC_ACCESS_MODE"
 audit_status=$?
 set -e
 if [[ "$audit_status" -ne 0 && "$audit_status" -ne 2 ]]; then
@@ -289,3 +307,6 @@ if [[ "$audit_status" -ne 0 && "$audit_status" -ne 2 ]]; then
 fi
 
 echo "AI service units installed but timer intentionally left disabled."
+if [[ "$PUBLIC_ACCESS_MODE" == "private" ]]; then
+  echo "Public web service is stopped; internal API and collectors remain active."
+fi

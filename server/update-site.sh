@@ -10,6 +10,15 @@ STATE_ROOT="${PALM_OIL_SERVER_STATE_ROOT:-/srv/palm-oil-daily/state}"
 COMPOSE_FILE="${PALM_OIL_COMPOSE_FILE:-$DEPLOY_ROOT/compose.yaml}"
 COMPOSE_OVERRIDE="${PALM_OIL_COMPOSE_OVERRIDE:-$DEPLOY_ROOT/compose.automation.yaml}"
 GIT_FETCH_TIMEOUT_SECONDS="${PALM_OIL_GIT_FETCH_TIMEOUT_SECONDS:-75}"
+PUBLIC_ACCESS_MODE="${PALM_OIL_PUBLIC_ACCESS_MODE:-private}"
+
+case "$PUBLIC_ACCESS_MODE" in
+  private|public) ;;
+  *)
+    echo "PALM_OIL_PUBLIC_ACCESS_MODE must be private or public" >&2
+    exit 2
+    ;;
+esac
 
 mkdir -p "$STATE_ROOT"
 exec 9>"$STATE_ROOT/automation.lock"
@@ -60,7 +69,14 @@ compose() {
   fi
 }
 
-if [ "$api_changed" = true ]; then
+if [ "$PUBLIC_ACCESS_MODE" = private ]; then
+  compose stop web || true
+  compose up -d --no-deps api
+  if [ "$api_changed" = true ]; then
+    compose restart api
+  fi
+  compose stop web || true
+elif [ "$api_changed" = true ]; then
   compose restart api
 fi
 
@@ -68,7 +84,14 @@ check_endpoint() {
   endpoint="$1"
   attempt=1
   while [ "$attempt" -le 10 ]; do
-    if curl -fsS --resolve palm.vinsontesla.com:443:127.0.0.1 \
+    if [ "$PUBLIC_ACCESS_MODE" = private ]; then
+      if compose exec -T api python3 -c \
+        'import os,sys,urllib.request; port=os.environ.get("PALM_OIL_API_PORT", "8000"); urllib.request.urlopen(f"http://127.0.0.1:{port}{sys.argv[1]}", timeout=5).read()' \
+        "$endpoint" >/dev/null
+      then
+        return 0
+      fi
+    elif curl -fsS --resolve palm.vinsontesla.com:443:127.0.0.1 \
       "https://palm.vinsontesla.com$endpoint" >/dev/null
     then
       return 0

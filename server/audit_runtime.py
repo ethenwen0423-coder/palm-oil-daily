@@ -185,7 +185,31 @@ def docker_status(deploy_root: Path) -> dict[str, Any]:
         "running_services": running_services,
         "api_mounts": api_mounts,
         "api_running": "api" in running_services,
+        "web_running": "web" in running_services,
     }
+
+
+def public_web_listeners() -> list[str] | None:
+    """Return non-loopback TCP listeners on HTTP(S) ports, if ss is available."""
+    if shutil.which("ss") is None:
+        return None
+    result = run(["ss", "-H", "-lnt"], timeout=15)
+    if result.returncode != 0:
+        return None
+    listeners: list[str] = []
+    for line in result.stdout.splitlines():
+        fields = line.split()
+        if len(fields) < 4:
+            continue
+        endpoint = fields[3]
+        host, separator, port = endpoint.rpartition(":")
+        if not separator or port not in {"80", "443"}:
+            continue
+        normalized_host = host.strip("[]")
+        if normalized_host in {"127.0.0.1", "::1", "localhost"}:
+            continue
+        listeners.append(endpoint)
+    return sorted(set(listeners))
 
 
 def timezone_name() -> str | None:
@@ -294,12 +318,14 @@ def build_audit(
     deploy_root: Path,
     *,
     network: bool = False,
+    access_mode: str = "private",
 ) -> dict[str, Any]:
     repository = repository_status(site_root, network=network)
     docker = docker_status(deploy_root)
     python = python_status(site_root)
     systemd = systemd_status()
     credentials = credential_capabilities(deploy_root)
+    public_listeners = public_web_listeners()
     blockers: list[str] = []
     if platform.system() != "Linux":
         blockers.append("server audit must run on Linux")
@@ -309,6 +335,10 @@ def build_audit(
         blockers.append("repository automation dependencies are incomplete")
     if not docker["compose_available"] or not docker["api_running"]:
         blockers.append("Docker Compose API service is not running")
+    if access_mode == "private" and docker["web_running"]:
+        blockers.append("public web service is running during private mode")
+    if access_mode == "private" and public_listeners:
+        blockers.append("public HTTP(S) listeners are active during private mode")
     missing_modules = [name for name, ready in python["modules"].items() if not ready]
     if missing_modules:
         blockers.append(f"missing Python modules: {', '.join(missing_modules)}")
@@ -343,6 +373,11 @@ def build_audit(
         "systemd": systemd,
         "python": python,
         "credentials": credentials,
+        "access": {
+            "mode": access_mode,
+            "public_web_listeners": public_listeners,
+            "web_service_running": docker["web_running"],
+        },
         "migration": {
             "market_collector_ready": not bool(missing_modules)
             and python["technical_runtime_present"],
@@ -376,11 +411,18 @@ def main() -> int:
         action="store_true",
         help="also verify read-only access to origin/main",
     )
+    parser.add_argument(
+        "--access-mode",
+        choices=("private", "public"),
+        default=os.environ.get("PALM_OIL_PUBLIC_ACCESS_MODE", "private"),
+        help="expected public-access state; private fails when web listeners exist",
+    )
     args = parser.parse_args()
     payload = build_audit(
         args.site_root.resolve(),
         args.deploy_root.resolve(),
         network=args.network,
+        access_mode=args.access_mode,
     )
     print(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))
     return 0 if payload["status"] == "ready" else 2

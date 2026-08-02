@@ -1,6 +1,23 @@
 # Palm Oil Data API
 
-The public server mounts the repository `data/` directory at `/site/data` and runs
+## ICP 备案期间的隔离模式
+
+备案完成前，服务器自动化默认使用 `private` 模式：行情、供需和 AI
+任务可以继续写入服务器内部数据目录，但 `web` 服务会被明确停止，验收也只从
+API 容器内部访问 `127.0.0.1`。修改代码、拉取仓库或刷新数据都不会创建 DNS
+记录，也不会自动恢复公网访问。
+
+```bash
+cd /srv/palm-oil-daily/site
+sudo PALM_OIL_PUBLIC_ACCESS_MODE=private \
+  bash server/install_automation.sh --apply
+sudo python3 server/audit_runtime.py --network --access-mode private
+```
+
+只有备案通过、DNS 和证书准备完成后，才应显式使用
+`PALM_OIL_PUBLIC_ACCESS_MODE=public` 恢复 `web` 服务。恢复公网访问不是默认行为。
+
+The API service mounts the repository `data/` directory at `/site/data` and runs
 `server/api.py` in a small Python container. All dynamic endpoints are
 read-only and return `Cache-Control: no-store`.
 

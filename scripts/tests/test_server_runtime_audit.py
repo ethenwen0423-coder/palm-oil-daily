@@ -17,6 +17,21 @@ SPEC.loader.exec_module(AUDIT)
 
 
 class ServerRuntimeAuditTests(unittest.TestCase):
+    def test_private_mode_listener_probe_ignores_loopback_only(self):
+        output = "\n".join(
+            (
+                "LISTEN 0 4096 127.0.0.1:80 0.0.0.0:*",
+                "LISTEN 0 4096 0.0.0.0:443 0.0.0.0:*",
+                "LISTEN 0 4096 [::1]:443 [::]:*",
+            )
+        )
+        completed = subprocess.CompletedProcess(["ss"], 0, output, "")
+        with mock.patch.object(AUDIT.shutil, "which", return_value="/usr/bin/ss"), mock.patch.object(
+            AUDIT, "run", return_value=completed
+        ):
+            listeners = AUDIT.public_web_listeners()
+        self.assertEqual(listeners, ["0.0.0.0:443"])
+
     def test_remote_host_never_returns_embedded_credentials(self):
         self.assertEqual(
             AUDIT.remote_host("https://user:secret@example.com/org/repo.git"),

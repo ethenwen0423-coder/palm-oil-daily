@@ -21,6 +21,7 @@ class ServerAutomationInstallerTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         script = INSTALLER.read_text(encoding="utf-8")
         self.assertIn('MODE="${1:---dry-run}"', script)
+        self.assertIn('PUBLIC_ACCESS_MODE="${PALM_OIL_PUBLIC_ACCESS_MODE:-private}"', script)
         self.assertIn('"--apply must run as root"', script)
         self.assertIn("server/sync_live_data.py", script)
         self.assertIn("compose.automation.yaml", script)
@@ -33,6 +34,10 @@ class ServerAutomationInstallerTests(unittest.TestCase):
         self.assertIn("systemctl start palm-oil-supply-demand.service", script)
         self.assertNotIn("systemctl enable --now palm-oil-ai-brief.timer", script)
         self.assertIn("AI service units installed but timer intentionally left disabled", script)
+        self.assertIn('if [[ "$PUBLIC_ACCESS_MODE" == "private" ]]', script)
+        self.assertIn('stop web || true', script)
+        self.assertIn('up -d --no-deps api', script)
+        self.assertIn('--access-mode "$PUBLIC_ACCESS_MODE"', script)
 
     def test_systemd_units_share_lock_and_only_write_scoped_runtime_paths(self):
         installer = INSTALLER.read_text(encoding="utf-8")
@@ -62,6 +67,9 @@ class ServerAutomationInstallerTests(unittest.TestCase):
         self.assertIn('"*-*-* *:0/10:00"', installer)
         self.assertIn('"*-*-* *:02/10:00"', installer)
         self.assertIn('"*-*-* 09:20:00 Asia/Shanghai"', installer)
+        self.assertIn('PUBLIC_ACCESS_MODE="${PALM_OIL_PUBLIC_ACCESS_MODE:-private}"', updater)
+        self.assertIn('compose exec -T api python3 -c', updater)
+        self.assertIn('compose stop web || true', updater)
 
     def test_market_dependencies_are_pinned_to_the_verified_runtime(self):
         lines = {
