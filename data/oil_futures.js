@@ -1,9 +1,9 @@
 window.OIL_FUTURES_CONTRACTS = {
-  "updated_at": "2026-08-03 06:17",
+  "updated_at": "2026-08-03 06:28",
   "update_session": "morning",
   "timezone": "Asia/Shanghai",
-  "source": "futures-oil-daily 最新快照：source_runs/2026-08-03-daily/raw/futures_market_data.json；国内合约名单先由 contract_selector_skill 选择，再由 contract_discovery_skill 按当月实时成交量、持仓量、成交额排序生成，海外产地盘展示马来 BMD FCPO 与印尼 ICDX CPOTR；内盘具体合约与日线缺口由 AkShare 补充，并用同花顺问财行情skill交叉验证",
-  "fundamental_mode": "refresh",
+  "source": "futures-oil-daily 最新快照：source_runs/2026-08-03-daily/raw/futures_market_data.json；国内合约名单先由 contract_selector_skill 选择，再由 contract_discovery_skill 按当月实时成交量、持仓量、成交额排序生成，海外产地盘展示马来 BMD FCPO 与印尼 ICDX CPOTR；内盘具体合约与日线缺口由 AkShare 补充，并用同花顺问财行情skill交叉验证；基本面沿用最近交易日晨报发布后冻结的快照，盘中、夜盘与凌晨尾盘仅刷新行情、技术面、驱动和资金",
+  "fundamental_mode": "carry",
   "fundamental_updated_at": "2026-08-03 06:17",
   "fundamental_update_session": "morning",
   "contract_selector_skill": "contract_selector_skill",
@@ -28,7 +28,7 @@ window.OIL_FUTURES_CONTRACTS = {
       "price": "待更新",
       "change": "需进一步核验",
       "unit": "",
-      "updated_at": "2026-08-03T06:15:19+08:00",
+      "updated_at": "2026-08-03T06:24:53+08:00",
       "source": "ICDX 官方历史价格接口"
     },
     "india_cpo_spot": {
@@ -117,7 +117,8 @@ window.OIL_FUTURES_CONTRACTS = {
       },
       "analysis_skill": "master_analytic_skill",
       "child_skill": "technical_basic_analysis_skill",
-      "quality_note": "动态驱动评分、观点置信度、冲突提示与观察位已通过skill质量检查"
+      "quality_note": "动态驱动评分、观点置信度、冲突提示与观察位已通过skill质量检查",
+      "fundamental_snapshot_note": "基本面沿用当日晨报发布后冻结的快照，午盘与收盘不重新计算。"
     },
     {
       "symbol": "P2701",
@@ -194,7 +195,8 @@ window.OIL_FUTURES_CONTRACTS = {
       },
       "analysis_skill": "master_analytic_skill",
       "child_skill": "technical_basic_analysis_skill",
-      "quality_note": "动态驱动评分、观点置信度、冲突提示与观察位已通过skill质量检查"
+      "quality_note": "动态驱动评分、观点置信度、冲突提示与观察位已通过skill质量检查",
+      "fundamental_snapshot_note": "基本面沿用当日晨报发布后冻结的快照，午盘与收盘不重新计算。"
     },
     {
       "symbol": "Y2609",
@@ -215,9 +217,9 @@ window.OIL_FUTURES_CONTRACTS = {
       "preclose": "8389",
       "settle": "8394",
       "trade_date": "2026-08-03",
-      "source": "AkShare + 同花顺问财行情skill",
+      "source": "akshare:futures_zh_realtime",
       "note": "Y 用于观察豆系对棕榈油的共振或拖累。",
-      "verification": "价格一致：AkShare 8405 / 行情skill 8405",
+      "verification": "行情skill核验：未完成（行情skill返回非 JSON）；当前以 AkShare 为准。",
       "score": {
         "total": 46.3,
         "technical": 29.0,
@@ -271,7 +273,8 @@ window.OIL_FUTURES_CONTRACTS = {
       },
       "analysis_skill": "master_analytic_skill",
       "child_skill": "technical_basic_analysis_skill",
-      "quality_note": "动态驱动评分、观点置信度、冲突提示与观察位已通过skill质量检查"
+      "quality_note": "动态驱动评分、观点置信度、冲突提示与观察位已通过skill质量检查",
+      "fundamental_snapshot_note": "基本面沿用当日晨报发布后冻结的快照，午盘与收盘不重新计算。"
     },
     {
       "symbol": "Y2701",
@@ -348,7 +351,8 @@ window.OIL_FUTURES_CONTRACTS = {
       },
       "analysis_skill": "master_analytic_skill",
       "child_skill": "technical_basic_analysis_skill",
-      "quality_note": "动态驱动评分、观点置信度、冲突提示与观察位已通过skill质量检查"
+      "quality_note": "动态驱动评分、观点置信度、冲突提示与观察位已通过skill质量检查",
+      "fundamental_snapshot_note": "基本面沿用当日晨报发布后冻结的快照，午盘与收盘不重新计算。"
     },
     {
       "symbol": "OI2609",
@@ -425,7 +429,8 @@ window.OIL_FUTURES_CONTRACTS = {
       },
       "analysis_skill": "master_analytic_skill",
       "child_skill": "technical_basic_analysis_skill",
-      "quality_note": "动态驱动评分、观点置信度、冲突提示与观察位已通过skill质量检查"
+      "quality_note": "动态驱动评分、观点置信度、冲突提示与观察位已通过skill质量检查",
+      "fundamental_snapshot_note": "基本面沿用当日晨报发布后冻结的快照，午盘与收盘不重新计算。"
     },
     {
       "symbol": "OI2701",
@@ -502,7 +507,8 @@ window.OIL_FUTURES_CONTRACTS = {
       },
       "analysis_skill": "master_analytic_skill",
       "child_skill": "technical_basic_analysis_skill",
-      "quality_note": "动态驱动评分、观点置信度、冲突提示与观察位已通过skill质量检查"
+      "quality_note": "动态驱动评分、观点置信度、冲突提示与观察位已通过skill质量检查",
+      "fundamental_snapshot_note": "基本面沿用当日晨报发布后冻结的快照，午盘与收盘不重新计算。"
     },
     {
       "symbol": "M2609",
@@ -579,7 +585,8 @@ window.OIL_FUTURES_CONTRACTS = {
       },
       "analysis_skill": "master_analytic_skill",
       "child_skill": "technical_basic_analysis_skill",
-      "quality_note": "动态驱动评分、观点置信度、冲突提示与观察位已通过skill质量检查"
+      "quality_note": "动态驱动评分、观点置信度、冲突提示与观察位已通过skill质量检查",
+      "fundamental_snapshot_note": "基本面沿用当日晨报发布后冻结的快照，午盘与收盘不重新计算。"
     },
     {
       "symbol": "M2701",
@@ -656,7 +663,8 @@ window.OIL_FUTURES_CONTRACTS = {
       },
       "analysis_skill": "master_analytic_skill",
       "child_skill": "technical_basic_analysis_skill",
-      "quality_note": "动态驱动评分、观点置信度、冲突提示与观察位已通过skill质量检查"
+      "quality_note": "动态驱动评分、观点置信度、冲突提示与观察位已通过skill质量检查",
+      "fundamental_snapshot_note": "基本面沿用当日晨报发布后冻结的快照，午盘与收盘不重新计算。"
     },
     {
       "symbol": "RM2609",
@@ -733,7 +741,8 @@ window.OIL_FUTURES_CONTRACTS = {
       },
       "analysis_skill": "master_analytic_skill",
       "child_skill": "technical_basic_analysis_skill",
-      "quality_note": "动态驱动评分、观点置信度、冲突提示与观察位已通过skill质量检查"
+      "quality_note": "动态驱动评分、观点置信度、冲突提示与观察位已通过skill质量检查",
+      "fundamental_snapshot_note": "基本面沿用当日晨报发布后冻结的快照，午盘与收盘不重新计算。"
     },
     {
       "symbol": "RM2701",
@@ -810,7 +819,8 @@ window.OIL_FUTURES_CONTRACTS = {
       },
       "analysis_skill": "master_analytic_skill",
       "child_skill": "technical_basic_analysis_skill",
-      "quality_note": "动态驱动评分、观点置信度、冲突提示与观察位已通过skill质量检查"
+      "quality_note": "动态驱动评分、观点置信度、冲突提示与观察位已通过skill质量检查",
+      "fundamental_snapshot_note": "基本面沿用当日晨报发布后冻结的快照，午盘与收盘不重新计算。"
     },
     {
       "symbol": "FCPO",
@@ -887,7 +897,8 @@ window.OIL_FUTURES_CONTRACTS = {
       },
       "analysis_skill": "master_analytic_skill",
       "child_skill": "technical_basic_analysis_skill",
-      "quality_note": "动态驱动评分、观点置信度、冲突提示与观察位已通过skill质量检查"
+      "quality_note": "动态驱动评分、观点置信度、冲突提示与观察位已通过skill质量检查",
+      "fundamental_snapshot_note": "基本面沿用当日晨报发布后冻结的快照，午盘与收盘不重新计算。"
     },
     {
       "symbol": "CPOTR",
@@ -964,7 +975,8 @@ window.OIL_FUTURES_CONTRACTS = {
       },
       "analysis_skill": "master_analytic_skill",
       "child_skill": "technical_basic_analysis_skill",
-      "quality_note": "动态驱动评分、观点置信度、冲突提示与观察位已通过skill质量检查"
+      "quality_note": "动态驱动评分、观点置信度、冲突提示与观察位已通过skill质量检查",
+      "fundamental_snapshot_note": "基本面沿用当日晨报发布后冻结的快照，午盘与收盘不重新计算。"
     }
   ],
   "watchlist_options": [
