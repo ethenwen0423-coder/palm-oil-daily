@@ -1,6 +1,6 @@
 {
   "schema_version": 3,
-  "generated_at": "2026-08-02T22:24:18+08:00",
+  "generated_at": "2026-08-03T06:23:29+08:00",
   "timezone": "Asia/Shanghai",
   "display_months": 24,
   "countries": {
@@ -1770,9 +1770,9 @@
       ]
     }
   },
-  "checked_at": "2026-08-02T22:24:18+08:00",
-  "checked_for_report_date": "2026-08-02",
+  "checked_at": "2026-08-03T06:23:29+08:00",
+  "checked_for_report_date": "2026-08-03",
   "data_updated_at": "2026-08-02T22:24:18+08:00",
-  "update_status": "updated",
-  "update_message": "今日检查发现官方新数据或历史修订，页面数据已完成更新。"
+  "update_status": "no_change",
+  "update_message": "今日已检查官方来源，官网暂未更新数据，继续展示最近一期官方值。"
 }
