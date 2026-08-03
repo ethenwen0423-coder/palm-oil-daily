@@ -1,9 +1,9 @@
 {
   "status": "ok",
   "schema_version": 2,
-  "generated_at": "2026-08-03T15:14:48+08:00",
-  "market_updated_at": "2026-08-03 15:09",
-  "market_update_session": "close",
+  "generated_at": "2026-08-03T21:29:00+08:00",
+  "market_updated_at": "2026-08-03 21:24",
+  "market_update_session": "night_open",
   "market_timezone": "Asia/Shanghai",
   "default_model_id": "bollinger-rsi-ma6-v1",
   "models": [
@@ -93,7 +93,7 @@
         "market_date": "2026-07-31",
         "data_source": "akshare:futures_zh_daily_sina",
         "bar_completed": true,
-        "bar_note": "latest source bar treated as completed",
+        "bar_note": "latest same-day bar excluded because it may still be forming",
         "model_scope": "validated_mapping",
         "model_scope_label": "成熟模型映射",
         "market": {
@@ -208,10 +208,10 @@
           }
         },
         "current_quote": {
-          "price": 9253.0,
-          "change": "-0.30%",
+          "price": 9249.0,
+          "change": "-0.04%",
           "direction": "↓",
-          "trade_date": "2026-08-03",
+          "trade_date": "2026-08-04",
           "source": "AkShare + 同花顺问财行情skill",
           "unit": "元/吨"
         }
@@ -225,7 +225,7 @@
         "market_date": "2026-07-31",
         "data_source": "akshare:futures_zh_daily_sina",
         "bar_completed": true,
-        "bar_note": "latest source bar treated as completed",
+        "bar_note": "latest same-day bar excluded because it may still be forming",
         "model_scope": "validated_mapping",
         "model_scope_label": "成熟模型映射",
         "market": {
@@ -340,10 +340,10 @@
           }
         },
         "current_quote": {
-          "price": 9542.0,
-          "change": "-0.26%",
+          "price": 9538.0,
+          "change": "-0.04%",
           "direction": "↓",
-          "trade_date": "2026-08-03",
+          "trade_date": "2026-08-04",
           "source": "AkShare + 同花顺问财行情skill",
           "unit": "元/吨"
         }
@@ -357,7 +357,7 @@
         "market_date": "2026-07-31",
         "data_source": "akshare:futures_zh_daily_sina",
         "bar_completed": true,
-        "bar_note": "latest source bar treated as completed",
+        "bar_note": "latest same-day bar excluded because it may still be forming",
         "model_scope": "rule_trial",
         "model_scope_label": "同规则试算",
         "market": {
@@ -468,11 +468,11 @@
           }
         },
         "current_quote": {
-          "price": 8385.0,
-          "change": "-0.05%",
+          "price": 8378.0,
+          "change": "-0.08%",
           "direction": "↓",
-          "trade_date": "2026-08-03",
-          "source": "akshare:futures_zh_realtime",
+          "trade_date": "2026-08-04",
+          "source": "AkShare + 同花顺问财行情skill",
           "unit": "元/吨"
         }
       },
@@ -485,7 +485,7 @@
         "market_date": "2026-07-31",
         "data_source": "akshare:futures_zh_daily_sina",
         "bar_completed": true,
-        "bar_note": "latest source bar treated as completed",
+        "bar_note": "latest same-day bar excluded because it may still be forming",
         "model_scope": "rule_trial",
         "model_scope_label": "同规则试算",
         "market": {
@@ -596,10 +596,10 @@
           }
         },
         "current_quote": {
-          "price": 8388.0,
-          "change": "-0.21%",
+          "price": 8381.0,
+          "change": "-0.08%",
           "direction": "↓",
-          "trade_date": "2026-08-03",
+          "trade_date": "2026-08-04",
           "source": "AkShare + 同花顺问财行情skill",
           "unit": "元/吨"
         }
@@ -613,7 +613,7 @@
         "market_date": "2026-07-31",
         "data_source": "akshare:futures_zh_daily_sina",
         "bar_completed": true,
-        "bar_note": "latest source bar treated as completed",
+        "bar_note": "latest same-day bar excluded because it may still be forming",
         "model_scope": "rule_trial",
         "model_scope_label": "同规则试算",
         "market": {
@@ -724,11 +724,11 @@
           }
         },
         "current_quote": {
-          "price": 9891.0,
-          "change": "-0.03%",
-          "direction": "↓",
+          "price": 9916.0,
+          "change": "+0.25%",
+          "direction": "↑",
           "trade_date": "2026-08-03",
-          "source": "akshare:futures_zh_realtime",
+          "source": "AkShare + 同花顺问财行情skill",
           "unit": "元/吨"
         }
       },
@@ -741,7 +741,7 @@
         "market_date": "2026-07-31",
         "data_source": "akshare:futures_zh_daily_sina",
         "bar_completed": true,
-        "bar_note": "latest source bar treated as completed",
+        "bar_note": "latest same-day bar excluded because it may still be forming",
         "model_scope": "rule_trial",
         "model_scope_label": "同规则试算",
         "market": {
@@ -852,9 +852,9 @@
           }
         },
         "current_quote": {
-          "price": 9732.0,
-          "change": "-0.48%",
-          "direction": "↓",
+          "price": 9733.0,
+          "change": "+0.01%",
+          "direction": "↑",
           "trade_date": "2026-08-03",
           "source": "akshare:futures_zh_realtime",
           "unit": "元/吨"
@@ -869,7 +869,7 @@
         "market_date": "2026-07-31",
         "data_source": "akshare:futures_zh_daily_sina",
         "bar_completed": true,
-        "bar_note": "latest source bar treated as completed",
+        "bar_note": "latest same-day bar excluded because it may still be forming",
         "model_scope": "rule_trial",
         "model_scope_label": "同规则试算",
         "market": {
@@ -981,10 +981,10 @@
         },
         "current_quote": {
           "price": 3067.0,
-          "change": "-0.13%",
-          "direction": "↓",
-          "trade_date": "2026-08-03",
-          "source": "AkShare + 同花顺问财行情skill",
+          "change": "0.00%",
+          "direction": "→",
+          "trade_date": "2026-08-04",
+          "source": "akshare:futures_zh_realtime",
           "unit": "元/吨"
         }
       },
@@ -997,7 +997,7 @@
         "market_date": "2026-07-31",
         "data_source": "akshare:futures_zh_daily_sina",
         "bar_completed": true,
-        "bar_note": "latest source bar treated as completed",
+        "bar_note": "latest same-day bar excluded because it may still be forming",
         "model_scope": "rule_trial",
         "model_scope_label": "同规则试算",
         "market": {
@@ -1108,10 +1108,10 @@
           }
         },
         "current_quote": {
-          "price": 3126.0,
-          "change": "-0.16%",
+          "price": 3124.0,
+          "change": "-0.06%",
           "direction": "↓",
-          "trade_date": "2026-08-03",
+          "trade_date": "2026-08-04",
           "source": "AkShare + 同花顺问财行情skill",
           "unit": "元/吨"
         }
@@ -1125,7 +1125,7 @@
         "market_date": "2026-07-31",
         "data_source": "akshare:futures_zh_daily_sina",
         "bar_completed": true,
-        "bar_note": "latest source bar treated as completed",
+        "bar_note": "latest same-day bar excluded because it may still be forming",
         "model_scope": "rule_trial",
         "model_scope_label": "同规则试算",
         "market": {
@@ -1236,16 +1236,16 @@
           }
         },
         "current_quote": {
-          "price": 2319.0,
-          "change": "+0.13%",
-          "direction": "↑",
+          "price": 2309.0,
+          "change": "-0.43%",
+          "direction": "↓",
           "trade_date": "2026-08-03",
           "source": "akshare:futures_zh_realtime",
           "unit": "元/吨"
         }
       },
       {
-        "symbol": "RM2701",
+        "symbol": "RM2611",
         "product": "RM",
         "product_name": "菜粕",
         "rank": 2,
@@ -1253,15 +1253,15 @@
         "market_date": "2026-07-31",
         "data_source": "akshare:futures_zh_daily_sina",
         "bar_completed": true,
-        "bar_note": "latest source bar treated as completed",
+        "bar_note": "latest same-day bar excluded because it may still be forming",
         "model_scope": "rule_trial",
         "model_scope_label": "同规则试算",
         "market": {
-          "close": 2248.0,
-          "ma6": 2302.5,
-          "ma20": 2274.15,
-          "atr14": 34.42472564294062,
-          "rsi14": 45.974765196221796,
+          "close": 2216.0,
+          "ma6": 2268.1666666666665,
+          "ma20": 2229.9,
+          "atr14": 37.550349292315374,
+          "rsi14": 47.6864511691572,
           "long_signal": false,
           "short_signal": false,
           "bearish_divergence": false,
@@ -1270,7 +1270,7 @@
         "signals": {
           "flat": {
             "status": "ok",
-            "symbol": "RM2701",
+            "symbol": "RM2611",
             "period": "daily",
             "market_date": "2026-07-31",
             "position": "flat",
@@ -1281,11 +1281,11 @@
             ],
             "blocked_direction_after_action": "none",
             "market": {
-              "close": 2248.0,
-              "ma6": 2302.5,
-              "ma20": 2274.15,
-              "atr14": 34.42472564294062,
-              "rsi14": 45.974765196221796,
+              "close": 2216.0,
+              "ma6": 2268.1666666666665,
+              "ma20": 2229.9,
+              "atr14": 37.550349292315374,
+              "rsi14": 47.6864511691572,
               "long_signal": false,
               "short_signal": false,
               "bearish_divergence": false,
@@ -1299,7 +1299,7 @@
           },
           "long": {
             "status": "ok",
-            "symbol": "RM2701",
+            "symbol": "RM2611",
             "period": "daily",
             "market_date": "2026-07-31",
             "position": "long",
@@ -1310,11 +1310,11 @@
             ],
             "blocked_direction_after_action": "none",
             "market": {
-              "close": 2248.0,
-              "ma6": 2302.5,
-              "ma20": 2274.15,
-              "atr14": 34.42472564294062,
-              "rsi14": 45.974765196221796,
+              "close": 2216.0,
+              "ma6": 2268.1666666666665,
+              "ma20": 2229.9,
+              "atr14": 37.550349292315374,
+              "rsi14": 47.6864511691572,
               "long_signal": false,
               "short_signal": false,
               "bearish_divergence": false,
@@ -1331,7 +1331,7 @@
           },
           "short": {
             "status": "ok",
-            "symbol": "RM2701",
+            "symbol": "RM2611",
             "period": "daily",
             "market_date": "2026-07-31",
             "position": "short",
@@ -1342,11 +1342,11 @@
             ],
             "blocked_direction_after_action": "none",
             "market": {
-              "close": 2248.0,
-              "ma6": 2302.5,
-              "ma20": 2274.15,
-              "atr14": 34.42472564294062,
-              "rsi14": 45.974765196221796,
+              "close": 2216.0,
+              "ma6": 2268.1666666666665,
+              "ma20": 2229.9,
+              "atr14": 37.550349292315374,
+              "rsi14": 47.6864511691572,
               "long_signal": false,
               "short_signal": false,
               "bearish_divergence": false,
@@ -1355,7 +1355,7 @@
             "stop_state": {
               "armed": true,
               "close_above_ma6": false,
-              "ma6": 2302.5
+              "ma6": 2268.1666666666665
             },
             "take_profit": "long: 20-day price high without RSI confirmation; short: reverse",
             "cost_assumption_one_way": 0.0004,
@@ -1364,8 +1364,8 @@
           }
         },
         "current_quote": {
-          "price": 2241.0,
-          "change": "-0.31%",
+          "price": 2196.0,
+          "change": "-0.41%",
           "direction": "↓",
           "trade_date": "2026-08-03",
           "source": "akshare:futures_zh_realtime",
@@ -1458,7 +1458,7 @@
       "market_date": "2026-07-31",
       "data_source": "akshare:futures_zh_daily_sina",
       "bar_completed": true,
-      "bar_note": "latest source bar treated as completed",
+      "bar_note": "latest same-day bar excluded because it may still be forming",
       "model_scope": "validated_mapping",
       "model_scope_label": "成熟模型映射",
       "market": {
@@ -1573,10 +1573,10 @@
         }
       },
       "current_quote": {
-        "price": 9253.0,
-        "change": "-0.30%",
+        "price": 9249.0,
+        "change": "-0.04%",
         "direction": "↓",
-        "trade_date": "2026-08-03",
+        "trade_date": "2026-08-04",
         "source": "AkShare + 同花顺问财行情skill",
         "unit": "元/吨"
       }
@@ -1590,7 +1590,7 @@
       "market_date": "2026-07-31",
       "data_source": "akshare:futures_zh_daily_sina",
       "bar_completed": true,
-      "bar_note": "latest source bar treated as completed",
+      "bar_note": "latest same-day bar excluded because it may still be forming",
       "model_scope": "validated_mapping",
       "model_scope_label": "成熟模型映射",
       "market": {
@@ -1705,10 +1705,10 @@
         }
       },
       "current_quote": {
-        "price": 9542.0,
-        "change": "-0.26%",
+        "price": 9538.0,
+        "change": "-0.04%",
         "direction": "↓",
-        "trade_date": "2026-08-03",
+        "trade_date": "2026-08-04",
         "source": "AkShare + 同花顺问财行情skill",
         "unit": "元/吨"
       }
@@ -1722,7 +1722,7 @@
       "market_date": "2026-07-31",
       "data_source": "akshare:futures_zh_daily_sina",
       "bar_completed": true,
-      "bar_note": "latest source bar treated as completed",
+      "bar_note": "latest same-day bar excluded because it may still be forming",
       "model_scope": "rule_trial",
       "model_scope_label": "同规则试算",
       "market": {
@@ -1833,11 +1833,11 @@
         }
       },
       "current_quote": {
-        "price": 8385.0,
-        "change": "-0.05%",
+        "price": 8378.0,
+        "change": "-0.08%",
         "direction": "↓",
-        "trade_date": "2026-08-03",
-        "source": "akshare:futures_zh_realtime",
+        "trade_date": "2026-08-04",
+        "source": "AkShare + 同花顺问财行情skill",
         "unit": "元/吨"
       }
     },
@@ -1850,7 +1850,7 @@
       "market_date": "2026-07-31",
       "data_source": "akshare:futures_zh_daily_sina",
       "bar_completed": true,
-      "bar_note": "latest source bar treated as completed",
+      "bar_note": "latest same-day bar excluded because it may still be forming",
       "model_scope": "rule_trial",
       "model_scope_label": "同规则试算",
       "market": {
@@ -1961,10 +1961,10 @@
         }
       },
       "current_quote": {
-        "price": 8388.0,
-        "change": "-0.21%",
+        "price": 8381.0,
+        "change": "-0.08%",
         "direction": "↓",
-        "trade_date": "2026-08-03",
+        "trade_date": "2026-08-04",
         "source": "AkShare + 同花顺问财行情skill",
         "unit": "元/吨"
       }
@@ -1978,7 +1978,7 @@
       "market_date": "2026-07-31",
       "data_source": "akshare:futures_zh_daily_sina",
       "bar_completed": true,
-      "bar_note": "latest source bar treated as completed",
+      "bar_note": "latest same-day bar excluded because it may still be forming",
       "model_scope": "rule_trial",
       "model_scope_label": "同规则试算",
       "market": {
@@ -2089,11 +2089,11 @@
         }
       },
       "current_quote": {
-        "price": 9891.0,
-        "change": "-0.03%",
-        "direction": "↓",
+        "price": 9916.0,
+        "change": "+0.25%",
+        "direction": "↑",
         "trade_date": "2026-08-03",
-        "source": "akshare:futures_zh_realtime",
+        "source": "AkShare + 同花顺问财行情skill",
         "unit": "元/吨"
       }
     },
@@ -2106,7 +2106,7 @@
       "market_date": "2026-07-31",
       "data_source": "akshare:futures_zh_daily_sina",
       "bar_completed": true,
-      "bar_note": "latest source bar treated as completed",
+      "bar_note": "latest same-day bar excluded because it may still be forming",
       "model_scope": "rule_trial",
       "model_scope_label": "同规则试算",
       "market": {
@@ -2217,9 +2217,9 @@
         }
       },
       "current_quote": {
-        "price": 9732.0,
-        "change": "-0.48%",
-        "direction": "↓",
+        "price": 9733.0,
+        "change": "+0.01%",
+        "direction": "↑",
         "trade_date": "2026-08-03",
         "source": "akshare:futures_zh_realtime",
         "unit": "元/吨"
@@ -2234,7 +2234,7 @@
       "market_date": "2026-07-31",
       "data_source": "akshare:futures_zh_daily_sina",
       "bar_completed": true,
-      "bar_note": "latest source bar treated as completed",
+      "bar_note": "latest same-day bar excluded because it may still be forming",
       "model_scope": "rule_trial",
       "model_scope_label": "同规则试算",
       "market": {
@@ -2346,10 +2346,10 @@
       },
       "current_quote": {
         "price": 3067.0,
-        "change": "-0.13%",
-        "direction": "↓",
-        "trade_date": "2026-08-03",
-        "source": "AkShare + 同花顺问财行情skill",
+        "change": "0.00%",
+        "direction": "→",
+        "trade_date": "2026-08-04",
+        "source": "akshare:futures_zh_realtime",
         "unit": "元/吨"
       }
     },
@@ -2362,7 +2362,7 @@
       "market_date": "2026-07-31",
       "data_source": "akshare:futures_zh_daily_sina",
       "bar_completed": true,
-      "bar_note": "latest source bar treated as completed",
+      "bar_note": "latest same-day bar excluded because it may still be forming",
       "model_scope": "rule_trial",
       "model_scope_label": "同规则试算",
       "market": {
@@ -2473,10 +2473,10 @@
         }
       },
       "current_quote": {
-        "price": 3126.0,
-        "change": "-0.16%",
+        "price": 3124.0,
+        "change": "-0.06%",
         "direction": "↓",
-        "trade_date": "2026-08-03",
+        "trade_date": "2026-08-04",
         "source": "AkShare + 同花顺问财行情skill",
         "unit": "元/吨"
       }
@@ -2490,7 +2490,7 @@
       "market_date": "2026-07-31",
       "data_source": "akshare:futures_zh_daily_sina",
       "bar_completed": true,
-      "bar_note": "latest source bar treated as completed",
+      "bar_note": "latest same-day bar excluded because it may still be forming",
       "model_scope": "rule_trial",
       "model_scope_label": "同规则试算",
       "market": {
@@ -2601,16 +2601,16 @@
         }
       },
       "current_quote": {
-        "price": 2319.0,
-        "change": "+0.13%",
-        "direction": "↑",
+        "price": 2309.0,
+        "change": "-0.43%",
+        "direction": "↓",
         "trade_date": "2026-08-03",
         "source": "akshare:futures_zh_realtime",
         "unit": "元/吨"
       }
     },
     {
-      "symbol": "RM2701",
+      "symbol": "RM2611",
       "product": "RM",
       "product_name": "菜粕",
       "rank": 2,
@@ -2618,15 +2618,15 @@
       "market_date": "2026-07-31",
       "data_source": "akshare:futures_zh_daily_sina",
       "bar_completed": true,
-      "bar_note": "latest source bar treated as completed",
+      "bar_note": "latest same-day bar excluded because it may still be forming",
       "model_scope": "rule_trial",
       "model_scope_label": "同规则试算",
       "market": {
-        "close": 2248.0,
-        "ma6": 2302.5,
-        "ma20": 2274.15,
-        "atr14": 34.42472564294062,
-        "rsi14": 45.974765196221796,
+        "close": 2216.0,
+        "ma6": 2268.1666666666665,
+        "ma20": 2229.9,
+        "atr14": 37.550349292315374,
+        "rsi14": 47.6864511691572,
         "long_signal": false,
         "short_signal": false,
         "bearish_divergence": false,
@@ -2635,7 +2635,7 @@
       "signals": {
         "flat": {
           "status": "ok",
-          "symbol": "RM2701",
+          "symbol": "RM2611",
           "period": "daily",
           "market_date": "2026-07-31",
           "position": "flat",
@@ -2646,11 +2646,11 @@
           ],
           "blocked_direction_after_action": "none",
           "market": {
-            "close": 2248.0,
-            "ma6": 2302.5,
-            "ma20": 2274.15,
-            "atr14": 34.42472564294062,
-            "rsi14": 45.974765196221796,
+            "close": 2216.0,
+            "ma6": 2268.1666666666665,
+            "ma20": 2229.9,
+            "atr14": 37.550349292315374,
+            "rsi14": 47.6864511691572,
             "long_signal": false,
             "short_signal": false,
             "bearish_divergence": false,
@@ -2664,7 +2664,7 @@
         },
         "long": {
           "status": "ok",
-          "symbol": "RM2701",
+          "symbol": "RM2611",
           "period": "daily",
           "market_date": "2026-07-31",
           "position": "long",
@@ -2675,11 +2675,11 @@
           ],
           "blocked_direction_after_action": "none",
           "market": {
-            "close": 2248.0,
-            "ma6": 2302.5,
-            "ma20": 2274.15,
-            "atr14": 34.42472564294062,
-            "rsi14": 45.974765196221796,
+            "close": 2216.0,
+            "ma6": 2268.1666666666665,
+            "ma20": 2229.9,
+            "atr14": 37.550349292315374,
+            "rsi14": 47.6864511691572,
             "long_signal": false,
             "short_signal": false,
             "bearish_divergence": false,
@@ -2696,7 +2696,7 @@
         },
         "short": {
           "status": "ok",
-          "symbol": "RM2701",
+          "symbol": "RM2611",
           "period": "daily",
           "market_date": "2026-07-31",
           "position": "short",
@@ -2707,11 +2707,11 @@
           ],
           "blocked_direction_after_action": "none",
           "market": {
-            "close": 2248.0,
-            "ma6": 2302.5,
-            "ma20": 2274.15,
-            "atr14": 34.42472564294062,
-            "rsi14": 45.974765196221796,
+            "close": 2216.0,
+            "ma6": 2268.1666666666665,
+            "ma20": 2229.9,
+            "atr14": 37.550349292315374,
+            "rsi14": 47.6864511691572,
             "long_signal": false,
             "short_signal": false,
             "bearish_divergence": false,
@@ -2720,7 +2720,7 @@
           "stop_state": {
             "armed": true,
             "close_above_ma6": false,
-            "ma6": 2302.5
+            "ma6": 2268.1666666666665
           },
           "take_profit": "long: 20-day price high without RSI confirmation; short: reverse",
           "cost_assumption_one_way": 0.0004,
@@ -2729,8 +2729,8 @@
         }
       },
       "current_quote": {
-        "price": 2241.0,
-        "change": "-0.31%",
+        "price": 2196.0,
+        "change": "-0.41%",
         "direction": "↓",
         "trade_date": "2026-08-03",
         "source": "akshare:futures_zh_realtime",
