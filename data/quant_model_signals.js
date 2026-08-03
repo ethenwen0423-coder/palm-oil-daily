@@ -1,9 +1,9 @@
 window.QUANT_MODEL_SIGNALS = {
   "status": "ok",
   "schema_version": 2,
-  "generated_at": "2026-08-03T11:44:38+08:00",
-  "market_updated_at": "2026-08-03 11:38",
-  "market_update_session": "midday",
+  "generated_at": "2026-08-03T15:14:48+08:00",
+  "market_updated_at": "2026-08-03 15:09",
+  "market_update_session": "close",
   "market_timezone": "Asia/Shanghai",
   "default_model_id": "bollinger-rsi-ma6-v1",
   "models": [
@@ -208,9 +208,9 @@ window.QUANT_MODEL_SIGNALS = {
           }
         },
         "current_quote": {
-          "price": 9294.0,
-          "change": "+0.14%",
-          "direction": "↑",
+          "price": 9253.0,
+          "change": "-0.30%",
+          "direction": "↓",
           "trade_date": "2026-08-03",
           "source": "AkShare + 同花顺问财行情skill",
           "unit": "元/吨"
@@ -340,9 +340,9 @@ window.QUANT_MODEL_SIGNALS = {
           }
         },
         "current_quote": {
-          "price": 9580.0,
-          "change": "+0.14%",
-          "direction": "↑",
+          "price": 9542.0,
+          "change": "-0.26%",
+          "direction": "↓",
           "trade_date": "2026-08-03",
           "source": "AkShare + 同花顺问财行情skill",
           "unit": "元/吨"
@@ -468,11 +468,11 @@ window.QUANT_MODEL_SIGNALS = {
           }
         },
         "current_quote": {
-          "price": 8390.0,
-          "change": "+0.01%",
-          "direction": "↑",
+          "price": 8385.0,
+          "change": "-0.05%",
+          "direction": "↓",
           "trade_date": "2026-08-03",
-          "source": "AkShare + 同花顺问财行情skill",
+          "source": "akshare:futures_zh_realtime",
           "unit": "元/吨"
         }
       },
@@ -596,8 +596,8 @@ window.QUANT_MODEL_SIGNALS = {
           }
         },
         "current_quote": {
-          "price": 8392.0,
-          "change": "-0.17%",
+          "price": 8388.0,
+          "change": "-0.21%",
           "direction": "↓",
           "trade_date": "2026-08-03",
           "source": "AkShare + 同花顺问财行情skill",
@@ -724,11 +724,11 @@ window.QUANT_MODEL_SIGNALS = {
           }
         },
         "current_quote": {
-          "price": 9898.0,
-          "change": "+0.04%",
-          "direction": "↑",
+          "price": 9891.0,
+          "change": "-0.03%",
+          "direction": "↓",
           "trade_date": "2026-08-03",
-          "source": "AkShare + 同花顺问财行情skill",
+          "source": "akshare:futures_zh_realtime",
           "unit": "元/吨"
         }
       },
@@ -852,8 +852,8 @@ window.QUANT_MODEL_SIGNALS = {
           }
         },
         "current_quote": {
-          "price": 9746.0,
-          "change": "-0.34%",
+          "price": 9732.0,
+          "change": "-0.48%",
           "direction": "↓",
           "trade_date": "2026-08-03",
           "source": "akshare:futures_zh_realtime",
@@ -980,9 +980,9 @@ window.QUANT_MODEL_SIGNALS = {
           }
         },
         "current_quote": {
-          "price": 3075.0,
-          "change": "+0.13%",
-          "direction": "↑",
+          "price": 3067.0,
+          "change": "-0.13%",
+          "direction": "↓",
           "trade_date": "2026-08-03",
           "source": "AkShare + 同花顺问财行情skill",
           "unit": "元/吨"
@@ -1108,9 +1108,9 @@ window.QUANT_MODEL_SIGNALS = {
           }
         },
         "current_quote": {
-          "price": 3131.0,
-          "change": "0.00%",
-          "direction": "→",
+          "price": 3126.0,
+          "change": "-0.16%",
+          "direction": "↓",
           "trade_date": "2026-08-03",
           "source": "AkShare + 同花顺问财行情skill",
           "unit": "元/吨"
@@ -1236,8 +1236,8 @@ window.QUANT_MODEL_SIGNALS = {
           }
         },
         "current_quote": {
-          "price": 2317.0,
-          "change": "+0.04%",
+          "price": 2319.0,
+          "change": "+0.13%",
           "direction": "↑",
           "trade_date": "2026-08-03",
           "source": "akshare:futures_zh_realtime",
@@ -1364,8 +1364,8 @@ window.QUANT_MODEL_SIGNALS = {
           }
         },
         "current_quote": {
-          "price": 2242.0,
-          "change": "-0.27%",
+          "price": 2241.0,
+          "change": "-0.31%",
           "direction": "↓",
           "trade_date": "2026-08-03",
           "source": "akshare:futures_zh_realtime",
@@ -1573,9 +1573,9 @@ window.QUANT_MODEL_SIGNALS = {
         }
       },
       "current_quote": {
-        "price": 9294.0,
-        "change": "+0.14%",
-        "direction": "↑",
+        "price": 9253.0,
+        "change": "-0.30%",
+        "direction": "↓",
         "trade_date": "2026-08-03",
         "source": "AkShare + 同花顺问财行情skill",
         "unit": "元/吨"
@@ -1705,9 +1705,9 @@ window.QUANT_MODEL_SIGNALS = {
         }
       },
       "current_quote": {
-        "price": 9580.0,
-        "change": "+0.14%",
-        "direction": "↑",
+        "price": 9542.0,
+        "change": "-0.26%",
+        "direction": "↓",
         "trade_date": "2026-08-03",
         "source": "AkShare + 同花顺问财行情skill",
         "unit": "元/吨"
@@ -1833,11 +1833,11 @@ window.QUANT_MODEL_SIGNALS = {
         }
       },
       "current_quote": {
-        "price": 8390.0,
-        "change": "+0.01%",
-        "direction": "↑",
+        "price": 8385.0,
+        "change": "-0.05%",
+        "direction": "↓",
         "trade_date": "2026-08-03",
-        "source": "AkShare + 同花顺问财行情skill",
+        "source": "akshare:futures_zh_realtime",
         "unit": "元/吨"
       }
     },
@@ -1961,8 +1961,8 @@ window.QUANT_MODEL_SIGNALS = {
         }
       },
       "current_quote": {
-        "price": 8392.0,
-        "change": "-0.17%",
+        "price": 8388.0,
+        "change": "-0.21%",
         "direction": "↓",
         "trade_date": "2026-08-03",
         "source": "AkShare + 同花顺问财行情skill",
@@ -2089,11 +2089,11 @@ window.QUANT_MODEL_SIGNALS = {
         }
       },
       "current_quote": {
-        "price": 9898.0,
-        "change": "+0.04%",
-        "direction": "↑",
+        "price": 9891.0,
+        "change": "-0.03%",
+        "direction": "↓",
         "trade_date": "2026-08-03",
-        "source": "AkShare + 同花顺问财行情skill",
+        "source": "akshare:futures_zh_realtime",
         "unit": "元/吨"
       }
     },
@@ -2217,8 +2217,8 @@ window.QUANT_MODEL_SIGNALS = {
         }
       },
       "current_quote": {
-        "price": 9746.0,
-        "change": "-0.34%",
+        "price": 9732.0,
+        "change": "-0.48%",
         "direction": "↓",
         "trade_date": "2026-08-03",
         "source": "akshare:futures_zh_realtime",
@@ -2345,9 +2345,9 @@ window.QUANT_MODEL_SIGNALS = {
         }
       },
       "current_quote": {
-        "price": 3075.0,
-        "change": "+0.13%",
-        "direction": "↑",
+        "price": 3067.0,
+        "change": "-0.13%",
+        "direction": "↓",
         "trade_date": "2026-08-03",
         "source": "AkShare + 同花顺问财行情skill",
         "unit": "元/吨"
@@ -2473,9 +2473,9 @@ window.QUANT_MODEL_SIGNALS = {
         }
       },
       "current_quote": {
-        "price": 3131.0,
-        "change": "0.00%",
-        "direction": "→",
+        "price": 3126.0,
+        "change": "-0.16%",
+        "direction": "↓",
         "trade_date": "2026-08-03",
         "source": "AkShare + 同花顺问财行情skill",
         "unit": "元/吨"
@@ -2601,8 +2601,8 @@ window.QUANT_MODEL_SIGNALS = {
         }
       },
       "current_quote": {
-        "price": 2317.0,
-        "change": "+0.04%",
+        "price": 2319.0,
+        "change": "+0.13%",
         "direction": "↑",
         "trade_date": "2026-08-03",
         "source": "akshare:futures_zh_realtime",
@@ -2729,8 +2729,8 @@ window.QUANT_MODEL_SIGNALS = {
         }
       },
       "current_quote": {
-        "price": 2242.0,
-        "change": "-0.27%",
+        "price": 2241.0,
+        "change": "-0.31%",
         "direction": "↓",
         "trade_date": "2026-08-03",
         "source": "akshare:futures_zh_realtime",
