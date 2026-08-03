@@ -1,67 +1,75 @@
 {
   "schema_version": 1,
   "status": "ready",
-  "generated_at": "2026-08-03T06:47:51+08:00",
-  "update_session": "morning",
+  "generated_at": "2026-08-03T12:04:53+08:00",
+  "update_session": "midday",
   "generator": "codex-cli-default",
   "generation_contract": "read-only, source-grounded, structured-output",
-  "source_fingerprint": "a3204c95ec16297014e1e3b44e6877493fe30a32103e7ae7bf322c9306138648",
+  "source_fingerprint": "810cbb4472ba273e03cc9c64e43782163b486c22999e68a17d24663f5d99b6ab",
   "source_snapshot": {
     "reports": "2026-08-03",
-    "oil-futures": "2026-08-03 06:28",
-    "exchange-futures": "2026-08-03 06:28",
-    "quant-model-signals": "2026-08-03 06:28",
+    "oil-futures": "2026-08-03 11:38",
+    "exchange-futures": "2026-08-03 11:38",
+    "quant-model-signals": "2026-08-03 11:38",
     "supply-demand": "2026-08-03T06:23:29+08:00",
     "forecast-metrics": "2026-07-31",
-    "contracts": "2026-08-03 06:24:59"
+    "contracts": "2026-08-03 11:35:10"
   },
   "fixed_logic": [
     "otc_structure_library",
     "quant_model_rules"
   ],
-  "headline": "内外盘分化加剧，油脂共振不足，晨间仍以震荡观察为主",
+  "headline": "盘面显著分化，油脂横盘等待共振，化工与能源波动扩大",
   "market_state": "分化",
-  "summary": "油脂小幅走强但均处于中期均线下方，尚未形成同向突破；棕榈油模型出现偏空确认，与日报震荡判断存在口径差异。非油脂品种涨跌分化，部分基本面证据滞后，预测样本亦不足。",
+  "summary": "多晶硅领涨，尿素、燃油与原油承压，油脂油料整体缺少单边确认。棕榈油相对偏弱且既有入场窗口已过，仅监控后续确认信号，不追随滞后信号。",
   "key_moves": [
     {
-      "evidence_id": "report:2026-08-03",
-      "label": "油脂缺少共振，P相对偏弱，今日震荡观望；三油同向突破时失效。置信度：★★☆☆☆。",
-      "value": "2026-08-03",
-      "source": "reports",
-      "observed_at": "2026-08-03",
-      "interpretation": "油脂缺少共振，只有同向突破观察位才能改变震荡判断。"
+      "evidence_id": "exchange:PS2609",
+      "label": "多晶硅",
+      "value": "35270.0；涨跌 6.75%",
+      "source": "exchange-futures",
+      "observed_at": "2026-08-03 11:38",
+      "interpretation": "多晶硅明显走强，成为当前盘面最突出的上行异动，但基本面证据存在时滞，暂不外推趋势。"
+    },
+    {
+      "evidence_id": "exchange:UR2609",
+      "label": "尿素",
+      "value": "1666.0；涨跌 -3.92%",
+      "source": "exchange-futures",
+      "observed_at": "2026-08-03 11:38",
+      "interpretation": "尿素显著回落，化工内部强弱分化扩大，需观察弱势是否延续。"
+    },
+    {
+      "evidence_id": "exchange:FU2609",
+      "label": "燃油",
+      "value": "3423.0；涨跌 -3.03%",
+      "source": "exchange-futures",
+      "observed_at": "2026-08-03 11:38",
+      "interpretation": "燃油跟随能源板块走弱，与原油下行形成共振。"
+    },
+    {
+      "evidence_id": "oil:P2609",
+      "label": "棕榈油",
+      "value": "9294；涨跌 +0.14%",
+      "source": "oil-futures",
+      "observed_at": "2026-08-03 11:38",
+      "interpretation": "棕榈油维持震荡且技术面偏空，油脂内部尚未形成一致突破。"
     },
     {
       "evidence_id": "quant:bollinger-rsi-ma6-v1:P2609",
       "label": "棕榈油动态量化信号",
-      "value": "OPEN_SHORT；执行 next_trading_day_open",
+      "value": "MISSED_ENTRY_SIGNAL；执行 wait_for_next_confirmed_signal",
       "source": "quant-model-signals",
-      "observed_at": "2026-08-03 06:28",
-      "interpretation": "棕榈油模型确认收盘下穿中期均线，偏空信号强于其他油粕品种。"
-    },
-    {
-      "evidence_id": "exchange:EC2610",
-      "label": "集运指数(欧线)期货",
-      "value": "1780.0；涨跌 3.34%",
-      "source": "exchange-futures",
-      "observed_at": "2026-08-03 06:28",
-      "interpretation": "集运指数涨幅突出，但缺少可验证的基本面结构数据，行情强势尚无法交叉确认。"
-    },
-    {
-      "evidence_id": "exchange:I2609",
-      "label": "铁矿石",
-      "value": "698.0；涨跌 -2.51%",
-      "source": "exchange-futures",
-      "observed_at": "2026-08-03 06:28",
-      "interpretation": "铁矿石明显走弱，与能源、股指及部分化工品上涨形成跨品种分化。"
+      "observed_at": "2026-08-03 11:38",
+      "interpretation": "棕榈油既有确认后的入场窗口已经错过，当前仅等待新的完整信号。"
     }
   ],
   "watchlist": [
     {
       "priority": "高",
-      "item": "油脂同向突破确认",
+      "item": "油脂共振确认",
       "trigger": "上破观察位",
-      "why": "棕榈油、豆油和菜油同步转强才足以削弱当前震荡偏弱判断。",
+      "why": "棕榈油、豆油与菜油仍缺少同向确认，共振成立才可能改变震荡判断。",
       "evidence_ids": [
         "report:2026-08-03",
         "oil:P2609",
@@ -71,75 +79,74 @@
     },
     {
       "priority": "高",
-      "item": "棕榈油模型与日报观点收敛",
+      "item": "能源弱势延续",
+      "trigger": "下破观察位",
+      "why": "燃油与原油同步承压，若继续走弱，可能强化能源链偏弱状态。",
+      "evidence_ids": [
+        "exchange:FU2609",
+        "exchange:SC2609"
+      ]
+    },
+    {
+      "priority": "高",
+      "item": "多晶硅异动持续性",
       "trigger": "波动扩大",
-      "why": "模型偏空确认与日报震荡判断并存，需观察后续行情是否形成一致方向。",
+      "why": "多晶硅涨幅突出，但现有基本面证据滞后，需防范价格与基本面脱节。",
       "evidence_ids": [
-        "report:2026-08-03",
-        "quant:bollinger-rsi-ma6-v1:P2609",
-        "oil:P2609"
+        "exchange:PS2609"
       ]
     },
     {
       "priority": "中",
-      "item": "集运指数基本面验证",
-      "trigger": "数据恢复",
-      "why": "当前只有行情表现，库存、基差及宏观结构证据尚未取得。",
+      "item": "棕榈油新确认信号",
+      "trigger": "报告更新",
+      "why": "既有入场窗口已过，只有新的收盘确认才能提供有效研究信号。",
       "evidence_ids": [
-        "exchange:EC2610"
+        "quant:bollinger-rsi-ma6-v1:P2609"
       ]
     },
     {
       "priority": "中",
-      "item": "官方供需资料更新",
+      "item": "官方供需资料状态",
       "trigger": "官方数据更新",
-      "why": "官方来源已经检查但尚无新值，当前仍沿用最近一期数据。",
+      "why": "官方来源已完成检查但尚无新增数据，当前只能沿用最近一期资料。",
       "evidence_ids": [
         "supply:official-check"
-      ]
-    },
-    {
-      "priority": "中",
-      "item": "预测评估样本积累",
-      "trigger": "报告更新",
-      "why": "现有样本不足，暂不能将评估结果视为稳定预测能力。",
-      "evidence_ids": [
-        "forecast:latest"
       ]
     }
   ],
   "actions": [
     {
       "status": "completed",
-      "task": "汇总晨间行情、日报观点与模型状态",
-      "result": "已识别油脂共振不足、棕榈油模型偏空确认及跨品种分化。",
+      "task": "识别盘面主要强弱分化",
+      "result": "确认多晶硅偏强、能源与部分化工偏弱，油脂油料以震荡为主。",
       "next_check": "下一次行情刷新"
     },
     {
       "status": "monitoring",
-      "task": "监控油脂共振和跨品种波动扩散",
-      "result": "等待油脂观察位有效突破，或分化行情进一步扩大。",
-      "next_check": "持续监控"
+      "task": "监控油脂同向突破与棕榈油新确认信号",
+      "result": "当前尚未出现油脂共振，棕榈油滞后信号不作追随。",
+      "next_check": "下一次行情刷新"
     },
     {
       "status": "blocked",
-      "task": "验证集运指数基本面结构",
-      "result": "库存、基差及宏观结构化数据缺失，当前无法形成基本面结论。",
-      "next_check": "数据恢复后"
-    },
-    {
-      "status": "blocked",
-      "task": "评估预测可靠性",
-      "result": "评估样本不足，暂不能确认稳定预测能力。",
+      "task": "评估预测能力稳定性",
+      "result": "有效评估样本不足，无法形成可靠能力判断。",
       "next_check": "下一次报告更新"
+    },
+    {
+      "status": "monitoring",
+      "task": "跟踪官方供需资料更新",
+      "result": "官方来源已检查，暂未发布新增资料。",
+      "next_check": "下一次官方数据检查"
     }
   ],
   "risks": [
-    "棕榈油量化信号与日报震荡观点存在口径差异，方向尚未统一。",
-    "部分非油脂品种的基本面证据早于晨间行情快照，可能无法解释最新波动。",
-    "集运指数缺少可验证的基本面结构数据，价格强势的持续性需进一步核验。",
-    "油脂库存与部分外盘驱动并非当日新增信息，只能作为降权背景。",
-    "预测评估样本不足，不能据此推断可靠预测能力。"
+    "交易所品种的基本面证据停留在前一交易阶段，与当前盘中价格存在时间差。",
+    "菜油观点置信度偏低，油脂内部信号仍有分歧。",
+    "官方供需资料尚未更新，当前背景信息可能无法解释盘中异动。",
+    "预测评估样本不足，不能将当前判断包装为稳定预测能力。",
+    "显著涨跌仅代表盘中异动，单项基本面证据不足以确认趋势。"
   ],
-  "confidence": "低"
+  "confidence": "中"
 }
