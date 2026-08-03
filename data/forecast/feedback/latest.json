@@ -13,33 +13,33 @@
     "sample_count": 1
   },
   "human_approval_required": false,
-  "metrics_as_of": "2026-07-31",
+  "metrics_as_of": "2026-08-03",
   "minimum_active_trade_days": 5,
   "overall_metrics": {
-    "close_range_coverage": 0.972222,
-    "directional_accuracy": 0.277778,
+    "close_range_coverage": 0.974359,
+    "directional_accuracy": 0.307692,
     "interval_width_ratio": null,
-    "mean_brier_score": 0.339815,
-    "sample_count": 36
+    "mean_brier_score": 0.327179,
+    "sample_count": 39
   },
   "products": {
     "OI": {
       "action": "downgrade_directional_claim",
-      "close_range_coverage": 0.916667,
-      "directional_accuracy": 0.25,
+      "close_range_coverage": 0.923077,
+      "directional_accuracy": 0.307692,
       "max_confidence": "low",
       "max_confidence_stars": 2,
-      "miss_rate": 0.083333,
+      "miss_rate": 0.076923,
       "product": "OI",
       "reasons": [
         "方向命中率低于45%"
       ],
-      "sample_count": 12
+      "sample_count": 13
     },
     "P": {
       "action": "downgrade_directional_claim",
       "close_range_coverage": 1.0,
-      "directional_accuracy": 0.25,
+      "directional_accuracy": 0.230769,
       "max_confidence": "low",
       "max_confidence_stars": 2,
       "miss_rate": 0.0,
@@ -47,12 +47,12 @@
       "reasons": [
         "方向命中率低于45%"
       ],
-      "sample_count": 12
+      "sample_count": 13
     },
     "Y": {
       "action": "downgrade_directional_claim",
       "close_range_coverage": 1.0,
-      "directional_accuracy": 0.333333,
+      "directional_accuracy": 0.384615,
       "max_confidence": "low",
       "max_confidence_stars": 2,
       "miss_rate": 0.0,
@@ -60,15 +60,15 @@
       "reasons": [
         "方向命中率低于45%"
       ],
-      "sample_count": 12
+      "sample_count": 13
     }
   },
   "required_report_disclosures": [
-    "预测校准：近12个有效交易日共36条评估，P/Y/OI方向命中率分别为25.0%/33.3%/25.0%，整体Brier分数0.340，收盘区间覆盖率97.2%，区间宽度质量暂无可复现指标；P/Y/OI今日主线降级，核心置信度不高于★★☆☆☆；样本仍有限，不据此声称准确率改善。"
+    "预测校准：近13个有效交易日共39条评估，P/Y/OI方向命中率分别为23.1%/38.5%/30.8%，整体Brier分数0.327，收盘区间覆盖率97.4%，区间宽度质量暂无可复现指标；P/Y/OI今日主线降级，核心置信度不高于★★☆☆☆；样本仍有限，不据此声称准确率改善。"
   ],
   "schema_version": "forecast-generation-feedback-v1",
   "source_metrics": "data/forecast/metrics/latest.json",
   "status": "active",
-  "valid_trade_day_count": 12,
+  "valid_trade_day_count": 13,
   "version_key": "score-map-v1|outcome-v1-fixed-0.30pct"
 }
