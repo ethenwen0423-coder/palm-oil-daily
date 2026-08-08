@@ -129,6 +129,8 @@ class ServerMarketCollectorTests(unittest.TestCase):
             write_all_datasets(upstream, "bootstrap")
             first = SYNC.sync_upstream(upstream, live)
             self.assertEqual(first["bootstrapped"], list(SYNC.MARKET_PATHS))
+            self.assertEqual(first["reports_copied"], list(SYNC.REPORT_PATHS))
+            self.assertEqual(first["review_copied"], list(SYNC.REVIEW_PATHS))
             self.assertEqual(first["supply_copied"], list(SYNC.SUPPLY_PATHS))
             self.assertEqual(first["ai_copied"], list(SYNC.AI_PATHS))
 
@@ -157,6 +159,52 @@ class ServerMarketCollectorTests(unittest.TestCase):
                     )
                 )["marker"],
                 "new-upstream",
+            )
+
+    def test_research_and_review_ownership_stop_upstream_overwrites_independently(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            upstream = base / "upstream"
+            server = base / "server"
+            live = base / "live"
+            write_all_datasets(upstream, "bootstrap")
+            SYNC.sync_upstream(upstream, live)
+            write_all_datasets(server, "server")
+
+            research = SYNC.sync_research(server, live, session="daily")
+            self.assertTrue(research["server_research_owned"])
+            self.assertFalse((live / SYNC.REVIEW_READY_MARKER).exists())
+
+            write_all_datasets(upstream, "upstream-after-report")
+            interim = SYNC.sync_upstream(upstream, live)
+            self.assertEqual(interim["reports_copied"], [])
+            self.assertEqual(interim["review_copied"], list(SYNC.REVIEW_PATHS))
+            self.assertEqual(
+                json.loads((live / "reports.json").read_text(encoding="utf-8"))[0]["marker"],
+                "server",
+            )
+            self.assertEqual(
+                json.loads(
+                    (live / "forecast" / "metrics" / "latest.json").read_text(
+                        encoding="utf-8"
+                    )
+                )["marker"],
+                "upstream-after-report",
+            )
+
+            review = SYNC.sync_review(server, live, session="close")
+            self.assertTrue(review["server_review_owned"])
+            write_all_datasets(upstream, "new-upstream")
+            final = SYNC.sync_upstream(upstream, live)
+            self.assertEqual(final["reports_copied"], [])
+            self.assertEqual(final["review_copied"], [])
+            self.assertEqual(
+                json.loads(
+                    (live / "forecast" / "metrics" / "latest.json").read_text(
+                        encoding="utf-8"
+                    )
+                )["marker"],
+                "server",
             )
 
     def test_supply_ownership_is_independent_and_stops_upstream_overwrites(self):
@@ -235,6 +283,9 @@ class ServerMarketCollectorTests(unittest.TestCase):
         deploy = (ROOT / "scripts" / "deploy_oil_futures_tab.sh").read_text(
             encoding="utf-8"
         )
+        report_deploy = (ROOT / "scripts" / "deploy_report.sh").read_text(
+            encoding="utf-8"
+        )
         collector = COLLECTOR_SCRIPT.read_text(encoding="utf-8")
         self.assertIn("server/sync_live_data.py", update_site)
         self.assertIn("compose.automation.yaml", update_site)
@@ -249,6 +300,15 @@ class ServerMarketCollectorTests(unittest.TestCase):
         self.assertLess(
             deploy.index('if [[ "$PUBLISH_MODE" == "files" ]]'),
             deploy.index("git add --"),
+        )
+        self.assertIn('PUBLISH_MODE="${PALM_OIL_PUBLISH_MODE:-git}"', report_deploy)
+        self.assertIn('REPORT_DATA_MODE="${PALM_OIL_REPORT_DATA_MODE:-refresh}"', report_deploy)
+        self.assertIn('"publish_mode": "files"', report_deploy)
+        self.assertIn("use prepared server-owned market datasets", report_deploy)
+        self.assertIn("server/freeze_prepared_forecast.py", report_deploy)
+        self.assertLess(
+            report_deploy.index('if [[ "$PUBLISH_MODE" == "files" ]]'),
+            report_deploy.index("git add --"),
         )
 
 

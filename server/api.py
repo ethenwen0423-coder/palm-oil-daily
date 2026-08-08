@@ -24,6 +24,10 @@ ROUTES = {
     "/api/supply-demand": "supply-demand.json",
     "/api/contracts/current": "contracts/current_contracts.json",
     "/api/forecast/metrics/latest": "forecast/metrics/latest.json",
+    "/api/forecast/metrics/20d": "forecast/metrics/20d.json",
+    "/api/forecast/metrics/60d": "forecast/metrics/60d.json",
+    "/api/forecast/feedback/latest": "forecast/feedback/latest.json",
+    "/api/review/latest": "review/latest_review.json",
     "/api/assistant/brief": "market_assistant_brief.json",
 }
 
@@ -63,6 +67,26 @@ DATASET_RULES = {
         "stale_after_seconds": 60 * 60 * 96,
         "timestamp_fields": ("generated_at", "as_of"),
     },
+    "/api/forecast/metrics/20d": {
+        "label": "20日预测评估",
+        "stale_after_seconds": 60 * 60 * 96,
+        "timestamp_fields": ("generated_at", "as_of"),
+    },
+    "/api/forecast/metrics/60d": {
+        "label": "60日预测评估",
+        "stale_after_seconds": 60 * 60 * 96,
+        "timestamp_fields": ("generated_at", "as_of"),
+    },
+    "/api/forecast/feedback/latest": {
+        "label": "预测复盘反馈",
+        "stale_after_seconds": 60 * 60 * 96,
+        "timestamp_fields": ("generated_at", "as_of", "evaluated_at", "date"),
+    },
+    "/api/review/latest": {
+        "label": "最新复盘",
+        "stale_after_seconds": 60 * 60 * 96,
+        "timestamp_fields": ("generated_at", "reviewed_at", "date"),
+    },
     "/api/assistant/brief": {
         "label": "AI 盯盘简报",
         "stale_after_seconds": 60 * 60 * 6,
@@ -91,10 +115,30 @@ AUTOMATION_MARKERS = {
         "path": ".server-ai-ready.json",
         "routes": ("/api/assistant/brief",),
     },
+    "research": {
+        "label": "服务器研究报告",
+        "path": ".server-research-ready.json",
+        "routes": ("/api/reports",),
+    },
+    "review": {
+        "label": "服务器预测复盘",
+        "path": ".server-review-ready.json",
+        "routes": (
+            "/api/forecast/metrics/latest",
+            "/api/forecast/metrics/20d",
+            "/api/forecast/metrics/60d",
+            "/api/forecast/feedback/latest",
+            "/api/review/latest",
+        ),
+    },
 }
 UPSTREAM_ROUTES = {
     "/api/reports",
     "/api/forecast/metrics/latest",
+    "/api/forecast/metrics/20d",
+    "/api/forecast/metrics/60d",
+    "/api/forecast/feedback/latest",
+    "/api/review/latest",
 }
 
 

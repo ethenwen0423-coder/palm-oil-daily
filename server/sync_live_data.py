@@ -17,12 +17,20 @@ SHANGHAI = ZoneInfo("Asia/Shanghai")
 MARKET_READY_MARKER = ".server-market-ready.json"
 AI_READY_MARKER = ".server-ai-ready.json"
 SUPPLY_READY_MARKER = ".server-supply-ready.json"
+RESEARCH_READY_MARKER = ".server-research-ready.json"
+REVIEW_READY_MARKER = ".server-review-ready.json"
 # Backwards-compatible name for callers that only know about market ownership.
 READY_MARKER = MARKET_READY_MARKER
-UPSTREAM_PATHS = (
-    "reports.json",
+REPORT_PATHS = ("reports.json",)
+REVIEW_PATHS = (
     "forecast/metrics/latest.json",
+    "forecast/metrics/20d.json",
+    "forecast/metrics/60d.json",
+    "forecast/feedback/latest.json",
+    "review/latest_review.json",
 )
+# Backwards-compatible aggregate used by older callers and tests.
+UPSTREAM_PATHS = REPORT_PATHS + REVIEW_PATHS
 SUPPLY_PATHS = ("supply-demand.json",)
 MARKET_PATHS = (
     "oil_futures.js",
@@ -40,6 +48,10 @@ JSON_PATHS = {
     "reports.json",
     "supply-demand.json",
     "forecast/metrics/latest.json",
+    "forecast/metrics/20d.json",
+    "forecast/metrics/60d.json",
+    "forecast/feedback/latest.json",
+    "review/latest_review.json",
     "oil_futures.json",
     "exchange_futures.json",
     "quant_model_signals.json",
@@ -155,37 +167,42 @@ def sync_upstream(source_root: Path, target_root: Path) -> dict[str, object]:
     market_owned = (target_root / MARKET_READY_MARKER).exists()
     ai_owned = (target_root / AI_READY_MARKER).exists()
     supply_owned = (target_root / SUPPLY_READY_MARKER).exists()
-    requested = UPSTREAM_PATHS
+    research_owned = (target_root / RESEARCH_READY_MARKER).exists()
+    review_owned = (target_root / REVIEW_READY_MARKER).exists()
+    groups: list[tuple[str, tuple[str, ...]]] = []
+    if not research_owned:
+        groups.append(("reports", REPORT_PATHS))
+    if not review_owned:
+        groups.append(("review", REVIEW_PATHS))
     if not supply_owned:
-        requested += SUPPLY_PATHS
+        groups.append(("supply", SUPPLY_PATHS))
     if not market_owned:
-        requested += MARKET_PATHS
+        groups.append(("market", MARKET_PATHS))
     if not ai_owned:
-        requested += AI_PATHS
+        groups.append(("ai", AI_PATHS))
+    requested = tuple(relative for _, paths in groups for relative in paths)
     synchronized = synchronize_paths(
         source_root,
         target_root,
         requested,
         required=True,
     )
-    offset = len(UPSTREAM_PATHS)
-    copied = synchronized[:offset]
-    bootstrapped = []
-    supply_copied = []
-    if not supply_owned:
-        supply_copied = synchronized[offset : offset + len(SUPPLY_PATHS)]
-        offset += len(SUPPLY_PATHS)
-    if not market_owned:
-        bootstrapped = synchronized[offset : offset + len(MARKET_PATHS)]
-        offset += len(MARKET_PATHS)
-    ai_copied = [] if ai_owned else synchronized[offset : offset + len(AI_PATHS)]
+    copied_groups: dict[str, list[str]] = {}
+    offset = 0
+    for name, paths in groups:
+        copied_groups[name] = synchronized[offset : offset + len(paths)]
+        offset += len(paths)
     return {
         "status": "ok",
         "mode": "upstream",
-        "copied": copied,
-        "supply_copied": supply_copied,
-        "bootstrapped": bootstrapped,
-        "ai_copied": ai_copied,
+        "copied": copied_groups.get("reports", []) + copied_groups.get("review", []),
+        "reports_copied": copied_groups.get("reports", []),
+        "review_copied": copied_groups.get("review", []),
+        "supply_copied": copied_groups.get("supply", []),
+        "bootstrapped": copied_groups.get("market", []),
+        "ai_copied": copied_groups.get("ai", []),
+        "server_research_owned": research_owned,
+        "server_review_owned": review_owned,
         "server_supply_owned": supply_owned,
         "server_market_owned": market_owned,
         "server_ai_owned": ai_owned,
@@ -246,6 +263,60 @@ def sync_ai(
     }
 
 
+def sync_research(
+    source_root: Path,
+    target_root: Path,
+    *,
+    session: str,
+) -> dict[str, object]:
+    copied = synchronize_paths(
+        source_root,
+        target_root,
+        REPORT_PATHS,
+        required=True,
+    )
+    write_marker(
+        target_root,
+        RESEARCH_READY_MARKER,
+        session=session,
+        owner="server-research-agent",
+    )
+    return {
+        "status": "ok",
+        "mode": "research",
+        "session": session,
+        "copied": copied,
+        "server_research_owned": True,
+    }
+
+
+def sync_review(
+    source_root: Path,
+    target_root: Path,
+    *,
+    session: str,
+) -> dict[str, object]:
+    copied = synchronize_paths(
+        source_root,
+        target_root,
+        REVIEW_PATHS,
+        required=True,
+    )
+    write_marker(
+        target_root,
+        REVIEW_READY_MARKER,
+        session=session,
+        owner="server-prediction-review",
+    )
+    return {
+        "status": "ok",
+        "mode": "review",
+        "session": session,
+        "copied": copied,
+        "server_review_owned": True,
+    }
+
+
 def sync_supply(
     source_root: Path,
     target_root: Path,
@@ -277,7 +348,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--mode",
-        choices=("upstream", "market", "ai", "supply"),
+        choices=("upstream", "market", "ai", "supply", "research", "review"),
         required=True,
     )
     parser.add_argument("--source", type=Path, required=True)
@@ -297,6 +368,18 @@ def main() -> int:
             )
         elif args.mode == "ai":
             payload = sync_ai(
+                source_root,
+                target_root,
+                session=args.session,
+            )
+        elif args.mode == "research":
+            payload = sync_research(
+                source_root,
+                target_root,
+                session=args.session,
+            )
+        elif args.mode == "review":
+            payload = sync_review(
                 source_root,
                 target_root,
                 session=args.session,

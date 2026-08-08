@@ -189,7 +189,10 @@ def evaluated_at_for_run(evaluated_path: Path) -> str:
     return datetime.now(SHANGHAI).isoformat(timespec="seconds")
 
 
-def run_review_pipeline(review_date: str) -> dict[str, Any]:
+def run_review_pipeline(
+    review_date: str,
+    prepared_actual: Path | None = None,
+) -> dict[str, Any]:
     forecast_path = FORECAST_DIR / f"{review_date}.json"
     actual_path = SNAPSHOT_DIR / f"{review_date}-actual-oil_futures.js"
     previous_path = SNAPSHOT_DIR / f"{review_date}-previous-oil_futures.js"
@@ -199,12 +202,13 @@ def run_review_pipeline(review_date: str) -> dict[str, Any]:
     if not forecast_path.exists():
         raise StageFailure("forecast_missing", f"冻结预测不存在：{_relative(forecast_path)}")
     required_scripts = {
-        "actual_snapshot": UPDATE_SCRIPT,
         "daily_review": REVIEW_SCRIPT,
         "forecast_evaluation": EVALUATE_SCRIPT,
         "metrics": METRICS_SCRIPT,
         "generation_feedback": FEEDBACK_SCRIPT,
     }
+    if prepared_actual is None:
+        required_scripts["actual_snapshot"] = UPDATE_SCRIPT
     for stage, script in required_scripts.items():
         if not script.exists():
             raise StageFailure(stage, f"依赖脚本不存在：{_relative(script)}")
@@ -216,21 +220,30 @@ def run_review_pipeline(review_date: str) -> dict[str, Any]:
     FEEDBACK_DIR.mkdir(parents=True, exist_ok=True)
     archive_morning_tab(previous_path)
 
-    actual = run_stage(
-        [
-            sys.executable,
-            str(UPDATE_SCRIPT),
-            "--mode",
-            "actual-snapshot",
-            "--snapshot-date",
-            review_date,
-            "--output",
-            str(actual_path),
-        ],
-        "actual_snapshot",
-    )
-    if actual.returncode != 0:
-        raise StageFailure("actual_snapshot", _command_reason(actual, "actual快照生成失败"))
+    if prepared_actual is not None:
+        try:
+            _write_text_atomically(
+                actual_path,
+                prepared_actual.read_text(encoding="utf-8"),
+            )
+        except OSError as exc:
+            raise StageFailure("actual_snapshot", f"服务器收盘快照复制失败：{exc}") from exc
+    else:
+        actual = run_stage(
+            [
+                sys.executable,
+                str(UPDATE_SCRIPT),
+                "--mode",
+                "actual-snapshot",
+                "--snapshot-date",
+                review_date,
+                "--output",
+                str(actual_path),
+            ],
+            "actual_snapshot",
+        )
+        if actual.returncode != 0:
+            raise StageFailure("actual_snapshot", _command_reason(actual, "actual快照生成失败"))
     validate_actual_snapshot(actual_path, review_date)
 
     review = run_stage(
@@ -382,6 +395,11 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--date", help="Review date, YYYY-MM-DD. Defaults to today in Asia/Shanghai.")
     parser.add_argument("--force", action="store_true", help="Run even on weekends.")
+    parser.add_argument(
+        "--prepared-actual",
+        type=Path,
+        help="Use an already collected close snapshot instead of fetching again.",
+    )
     args = parser.parse_args()
 
     try:
@@ -396,7 +414,7 @@ def main() -> int:
         return 0
 
     try:
-        result = run_review_pipeline(review_date)
+        result = run_review_pipeline(review_date, args.prepared_actual)
     except StageFailure as exc:
         result = {"date": review_date, "status": "failed", "stage": exc.stage, "reason": exc.reason}
         print(json.dumps(result, ensure_ascii=False, sort_keys=True))

@@ -39,6 +39,10 @@ for payload in \
   data/supply-demand.json \
   data/contracts/current_contracts.json \
   data/forecast/metrics/latest.json \
+  data/forecast/metrics/20d.json \
+  data/forecast/metrics/60d.json \
+  data/forecast/feedback/latest.json \
+  data/review/latest_review.json \
   data/market_assistant_brief.json
 do
   python3 -m json.tool "$payload" >/dev/null
