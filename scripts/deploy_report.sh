@@ -3,6 +3,23 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
+PUBLISH_MODE="${PALM_OIL_PUBLISH_MODE:-git}"
+REPORT_DATA_MODE="${PALM_OIL_REPORT_DATA_MODE:-refresh}"
+case "$PUBLISH_MODE" in
+  git|files) ;;
+  *)
+    echo "PALM_OIL_PUBLISH_MODE must be git or files" >&2
+    exit 2
+    ;;
+esac
+case "$REPORT_DATA_MODE" in
+  refresh|prepared) ;;
+  *)
+    echo "PALM_OIL_REPORT_DATA_MODE must be refresh or prepared" >&2
+    exit 2
+    ;;
+esac
+
 changed_reports=()
 while IFS= read -r report_path; do
   changed_reports+=("$report_path")
@@ -88,7 +105,7 @@ for report_path in "${changed_reports[@]}"; do
   fi
 done
 
-if [[ "$update_oil_futures_tab" == true ]]; then
+if [[ "$update_oil_futures_tab" == true && "$REPORT_DATA_MODE" == "refresh" ]]; then
   report_date="${unique_daily_dates[0]}"
   time_metadata="$({ python3 scripts/update_oil_futures_data.py \
     --report-date "$report_date" \
@@ -104,6 +121,12 @@ if [[ "$update_oil_futures_tab" == true ]]; then
     --cutoff-at "$cutoff_at" \
     --update-session morning
   python3 skills/data_quality_gate_skill/scripts/validate_data.py --oil-futures data/oil_futures.js --strict
+elif [[ "$update_oil_futures_tab" == true ]]; then
+  echo "use prepared server-owned market datasets for daily report deploy"
+  python3 skills/data_quality_gate_skill/scripts/validate_data.py --oil-futures data/oil_futures.js --strict
+  python3 server/freeze_prepared_forecast.py \
+    --report-date "$report_date" \
+    --oil-futures data/oil_futures.js
 else
   echo "skip oil futures tab update for weekly-only report deploy"
 fi
@@ -112,6 +135,20 @@ python3 scripts/publish_report.py
 
 if git diff --quiet -- reports data downloads; then
   echo "no report changes to deploy"
+  exit 0
+fi
+
+if [[ "$PUBLISH_MODE" == "files" ]]; then
+  python3 - "$REPORT_DATA_MODE" <<'PY'
+import json
+import sys
+
+print(json.dumps({
+    "status": "ok",
+    "publish_mode": "files",
+    "report_data_mode": sys.argv[1],
+}, ensure_ascii=False, sort_keys=True))
+PY
   exit 0
 fi
 

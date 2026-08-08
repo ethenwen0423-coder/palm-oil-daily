@@ -20,16 +20,24 @@ DEFAULT_SITE_ROOT = Path("/srv/palm-oil-daily/site")
 DEFAULT_DEPLOY_ROOT = Path("/srv/palm-oil-daily/deploy")
 DEFAULT_MARKET_PYTHON = Path("/srv/palm-oil-daily/venv/bin/python")
 DEFAULT_STATE_ROOT = Path("/srv/palm-oil-daily/state")
+DEFAULT_LIVE_DATA_ROOT = Path("/srv/palm-oil-daily/live-data")
 REQUIRED_PYTHON_MODULES = ("requests", "akshare", "pandas", "numpy")
 REQUIRED_REPOSITORY_PATHS = (
     "server/enable_ai_automation.sh",
     "server/install_automation.sh",
+    "server/install_codex_cli.sh",
     "server/requirements-market.txt",
     "server/run_ai_brief.py",
+    "server/run_research_agent.py",
+    "server/run_prediction_review.py",
+    "server/build_report_inputs.py",
+    "server/freeze_prepared_forecast.py",
     "server/run_market_collector.py",
     "server/run_supply_demand.py",
     "server/sync_live_data.py",
     "scripts/deploy_oil_futures_tab.sh",
+    "scripts/deploy_report.sh",
+    "scripts/review_prediction.py",
     "scripts/update_oil_futures_data.py",
     "scripts/update_exchange_futures_data.py",
     "scripts/update_quant_model_data.py",
@@ -169,6 +177,7 @@ def inspect_api_mounts(container_id: str) -> list[dict[str, Any]]:
 
 def docker_status(deploy_root: Path) -> dict[str, Any]:
     config = compose_path(deploy_root)
+    override = deploy_root / "compose.automation.yaml"
     docker_available = shutil.which("docker") is not None
     compose_available = False
     services: list[str] = []
@@ -178,6 +187,8 @@ def docker_status(deploy_root: Path) -> dict[str, Any]:
         compose_available = run(["docker", "compose", "version"]).returncode == 0
     if config and compose_available:
         base = ["docker", "compose", "-f", str(config)]
+        if override.is_file():
+            base.extend(["-f", str(override)])
         services = command_output([*base, "config", "--services"]).splitlines()
         running_services = command_output(
             [*base, "ps", "--status", "running", "--services"]
@@ -188,6 +199,7 @@ def docker_status(deploy_root: Path) -> dict[str, Any]:
         "available": docker_available,
         "compose_available": compose_available,
         "compose_path": str(config) if config else None,
+        "compose_override": str(override) if override.is_file() else None,
         "services": services,
         "running_services": running_services,
         "api_mounts": api_mounts,
@@ -252,7 +264,57 @@ def systemd_status() -> dict[str, Any]:
             for line in timer_output.splitlines()
             if AUTOMATION_UNIT_PATTERN.search(line)
         ][:50]
-    return {"available": available, "unit_files": units, "timers": timers}
+    required = (
+        "palm-oil-market-collector.timer",
+        "palm-oil-supply-demand.timer",
+        "palm-oil-ai-brief.timer",
+        "palm-oil-research-agent.timer",
+        "palm-oil-prediction-review.timer",
+    )
+    states: dict[str, dict[str, bool]] = {}
+    if available:
+        for name in required:
+            states[name] = {
+                "enabled": run(["systemctl", "is-enabled", "--quiet", name]).returncode == 0,
+                "active": run(["systemctl", "is-active", "--quiet", name]).returncode == 0,
+            }
+    else:
+        states = {name: {"enabled": False, "active": False} for name in required}
+    return {
+        "available": available,
+        "unit_files": units,
+        "timers": timers,
+        "required_timers": states,
+    }
+
+
+def live_data_status(site_root: Path, live_data_root: Path) -> dict[str, Any]:
+    try:
+        import importlib.util
+
+        script = site_root / "server" / "api.py"
+        spec = importlib.util.spec_from_file_location("server_audit_api", script)
+        if spec is None or spec.loader is None:
+            raise OSError(f"cannot load {script}")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        status = module.build_status(live_data_root)
+    except (OSError, RuntimeError, ValueError, json.JSONDecodeError) as exc:
+        return {
+            "path": str(live_data_root),
+            "available": False,
+            "error": str(exc),
+            "status": "invalid",
+            "datasets": {},
+            "automation": {},
+        }
+    return {
+        "path": str(live_data_root),
+        "available": live_data_root.is_dir(),
+        "status": status.get("status"),
+        "datasets": status.get("datasets", {}),
+        "automation": status.get("automation", {}),
+    }
 
 
 def probe_python_modules(executable: Path) -> tuple[str | None, dict[str, bool]]:
@@ -334,7 +396,8 @@ def credential_capabilities(
             command_output(["git", "config", "--global", "--get", "credential.helper"])
         ),
         "deploy_env_present": (deploy_root / ".env").is_file(),
-        "private_env_present": (deploy_root / "private.env").is_file(),
+        "private_env_present": (deploy_root / "private.env").is_file()
+        or (state_root / "private.env").is_file(),
     }
 
 
@@ -345,12 +408,14 @@ def build_audit(
     network: bool = False,
     access_mode: str = "private",
     state_root: Path = DEFAULT_STATE_ROOT,
+    live_data_root: Path = DEFAULT_LIVE_DATA_ROOT,
 ) -> dict[str, Any]:
     repository = repository_status(site_root, network=network)
     docker = docker_status(deploy_root)
     python = python_status(site_root)
     systemd = systemd_status()
     credentials = credential_capabilities(deploy_root, state_root)
+    live_data = live_data_status(site_root, live_data_root)
     public_listeners = public_web_listeners()
     blockers: list[str] = []
     if platform.system() != "Linux":
@@ -378,6 +443,30 @@ def build_audit(
     )
     if ai_backend == "missing":
         blockers.append("no authenticated unattended AI backend is configured")
+    required_timer_states = systemd.get("required_timers", {})
+    inactive_timers = [
+        name
+        for name, state in required_timer_states.items()
+        if not state.get("enabled") or not state.get("active")
+    ]
+    if inactive_timers:
+        blockers.append(f"required automation timers are inactive: {', '.join(inactive_timers)}")
+    if not (state_root / "research-backend.accepted.json").is_file():
+        blockers.append("server research model has not passed real-output acceptance")
+    if not live_data.get("available"):
+        blockers.append("server live-data directory is unavailable")
+    unavailable_datasets = [
+        route
+        for route, item in live_data.get("datasets", {}).items()
+        if item.get("state") in {"missing", "invalid"}
+    ]
+    if unavailable_datasets:
+        blockers.append(
+            "server live datasets are unavailable: " + ", ".join(unavailable_datasets)
+        )
+    for owner in ("market", "supply", "ai"):
+        if live_data.get("automation", {}).get(owner, {}).get("state") != "ready":
+            blockers.append(f"server {owner} automation has no successful ownership marker")
     api_data_mount = next(
         (
             item
@@ -402,6 +491,7 @@ def build_audit(
         "repository": repository,
         "docker": docker,
         "systemd": systemd,
+        "live_data": live_data,
         "python": python,
         "credentials": credentials,
         "access": {
@@ -414,6 +504,9 @@ def build_audit(
             and python["technical_runtime_present"],
             "ai_backend": ai_backend,
             "api_data_mount": api_data_mount,
+            "research_backend_accepted": (
+                state_root / "research-backend.accepted.json"
+            ).is_file(),
             "live_data_mount_required": not bool(
                 api_data_mount
                 and str(api_data_mount.get("source") or "").rstrip("/").endswith(
@@ -431,6 +524,11 @@ def main() -> int:
         "--site-root",
         type=Path,
         default=Path(os.environ.get("PALM_OIL_SITE_ROOT", DEFAULT_SITE_ROOT)),
+    )
+    parser.add_argument(
+        "--live-data-root",
+        type=Path,
+        default=Path(os.environ.get("PALM_OIL_LIVE_DATA_ROOT", DEFAULT_LIVE_DATA_ROOT)),
     )
     parser.add_argument(
         "--deploy-root",
@@ -460,6 +558,7 @@ def main() -> int:
         network=args.network,
         access_mode=args.access_mode,
         state_root=args.state_root.resolve(),
+        live_data_root=args.live_data_root.resolve(),
     )
     print(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))
     return 0 if payload["status"] == "ready" else 2

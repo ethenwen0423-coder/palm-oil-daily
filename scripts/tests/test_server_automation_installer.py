@@ -9,6 +9,7 @@ INSTALLER = ROOT / "server" / "install_automation.sh"
 AUDIT = ROOT / "server" / "audit_runtime.py"
 REQUIREMENTS = ROOT / "server" / "requirements-market.txt"
 AI_ENABLEMENT = ROOT / "server" / "enable_ai_automation.sh"
+CODEX_INSTALLER = ROOT / "server" / "install_codex_cli.sh"
 
 
 class ServerAutomationInstallerTests(unittest.TestCase):
@@ -34,8 +35,10 @@ class ServerAutomationInstallerTests(unittest.TestCase):
         self.assertIn("systemctl enable --now palm-oil-market-collector.timer", script)
         self.assertIn("systemctl enable --now palm-oil-supply-demand.timer", script)
         self.assertIn("systemctl start palm-oil-supply-demand.service", script)
+        self.assertIn("systemctl enable --now palm-oil-prediction-review.timer", script)
         self.assertNotIn("systemctl enable --now palm-oil-ai-brief.timer", script)
-        self.assertIn("AI service units installed but timer intentionally left disabled", script)
+        self.assertNotIn("systemctl enable --now palm-oil-research-agent.timer", script)
+        self.assertIn("AI and research service units installed", script)
         self.assertIn('if [[ "$PUBLIC_ACCESS_MODE" == "private" ]]', script)
         self.assertIn('stop web || true', script)
         self.assertIn('up -d --no-deps api', script)
@@ -51,15 +54,23 @@ class ServerAutomationInstallerTests(unittest.TestCase):
             encoding="utf-8"
         )
         ai = (ROOT / "server" / "run_ai_brief.py").read_text(encoding="utf-8")
+        research = (ROOT / "server" / "run_research_agent.py").read_text(
+            encoding="utf-8"
+        )
+        review = (ROOT / "server" / "run_prediction_review.py").read_text(
+            encoding="utf-8"
+        )
         updater = (ROOT / "server" / "update-site.sh").read_text(encoding="utf-8")
         self.assertIn('state_root / "automation.lock"', market)
         self.assertIn('state_root / "automation.lock"', supply)
         self.assertIn('state_root / "automation.lock"', ai)
+        self.assertIn('state_root / "automation.lock"', research)
+        self.assertIn('state_root / "automation.lock"', review)
         self.assertIn('"$STATE_ROOT/automation.lock"', updater)
         self.assertIn("ProtectSystem=strict", installer)
         self.assertIn(
             "ReadWritePaths=$LIVE_DATA_ROOT $STATE_ROOT "
-            "$MARKET_RUNTIME_ROOT $AI_RUNTIME_ROOT",
+            "$MARKET_RUNTIME_ROOT $AI_RUNTIME_ROOT $RESEARCH_RUNTIME_ROOT",
             installer,
         )
         self.assertIn(
@@ -69,7 +80,9 @@ class ServerAutomationInstallerTests(unittest.TestCase):
         )
         self.assertIn('"*-*-* *:0/10:00"', installer)
         self.assertIn('"*-*-* *:02/10:00"', installer)
-        self.assertIn('"*-*-* 09:20:00 Asia/Shanghai"', installer)
+        self.assertIn('"*-*-* *:07/20:00"', installer)
+        self.assertIn('"*-*-* *:10/15:00"', installer)
+        self.assertIn('"*-*-* 09..23:17:00 Asia/Shanghai"', installer)
         self.assertIn('PUBLIC_ACCESS_MODE="${PALM_OIL_PUBLIC_ACCESS_MODE:-private}"', updater)
         self.assertIn('compose exec -T api python3 -c', updater)
         self.assertIn('compose stop web || true', updater)
@@ -100,12 +113,30 @@ class ServerAutomationInstallerTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         script = AI_ENABLEMENT.read_text(encoding="utf-8")
         self.assertIn("login --device-auth", script)
+        self.assertIn("login --with-api-key", script)
         self.assertIn("login status", script)
         self.assertIn("systemctl disable --now palm-oil-ai-brief.timer", script)
+        self.assertIn("systemctl disable --now palm-oil-research-agent.timer", script)
         self.assertIn("run_ai_brief.py", script)
+        self.assertIn("run_research_agent.py", script)
+        self.assertIn("--acceptance-only", script)
         self.assertIn(".server-ai-ready.json", script)
         self.assertIn("systemctl enable --now palm-oil-ai-brief.timer", script)
+        self.assertIn("systemctl enable --now palm-oil-research-agent.timer", script)
         self.assertNotIn("--mock-response", script)
+
+    def test_codex_installer_uses_official_package_without_credentials(self):
+        result = subprocess.run(
+            ["bash", "-n", str(CODEX_INSTALLER)],
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        script = CODEX_INSTALLER.read_text(encoding="utf-8")
+        self.assertIn("npm install --global @openai/codex", script)
+        self.assertIn('MODE="${1:---dry-run}"', script)
+        self.assertNotIn("OPENAI_API_KEY", script)
 
     def test_runtime_audit_probes_the_server_venv_when_present(self):
         import importlib.util

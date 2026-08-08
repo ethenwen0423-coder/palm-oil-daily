@@ -32,6 +32,11 @@ class ServerApiStatusTests(unittest.TestCase):
         self.assertEqual(API.ROUTES["/api/supply-demand"], "supply-demand.json")
         self.assertEqual(API.ROUTES["/api/reports"], "reports.json")
         self.assertEqual(API.ROUTES["/api/assistant/brief"], "market_assistant_brief.json")
+        self.assertEqual(
+            API.ROUTES["/api/forecast/feedback/latest"],
+            "forecast/feedback/latest.json",
+        )
+        self.assertEqual(API.ROUTES["/api/review/latest"], "review/latest_review.json")
 
     def test_server_update_runner_validates_all_mutable_payloads(self):
         runner = (ROOT / "server" / "update-site.sh").read_text(encoding="utf-8")
@@ -42,6 +47,10 @@ class ServerApiStatusTests(unittest.TestCase):
             "data/quant_model_signals.json",
             "data/supply-demand.json",
             "data/market_assistant_brief.json",
+            "data/forecast/metrics/20d.json",
+            "data/forecast/metrics/60d.json",
+            "data/forecast/feedback/latest.json",
+            "data/review/latest_review.json",
         ):
             self.assertIn(path, runner)
         self.assertIn('cmp -s server/api.py "$DEPLOY_ROOT/api.py"', runner)
@@ -105,7 +114,40 @@ class ServerApiStatusTests(unittest.TestCase):
             "server-market-collector",
         )
         self.assertEqual(status["automation"]["supply"]["state"], "pending")
+        self.assertEqual(status["automation"]["research"]["state"], "pending")
         self.assertNotIn("credential", json.dumps(status))
+
+    def test_research_and_review_markers_replace_upstream_ownership(self):
+        now = datetime(2026, 7, 30, 14, 0, tzinfo=timezone.utc)
+        self.write_json("reports.json", [{"date": "2026-07-30"}])
+        self.write_json("forecast/metrics/latest.json", {"as_of": "2026-07-30"})
+        self.write_json(
+            ".server-research-ready.json",
+            {
+                "generated_at": "2026-07-30T21:55:00+08:00",
+                "session": "daily",
+                "owner": "server-research-agent",
+            },
+        )
+        self.write_json(
+            ".server-review-ready.json",
+            {
+                "generated_at": "2026-07-30T21:56:00+08:00",
+                "session": "close",
+                "owner": "server-prediction-review",
+            },
+        )
+
+        status = API.build_status(self.data_root, now=now)
+
+        self.assertEqual(
+            status["datasets"]["/api/reports"]["owner"],
+            "server-research-agent",
+        )
+        self.assertEqual(
+            status["datasets"]["/api/forecast/metrics/latest"]["owner"],
+            "server-prediction-review",
+        )
 
     def test_report_array_uses_latest_report_date(self):
         now = datetime(2026, 7, 30, 14, 0, tzinfo=timezone.utc)

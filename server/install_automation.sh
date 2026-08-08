@@ -7,6 +7,7 @@ LIVE_DATA_ROOT="${PALM_OIL_LIVE_DATA_ROOT:-/srv/palm-oil-daily/live-data}"
 STATE_ROOT="${PALM_OIL_SERVER_STATE_ROOT:-/srv/palm-oil-daily/state}"
 MARKET_RUNTIME_ROOT="${PALM_OIL_MARKET_RUNTIME_ROOT:-/srv/palm-oil-daily/market-runtime}"
 AI_RUNTIME_ROOT="${PALM_OIL_AI_RUNTIME_ROOT:-/srv/palm-oil-daily/ai-runtime}"
+RESEARCH_RUNTIME_ROOT="${PALM_OIL_RESEARCH_RUNTIME_ROOT:-/srv/palm-oil-daily/research-runtime}"
 VENV_ROOT="${PALM_OIL_VENV_ROOT:-/srv/palm-oil-daily/venv}"
 UNIT_ROOT="${PALM_OIL_SYSTEMD_UNIT_ROOT:-/etc/systemd/system}"
 COMPOSE_FILE="${PALM_OIL_COMPOSE_FILE:-$DEPLOY_ROOT/compose.yaml}"
@@ -45,7 +46,12 @@ for required in \
   "$SITE_ROOT/server/run_market_collector.py" \
   "$SITE_ROOT/server/run_supply_demand.py" \
   "$SITE_ROOT/server/run_ai_brief.py" \
+  "$SITE_ROOT/server/run_research_agent.py" \
+  "$SITE_ROOT/server/run_prediction_review.py" \
+  "$SITE_ROOT/server/build_report_inputs.py" \
+  "$SITE_ROOT/server/freeze_prepared_forecast.py" \
   "$SITE_ROOT/server/sync_live_data.py" \
+  "$SITE_ROOT/scripts/deploy_report.sh" \
   "$REQUIREMENTS" \
   "$COMPOSE_FILE"
 do
@@ -65,7 +71,7 @@ dirty="$(git -c safe.directory="$SITE_ROOT" -C "$SITE_ROOT" status --porcelain -
 if [[ "$MODE" == "--dry-run" ]]; then
   python3 - "$SITE_ROOT" "$LIVE_DATA_ROOT" "$STATE_ROOT" "$MARKET_RUNTIME_ROOT" \
     "$AI_RUNTIME_ROOT" "$VENV_ROOT" "$COMPOSE_FILE" "$COMPOSE_OVERRIDE" \
-    "$PUBLIC_ACCESS_MODE" <<'PY'
+    "$RESEARCH_RUNTIME_ROOT" "$PUBLIC_ACCESS_MODE" <<'PY'
 import json
 import sys
 
@@ -78,6 +84,7 @@ keys = (
     "venv_root",
     "compose_file",
     "compose_override",
+    "research_runtime_root",
     "public_access_mode",
 )
 print(json.dumps(
@@ -88,6 +95,8 @@ print(json.dumps(
         "market_timer": "every 10 minutes with retry",
         "supply_timer": "daily official-source check",
         "ai_timer": "installed disabled until backend acceptance",
+        "research_timer": "installed disabled until backend acceptance",
+        "prediction_review_timer": "every 15 minutes with after-close gate",
         "web_service": "stopped" if sys.argv[-1] == "private" else "running",
     },
     sort_keys=True,
@@ -102,7 +111,8 @@ fi
 }
 for target in \
   "$SITE_ROOT" "$DEPLOY_ROOT" "$LIVE_DATA_ROOT" "$STATE_ROOT" \
-  "$MARKET_RUNTIME_ROOT" "$AI_RUNTIME_ROOT" "$VENV_ROOT"
+  "$MARKET_RUNTIME_ROOT" "$AI_RUNTIME_ROOT" "$VENV_ROOT" \
+  "$RESEARCH_RUNTIME_ROOT"
 do
   case "$target" in
     /srv/palm-oil-daily|/srv/palm-oil-daily/*) ;;
@@ -120,7 +130,7 @@ install -d -m 0755 \
   "$STATE_ROOT/cache"
 install -d -m 0700 "$STATE_ROOT/home/.codex"
 
-for runtime_root in "$MARKET_RUNTIME_ROOT" "$AI_RUNTIME_ROOT"; do
+for runtime_root in "$MARKET_RUNTIME_ROOT" "$AI_RUNTIME_ROOT" "$RESEARCH_RUNTIME_ROOT"; do
   if [[ -e "$runtime_root" && ! -d "$runtime_root/.git" ]]; then
     if [[ -d "$runtime_root" && -z "$(find "$runtime_root" -mindepth 1 -print -quit)" ]]; then
       rmdir "$runtime_root"
@@ -205,7 +215,7 @@ PrivateTmp=true
 ProtectHome=read-only
 ProtectSystem=strict
 ReadOnlyPaths=$SITE_ROOT $VENV_ROOT
-ReadWritePaths=$LIVE_DATA_ROOT $STATE_ROOT $MARKET_RUNTIME_ROOT $AI_RUNTIME_ROOT
+ReadWritePaths=$LIVE_DATA_ROOT $STATE_ROOT $MARKET_RUNTIME_ROOT $AI_RUNTIME_ROOT $RESEARCH_RUNTIME_ROOT
 RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
 LockPersonality=true
 EOF
@@ -244,6 +254,26 @@ write_timer \
   "*-*-* *:0/10:00" \
   "30s"
 write_service \
+  "$temporary_root/palm-oil-research-agent.service" \
+  "Generate governed palm oil research reports on the server" \
+  "run_research_agent.py"
+write_timer \
+  "$temporary_root/palm-oil-research-agent.timer" \
+  "Retry governed palm oil report generation every twenty minutes" \
+  "palm-oil-research-agent.service" \
+  "*-*-* *:07/20:00" \
+  "30s"
+write_service \
+  "$temporary_root/palm-oil-prediction-review.service" \
+  "Evaluate due palm oil forecasts from server close data" \
+  "run_prediction_review.py"
+write_timer \
+  "$temporary_root/palm-oil-prediction-review.timer" \
+  "Retry palm oil prediction review every fifteen minutes" \
+  "palm-oil-prediction-review.service" \
+  "*-*-* *:10/15:00" \
+  "45s"
+write_service \
   "$temporary_root/palm-oil-supply-demand.service" \
   "Check official palm oil supply-demand sources" \
   "run_supply_demand.py"
@@ -251,8 +281,8 @@ write_timer \
   "$temporary_root/palm-oil-supply-demand.timer" \
   "Check official palm oil supply-demand sources every day" \
   "palm-oil-supply-demand.service" \
-  "*-*-* 09:20:00 Asia/Shanghai" \
-  "5m"
+  "*-*-* 09..23:17:00 Asia/Shanghai" \
+  "30s"
 write_service \
   "$temporary_root/palm-oil-ai-brief.service" \
   "Generate a source-grounded palm oil AI market brief" \
@@ -270,7 +300,11 @@ systemd-analyze verify \
   "$temporary_root/palm-oil-supply-demand.service" \
   "$temporary_root/palm-oil-supply-demand.timer" \
   "$temporary_root/palm-oil-ai-brief.service" \
-  "$temporary_root/palm-oil-ai-brief.timer"
+  "$temporary_root/palm-oil-ai-brief.timer" \
+  "$temporary_root/palm-oil-research-agent.service" \
+  "$temporary_root/palm-oil-research-agent.timer" \
+  "$temporary_root/palm-oil-prediction-review.service" \
+  "$temporary_root/palm-oil-prediction-review.timer"
 
 install -m 0644 "$temporary_root/compose.automation.yaml" "$COMPOSE_OVERRIDE"
 for unit in \
@@ -279,7 +313,11 @@ for unit in \
   palm-oil-supply-demand.service \
   palm-oil-supply-demand.timer \
   palm-oil-ai-brief.service \
-  palm-oil-ai-brief.timer
+  palm-oil-ai-brief.timer \
+  palm-oil-research-agent.service \
+  palm-oil-research-agent.timer \
+  palm-oil-prediction-review.service \
+  palm-oil-prediction-review.timer
 do
   install -m 0644 "$temporary_root/$unit" "$UNIT_ROOT/$unit"
 done
@@ -294,12 +332,15 @@ else
 fi
 systemctl enable --now palm-oil-market-collector.timer
 systemctl enable --now palm-oil-supply-demand.timer
+systemctl enable --now palm-oil-prediction-review.timer
 systemctl start palm-oil-market-collector.service
 systemctl start palm-oil-supply-demand.service
+systemctl start palm-oil-prediction-review.service
 
 systemctl --no-pager --full status palm-oil-market-collector.service || true
 systemctl --no-pager list-timers palm-oil-market-collector.timer
 systemctl --no-pager list-timers palm-oil-supply-demand.timer
+systemctl --no-pager list-timers palm-oil-prediction-review.timer
 docker compose -f "$COMPOSE_FILE" -f "$COMPOSE_OVERRIDE" ps
 set +e
 python3 "$SITE_ROOT/server/audit_runtime.py" --access-mode "$PUBLIC_ACCESS_MODE"
@@ -309,7 +350,7 @@ if [[ "$audit_status" -ne 0 && "$audit_status" -ne 2 ]]; then
   exit "$audit_status"
 fi
 
-echo "AI service units installed but timer intentionally left disabled."
+echo "AI and research service units installed but their timers intentionally remain disabled until authenticated backend acceptance."
 if [[ "$PUBLIC_ACCESS_MODE" == "private" ]]; then
   echo "Public web service is stopped; internal API and collectors remain active."
 fi

@@ -2,7 +2,7 @@
 
 这是棕榈油研究与 24h 行情助手网站仓库，用于展示棕榈油期货日报、周报、今日观点、跨市场行情和可追溯 AI 盯盘简报。
 
-网站面向油脂期货研究和交易跟踪场景：自动整理市场核心变化，把报告、观点、价格、持仓、评分、供需状态和 AI 工作队列集中展示。前端优先读取只读动态 API，GitHub Pages JSON 作为静态兜底。
+网站面向油脂期货研究和交易跟踪场景：自动整理市场核心变化，把报告、观点、价格、持仓、评分、供需状态和 AI 工作队列集中展示。前端优先读取只读动态 API。备案期间 GitHub Pages 与域名解析保持关闭，服务器仅在内部更新数据，不提供公网网站或 API。
 
 ## 网站功能
 
@@ -42,14 +42,14 @@ AI 简报只分析已经发布的数据，并返回所引用的证据编号、�
 
 ### 自动生成与发布
 
-网站背后是一套本机自动化报告与行情工作流：
+网站背后的正式目标是一套腾讯云 24h 自动化报告与行情工作流，运行不依赖个人电脑：
 
 - 工作日日报：每个交易日早间生成棕榈油期货日报，并冻结当日基本面快照。
 - 行情刷新：午间、收盘、夜盘开盘、夜盘收盘和凌晨盘后更新行情；盘中只沿用最近一个有效晨间基本面快照。
 - AI 盯盘：每 15 分钟检查已发布数据；源数据发生变化后生成新的可追溯简报，未变化时幂等跳过。
 - 周末周报：每周日生成棕榈油、豆油、菜油及外部变量的周度复盘。
-- 自动补检：macOS `launchd` 在固定时间检查报告是否已发布，缺失或不合格时自动补跑。
-- 网站发布：报告 Markdown 会同步写入 `reports/`、`downloads/` 和 `data/reports.js`，供前端页面读取。
+- 自动补检：服务器 `systemd` 定时器持续重试，缺失或不合格时不写成功标记。
+- 内部发布：备案期间报告和数据只写入服务器内部只读 API 数据卷，不推送到公网。
 - 来源约束：报告生成会调用金融数据脚本，并读取自动化 prompt、微信/产业来源池和 Vinson Research Writing Standard。
 
 ## 前端页面
@@ -77,7 +77,7 @@ AI 简报只分析已经发布的数据，并返回所引用的证据编号、�
 
 仓库内的 `miniprogram/` 是与网站功能对齐的原生微信小程序工程，包含今日观点、报告归档、报告详情与原文下载、油脂主力合约和自选合约功能。
 
-小程序通过当前 GitHub Pages 站点在线读取 `data/reports.json` 和 `data/oil_futures.json`，网站每次自动发布时会同步更新这两个接口；随包数据和本地缓存用于断网兜底。导入、正式 AppID 和合法域名配置见 `miniprogram/README.md`。
+小程序的在线接口在备案期间停用，只保留随包数据和本地缓存。备案通过并完成合法域名配置后，才可切换到腾讯云只读 API；配置说明见 `miniprogram/README.md`。
 
 ## 目录说明
 
@@ -103,46 +103,25 @@ AI 简报只分析已经发布的数据，并返回所引用的证据编号、�
 - `scripts/install_market_assistant_launchd.sh`：安装每 15 分钟运行的 AI 盯盘任务。
 - `scripts/install_prediction_review_launchd.sh`：安装每 15 分钟自恢复的收盘预测评估任务。
 
-## 自动化调度
+## 服务器自动化调度
 
-生产环境运行在本机 macOS `launchd`。日报与周报继续以既有生产目录为准；独立行情与 AI 任务使用干净的 `main` 运行目录：
-
-```bash
-~/Sites/palm-oil-daily-runtime
-```
+腾讯云服务器使用独立运行目录、共享锁和 `systemd` 定时器；个人电脑上的旧 `launchd` 仅作为迁移期工具，不是 24h 生产依赖。服务器安装与验收见 `server/README.md`。
 
 当前调度包括：
 
-- `com.vinsontesla.palm-oil-daily-watchdog`
-  - 周一至周五 06:00 主动检查并生成日报
-  - 周一至周五 06:20 再次补检
-  - 日报合格后冻结当日基本面快照
-- `com.vinsontesla.palm-oil-weekly-watchdog`
-  - 周日 21:15 主动检查并生成周报
-  - 周日 21:40 再次补检
-  - 只更新周报
-- `com.vinsontesla.oil-futures-tab`
-  - 周一至周五 11:35/11:50 刷新午间行情
-  - 周一至周五 15:05/15:20/16:00 刷新收盘行情
-  - 周一至周五 21:20/21:40 刷新夜盘开盘行情
-  - 周一至周五 23:10/23:30 刷新夜盘收盘行情
-  - 周二至周六 02:40/03:00 刷新凌晨盘后行情
-- `com.vinsontesla.market-assistant-ai`
-  - 每 15 分钟检查源数据指纹
-  - 源数据变化时生成并发布 AI 简报；失败时保留上一份有效简报
-- `com.vinsontesla.palm-oil-prediction-review`
-  - 启动时及每 15 分钟检查两个历史运行目录中的预测输入
-  - 当日预测 15:20 后可评估；休眠、断网或数据源失败造成的遗漏会在后续轮次补评
-  - 与行情、AI 发布共用锁；失败回滚未发布结果，推送失败则在网络恢复后重试
+- 行情采集：每 10 分钟检查交易时段并幂等刷新。
+- 官方供需：每日检查 MPOB、GAPKI、USDA 等官方来源。
+- 日报/周报：每 20 分钟检查是否到期；工作日 06:00 后生成日报，周日 21:15 后生成周报。
+- AI 简报：每 10 分钟检查已验证数据，只在真实模型凭据验收后启用。
+- 预测复盘：每 15 分钟检查；当日 15:20 后使用服务器收盘快照评估。
+- 所有任务共享锁、失败不写成功标记，并由下一个周期重试。
 
-安装或刷新调度：
+安装或刷新服务器调度：
 
 ```bash
-bash scripts/install_daily_watchdog_launchd.sh
-bash scripts/install_weekly_watchdog_launchd.sh
-bash scripts/install_oil_futures_tab_launchd.sh
-bash scripts/install_market_assistant_launchd.sh
-bash scripts/install_prediction_review_launchd.sh --confirm-persistence-reviewed
+sudo PALM_OIL_PUBLIC_ACCESS_MODE=private bash server/install_automation.sh --apply
+sudo bash server/enable_ai_automation.sh --enable
+sudo python3 server/audit_runtime.py --network --access-mode private
 ```
 
 ## 手动发布流程
@@ -158,8 +137,7 @@ bash scripts/deploy_report.sh
 1. 读取 `reports/*.md`。
 2. 生成或更新 `downloads/*.md`。
 3. 生成或更新 `data/reports.js`、`data/version.js` 和 `data/oil_futures.js`。
-4. 提交报告相关变更。
-5. 推送到 GitHub，触发 GitHub Pages 更新。
+4. 默认提交报告相关变更；服务器内部运行时使用 `PALM_OIL_PUBLISH_MODE=files`，不提交或推送。
 
 ## 报告命名
 
@@ -175,11 +153,7 @@ reports/2026-06-28-weekend.md
 
 ## 网站发布
 
-本仓库通过 GitHub Pages 提供静态兜底站点。自定义域名启用前需完成对应云服务器接入和 HTTPS 配置。
-
-```text
-https://ethenwen0423-coder.github.io/palm-oil-daily/
-```
+备案完成前不启用 GitHub Pages、域名解析、服务器 Web 服务或公网 API。备案通过后必须另行完成 DNS、HTTPS 与公网访问验收，修改代码本身不会创建解析记录。
 
 ## 重要约束
 
