@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import subprocess
 import tempfile
 import unittest
 from datetime import datetime
 from pathlib import Path
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -18,6 +20,45 @@ SPEC.loader.exec_module(MODULE)
 
 
 class ServerResearchAgentTests(unittest.TestCase):
+    def test_openai_responses_request_uses_strict_schema(self) -> None:
+        class FakeResponse:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+            def read(self):
+                return json.dumps(
+                    {
+                        "output_text": json.dumps(
+                            {
+                                "fixed_logic": MODULE.FIXED_LOGIC,
+                                "report_markdown": "# 08月07日晨报\n" + ("报告内容" * 500),
+                                "outline": {
+                                    "report_date": "2026-08-07",
+                                    "kind": "daily",
+                                },
+                            }
+                        )
+                    }
+                ).encode()
+
+        with tempfile.TemporaryDirectory() as temporary:
+            schema = Path(temporary) / "schema.json"
+            schema.write_text('{"type":"object"}', encoding="utf-8")
+            with mock.patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test-secret"}, clear=True):
+                with mock.patch.object(
+                    MODULE.urllib.request, "urlopen", return_value=FakeResponse()
+                ) as urlopen:
+                    payload = MODULE.run_openai(schema, "test prompt", timeout=30)
+        request = urlopen.call_args.args[0]
+        body = json.loads(request.data.decode("utf-8"))
+        self.assertEqual(payload["fixed_logic"], MODULE.FIXED_LOGIC)
+        self.assertEqual(body["text"]["format"]["type"], "json_schema")
+        self.assertTrue(body["text"]["format"]["strict"])
+        self.assertEqual(request.get_header("Authorization"), "Bearer sk-test-secret")
+
     def test_schedule_has_daily_retry_and_sunday_weekend_window(self) -> None:
         timezone = MODULE.SHANGHAI
         self.assertIsNone(

@@ -43,7 +43,7 @@ class ServerAutomationInstallerTests(unittest.TestCase):
         self.assertIn('stop web || true', script)
         self.assertIn('up -d --no-deps api', script)
         self.assertIn('--access-mode "$PUBLIC_ACCESS_MODE"', script)
-        self.assertIn("Environment=CODEX_HOME=$STATE_ROOT/home/.codex", script)
+        self.assertIn("EnvironmentFile=-$OPENAI_ENV_FILE", script)
 
     def test_systemd_units_share_lock_and_only_write_scoped_runtime_paths(self):
         installer = INSTALLER.read_text(encoding="utf-8")
@@ -103,7 +103,7 @@ class ServerAutomationInstallerTests(unittest.TestCase):
             },
         )
 
-    def test_ai_timer_enablement_requires_login_and_real_generation(self):
+    def test_ai_timer_enablement_requires_protected_api_key_and_real_generation(self):
         result = subprocess.run(
             ["bash", "-n", str(AI_ENABLEMENT)],
             text=True,
@@ -112,9 +112,10 @@ class ServerAutomationInstallerTests(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 0, result.stderr)
         script = AI_ENABLEMENT.read_text(encoding="utf-8")
-        self.assertIn("login --device-auth", script)
-        self.assertIn("login --with-api-key", script)
-        self.assertIn("login status", script)
+        self.assertIn("--set-api-key", script)
+        self.assertIn("OpenAI API key", script)
+        self.assertIn("OPENAI_ENV_FILE", script)
+        self.assertIn("OPENAI_API_KEY", script)
         self.assertIn("systemctl disable --now palm-oil-ai-brief.timer", script)
         self.assertIn("systemctl disable --now palm-oil-research-agent.timer", script)
         self.assertIn("run_ai_brief.py", script)

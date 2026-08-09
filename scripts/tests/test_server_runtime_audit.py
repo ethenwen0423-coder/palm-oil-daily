@@ -47,10 +47,7 @@ class ServerRuntimeAuditTests(unittest.TestCase):
             deploy_root = Path(temporary)
             with mock.patch.dict(
                 os.environ,
-                {
-                    "OPENAI_API_KEY": "super-secret-openai",
-                    "GITHUB_TOKEN": "super-secret-github",
-                },
+                {"GITHUB_TOKEN": "super-secret-github"},
             ):
                 with mock.patch.object(AUDIT, "run") as run_mock:
                     run_mock.return_value = subprocess.CompletedProcess(
@@ -66,7 +63,6 @@ class ServerRuntimeAuditTests(unittest.TestCase):
                             deploy_root / "state",
                         )
         rendered = json.dumps(payload, sort_keys=True)
-        self.assertTrue(payload["openai_api_key_present"])
         self.assertTrue(payload["github_token_present"])
         self.assertTrue(payload["codex_cli_authenticated"])
         self.assertNotIn("super-secret", rendered)

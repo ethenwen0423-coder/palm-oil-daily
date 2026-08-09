@@ -1,6 +1,9 @@
 import importlib.util
+import json
+import os
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -124,6 +127,30 @@ def model_payload():
 
 
 class MarketAssistantBriefTests(unittest.TestCase):
+    def test_openai_responses_request_uses_structured_output_and_never_logs_key(self):
+        class FakeResponse:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+            def read(self):
+                return json.dumps({"output_text": json.dumps(model_payload())}).encode()
+
+        context = BRIEF.build_context(source_payloads())
+        with mock.patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test-secret"}, clear=True):
+            with mock.patch.object(
+                BRIEF.urllib.request, "urlopen", return_value=FakeResponse()
+            ) as urlopen:
+                result = BRIEF.run_openai(context, 30)
+        request = urlopen.call_args.args[0]
+        body = json.loads(request.data.decode("utf-8"))
+        self.assertEqual(result["headline"], model_payload()["headline"])
+        self.assertEqual(body["text"]["format"]["type"], "json_schema")
+        self.assertTrue(body["text"]["format"]["strict"])
+        self.assertEqual(request.get_header("Authorization"), "Bearer sk-test-secret")
+
     def test_context_is_bounded_and_has_traceable_evidence(self):
         context = BRIEF.build_context(source_payloads())
         ids = {item["id"] for item in context["evidence"]}
@@ -160,12 +187,13 @@ class MarketAssistantBriefTests(unittest.TestCase):
         with self.assertRaisesRegex(BRIEF.BriefError, "未受控数字"):
             BRIEF.validate_and_enrich(payload, context)
 
-    def test_automation_uses_read_only_structured_codex_and_shared_lock(self):
+    def test_automation_uses_server_only_structured_openai_and_shared_lock(self):
         generator = (ROOT / "scripts" / "update_market_assistant_brief.py").read_text(encoding="utf-8")
         deploy = (ROOT / "scripts" / "deploy_market_assistant_brief.sh").read_text(encoding="utf-8")
         installer = (ROOT / "scripts" / "install_market_assistant_launchd.sh").read_text(encoding="utf-8")
-        self.assertIn('"read-only"', generator)
-        self.assertIn('"--output-schema"', generator)
+        self.assertIn('"https://api.openai.com/v1/responses"', generator)
+        self.assertIn('"json_schema"', generator)
+        self.assertIn('"OPENAI_API_KEY"', generator)
         self.assertIn("market-data-deploy.lock", deploy)
         self.assertIn('git add -- "$TARGET"', deploy)
         self.assertIn("<integer>900</integer>", installer)

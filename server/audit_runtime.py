@@ -387,10 +387,23 @@ def credential_capabilities(
         ).returncode
         == 0
     )
+    openai_env_file = Path(
+        os.environ.get("PALM_OIL_OPENAI_ENV_FILE", "/etc/palm-oil-ai.env")
+    )
+    openai_api_key_configured = False
+    try:
+        mode = openai_env_file.stat().st_mode & 0o777
+        openai_api_key_configured = mode == 0o600 and any(
+            line.startswith("OPENAI_API_KEY=") and len(line) > len("OPENAI_API_KEY=")
+            for line in openai_env_file.read_text(encoding="utf-8").splitlines()
+        )
+    except OSError:
+        pass
     return {
         "codex_cli_present": bool(codex_bin),
         "codex_cli_authenticated": codex_authenticated,
         "openai_api_key_present": bool(os.environ.get("OPENAI_API_KEY")),
+        "openai_api_key_configured": openai_api_key_configured,
         "github_token_present": bool(os.environ.get("GITHUB_TOKEN")),
         "git_credential_helper_configured": bool(
             command_output(["git", "config", "--global", "--get", "credential.helper"])
@@ -435,12 +448,7 @@ def build_audit(
         blockers.append(f"missing Python modules: {', '.join(missing_modules)}")
     if not python["technical_runtime_present"]:
         blockers.append("repository technical-indicator runtime is missing")
-    ai_backend = (
-        "codex-cli"
-        if credentials["codex_cli_present"]
-        and credentials["codex_cli_authenticated"]
-        else "missing"
-    )
+    ai_backend = "openai-responses" if credentials["openai_api_key_configured"] else "missing"
     if ai_backend == "missing":
         blockers.append("no authenticated unattended AI backend is configured")
     required_timer_states = systemd.get("required_timers", {})

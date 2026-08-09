@@ -5,66 +5,51 @@ SITE_ROOT="${PALM_OIL_SITE_ROOT:-/srv/palm-oil-daily/site}"
 LIVE_DATA_ROOT="${PALM_OIL_LIVE_DATA_ROOT:-/srv/palm-oil-daily/live-data}"
 STATE_ROOT="${PALM_OIL_SERVER_STATE_ROOT:-/srv/palm-oil-daily/state}"
 VENV_ROOT="${PALM_OIL_VENV_ROOT:-/srv/palm-oil-daily/venv}"
+OPENAI_ENV_FILE="${PALM_OIL_OPENAI_ENV_FILE:-/etc/palm-oil-ai.env}"
 MODE="${1:---status}"
-CODEX_HOME_ROOT="$STATE_ROOT/home/.codex"
 
 case "$MODE" in
-  --status|--login|--login-api-key|--enable|--disable) ;;
+  --status|--set-api-key|--enable|--disable) ;;
   *)
-    echo "usage: sudo bash server/enable_ai_automation.sh [--status|--login|--login-api-key|--enable|--disable]" >&2
+    echo "usage: sudo bash server/enable_ai_automation.sh [--status|--set-api-key|--enable|--disable]" >&2
     exit 2
     ;;
 esac
 
-resolve_codex_bin() {
-  if [[ -n "${CODEX_BIN:-}" && -x "${CODEX_BIN}" ]]; then
-    printf '%s\n' "$CODEX_BIN"
-    return 0
-  fi
-  command -v codex 2>/dev/null || true
+api_key_configured() {
+  [[ -f "$OPENAI_ENV_FILE" ]] &&
+    [[ "$(stat -c '%U:%a' "$OPENAI_ENV_FILE" 2>/dev/null || true)" == "root:600" ]] &&
+    grep -q '^OPENAI_API_KEY=.' "$OPENAI_ENV_FILE"
 }
 
-codex_bin="$(resolve_codex_bin)"
-
-codex_env=(
-  env
-  "HOME=$STATE_ROOT/home"
-  "CODEX_HOME=$CODEX_HOME_ROOT"
-  "XDG_CACHE_HOME=$STATE_ROOT/cache"
-  "CODEX_BIN=$codex_bin"
-)
-
-login_status() {
-  [[ -n "$codex_bin" ]] && \
-    "${codex_env[@]}" "$codex_bin" login status >/dev/null 2>&1
+load_api_key() {
+  api_key="$(sed -n 's/^OPENAI_API_KEY=//p' "$OPENAI_ENV_FILE" | head -n 1)"
+  [[ -n "$api_key" ]]
 }
 
 if [[ "$MODE" == "--status" ]]; then
-  authenticated=false
+  api_key_present=false
   timer_enabled=false
   timer_active=false
   research_timer_enabled=false
   research_timer_active=false
-  login_status && authenticated=true
+  api_key_configured && api_key_present=true
   systemctl is-enabled --quiet palm-oil-ai-brief.timer && timer_enabled=true
   systemctl is-active --quiet palm-oil-ai-brief.timer && timer_active=true
   systemctl is-enabled --quiet palm-oil-research-agent.timer && research_timer_enabled=true
   systemctl is-active --quiet palm-oil-research-agent.timer && research_timer_active=true
-  cli_present=false
-  [[ -n "$codex_bin" ]] && cli_present=true
-  python3 - "$cli_present" "$authenticated" "$timer_enabled" "$timer_active" \
+  python3 - "$api_key_present" "$timer_enabled" "$timer_active" \
     "$research_timer_enabled" "$research_timer_active" <<'PY'
 import json
 import sys
 
 print(json.dumps(
     {
-        "cli_present": sys.argv[1] == "true",
-        "authenticated": sys.argv[2] == "true",
-        "timer_enabled": sys.argv[3] == "true",
-        "timer_active": sys.argv[4] == "true",
-        "research_timer_enabled": sys.argv[5] == "true",
-        "research_timer_active": sys.argv[6] == "true",
+        "openai_api_key_configured": sys.argv[1] == "true",
+        "timer_enabled": sys.argv[2] == "true",
+        "timer_active": sys.argv[3] == "true",
+        "research_timer_enabled": sys.argv[4] == "true",
+        "research_timer_active": sys.argv[5] == "true",
     },
     sort_keys=True,
 ))
@@ -77,28 +62,30 @@ fi
   exit 2
 }
 
-install -d -m 0755 "$STATE_ROOT/home" "$STATE_ROOT/cache"
-install -d -m 0700 "$CODEX_HOME_ROOT"
-
-if [[ "$MODE" == "--login" ]]; then
-  exec "${codex_env[@]}" "$codex_bin" login --device-auth
-fi
-
-if [[ "$MODE" == "--login-api-key" ]]; then
-  api_key="${OPENAI_API_KEY:-}"
-  if [[ -z "$api_key" && ! -t 0 ]]; then
-    IFS= read -r api_key || true
-  fi
-  if [[ -z "$api_key" ]]; then
-    read -r -s -p "OpenAI API key: " api_key
-    printf '\n' >&2
-  fi
-  [[ -n "$api_key" ]] || {
-    echo "OpenAI API key was not provided" >&2
+if [[ "$MODE" == "--set-api-key" ]]; then
+  [[ -t 0 && -t 1 ]] || {
+    echo "--set-api-key must be run in an interactive terminal" >&2
     exit 2
   }
-  printf '%s' "$api_key" | "${codex_env[@]}" "$codex_bin" login --with-api-key
+  systemctl disable --now palm-oil-ai-brief.timer >/dev/null 2>&1 || true
+  systemctl disable --now palm-oil-research-agent.timer >/dev/null 2>&1 || true
+  read -r -s -p "OpenAI API key: " api_key
+  printf '\n'
+  [[ "$api_key" == sk-* ]] || {
+    unset api_key
+    echo "API key format is invalid" >&2
+    exit 2
+  }
+  temporary="$(mktemp "${OPENAI_ENV_FILE}.tmp.XXXXXX")"
+  trap 'rm -f "$temporary"' EXIT
+  umask 077
+  printf 'OPENAI_API_KEY=%s\n' "$api_key" >"$temporary"
+  printf 'PALM_OIL_AI_MODEL=%s\n' "${PALM_OIL_AI_MODEL:-gpt-5.2}" >>"$temporary"
   unset api_key
+  install -o root -g root -m 0600 "$temporary" "$OPENAI_ENV_FILE"
+  rm -f "$temporary"
+  trap - EXIT
+  echo '{"status":"configured","credential":"openai-api-key","timers":"disabled"}'
   exit 0
 fi
 
@@ -109,34 +96,31 @@ if [[ "$MODE" == "--disable" ]]; then
   exit 0
 fi
 
-[[ -n "$codex_bin" ]] || {
-  echo "Codex CLI is unavailable on the server" >&2
-  exit 2
-}
-
 systemctl disable --now palm-oil-ai-brief.timer >/dev/null 2>&1 || true
 systemctl disable --now palm-oil-research-agent.timer >/dev/null 2>&1 || true
-login_status || {
-  echo "Codex CLI is not authenticated in the server automation credential directory" >&2
+api_key_configured && load_api_key || {
+  echo "OpenAI API key is not configured in the protected server environment file" >&2
   exit 2
 }
 [[ -x "$VENV_ROOT/bin/python" ]] || {
+  unset api_key
   echo "server Python runtime is unavailable: $VENV_ROOT/bin/python" >&2
   exit 2
 }
 
-"${codex_env[@]}" "$VENV_ROOT/bin/python" \
+env "OPENAI_API_KEY=$api_key" "$VENV_ROOT/bin/python" \
   "$SITE_ROOT/server/run_ai_brief.py" \
   --site-root "$SITE_ROOT" \
   --live-data-root "$LIVE_DATA_ROOT" \
   --state-root "$STATE_ROOT"
 
 [[ -s "$LIVE_DATA_ROOT/.server-ai-ready.json" ]] || {
+  unset api_key
   echo "real AI generation did not publish the server ownership marker" >&2
   exit 2
 }
 
-"${codex_env[@]}" "$VENV_ROOT/bin/python" \
+env "OPENAI_API_KEY=$api_key" "$VENV_ROOT/bin/python" \
   "$SITE_ROOT/server/run_research_agent.py" \
   --site-root "$SITE_ROOT" \
   --live-data-root "$LIVE_DATA_ROOT" \
@@ -144,6 +128,7 @@ login_status || {
   --force-kind weekend \
   --acceptance-only \
   --attempts 1
+unset api_key
 
 [[ -s "$STATE_ROOT/research-backend.accepted.json" ]] || {
   echo "real research model acceptance did not publish its state marker" >&2

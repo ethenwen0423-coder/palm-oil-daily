@@ -10,6 +10,8 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import urllib.error
+import urllib.request
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -22,6 +24,8 @@ DEFAULT_RUNTIME_ROOT = Path("/srv/palm-oil-daily/research-runtime")
 DEFAULT_LIVE_DATA_ROOT = Path("/srv/palm-oil-daily/live-data")
 DEFAULT_STATE_ROOT = Path("/srv/palm-oil-daily/state")
 FIXED_LOGIC = ["otc_structure_library", "quant_model_rules"]
+OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses"
+DEFAULT_OPENAI_MODEL = "gpt-5.2"
 ALLOWED_CHANGED_PREFIXES = (
     "data/",
     "downloads/",
@@ -82,17 +86,8 @@ def report_is_ready(path: Path, identity: str) -> bool:
     )
 
 
-def resolve_codex_bin() -> str | None:
-    configured = os.environ.get("CODEX_BIN", "").strip()
-    for candidate in (
-        configured,
-        shutil.which("codex") or "",
-        "/usr/local/bin/codex",
-        "/usr/bin/codex",
-    ):
-        if candidate and os.path.isfile(candidate) and os.access(candidate, os.X_OK):
-            return candidate
-    return None
+def openai_backend_configured() -> bool:
+    return bool(os.environ.get("OPENAI_API_KEY", "").strip())
 
 
 def atomic_write_text(path: Path, text: str) -> None:
@@ -236,49 +231,72 @@ SOURCE_JSON：
 """.strip()
 
 
-def run_codex(
-    codex_bin: str,
-    schema: Path,
-    prompt: str,
-    *,
-    timeout: int,
-) -> dict[str, Any]:
-    with tempfile.TemporaryDirectory(prefix="server-research-agent.") as temporary:
-        temporary_root = Path(temporary)
-        response_path = temporary_root / "response.json"
-        command = [
-            codex_bin,
-            "exec",
-            "--cd",
-            str(temporary_root),
-            "--sandbox",
-            "read-only",
-            "--skip-git-repo-check",
-            "--ephemeral",
-            "--ignore-rules",
-            "--output-schema",
-            str(schema),
-            "--output-last-message",
-            str(response_path),
-            "-",
-        ]
-        try:
-            completed = subprocess.run(
-                command,
-                input=prompt,
-                text=True,
-                capture_output=True,
-                timeout=timeout,
-                check=False,
-            )
-        except (OSError, subprocess.TimeoutExpired) as exc:
-            raise ResearchAgentError(f"research model did not complete: {exc}") from exc
-        if completed.returncode != 0:
-            detail = (completed.stderr or completed.stdout).strip()
-            raise ResearchAgentError(
-                f"research model failed ({completed.returncode}): {detail[-1200:]}"
-            )
-        return load_json(response_path)
+def extract_response_text(payload: dict[str, Any]) -> str:
+    direct = payload.get("output_text")
+    if isinstance(direct, str) and direct.strip():
+        return direct
+    fragments: list[str] = []
+    for item in payload.get("output", []):
+        if not isinstance(item, dict) or item.get("type") != "message":
+            continue
+        for part in item.get("content", []):
+            if isinstance(part, dict) and part.get("type") == "output_text":
+                text = part.get("text")
+                if isinstance(text, str):
+                    fragments.append(text)
+    text = "".join(fragments).strip()
+    if not text:
+        raise ResearchAgentError("research model did not return structured text")
+    return text
+
+
+def run_openai(schema: Path, prompt: str, *, timeout: int) -> dict[str, Any]:
+    api_key = os.environ.get("OPENAI_API_KEY", "").strip()
+    if not api_key:
+        raise ResearchAgentError("OpenAI API key is not configured")
+    model = os.environ.get(
+        "PALM_OIL_RESEARCH_AI_MODEL",
+        os.environ.get("PALM_OIL_AI_MODEL", DEFAULT_OPENAI_MODEL),
+    ).strip()
+    if not model:
+        raise ResearchAgentError("OpenAI model is not configured")
+    endpoint = os.environ.get("OPENAI_RESPONSES_URL", OPENAI_RESPONSES_URL).strip()
+    request_body = {
+        "model": model,
+        "input": prompt,
+        "text": {
+            "format": {
+                "type": "json_schema",
+                "name": "server_research_report",
+                "strict": True,
+                "schema": load_json(schema),
+            },
+            "verbosity": "medium",
+        },
+    }
+    request = urllib.request.Request(
+        endpoint,
+        data=json.dumps(request_body, ensure_ascii=False).encode("utf-8"),
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            raw_response = response.read().decode("utf-8")
+    except urllib.error.HTTPError as exc:
+        raise ResearchAgentError(f"OpenAI API request failed (HTTP {exc.code})") from exc
+    except (OSError, TimeoutError) as exc:
+        raise ResearchAgentError("OpenAI API request timed out or network failed") from exc
+    try:
+        output = json.loads(extract_response_text(json.loads(raw_response)))
+    except (TypeError, json.JSONDecodeError) as exc:
+        raise ResearchAgentError("research model did not return valid JSON") from exc
+    if not isinstance(output, dict):
+        raise ResearchAgentError("research model output must be a JSON object")
+    return output
 
 
 def validate_model_output(
@@ -394,8 +412,11 @@ def main() -> int:
     except RuntimeError as exc:
         print(json.dumps({"status": "error", "reason": str(exc)}, ensure_ascii=False))
         return 2
-    codex_bin = resolve_codex_bin()
-    backend = "mock" if args.mock_response else "codex-cli" if codex_bin else "missing"
+    backend = (
+        "mock"
+        if args.mock_response
+        else "openai-responses" if openai_backend_configured() else "missing"
+    )
     plan = {
         "status": "planned" if backend != "missing" else "blocked",
         "backend": backend,
@@ -409,7 +430,7 @@ def main() -> int:
         print(json.dumps({**plan, "dry_run": True}, ensure_ascii=False, sort_keys=True))
         return 0 if backend != "missing" else 2
     if backend == "missing":
-        print(json.dumps({**plan, "reason": "no unattended Codex CLI backend is configured"}, ensure_ascii=False, sort_keys=True))
+        print(json.dumps({**plan, "reason": "no unattended OpenAI API backend is configured"}, ensure_ascii=False, sort_keys=True))
         return 2
     if args.attempts < 1 or args.attempts > 3:
         print(json.dumps({"status": "error", "reason": "attempts must be between 1 and 3"}, ensure_ascii=False))
@@ -464,8 +485,11 @@ def main() -> int:
             if args.mock_response:
                 model_payload = load_json(args.mock_response.resolve())
             else:
-                assert codex_bin is not None
-                model_payload = run_codex(codex_bin, site_root / "references" / "server_report_output.schema.json", prompt, timeout=args.timeout)
+                model_payload = run_openai(
+                    site_root / "references" / "server_report_output.schema.json",
+                    prompt,
+                    timeout=args.timeout,
+                )
             markdown, outline = validate_model_output(
                 model_payload,
                 report_date=report_date,
@@ -514,8 +538,7 @@ def main() -> int:
             if args.mock_response:
                 model_payload = load_json(args.mock_response.resolve())
             else:
-                assert codex_bin is not None
-                model_payload = run_codex(codex_bin, schema, prompt, timeout=args.timeout)
+                model_payload = run_openai(schema, prompt, timeout=args.timeout)
             markdown, outline = validate_model_output(
                 model_payload,
                 report_date=report_date,

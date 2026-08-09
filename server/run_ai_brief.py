@@ -7,7 +7,6 @@ import argparse
 import importlib.util
 import json
 import os
-import shutil
 import sys
 import tempfile
 from pathlib import Path
@@ -33,18 +32,8 @@ def load_module(name: str, path: Path):
     return module
 
 
-def resolve_codex_bin() -> str | None:
-    configured = os.environ.get("CODEX_BIN", "").strip()
-    candidates = (
-        configured,
-        shutil.which("codex") or "",
-        "/usr/local/bin/codex",
-        "/usr/bin/codex",
-    )
-    for candidate in candidates:
-        if candidate and os.path.isfile(candidate) and os.access(candidate, os.X_OK):
-            return candidate
-    return None
+def openai_backend_configured() -> bool:
+    return bool(os.environ.get("OPENAI_API_KEY", "").strip())
 
 
 def validate_brief(path: Path) -> dict[str, Any]:
@@ -113,8 +102,11 @@ def main() -> int:
         print(json.dumps({"status": "error", "reason": str(exc)}, ensure_ascii=False))
         return 2
 
-    codex_bin = resolve_codex_bin()
-    backend = "mock" if args.mock_response else "codex-cli" if codex_bin else "missing"
+    backend = (
+        "mock"
+        if args.mock_response
+        else "openai-responses" if openai_backend_configured() else "missing"
+    )
     plan = {
         "status": "planned" if backend != "missing" else "blocked",
         "backend": backend,
@@ -133,7 +125,7 @@ def main() -> int:
             json.dumps(
                 {
                     **plan,
-                    "reason": "no unattended Codex CLI backend is configured",
+                    "reason": "no unattended OpenAI API backend is configured",
                 },
                 ensure_ascii=False,
                 sort_keys=True,
@@ -172,8 +164,6 @@ def main() -> int:
                 **os.environ,
                 "PYTHONUNBUFFERED": "1",
             }
-            if codex_bin:
-                environment["CODEX_BIN"] = codex_bin
             log_path.parent.mkdir(parents=True, exist_ok=True)
             with log_path.open("a", encoding="utf-8") as log:
                 support.run_checked(
