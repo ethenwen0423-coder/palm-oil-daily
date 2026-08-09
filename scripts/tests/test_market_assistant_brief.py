@@ -141,7 +141,9 @@ class MarketAssistantBriefTests(unittest.TestCase):
         context = BRIEF.build_context(source_payloads())
         with mock.patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test-secret"}, clear=True):
             with mock.patch.object(
-                BRIEF.urllib.request, "urlopen", return_value=FakeResponse()
+                BRIEF.MODEL_BACKEND.urllib.request,
+                "urlopen",
+                return_value=FakeResponse(),
             ) as urlopen:
                 result = BRIEF.run_openai(context, 30)
         request = urlopen.call_args.args[0]
@@ -150,6 +152,44 @@ class MarketAssistantBriefTests(unittest.TestCase):
         self.assertEqual(body["text"]["format"]["type"], "json_schema")
         self.assertTrue(body["text"]["format"]["strict"])
         self.assertEqual(request.get_header("Authorization"), "Bearer sk-test-secret")
+
+    def test_deepseek_chat_request_uses_json_mode_and_embeds_schema(self):
+        class FakeResponse:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+            def read(self):
+                return json.dumps(
+                    {
+                        "choices": [
+                            {"message": {"content": json.dumps(model_payload())}}
+                        ]
+                    }
+                ).encode()
+
+        context = BRIEF.build_context(source_payloads())
+        environment = {
+            "PALM_OIL_AI_PROVIDER": "deepseek",
+            "PALM_OIL_AI_API_KEY": "sk-deepseek-secret",
+        }
+        with mock.patch.dict(os.environ, environment, clear=True):
+            with mock.patch.object(
+                BRIEF.MODEL_BACKEND.urllib.request,
+                "urlopen",
+                return_value=FakeResponse(),
+            ) as urlopen:
+                result = BRIEF.run_openai(context, 30)
+        request = urlopen.call_args.args[0]
+        body = json.loads(request.data.decode("utf-8"))
+        self.assertEqual(result["headline"], model_payload()["headline"])
+        self.assertEqual(request.full_url, "https://api.deepseek.com/chat/completions")
+        self.assertEqual(body["response_format"], {"type": "json_object"})
+        self.assertIn("OUTPUT_JSON_SCHEMA", body["messages"][0]["content"])
+        self.assertEqual(body["thinking"], {"type": "disabled"})
+        self.assertEqual(request.get_header("Authorization"), "Bearer sk-deepseek-secret")
 
     def test_context_is_bounded_and_has_traceable_evidence(self):
         context = BRIEF.build_context(source_payloads())
@@ -187,13 +227,16 @@ class MarketAssistantBriefTests(unittest.TestCase):
         with self.assertRaisesRegex(BRIEF.BriefError, "未受控数字"):
             BRIEF.validate_and_enrich(payload, context)
 
-    def test_automation_uses_server_only_structured_openai_and_shared_lock(self):
+    def test_automation_uses_server_only_structured_model_backend_and_shared_lock(self):
         generator = (ROOT / "scripts" / "update_market_assistant_brief.py").read_text(encoding="utf-8")
+        backend = (ROOT / "server" / "model_backend.py").read_text(encoding="utf-8")
         deploy = (ROOT / "scripts" / "deploy_market_assistant_brief.sh").read_text(encoding="utf-8")
         installer = (ROOT / "scripts" / "install_market_assistant_launchd.sh").read_text(encoding="utf-8")
-        self.assertIn('"https://api.openai.com/v1/responses"', generator)
-        self.assertIn('"json_schema"', generator)
-        self.assertIn('"OPENAI_API_KEY"', generator)
+        self.assertIn('"https://api.openai.com/v1/responses"', backend)
+        self.assertIn('"https://api.deepseek.com/chat/completions"', backend)
+        self.assertIn('"json_schema"', backend)
+        self.assertIn('"PALM_OIL_AI_API_KEY"', backend)
+        self.assertIn("MODEL_BACKEND.request_json", generator)
         self.assertIn("market-data-deploy.lock", deploy)
         self.assertIn('git add -- "$TARGET"', deploy)
         self.assertIn("<integer>900</integer>", installer)

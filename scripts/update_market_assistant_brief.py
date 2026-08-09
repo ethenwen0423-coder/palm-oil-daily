@@ -5,14 +5,13 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
 import json
 import os
 import re
 import shutil
 import sys
 import tempfile
-import urllib.error
-import urllib.request
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -301,16 +300,17 @@ def source_fingerprint(context: dict[str, Any]) -> str:
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
-OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses"
-DEFAULT_OPENAI_MODEL = "gpt-5.2"
+def load_model_backend():
+    path = ROOT / "server" / "model_backend.py"
+    spec = importlib.util.spec_from_file_location("palm_oil_model_backend", path)
+    if spec is None or spec.loader is None:
+        raise BriefError("无法加载服务器模型后端")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
-def resolve_openai_api_key() -> str:
-    """Return the server-only API key without ever logging its value."""
-    key = os.environ.get("OPENAI_API_KEY", "").strip()
-    if not key:
-        raise BriefError("OpenAI API 密钥未配置，保留最近一次有效 AI 简报")
-    return key
+MODEL_BACKEND = load_model_backend()
 
 
 def build_prompt(context: dict[str, Any]) -> str:
@@ -334,81 +334,20 @@ CONTEXT_JSON：
 """.strip()
 
 
-def extract_response_text(payload: dict[str, Any]) -> str:
-    """Extract structured Responses API text across documented response shapes."""
-    direct = payload.get("output_text")
-    if isinstance(direct, str) and direct.strip():
-        return direct
-    output = payload.get("output")
-    if not isinstance(output, list):
-        raise BriefError("AI 简报未返回结构化文本，保留最近一次有效结果")
-    fragments: list[str] = []
-    for item in output:
-        if not isinstance(item, dict) or item.get("type") != "message":
-            continue
-        content = item.get("content")
-        if not isinstance(content, list):
-            continue
-        for part in content:
-            if not isinstance(part, dict) or part.get("type") != "output_text":
-                continue
-            text = part.get("text")
-            if isinstance(text, str):
-                fragments.append(text)
-    joined = "".join(fragments).strip()
-    if not joined:
-        raise BriefError("AI 简报未返回结构化文本，保留最近一次有效结果")
-    return joined
-
-
 def run_openai(context: dict[str, Any], timeout_seconds: int) -> dict[str, Any]:
-    api_key = resolve_openai_api_key()
-    model = os.environ.get("PALM_OIL_AI_MODEL", DEFAULT_OPENAI_MODEL).strip()
-    if not model:
-        raise BriefError("OpenAI 模型未配置，保留最近一次有效 AI 简报")
-    endpoint = os.environ.get("OPENAI_RESPONSES_URL", OPENAI_RESPONSES_URL).strip()
-    request_body = {
-        "model": model,
-        "input": build_prompt(context),
-        "text": {
-            "format": {
-                "type": "json_schema",
-                "name": "market_assistant_brief",
-                "strict": True,
-                "schema": json.loads(SCHEMA.read_text(encoding="utf-8")),
-            },
-            "verbosity": "low",
-        },
-    }
-    request = urllib.request.Request(
-        endpoint,
-        data=json.dumps(request_body, ensure_ascii=False).encode("utf-8"),
-        headers={
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-        },
-        method="POST",
-    )
     try:
-        with urllib.request.urlopen(request, timeout=timeout_seconds) as response:
-            raw_response = response.read().decode("utf-8")
-    except urllib.error.HTTPError as exc:
-        # Error bodies are deliberately not logged: a proxy can reflect request details.
+        payload, _backend = MODEL_BACKEND.request_json(
+            schema=json.loads(SCHEMA.read_text(encoding="utf-8")),
+            schema_name="market_assistant_brief",
+            prompt=build_prompt(context),
+            timeout=timeout_seconds,
+            verbosity="low",
+        )
+        return payload
+    except MODEL_BACKEND.ModelBackendError as exc:
         raise BriefError(
-            f"OpenAI API 请求失败（HTTP {exc.code}），保留最近一次有效 AI 简报"
+            f"模型 API 请求失败：{exc}，保留最近一次有效 AI 简报"
         ) from exc
-    except (OSError, TimeoutError) as exc:
-        raise BriefError(
-            f"OpenAI API 请求超过 {timeout_seconds} 秒或网络不可用，保留最近一次有效 AI 简报"
-        ) from exc
-    try:
-        response_payload = json.loads(raw_response)
-        model_payload = json.loads(extract_response_text(response_payload))
-    except (TypeError, json.JSONDecodeError) as exc:
-        raise BriefError("AI 简报未返回可解析 JSON，保留最近一次有效结果") from exc
-    if not isinstance(model_payload, dict):
-        raise BriefError("AI 简报根节点不是 JSON 对象")
-    return model_payload
 
 
 def require_text(value: Any, field: str, *, no_numbers: bool = True) -> str:
@@ -522,7 +461,7 @@ def validate_and_enrich(model_payload: dict[str, Any], context: dict[str, Any]) 
         "status": "ready",
         "generated_at": datetime.now(SHANGHAI).isoformat(timespec="seconds"),
         "update_session": context["session"],
-        "generator": "openai-responses-api",
+        "generator": MODEL_BACKEND.resolve_config(require_key=False)["backend"],
         "generation_contract": "server-only-key, source-grounded, structured-output",
         "source_fingerprint": source_fingerprint(context),
         "source_snapshot": context["source_snapshot"],

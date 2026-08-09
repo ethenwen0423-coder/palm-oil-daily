@@ -388,14 +388,36 @@ def credential_capabilities(
         == 0
     )
     openai_env_file = Path(
-        os.environ.get("PALM_OIL_OPENAI_ENV_FILE", "/etc/palm-oil-ai.env")
+        os.environ.get(
+            "PALM_OIL_AI_ENV_FILE",
+            os.environ.get("PALM_OIL_OPENAI_ENV_FILE", "/etc/palm-oil-ai.env"),
+        )
     )
     openai_api_key_configured = False
+    model_api_key_configured = False
+    model_provider = "missing"
     try:
         mode = openai_env_file.stat().st_mode & 0o777
+        lines = openai_env_file.read_text(encoding="utf-8").splitlines()
         openai_api_key_configured = mode == 0o600 and any(
             line.startswith("OPENAI_API_KEY=") and len(line) > len("OPENAI_API_KEY=")
-            for line in openai_env_file.read_text(encoding="utf-8").splitlines()
+            for line in lines
+        )
+        model_api_key_configured = mode == 0o600 and any(
+            line.startswith(prefix) and len(line) > len(prefix)
+            for line in lines
+            for prefix in (
+                "PALM_OIL_AI_API_KEY=",
+                "OPENAI_API_KEY=",
+                "DEEPSEEK_API_KEY=",
+            )
+        )
+        provider_line = next(
+            (line for line in lines if line.startswith("PALM_OIL_AI_PROVIDER=")),
+            "",
+        )
+        model_provider = provider_line.partition("=")[2].strip() or (
+            "openai" if openai_api_key_configured else "missing"
         )
     except OSError:
         pass
@@ -404,6 +426,13 @@ def credential_capabilities(
         "codex_cli_authenticated": codex_authenticated,
         "openai_api_key_present": bool(os.environ.get("OPENAI_API_KEY")),
         "openai_api_key_configured": openai_api_key_configured,
+        "model_api_key_present": bool(
+            os.environ.get("PALM_OIL_AI_API_KEY")
+            or os.environ.get("OPENAI_API_KEY")
+            or os.environ.get("DEEPSEEK_API_KEY")
+        ),
+        "model_api_key_configured": model_api_key_configured,
+        "model_provider": model_provider,
         "github_token_present": bool(os.environ.get("GITHUB_TOKEN")),
         "git_credential_helper_configured": bool(
             command_output(["git", "config", "--global", "--get", "credential.helper"])
@@ -448,7 +477,11 @@ def build_audit(
         blockers.append(f"missing Python modules: {', '.join(missing_modules)}")
     if not python["technical_runtime_present"]:
         blockers.append("repository technical-indicator runtime is missing")
-    ai_backend = "openai-responses" if credentials["openai_api_key_configured"] else "missing"
+    ai_backend = (
+        f"{credentials['model_provider']}-configured"
+        if credentials["model_api_key_configured"]
+        else "missing"
+    )
     if ai_backend == "missing":
         blockers.append("no authenticated unattended AI backend is configured")
     required_timer_states = systemd.get("required_timers", {})

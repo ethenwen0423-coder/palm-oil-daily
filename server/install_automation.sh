@@ -9,7 +9,7 @@ MARKET_RUNTIME_ROOT="${PALM_OIL_MARKET_RUNTIME_ROOT:-/srv/palm-oil-daily/market-
 AI_RUNTIME_ROOT="${PALM_OIL_AI_RUNTIME_ROOT:-/srv/palm-oil-daily/ai-runtime}"
 RESEARCH_RUNTIME_ROOT="${PALM_OIL_RESEARCH_RUNTIME_ROOT:-/srv/palm-oil-daily/research-runtime}"
 VENV_ROOT="${PALM_OIL_VENV_ROOT:-/srv/palm-oil-daily/venv}"
-OPENAI_ENV_FILE="${PALM_OIL_OPENAI_ENV_FILE:-/etc/palm-oil-ai.env}"
+AI_ENV_FILE="${PALM_OIL_AI_ENV_FILE:-${PALM_OIL_OPENAI_ENV_FILE:-/etc/palm-oil-ai.env}}"
 UNIT_ROOT="${PALM_OIL_SYSTEMD_UNIT_ROOT:-/etc/systemd/system}"
 COMPOSE_FILE="${PALM_OIL_COMPOSE_FILE:-$DEPLOY_ROOT/compose.yaml}"
 COMPOSE_OVERRIDE="${PALM_OIL_COMPOSE_OVERRIDE:-$DEPLOY_ROOT/compose.automation.yaml}"
@@ -199,7 +199,7 @@ Group=root
 WorkingDirectory=$SITE_ROOT
 Environment=HOME=$STATE_ROOT/home
 Environment=XDG_CACHE_HOME=$STATE_ROOT/cache
-EnvironmentFile=-$OPENAI_ENV_FILE
+EnvironmentFile=-$AI_ENV_FILE
 Environment=PYTHONUNBUFFERED=1
 Environment=PYTHONDONTWRITEBYTECODE=1
 Environment=PATH=$VENV_ROOT/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin

@@ -32,8 +32,14 @@ def load_module(name: str, path: Path):
     return module
 
 
-def openai_backend_configured() -> bool:
-    return bool(os.environ.get("OPENAI_API_KEY", "").strip())
+MODEL_BACKEND = load_module(
+    "server_model_backend",
+    Path(__file__).with_name("model_backend.py"),
+)
+
+
+def model_backend_configured() -> bool:
+    return MODEL_BACKEND.backend_configured()
 
 
 def validate_brief(path: Path) -> dict[str, Any]:
@@ -105,7 +111,9 @@ def main() -> int:
     backend = (
         "mock"
         if args.mock_response
-        else "openai-responses" if openai_backend_configured() else "missing"
+        else MODEL_BACKEND.resolve_config(require_key=False)["backend"]
+        if model_backend_configured()
+        else "missing"
     )
     plan = {
         "status": "planned" if backend != "missing" else "blocked",
@@ -125,7 +133,7 @@ def main() -> int:
             json.dumps(
                 {
                     **plan,
-                    "reason": "no unattended OpenAI API backend is configured",
+                    "reason": "no unattended model API backend is configured",
                 },
                 ensure_ascii=False,
                 sort_keys=True,

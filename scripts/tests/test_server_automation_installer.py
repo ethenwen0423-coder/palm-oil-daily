@@ -43,7 +43,7 @@ class ServerAutomationInstallerTests(unittest.TestCase):
         self.assertIn('stop web || true', script)
         self.assertIn('up -d --no-deps api', script)
         self.assertIn('--access-mode "$PUBLIC_ACCESS_MODE"', script)
-        self.assertIn("EnvironmentFile=-$OPENAI_ENV_FILE", script)
+        self.assertIn("EnvironmentFile=-$AI_ENV_FILE", script)
 
     def test_systemd_units_share_lock_and_only_write_scoped_runtime_paths(self):
         installer = INSTALLER.read_text(encoding="utf-8")
@@ -113,9 +113,12 @@ class ServerAutomationInstallerTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         script = AI_ENABLEMENT.read_text(encoding="utf-8")
         self.assertIn("--set-api-key", script)
+        self.assertIn("--set-deepseek-api-key", script)
         self.assertIn("OpenAI API key", script)
-        self.assertIn("OPENAI_ENV_FILE", script)
-        self.assertIn("OPENAI_API_KEY", script)
+        self.assertIn("DeepSeek API key", script)
+        self.assertIn("AI_ENV_FILE", script)
+        self.assertIn("PALM_OIL_AI_API_KEY", script)
+        self.assertIn("PALM_OIL_AI_PROVIDER", script)
         self.assertIn("systemctl disable --now palm-oil-ai-brief.timer", script)
         self.assertIn("systemctl disable --now palm-oil-research-agent.timer", script)
         self.assertIn("run_ai_brief.py", script)

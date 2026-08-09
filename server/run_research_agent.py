@@ -10,8 +10,6 @@ import shutil
 import subprocess
 import sys
 import tempfile
-import urllib.error
-import urllib.request
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -24,8 +22,6 @@ DEFAULT_RUNTIME_ROOT = Path("/srv/palm-oil-daily/research-runtime")
 DEFAULT_LIVE_DATA_ROOT = Path("/srv/palm-oil-daily/live-data")
 DEFAULT_STATE_ROOT = Path("/srv/palm-oil-daily/state")
 FIXED_LOGIC = ["otc_structure_library", "quant_model_rules"]
-OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses"
-DEFAULT_OPENAI_MODEL = "gpt-5.2"
 ALLOWED_CHANGED_PREFIXES = (
     "data/",
     "downloads/",
@@ -47,6 +43,12 @@ def load_module(name: str, path: Path):
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+MODEL_BACKEND = load_module(
+    "server_model_backend",
+    Path(__file__).with_name("model_backend.py"),
+)
 
 
 def parse_now(value: str | None) -> datetime:
@@ -87,7 +89,7 @@ def report_is_ready(path: Path, identity: str) -> bool:
 
 
 def openai_backend_configured() -> bool:
-    return bool(os.environ.get("OPENAI_API_KEY", "").strip())
+    return MODEL_BACKEND.backend_configured()
 
 
 def atomic_write_text(path: Path, text: str) -> None:
@@ -231,72 +233,19 @@ SOURCE_JSON：
 """.strip()
 
 
-def extract_response_text(payload: dict[str, Any]) -> str:
-    direct = payload.get("output_text")
-    if isinstance(direct, str) and direct.strip():
-        return direct
-    fragments: list[str] = []
-    for item in payload.get("output", []):
-        if not isinstance(item, dict) or item.get("type") != "message":
-            continue
-        for part in item.get("content", []):
-            if isinstance(part, dict) and part.get("type") == "output_text":
-                text = part.get("text")
-                if isinstance(text, str):
-                    fragments.append(text)
-    text = "".join(fragments).strip()
-    if not text:
-        raise ResearchAgentError("research model did not return structured text")
-    return text
-
-
 def run_openai(schema: Path, prompt: str, *, timeout: int) -> dict[str, Any]:
-    api_key = os.environ.get("OPENAI_API_KEY", "").strip()
-    if not api_key:
-        raise ResearchAgentError("OpenAI API key is not configured")
-    model = os.environ.get(
-        "PALM_OIL_RESEARCH_AI_MODEL",
-        os.environ.get("PALM_OIL_AI_MODEL", DEFAULT_OPENAI_MODEL),
-    ).strip()
-    if not model:
-        raise ResearchAgentError("OpenAI model is not configured")
-    endpoint = os.environ.get("OPENAI_RESPONSES_URL", OPENAI_RESPONSES_URL).strip()
-    request_body = {
-        "model": model,
-        "input": prompt,
-        "text": {
-            "format": {
-                "type": "json_schema",
-                "name": "server_research_report",
-                "strict": True,
-                "schema": load_json(schema),
-            },
-            "verbosity": "medium",
-        },
-    }
-    request = urllib.request.Request(
-        endpoint,
-        data=json.dumps(request_body, ensure_ascii=False).encode("utf-8"),
-        headers={
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-        },
-        method="POST",
-    )
     try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:
-            raw_response = response.read().decode("utf-8")
-    except urllib.error.HTTPError as exc:
-        raise ResearchAgentError(f"OpenAI API request failed (HTTP {exc.code})") from exc
-    except (OSError, TimeoutError) as exc:
-        raise ResearchAgentError("OpenAI API request timed out or network failed") from exc
-    try:
-        output = json.loads(extract_response_text(json.loads(raw_response)))
-    except (TypeError, json.JSONDecodeError) as exc:
-        raise ResearchAgentError("research model did not return valid JSON") from exc
-    if not isinstance(output, dict):
-        raise ResearchAgentError("research model output must be a JSON object")
-    return output
+        output, _backend = MODEL_BACKEND.request_json(
+            schema=load_json(schema),
+            schema_name="server_research_report",
+            prompt=prompt,
+            timeout=timeout,
+            verbosity="medium",
+            model=os.environ.get("PALM_OIL_RESEARCH_AI_MODEL", "").strip() or None,
+        )
+        return output
+    except MODEL_BACKEND.ModelBackendError as exc:
+        raise ResearchAgentError(str(exc)) from exc
 
 
 def validate_model_output(
@@ -415,7 +364,9 @@ def main() -> int:
     backend = (
         "mock"
         if args.mock_response
-        else "openai-responses" if openai_backend_configured() else "missing"
+        else MODEL_BACKEND.resolve_config(require_key=False)["backend"]
+        if openai_backend_configured()
+        else "missing"
     )
     plan = {
         "status": "planned" if backend != "missing" else "blocked",
@@ -430,7 +381,7 @@ def main() -> int:
         print(json.dumps({**plan, "dry_run": True}, ensure_ascii=False, sort_keys=True))
         return 0 if backend != "missing" else 2
     if backend == "missing":
-        print(json.dumps({**plan, "reason": "no unattended OpenAI API backend is configured"}, ensure_ascii=False, sort_keys=True))
+        print(json.dumps({**plan, "reason": "no unattended model API backend is configured"}, ensure_ascii=False, sort_keys=True))
         return 2
     if args.attempts < 1 or args.attempts > 3:
         print(json.dumps({"status": "error", "reason": "attempts must be between 1 and 3"}, ensure_ascii=False))
