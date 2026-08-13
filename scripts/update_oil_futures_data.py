@@ -7,9 +7,11 @@ import argparse
 import json
 import os
 import re
+import signal
 import subprocess
 import sys
 import tempfile
+import threading
 import urllib.error
 import urllib.request
 from datetime import datetime, timedelta
@@ -50,6 +52,32 @@ PRICE_TOLERANCE = 2.0
 PRICE_REL_TOLERANCE = 0.002
 PCT_TOLERANCE = 0.25
 ICDX_CPOTR_API = "https://www.icdx.co.id/cms/api/table-price-all/get"
+AKSHARE_CALL_TIMEOUT_SECONDS = int(os.environ.get("PALM_OIL_AKSHARE_TIMEOUT_SECONDS", "20"))
+
+
+class AkshareCallTimeout(TimeoutError):
+    """Raised when a single AkShare call exceeds its allotted wall time."""
+
+
+def akshare_call(callable_: Any, *args: Any, timeout: int | None = None, **kwargs: Any) -> Any:
+    """Bound an individual AkShare request so one upstream stall cannot block a refresh."""
+    if threading.current_thread() is not threading.main_thread() or not hasattr(signal, "SIGALRM"):
+        return callable_(*args, **kwargs)
+    seconds = timeout or AKSHARE_CALL_TIMEOUT_SECONDS
+    previous_handler = signal.getsignal(signal.SIGALRM)
+    previous_timer = signal.setitimer(signal.ITIMER_REAL, seconds)
+
+    def expire(_signum: int, _frame: Any) -> None:
+        raise AkshareCallTimeout(f"AkShare request exceeded {seconds}s")
+
+    signal.signal(signal.SIGALRM, expire)
+    try:
+        return callable_(*args, **kwargs)
+    except (AkshareCallTimeout, OSError):
+        return None
+    finally:
+        signal.setitimer(signal.ITIMER_REAL, *previous_timer)
+        signal.signal(signal.SIGALRM, previous_handler)
 
 
 def infer_update_session(now: datetime | None = None) -> str:
@@ -515,7 +543,7 @@ def ak_realtime_contract(ak: Any, variety: str, preferred_contract: str | None =
     if ak is None:
         return None
     try:
-        df = ak.futures_zh_realtime(symbol=variety)
+        df = akshare_call(ak.futures_zh_realtime, symbol=variety)
         if df is None or len(df) == 0:
             return None
         rows = df[~df["symbol"].astype(str).str.fullmatch(r"[A-Za-z]+0")]
@@ -555,7 +583,7 @@ def ak_daily_contract(ak: Any, contract: str, target_date: str | None = None) ->
     if ak is None:
         return None
     try:
-        df = ak.futures_zh_daily_sina(symbol=contract)
+        df = akshare_call(ak.futures_zh_daily_sina, symbol=contract)
         if df is None or len(df) == 0:
             return None
         selected_index = len(df) - 1
@@ -593,7 +621,7 @@ def ak_daily_history(ak: Any, contract: str):
     if ak is None:
         return None
     try:
-        df = ak.futures_zh_daily_sina(symbol=contract)
+        df = akshare_call(ak.futures_zh_daily_sina, symbol=contract)
         if df is None or len(df) < 80:
             return None
         for column in ["open", "high", "low", "close", "volume", "hold", "settle"]:
