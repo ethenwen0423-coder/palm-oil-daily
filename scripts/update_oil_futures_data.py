@@ -446,14 +446,17 @@ def run_contract_selector(now_month: str) -> tuple[dict[str, Any] | None, list[s
     selector = CONTRACT_SELECTOR_CLI if CONTRACT_SELECTOR_CLI.exists() else CONTRACT_DISCOVERY_CLI
     if not selector.exists():
         return None, ["contract_selector_skill 和 contract_discovery_skill 均缺失，无法生成当月合约名单"]
-    result = subprocess.run(
-        [sys.executable, str(selector), "--output-only"],
-        cwd=str(ROOT),
-        text=True,
-        capture_output=True,
-        timeout=45,
-        check=False,
-    )
+    try:
+        result = subprocess.run(
+            [sys.executable, str(selector), "--output-only"],
+            cwd=str(ROOT),
+            text=True,
+            capture_output=True,
+            timeout=45,
+            check=False,
+        )
+    except subprocess.TimeoutExpired:
+        return None, ["contract_selector_skill 调用超过 45 秒，已降级沿用最近有效合约名单"]
     if result.returncode != 0:
         return None, [f"contract_selector_skill 调用失败：{result.stderr.strip() or result.stdout.strip()}"]
     try:

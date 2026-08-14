@@ -250,6 +250,20 @@ class FundamentalRefreshBoundaryTest(unittest.TestCase):
             self.assertIn("P 实时合约发现缺失", "；".join(result["warnings"]))
             self.assertEqual(saved.read_text(encoding="utf-8"), before)
 
+    def test_contract_selector_timeout_is_recoverable(self):
+        with (
+            mock.patch.object(OIL, "CONTRACT_SELECTOR_CLI", Path("/tmp/selector.py")),
+            mock.patch.object(Path, "exists", return_value=True),
+            mock.patch.object(
+                OIL.subprocess,
+                "run",
+                side_effect=OIL.subprocess.TimeoutExpired(cmd=["selector"], timeout=45),
+            ),
+        ):
+            payload, warnings = OIL.run_contract_selector("2026-08")
+        self.assertIsNone(payload)
+        self.assertIn("超过 45 秒", warnings[0])
+
     def test_contract_discovery_is_written_only_to_explicit_temporary_output(self):
         payload = {
             "month": "2026-07",
