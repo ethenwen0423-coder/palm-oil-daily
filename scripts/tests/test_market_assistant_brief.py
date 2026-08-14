@@ -2,6 +2,7 @@ import importlib.util
 import json
 import os
 import unittest
+from datetime import datetime
 from pathlib import Path
 from unittest import mock
 
@@ -127,6 +128,26 @@ def model_payload():
 
 
 class MarketAssistantBriefTests(unittest.TestCase):
+    def test_codex_quota_cooldown_limits_model_frequency(self):
+        timezone = BRIEF.SHANGHAI
+        previous = datetime(2026, 8, 14, 10, 0, tzinfo=timezone)
+        self.assertEqual(
+            BRIEF.quota_cooldown_remaining(
+                previous,
+                minimum_minutes=30,
+                now=datetime(2026, 8, 14, 10, 12, tzinfo=timezone),
+            ),
+            18 * 60,
+        )
+        self.assertEqual(
+            BRIEF.quota_cooldown_remaining(
+                previous,
+                minimum_minutes=30,
+                now=datetime(2026, 8, 14, 10, 31, tzinfo=timezone),
+            ),
+            0,
+        )
+
     def test_openai_responses_request_uses_structured_output_and_never_logs_key(self):
         class FakeResponse:
             def __enter__(self):
@@ -152,44 +173,6 @@ class MarketAssistantBriefTests(unittest.TestCase):
         self.assertEqual(body["text"]["format"]["type"], "json_schema")
         self.assertTrue(body["text"]["format"]["strict"])
         self.assertEqual(request.get_header("Authorization"), "Bearer sk-test-secret")
-
-    def test_deepseek_chat_request_uses_json_mode_and_embeds_schema(self):
-        class FakeResponse:
-            def __enter__(self):
-                return self
-
-            def __exit__(self, *args):
-                return False
-
-            def read(self):
-                return json.dumps(
-                    {
-                        "choices": [
-                            {"message": {"content": json.dumps(model_payload())}}
-                        ]
-                    }
-                ).encode()
-
-        context = BRIEF.build_context(source_payloads())
-        environment = {
-            "PALM_OIL_AI_PROVIDER": "deepseek",
-            "PALM_OIL_AI_API_KEY": "sk-deepseek-secret",
-        }
-        with mock.patch.dict(os.environ, environment, clear=True):
-            with mock.patch.object(
-                BRIEF.MODEL_BACKEND.urllib.request,
-                "urlopen",
-                return_value=FakeResponse(),
-            ) as urlopen:
-                result = BRIEF.run_openai(context, 30)
-        request = urlopen.call_args.args[0]
-        body = json.loads(request.data.decode("utf-8"))
-        self.assertEqual(result["headline"], model_payload()["headline"])
-        self.assertEqual(request.full_url, "https://api.deepseek.com/chat/completions")
-        self.assertEqual(body["response_format"], {"type": "json_object"})
-        self.assertIn("OUTPUT_JSON_SCHEMA", body["messages"][0]["content"])
-        self.assertEqual(body["thinking"], {"type": "disabled"})
-        self.assertEqual(request.get_header("Authorization"), "Bearer sk-deepseek-secret")
 
     def test_context_is_bounded_and_has_traceable_evidence(self):
         context = BRIEF.build_context(source_payloads())
@@ -232,10 +215,13 @@ class MarketAssistantBriefTests(unittest.TestCase):
         backend = (ROOT / "server" / "model_backend.py").read_text(encoding="utf-8")
         deploy = (ROOT / "scripts" / "deploy_market_assistant_brief.sh").read_text(encoding="utf-8")
         installer = (ROOT / "scripts" / "install_market_assistant_launchd.sh").read_text(encoding="utf-8")
-        self.assertIn('"https://api.openai.com/v1/responses"', backend)
-        self.assertIn('"https://api.deepseek.com/chat/completions"', backend)
-        self.assertIn('"json_schema"', backend)
-        self.assertIn('"PALM_OIL_AI_API_KEY"', backend)
+        self.assertIn('"codex-cli"', backend)
+        self.assertIn('"gpt-5.6-terra"', backend)
+        self.assertIn('"--output-schema"', backend)
+        self.assertIn('"--ephemeral"', backend)
+        self.assertIn('"read-only"', backend)
+        self.assertIn('"OPENAI_API_KEY"', backend)
+        self.assertIn('environment.pop(name, None)', backend)
         self.assertIn("MODEL_BACKEND.request_json", generator)
         self.assertIn("market-data-deploy.lock", deploy)
         self.assertIn('git add -- "$TARGET"', deploy)

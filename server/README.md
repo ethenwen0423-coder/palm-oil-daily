@@ -80,28 +80,37 @@ twenty minutes, and prediction review every fifteen minutes. The AI and report
 timers are installed but deliberately left disabled until a real unattended
 backend generation and a structured report-draft acceptance both pass.
 
-服务器 AI 只读取 root:0600 的 `/etc/palm-oil-ai.env`，不读取或复制个人电脑上的
-登录文件。OpenAI Responses 与 DeepSeek Chat Completions 共用同一套结构、事实和
-固定逻辑门禁。国内腾讯云实例推荐使用可直连的 DeepSeek：
+服务器 AI 使用官方 Codex CLI，并通过 ChatGPT 登录消耗 Codex 套餐额度；不会把
+OpenAI API Key 作为后备，也不会消耗独立 API credits。先安装 CLI，再把认证写入
+systemd 服务专用的 `CODEX_HOME`：
 
 ```bash
 cd /srv/palm-oil-daily/site
-sudo bash server/enable_ai_automation.sh --set-deepseek-api-key
+sudo bash server/install_codex_cli.sh --apply
+sudo env HOME=/srv/palm-oil-daily/state/home \
+  CODEX_HOME=/srv/palm-oil-daily/state/home/.codex \
+  XDG_CACHE_HOME=/srv/palm-oil-daily/state/cache \
+  codex login --device-auth
+```
+
+设备码登录完成后，必须确认返回 `Logged in using ChatGPT`，再选择 Codex 后端。此
+步骤会把 `/etc/palm-oil-ai.env` 改成无 API Key 的 Codex 配置，但仍先保持两个 AI
+定时器关闭：
+
+```bash
+sudo env HOME=/srv/palm-oil-daily/state/home \
+  CODEX_HOME=/srv/palm-oil-daily/state/home/.codex \
+  XDG_CACHE_HOME=/srv/palm-oil-daily/state/cache \
+  codex login status
+sudo bash server/enable_ai_automation.sh --use-codex
 sudo bash server/enable_ai_automation.sh --enable
 sudo bash server/enable_ai_automation.sh --status
 ```
 
-如服务器具备 OpenAI 出站网络，也可使用 OpenAI。两种密钥都只通过隐藏的标准输入
-录入，不会写入仓库、页面或命令行参数：
-
-```bash
-sudo bash server/enable_ai_automation.sh --set-api-key
-sudo bash server/enable_ai_automation.sh --enable
-```
-
 `--enable` 会先保持 AI 与报告定时器关闭，检查受保护的模型配置，运行一次真实
 简报生成和一次真实结构化报告草稿验收，全部成功后才启用无人值守定时器。任何
-一步失败都不会把测试响应或不完整报告写入正式数据目录。
+一步失败都不会把测试响应或不完整报告写入正式数据目录。日内简报即使行情每十
+分钟变化，也默认至少间隔三十分钟才使用一次 Codex 额度；源数据不变时完全跳过。
 
 ## Server-owned live market data
 
@@ -138,5 +147,5 @@ quotes, technicals and dynamic model output while carrying the first verified
 morning fundamental snapshot. AI generation runs two minutes after the market
 schedule and uses the same collection lock. Its first server-owned publish is
 forced through the real structured-output backend before the AI ownership marker
-is written. It must not be enabled until the configured model API backend and
-its unattended credential pass the readiness audit and a real generation succeeds.
+is written. It must not be enabled until the ChatGPT-authenticated Codex CLI
+backend passes the readiness audit and a real generation succeeds.

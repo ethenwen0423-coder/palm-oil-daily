@@ -462,7 +462,7 @@ def validate_and_enrich(model_payload: dict[str, Any], context: dict[str, Any]) 
         "generated_at": datetime.now(SHANGHAI).isoformat(timespec="seconds"),
         "update_session": context["session"],
         "generator": MODEL_BACKEND.resolve_config(require_key=False)["backend"],
-        "generation_contract": "server-only-key, source-grounded, structured-output",
+        "generation_contract": "server-only-codex, source-grounded, structured-output",
         "source_fingerprint": source_fingerprint(context),
         "source_snapshot": context["source_snapshot"],
         "fixed_logic": context["fixed_logic"],
@@ -502,12 +502,47 @@ def current_fingerprint(path: Path) -> str:
     return str(payload.get("source_fingerprint") or "") if isinstance(payload, dict) else ""
 
 
+def previous_generated_at(path: Path) -> datetime | None:
+    if not path.exists():
+        return None
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        value = payload.get("generated_at") if isinstance(payload, dict) else None
+        parsed = datetime.fromisoformat(str(value)) if value else None
+    except (OSError, ValueError, json.JSONDecodeError):
+        return None
+    if parsed is None:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=SHANGHAI)
+    return parsed.astimezone(SHANGHAI)
+
+
+def quota_cooldown_remaining(
+    previous_time: datetime | None,
+    *,
+    minimum_minutes: int,
+    now: datetime | None = None,
+) -> int:
+    if previous_time is None or minimum_minutes <= 0:
+        return 0
+    current = (now or datetime.now(SHANGHAI)).astimezone(SHANGHAI)
+    elapsed = (current - previous_time.astimezone(SHANGHAI)).total_seconds()
+    return max(0, int(minimum_minutes * 60 - elapsed))
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, default=OUTPUT)
     parser.add_argument("--previous-output", type=Path, default=OUTPUT)
     parser.add_argument("--mock-response", type=Path, help="测试用模型响应 JSON")
     parser.add_argument("--timeout", type=int, default=300)
+    parser.add_argument(
+        "--min-interval-minutes",
+        type=int,
+        default=int(os.environ.get("PALM_OIL_AI_MIN_INTERVAL_MINUTES", "30")),
+        help="Minimum elapsed time between paid model runs when sources keep changing.",
+    )
     parser.add_argument("--force", action="store_true")
     args = parser.parse_args()
 
@@ -520,6 +555,26 @@ def main() -> int:
                 args.output.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(args.previous_output, args.output)
             print(json.dumps({"status": "skipped", "reason": "source_unchanged", "source_fingerprint": fingerprint}))
+            return 0
+        previous_time = previous_generated_at(args.previous_output)
+        remaining_seconds = quota_cooldown_remaining(
+            previous_time,
+            minimum_minutes=args.min_interval_minutes,
+        )
+        if not args.force and remaining_seconds > 0:
+            if args.output.resolve() != args.previous_output.resolve():
+                args.output.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(args.previous_output, args.output)
+            print(
+                json.dumps(
+                    {
+                        "status": "skipped",
+                        "reason": "codex_quota_cooldown",
+                        "source_fingerprint": fingerprint,
+                        "retry_after_seconds": remaining_seconds,
+                    }
+                )
+            )
             return 0
         if args.mock_response:
             model_payload = load_json(args.mock_response)

@@ -51,7 +51,7 @@ class ServerRuntimeAuditTests(unittest.TestCase):
             ):
                 with mock.patch.object(AUDIT, "run") as run_mock:
                     run_mock.return_value = subprocess.CompletedProcess(
-                        ["codex", "login", "status"], 0, "Logged in", ""
+                        ["codex", "login", "status"], 0, "Logged in using ChatGPT", ""
                     )
                     with mock.patch.object(
                         AUDIT.shutil,
@@ -65,6 +65,7 @@ class ServerRuntimeAuditTests(unittest.TestCase):
         rendered = json.dumps(payload, sort_keys=True)
         self.assertTrue(payload["github_token_present"])
         self.assertTrue(payload["codex_cli_authenticated"])
+        self.assertEqual(payload["codex_auth_method"], "chatgpt")
         self.assertNotIn("super-secret", rendered)
 
     def test_cli_is_read_only_and_returns_valid_json_when_blocked(self):

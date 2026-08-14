@@ -133,7 +133,7 @@ def main() -> int:
             json.dumps(
                 {
                     **plan,
-                    "reason": "no unattended model API backend is configured",
+                    "reason": "no authenticated unattended model backend is configured",
                 },
                 ensure_ascii=False,
                 sort_keys=True,

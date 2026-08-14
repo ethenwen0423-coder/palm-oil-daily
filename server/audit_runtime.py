@@ -374,9 +374,8 @@ def credential_capabilities(
         else shutil.which("codex") or ""
     )
     codex_home = state_root / "home" / ".codex"
-    codex_authenticated = bool(
-        codex_bin
-        and run(
+    codex_status = (
+        run(
             [codex_bin, "login", "status"],
             timeout=20,
             environment={
@@ -384,8 +383,19 @@ def credential_capabilities(
                 "CODEX_HOME": str(codex_home),
                 "XDG_CACHE_HOME": str(state_root / "cache"),
             },
-        ).returncode
-        == 0
+        )
+        if codex_bin
+        else None
+    )
+    codex_status_text = (
+        f"{codex_status.stdout}\n{codex_status.stderr}".lower()
+        if codex_status is not None
+        else ""
+    )
+    codex_authenticated = bool(
+        codex_status is not None
+        and codex_status.returncode == 0
+        and "chatgpt" in codex_status_text
     )
     openai_env_file = Path(
         os.environ.get(
@@ -409,7 +419,6 @@ def credential_capabilities(
             for prefix in (
                 "PALM_OIL_AI_API_KEY=",
                 "OPENAI_API_KEY=",
-                "DEEPSEEK_API_KEY=",
             )
         )
         provider_line = next(
@@ -424,12 +433,12 @@ def credential_capabilities(
     return {
         "codex_cli_present": bool(codex_bin),
         "codex_cli_authenticated": codex_authenticated,
+        "codex_auth_method": "chatgpt" if codex_authenticated else "missing",
         "openai_api_key_present": bool(os.environ.get("OPENAI_API_KEY")),
         "openai_api_key_configured": openai_api_key_configured,
         "model_api_key_present": bool(
             os.environ.get("PALM_OIL_AI_API_KEY")
             or os.environ.get("OPENAI_API_KEY")
-            or os.environ.get("DEEPSEEK_API_KEY")
         ),
         "model_api_key_configured": model_api_key_configured,
         "model_provider": model_provider,
@@ -478,12 +487,15 @@ def build_audit(
     if not python["technical_runtime_present"]:
         blockers.append("repository technical-indicator runtime is missing")
     ai_backend = (
-        f"{credentials['model_provider']}-configured"
-        if credentials["model_api_key_configured"]
+        "codex-chatgpt-quota"
+        if credentials["model_provider"] == "codex"
+        and credentials["codex_cli_authenticated"]
         else "missing"
     )
     if ai_backend == "missing":
-        blockers.append("no authenticated unattended AI backend is configured")
+        blockers.append(
+            "Codex CLI is not selected and authenticated with ChatGPT subscription access"
+        )
     required_timer_states = systemd.get("required_timers", {})
     inactive_timers = [
         name

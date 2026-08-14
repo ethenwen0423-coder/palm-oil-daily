@@ -103,7 +103,7 @@ class ServerAutomationInstallerTests(unittest.TestCase):
             },
         )
 
-    def test_ai_timer_enablement_requires_protected_api_key_and_real_generation(self):
+    def test_ai_timer_enablement_requires_chatgpt_codex_and_real_generation(self):
         result = subprocess.run(
             ["bash", "-n", str(AI_ENABLEMENT)],
             text=True,
@@ -112,13 +112,16 @@ class ServerAutomationInstallerTests(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 0, result.stderr)
         script = AI_ENABLEMENT.read_text(encoding="utf-8")
-        self.assertIn("--set-api-key", script)
-        self.assertIn("--set-deepseek-api-key", script)
-        self.assertIn("OpenAI API key", script)
-        self.assertIn("DeepSeek API key", script)
+        self.assertIn("--use-codex", script)
+        self.assertIn("codex login status", script)
+        self.assertIn("chatgpt-codex-quota", script)
+        self.assertNotIn("--set-deepseek-api-key", script)
+        self.assertNotIn("DeepSeek API key", script)
         self.assertIn("AI_ENV_FILE", script)
         self.assertIn("PALM_OIL_AI_API_KEY", script)
         self.assertIn("PALM_OIL_AI_PROVIDER", script)
+        self.assertIn("PALM_OIL_AI_PROVIDER=codex", script)
+        self.assertIn("PALM_OIL_AI_API_STYLE=codex-cli", script)
         self.assertIn("systemctl disable --now palm-oil-ai-brief.timer", script)
         self.assertIn("systemctl disable --now palm-oil-research-agent.timer", script)
         self.assertIn("run_ai_brief.py", script)

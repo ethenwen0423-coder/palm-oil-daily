@@ -9,25 +9,34 @@ AI_ENV_FILE="${PALM_OIL_AI_ENV_FILE:-${PALM_OIL_OPENAI_ENV_FILE:-/etc/palm-oil-a
 MODE="${1:---status}"
 
 case "$MODE" in
-  --status|--set-api-key|--set-deepseek-api-key|--enable|--disable) ;;
+  --status|--use-codex|--set-api-key|--enable|--disable) ;;
   *)
-    echo "usage: sudo bash server/enable_ai_automation.sh [--status|--set-api-key|--set-deepseek-api-key|--enable|--disable]" >&2
+    echo "usage: sudo bash server/enable_ai_automation.sh [--status|--use-codex|--set-api-key|--enable|--disable]" >&2
     exit 2
     ;;
 esac
 
-model_credential_configured() {
-  [[ -f "$AI_ENV_FILE" ]] &&
-    [[ "$(stat -c '%U:%a' "$AI_ENV_FILE" 2>/dev/null || true)" == "root:600" ]] &&
-    grep -Eq '^(PALM_OIL_AI_API_KEY|OPENAI_API_KEY|DEEPSEEK_API_KEY)=.' "$AI_ENV_FILE"
+codex_chatgpt_authenticated() {
+  command -v codex >/dev/null 2>&1 &&
+    HOME="$STATE_ROOT/home" \
+    CODEX_HOME="$STATE_ROOT/home/.codex" \
+    XDG_CACHE_HOME="$STATE_ROOT/cache" \
+    codex login status 2>&1 | grep -qi 'ChatGPT'
 }
 
-load_api_environment() {
+api_credential_configured() {
+  [[ -f "$AI_ENV_FILE" ]] &&
+    [[ "$(stat -c '%U:%a' "$AI_ENV_FILE" 2>/dev/null || true)" == "root:600" ]] &&
+    grep -Eq '^(PALM_OIL_AI_API_KEY|OPENAI_API_KEY)=.' "$AI_ENV_FILE"
+}
+
+load_model_environment() {
   while IFS='=' read -r name value; do
     case "$name" in
       PALM_OIL_AI_PROVIDER|PALM_OIL_AI_API_STYLE|PALM_OIL_AI_ENDPOINT|\
       PALM_OIL_AI_MODEL|PALM_OIL_RESEARCH_AI_MODEL|PALM_OIL_AI_MAX_TOKENS|\
-      PALM_OIL_AI_API_KEY|OPENAI_API_KEY|DEEPSEEK_API_KEY)
+      PALM_OIL_AI_MIN_INTERVAL_MINUTES|CODEX_BIN|\
+      PALM_OIL_AI_API_KEY|OPENAI_API_KEY)
         export "$name=$value"
         ;;
     esac
@@ -41,17 +50,26 @@ if [[ "$MODE" == "--status" ]]; then
   timer_active=false
   research_timer_enabled=false
   research_timer_active=false
-  if model_credential_configured; then
+  codex_authenticated=false
+  billing_mode="missing"
+  if codex_chatgpt_authenticated; then
+    codex_authenticated=true
+  fi
+  if [[ -f "$AI_ENV_FILE" ]] && grep -qx 'PALM_OIL_AI_PROVIDER=codex' "$AI_ENV_FILE" && [[ "$codex_authenticated" == true ]]; then
+    provider="codex"
+    billing_mode="chatgpt-codex-quota"
+  elif api_credential_configured; then
     api_key_present=true
     provider="$(sed -n 's/^PALM_OIL_AI_PROVIDER=//p' "$AI_ENV_FILE" | head -n 1)"
     [[ -n "$provider" ]] || provider="openai"
+    billing_mode="api-credits"
   fi
   systemctl is-enabled --quiet palm-oil-ai-brief.timer && timer_enabled=true
   systemctl is-active --quiet palm-oil-ai-brief.timer && timer_active=true
   systemctl is-enabled --quiet palm-oil-research-agent.timer && research_timer_enabled=true
   systemctl is-active --quiet palm-oil-research-agent.timer && research_timer_active=true
   python3 - "$api_key_present" "$provider" "$timer_enabled" "$timer_active" \
-    "$research_timer_enabled" "$research_timer_active" <<'PY'
+    "$research_timer_enabled" "$research_timer_active" "$codex_authenticated" "$billing_mode" <<'PY'
 import json
 import sys
 
@@ -63,6 +81,8 @@ print(json.dumps(
         "timer_active": sys.argv[4] == "true",
         "research_timer_enabled": sys.argv[5] == "true",
         "research_timer_active": sys.argv[6] == "true",
+        "codex_chatgpt_authenticated": sys.argv[7] == "true",
+        "billing_mode": sys.argv[8],
     },
     sort_keys=True,
 ))
@@ -75,7 +95,29 @@ fi
   exit 2
 }
 
-if [[ "$MODE" == "--set-api-key" || "$MODE" == "--set-deepseek-api-key" ]]; then
+if [[ "$MODE" == "--use-codex" ]]; then
+  systemctl disable --now palm-oil-ai-brief.timer >/dev/null 2>&1 || true
+  systemctl disable --now palm-oil-research-agent.timer >/dev/null 2>&1 || true
+  codex_chatgpt_authenticated || {
+    echo "Codex CLI must first be authenticated with ChatGPT under $STATE_ROOT/home/.codex" >&2
+    exit 2
+  }
+  temporary="$(mktemp "${AI_ENV_FILE}.tmp.XXXXXX")"
+  trap 'rm -f "$temporary"' EXIT
+  umask 077
+  printf 'PALM_OIL_AI_PROVIDER=codex\n' >"$temporary"
+  printf 'PALM_OIL_AI_API_STYLE=codex-cli\n' >>"$temporary"
+  printf 'PALM_OIL_AI_MODEL=%s\n' "${PALM_OIL_AI_MODEL:-gpt-5.6-terra}" >>"$temporary"
+  printf 'PALM_OIL_RESEARCH_AI_MODEL=%s\n' "${PALM_OIL_RESEARCH_AI_MODEL:-gpt-5.6-terra}" >>"$temporary"
+  printf 'PALM_OIL_AI_MIN_INTERVAL_MINUTES=%s\n' "${PALM_OIL_AI_MIN_INTERVAL_MINUTES:-30}" >>"$temporary"
+  install -o root -g root -m 0600 "$temporary" "$AI_ENV_FILE"
+  rm -f "$temporary"
+  trap - EXIT
+  echo '{"status":"configured","credential":"chatgpt-codex-login","provider":"codex","billing_mode":"chatgpt-codex-quota","timers":"disabled"}'
+  exit 0
+fi
+
+if [[ "$MODE" == "--set-api-key" ]]; then
   [[ -t 0 && -t 1 ]] || {
     echo "--set-api-key must be run in an interactive terminal" >&2
     exit 2
@@ -87,13 +129,6 @@ if [[ "$MODE" == "--set-api-key" || "$MODE" == "--set-deepseek-api-key" ]]; then
   model="${PALM_OIL_AI_MODEL:-gpt-5.2}"
   endpoint="https://api.openai.com/v1/responses"
   style="responses"
-  if [[ "$MODE" == "--set-deepseek-api-key" ]]; then
-    provider="deepseek"
-    prompt="DeepSeek API key: "
-    model="${PALM_OIL_AI_MODEL:-deepseek-v4-pro}"
-    endpoint="https://api.deepseek.com/chat/completions"
-    style="chat-completions"
-  fi
   read -r -s -p "$prompt" api_key
   printf '\n'
   [[ "$api_key" == sk-* ]] || {
@@ -130,10 +165,17 @@ fi
 
 systemctl disable --now palm-oil-ai-brief.timer >/dev/null 2>&1 || true
 systemctl disable --now palm-oil-research-agent.timer >/dev/null 2>&1 || true
-model_credential_configured && load_api_environment || {
-  echo "model API key is not configured in the protected server environment file" >&2
+[[ -f "$AI_ENV_FILE" ]] && load_model_environment || true
+provider="${PALM_OIL_AI_PROVIDER:-missing}"
+if [[ "$provider" == "codex" ]]; then
+  codex_chatgpt_authenticated || {
+    echo "Codex CLI is not authenticated with ChatGPT subscription access" >&2
+    exit 2
+  }
+elif ! api_credential_configured; then
+  echo "no authenticated model backend is configured" >&2
   exit 2
-}
+fi
 [[ -x "$VENV_ROOT/bin/python" ]] || {
   echo "server Python runtime is unavailable: $VENV_ROOT/bin/python" >&2
   exit 2

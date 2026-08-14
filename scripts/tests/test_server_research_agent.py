@@ -61,46 +61,6 @@ class ServerResearchAgentTests(unittest.TestCase):
         self.assertTrue(body["text"]["format"]["strict"])
         self.assertEqual(request.get_header("Authorization"), "Bearer sk-test-secret")
 
-    def test_deepseek_chat_request_uses_json_mode_and_same_output_gate(self) -> None:
-        expected = {
-            "fixed_logic": MODULE.FIXED_LOGIC,
-            "report_markdown": "# 08月07日晨报\n" + ("报告内容" * 500),
-            "outline": {"report_date": "2026-08-07", "kind": "daily"},
-        }
-
-        class FakeResponse:
-            def __enter__(self):
-                return self
-
-            def __exit__(self, *args):
-                return False
-
-            def read(self):
-                return json.dumps(
-                    {"choices": [{"message": {"content": json.dumps(expected)}}]}
-                ).encode()
-
-        with tempfile.TemporaryDirectory() as temporary:
-            schema = Path(temporary) / "schema.json"
-            schema.write_text('{"type":"object"}', encoding="utf-8")
-            environment = {
-                "PALM_OIL_AI_PROVIDER": "deepseek",
-                "PALM_OIL_AI_API_KEY": "sk-deepseek-secret",
-            }
-            with mock.patch.dict(os.environ, environment, clear=True):
-                with mock.patch.object(
-                    MODULE.MODEL_BACKEND.urllib.request,
-                    "urlopen",
-                    return_value=FakeResponse(),
-                ) as urlopen:
-                    payload = MODULE.run_openai(schema, "test prompt", timeout=30)
-        request = urlopen.call_args.args[0]
-        body = json.loads(request.data.decode("utf-8"))
-        self.assertEqual(payload["fixed_logic"], MODULE.FIXED_LOGIC)
-        self.assertEqual(body["response_format"], {"type": "json_object"})
-        self.assertIn("OUTPUT_JSON_SCHEMA", body["messages"][0]["content"])
-        self.assertEqual(request.get_header("Authorization"), "Bearer sk-deepseek-secret")
-
     def test_schedule_has_daily_retry_and_sunday_weekend_window(self) -> None:
         timezone = MODULE.SHANGHAI
         self.assertIsNone(

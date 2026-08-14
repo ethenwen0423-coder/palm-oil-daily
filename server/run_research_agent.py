@@ -88,7 +88,7 @@ def report_is_ready(path: Path, identity: str) -> bool:
     )
 
 
-def openai_backend_configured() -> bool:
+def model_backend_configured() -> bool:
     return MODEL_BACKEND.backend_configured()
 
 
@@ -365,7 +365,7 @@ def main() -> int:
         "mock"
         if args.mock_response
         else MODEL_BACKEND.resolve_config(require_key=False)["backend"]
-        if openai_backend_configured()
+        if model_backend_configured()
         else "missing"
     )
     plan = {
@@ -381,7 +381,7 @@ def main() -> int:
         print(json.dumps({**plan, "dry_run": True}, ensure_ascii=False, sort_keys=True))
         return 0 if backend != "missing" else 2
     if backend == "missing":
-        print(json.dumps({**plan, "reason": "no unattended model API backend is configured"}, ensure_ascii=False, sort_keys=True))
+        print(json.dumps({**plan, "reason": "no authenticated unattended model backend is configured"}, ensure_ascii=False, sort_keys=True))
         return 2
     if args.attempts < 1 or args.attempts > 3:
         print(json.dumps({"status": "error", "reason": "attempts must be between 1 and 3"}, ensure_ascii=False))
