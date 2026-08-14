@@ -16,6 +16,13 @@ assert SPEC and SPEC.loader
 oil = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(oil)
 
+EXCHANGE_SPEC = importlib.util.spec_from_file_location(
+    "exchange_timeout_test", ROOT / "scripts" / "update_exchange_futures_data.py"
+)
+assert EXCHANGE_SPEC and EXCHANGE_SPEC.loader
+exchange = importlib.util.module_from_spec(EXCHANGE_SPEC)
+EXCHANGE_SPEC.loader.exec_module(exchange)
+
 
 class AkshareCallTimeoutTests(unittest.TestCase):
     def test_returns_result_before_timeout(self) -> None:
@@ -24,6 +31,11 @@ class AkshareCallTimeoutTests(unittest.TestCase):
     def test_returns_none_and_interrupts_stalled_call(self) -> None:
         started = time.monotonic()
         self.assertIsNone(oil.akshare_call(lambda: time.sleep(5), timeout=1))
+        self.assertLess(time.monotonic() - started, 2.5)
+
+    def test_exchange_collector_interrupts_stalled_call(self) -> None:
+        started = time.monotonic()
+        self.assertIsNone(exchange.akshare_call(lambda: time.sleep(5), timeout=1))
         self.assertLess(time.monotonic() - started, 2.5)
 
 

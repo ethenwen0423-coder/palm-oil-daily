@@ -6,8 +6,11 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import json
+import os
 import re
+import signal
 import subprocess
+import threading
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -20,6 +23,36 @@ try:
     import akshare as ak  # type: ignore
 except ImportError:  # pragma: no cover - deployment dependency
     ak = None
+
+
+AKSHARE_CALL_TIMEOUT_SECONDS = int(
+    os.environ.get("PALM_OIL_AKSHARE_TIMEOUT_SECONDS", "20")
+)
+
+
+class AkshareCallTimeout(TimeoutError):
+    """Raised when one exchange-data AkShare call exceeds its wall-time budget."""
+
+
+def akshare_call(callable_: Any, *args: Any, timeout: int | None = None, **kwargs: Any) -> Any:
+    """Bound one AkShare request so a stalled upstream cannot freeze all products."""
+    if threading.current_thread() is not threading.main_thread() or not hasattr(signal, "SIGALRM"):
+        return callable_(*args, **kwargs)
+    seconds = timeout or AKSHARE_CALL_TIMEOUT_SECONDS
+    previous_handler = signal.getsignal(signal.SIGALRM)
+    previous_timer = signal.setitimer(signal.ITIMER_REAL, seconds)
+
+    def expire(_signum: int, _frame: Any) -> None:
+        raise AkshareCallTimeout(f"AkShare request exceeded {seconds}s")
+
+    signal.signal(signal.SIGALRM, expire)
+    try:
+        return callable_(*args, **kwargs)
+    except (AkshareCallTimeout, OSError):
+        return None
+    finally:
+        signal.setitimer(signal.ITIMER_REAL, *previous_timer)
+        signal.signal(signal.SIGALRM, previous_handler)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -574,7 +607,7 @@ def fetch_basis_snapshots(now: datetime | None = None) -> dict[str, dict[str, An
     for offset in range(5):
         date_text = (current.date() - timedelta(days=offset)).strftime("%Y%m%d")
         try:
-            frame = ak.futures_spot_price(date=date_text)
+            frame = akshare_call(ak.futures_spot_price, date=date_text)
         except Exception:
             continue
         if frame is None or frame.empty:
@@ -633,7 +666,7 @@ def fetch_index_snapshots() -> dict[str, dict[str, Any]]:
     for meta in INDEX_VARIETIES.values():
         code = meta["code"]
         try:
-            frame = ak.stock_zh_index_value_csindex(symbol=code)
+            frame = akshare_call(ak.stock_zh_index_value_csindex, symbol=code)
         except Exception:
             continue
         if frame is None or frame.empty:
@@ -656,10 +689,13 @@ def fetch_rate_snapshot(now: datetime | None = None) -> dict[str, Any]:
     current = now or datetime.now(SHANGHAI)
     snapshot: dict[str, Any] = {}
     try:
-        curve = ak.bond_china_yield(
+        curve = akshare_call(
+            ak.bond_china_yield,
             start_date=(current.date() - timedelta(days=14)).strftime("%Y%m%d"),
             end_date=current.date().strftime("%Y%m%d"),
         )
+        if curve is None:
+            raise RuntimeError("bond yield request timed out")
         curve = curve[curve["曲线名称"] == "中债国债收益率曲线"].sort_values("日期", ascending=False)
         if not curve.empty:
             row = curve.iloc[0]
@@ -678,7 +714,10 @@ def fetch_rate_snapshot(now: datetime | None = None) -> dict[str, Any]:
     except Exception:
         pass
     try:
-        shibor = ak.macro_china_shibor_all().sort_values("日期", ascending=False)
+        shibor = akshare_call(ak.macro_china_shibor_all)
+        if shibor is None:
+            raise RuntimeError("Shibor request timed out")
+        shibor = shibor.sort_values("日期", ascending=False)
         if not shibor.empty:
             row = shibor.iloc[0]
             snapshot.update({
@@ -890,7 +929,9 @@ def build_contracts(
         raise ValueError(f"不支持的品种范围: {scope}")
     helper = load_technical_helper()
     levels_helper = load_levels_helper()
-    symbols = ak.futures_symbol_mark()
+    symbols = akshare_call(ak.futures_symbol_mark)
+    if symbols is None:
+        raise RuntimeError("AkShare 主力品种列表请求超时")
     symbols = symbols[symbols["exchange"].isin(EXCHANGE_LABELS)].copy()
     if scope == "core":
         symbols = symbols[symbols["symbol"].isin(CORE_PRODUCTS)].copy()
@@ -910,7 +951,7 @@ def build_contracts(
         quotes = None
         for attempt in range(3):
             try:
-                quotes = ak.futures_zh_realtime(symbol=product_name)
+                quotes = akshare_call(ak.futures_zh_realtime, symbol=product_name)
                 if quotes is not None and not quotes.empty:
                     break
             except Exception:
