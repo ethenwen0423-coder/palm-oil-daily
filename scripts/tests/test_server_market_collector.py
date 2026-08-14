@@ -48,6 +48,64 @@ def write_all_datasets(root: Path, marker: str) -> None:
 
 
 class ServerMarketCollectorTests(unittest.TestCase):
+    def test_morning_fundamental_readiness_requires_same_day_frozen_snapshot(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "oil_futures.js"
+            payload = {
+                "fundamental_updated_at": "2026-08-14T06:35:00+08:00",
+                "fundamental_update_session": "morning",
+                "contracts": [{"symbol": "P2609"}],
+            }
+            path.write_text(
+                "window.OIL_FUTURES_CONTRACTS = "
+                + json.dumps(payload, ensure_ascii=False)
+                + ";\n",
+                encoding="utf-8",
+            )
+            self.assertTrue(
+                COLLECTOR.morning_fundamentals_ready(path, "2026-08-14")
+            )
+            self.assertFalse(
+                COLLECTOR.morning_fundamentals_ready(path, "2026-08-15")
+            )
+
+    def test_morning_fundamental_readiness_rejects_invalid_or_empty_data(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "oil_futures.js"
+            path.write_text("not-json\n", encoding="utf-8")
+            self.assertFalse(
+                COLLECTOR.morning_fundamentals_ready(path, "2026-08-14")
+            )
+            path.write_text(
+                json.dumps(
+                    {
+                        "fundamental_updated_at": "2026-08-14T06:35:00+08:00",
+                        "fundamental_update_session": "morning",
+                        "contracts": [],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            self.assertFalse(
+                COLLECTOR.morning_fundamentals_ready(path, "2026-08-14")
+            )
+
+    def test_intraday_recovery_bootstraps_morning_before_selected_session(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            missing = Path(temporary) / "oil_futures.js"
+            self.assertEqual(
+                COLLECTOR.deployment_sessions("midday", missing, "2026-08-14"),
+                ("morning", "midday"),
+            )
+            self.assertEqual(
+                COLLECTOR.deployment_sessions("close", missing, "2026-08-14"),
+                ("morning", "close"),
+            )
+            self.assertEqual(
+                COLLECTOR.deployment_sessions("overnight", missing, "2026-08-14"),
+                ("overnight",),
+            )
+
     def test_session_selection_covers_recovery_windows(self):
         timezone = COLLECTOR.SHANGHAI
         cases = {

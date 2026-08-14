@@ -23,6 +23,7 @@ DEFAULT_RUNTIME_ROOT = Path("/srv/palm-oil-daily/market-runtime")
 DEFAULT_LIVE_DATA_ROOT = Path("/srv/palm-oil-daily/live-data")
 DEFAULT_STATE_ROOT = Path("/srv/palm-oil-daily/state")
 SESSIONS = ("morning", "midday", "close", "night_open", "night_close", "overnight")
+INTRADAY_CARRY_SESSIONS = ("midday", "close", "night_open", "night_close")
 
 
 class CollectorError(RuntimeError):
@@ -167,6 +168,33 @@ def copy_live_inputs(live_data_root: Path, runtime_root: Path) -> None:
         dirs_exist_ok=True,
         copy_function=shutil.copy2,
     )
+
+
+def morning_fundamentals_ready(path: Path, expected_date: str) -> bool:
+    """Return whether the runtime contains today's frozen morning fundamentals."""
+    try:
+        text = path.read_text(encoding="utf-8").strip()
+        if "=" in text:
+            text = text.split("=", 1)[1].strip().removesuffix(";")
+        payload = json.loads(text)
+    except (OSError, ValueError, json.JSONDecodeError):
+        return False
+    return bool(
+        isinstance(payload, dict)
+        and str(payload.get("fundamental_updated_at") or "").startswith(expected_date)
+        and payload.get("fundamental_update_session") == "morning"
+        and payload.get("contracts")
+    )
+
+
+def deployment_sessions(session: str, data_path: Path, fundamental_date: str) -> tuple[str, ...]:
+    """Return the self-healing deployment sequence for the selected session."""
+    if session in INTRADAY_CARRY_SESSIONS and not morning_fundamentals_ready(
+        data_path,
+        fundamental_date,
+    ):
+        return ("morning", session)
+    return (session,)
 
 
 def atomic_state_marker(path: Path, payload: dict[str, object]) -> None:
@@ -321,18 +349,30 @@ def main() -> int:
                 f"[{now.isoformat(timespec='seconds')}] start session={session} "
                 f"fundamental_date={fundamental_date}\n"
             )
-            run_checked(
-                [
-                    "bash",
-                    "scripts/deploy_oil_futures_tab.sh",
-                    session,
-                    fundamental_date,
-                ],
-                cwd=runtime_root,
-                environment=environment,
-                timeout=2400,
-                output=log,
+            sessions_to_run = deployment_sessions(
+                session,
+                runtime_root / "data" / "oil_futures.js",
+                fundamental_date,
             )
+            if len(sessions_to_run) > 1:
+                log.write(
+                    f"[{now.isoformat(timespec='seconds')}] "
+                    "recover missing morning fundamentals before intraday refresh\n"
+                )
+                log.flush()
+            for deployment_session in sessions_to_run:
+                run_checked(
+                    [
+                        "bash",
+                        "scripts/deploy_oil_futures_tab.sh",
+                        deployment_session,
+                        fundamental_date,
+                    ],
+                    cwd=runtime_root,
+                    environment=environment,
+                    timeout=2400,
+                    output=log,
+                )
         synced = sync_module.sync_market(
             runtime_root / "data",
             live_data_root,
