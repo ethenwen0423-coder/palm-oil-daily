@@ -102,6 +102,17 @@ class ServerResearchAgentTests(unittest.TestCase):
         headline = bounded.splitlines()[-1]
         self.assertLessEqual(len("".join(headline.split())), 50)
 
+    def test_daily_confidence_cap_is_written_when_model_omits_it(self) -> None:
+        markdown = "# 08月07日晨报\n\n## 【今日观点】\n\n震荡，等待更多证据。\n\n## 【今日交易信号】\n"
+        updated, outline = MODULE.enforce_confidence_cap(
+            markdown,
+            {"research_confidence": "★★★★★"},
+            {"core_view_confidence_cap_stars": 2},
+            "daily",
+        )
+        self.assertIn("置信度：★★☆☆☆。", updated)
+        self.assertEqual(outline["research_confidence"], "★★☆☆☆")
+
     def test_model_output_cannot_change_fixed_logic(self) -> None:
         payload = {
             "report_markdown": "# 08月07日晨报\n" + ("报告内容" * 500),

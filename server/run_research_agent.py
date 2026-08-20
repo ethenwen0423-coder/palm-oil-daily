@@ -262,6 +262,23 @@ def normalize_visible_headline(markdown: str, kind: str) -> str:
     return pattern.sub(replace, markdown, count=1)
 
 
+def enforce_confidence_cap(markdown: str, outline: dict[str, Any], feedback: dict[str, Any] | None, kind: str) -> tuple[str, dict[str, Any]]:
+    """Make a pre-existing calibration cap visible without altering the model's view."""
+    if kind != "daily" or not feedback:
+        return markdown, outline
+    stars = int(feedback.get("core_view_confidence_cap_stars", 5))
+    stars = min(5, max(0, stars))
+    rating = "★" * stars + "☆" * (5 - stars)
+    outline = {**outline, "research_confidence": rating}
+    section_pattern = re.compile(r"(## 【今日观点】\s*\n)(.*?)(?=\n## 【|\Z)", re.DOTALL)
+    match = section_pattern.search(markdown)
+    if match is None or re.search(r"置信度[：:]\s*[★☆]{5}", match.group(2)):
+        return markdown, outline
+    body = match.group(2).rstrip()
+    updated = f"{match.group(1)}{body}\n\n置信度：{rating}。"
+    return markdown[: match.start()] + updated + markdown[match.end() :], outline
+
+
 def run_openai(schema: Path, prompt: str, *, timeout: int) -> dict[str, Any]:
     try:
         output, _backend = MODEL_BACKEND.request_json(
@@ -539,6 +556,7 @@ def main() -> int:
                 report_date=report_date,
                 kind=kind,
             )
+            markdown, outline = enforce_confidence_cap(markdown, outline, feedback, kind)
             markdown = normalize_visible_headline(markdown, kind)
             atomic_write_text(report_path, markdown)
             atomic_write_json(outline_path, outline)
