@@ -65,7 +65,13 @@ def select_due(now: datetime, force_kind: str | None = None) -> str | None:
     if force_kind:
         return force_kind
     minutes = now.hour * 60 + now.minute
-    if 1 <= now.isoweekday() <= 5 and minutes >= 360:
+    # A daily report freezes a forward-looking morning forecast.  Retrying it
+    # after the domestic close would leak the realised session into that
+    # forecast while still labelling the result as a morning report.  The
+    # 06:00--08:59 window gives the timer several retries before the open;
+    # intraday and overnight monitoring continues through the separate market
+    # collector and AI-brief timers.
+    if 1 <= now.isoweekday() <= 5 and 360 <= minutes < 540:
         return "daily"
     if now.isoweekday() == 7 and minutes >= 21 * 60 + 15:
         return "weekend"

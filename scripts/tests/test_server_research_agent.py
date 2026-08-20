@@ -71,6 +71,9 @@ class ServerResearchAgentTests(unittest.TestCase):
             "daily",
         )
         self.assertIsNone(
+            MODULE.select_due(datetime(2026, 8, 7, 9, 0, tzinfo=timezone))
+        )
+        self.assertIsNone(
             MODULE.select_due(datetime(2026, 8, 9, 21, 14, tzinfo=timezone))
         )
         self.assertEqual(
