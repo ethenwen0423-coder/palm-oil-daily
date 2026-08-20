@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -204,6 +205,12 @@ def build_prompt(
         if feedback
         else "[]"
     )
+    confidence_cap = (
+        "★" * int(feedback.get("core_view_confidence_cap_stars", 5))
+        + "☆" * (5 - int(feedback.get("core_view_confidence_cap_stars", 5)))
+        if feedback
+        else "★★★★★"
+    )
     correction_block = f"\n上次门禁反馈，必须逐项修正：\n{correction}\n" if correction else ""
     return f"""
 你是部署在腾讯云、只使用给定证据的油脂研究报告写作器。不要联网，不要调用工具，不要读取其他文件。
@@ -223,6 +230,7 @@ def build_prompt(
 8. 日报的 `今日策略：偏多/偏空/震荡/观望` 必须与 outline.market_stance 完全一致；周报也必须在正文落实该基准方向。
 9. outline 的 trade_trigger、confirmation_condition、stop_loss、target_range、position_limit、signal_expiry 必须逐字出现在正文。
 10. 日报在“信息来源与核验说明”中逐字包含 REQUIRED_DISCLOSURES 的每一句；反馈只能降低置信度或增加反证，不能提高置信度。
+10a. 日报“今日观点”第一段必须包含可机器读取的 `置信度：{confidence_cap}`，outline.research_confidence 也必须精确为 `{confidence_cap}`。
 11. 不得在“信息来源与核验说明”之前使用“需进一步核验”；所有证据缺口只能集中在该栏目、最多写一次。禁止把未核验信息升级为主驱动。场外结构类型库和量化模型规则不可更改。
 12. 最后固定写 AI 风险声明，说明仅为研究判断、不构成投资建议或交易指令。
 
@@ -233,6 +241,25 @@ SOURCE_JSON：
 {json.dumps(source_snapshot, ensure_ascii=False, sort_keys=True)}
 {correction_block}
 """.strip()
+
+
+def normalize_visible_headline(markdown: str, kind: str) -> str:
+    """Keep an otherwise valid model report inside the deterministic title length limit."""
+    section = "今日观点" if kind == "daily" else "一句话核心观点"
+    limit = 50 if kind == "daily" else 100
+    pattern = re.compile(rf"(## 【{section}】\s*\n\s*)([^\n]+)")
+
+    def replace(match: re.Match[str]) -> str:
+        headline = match.group(2).strip()
+        compact = re.sub(r"\s+", "", headline)
+        if len(compact) <= limit:
+            return match.group(0)
+        sentence = re.split(r"(?<=[。！？])", compact, maxsplit=1)[0]
+        if len(sentence) > limit:
+            sentence = sentence[:limit]
+        return match.group(1) + sentence
+
+    return pattern.sub(replace, markdown, count=1)
 
 
 def run_openai(schema: Path, prompt: str, *, timeout: int) -> dict[str, Any]:
@@ -512,6 +539,7 @@ def main() -> int:
                 report_date=report_date,
                 kind=kind,
             )
+            markdown = normalize_visible_headline(markdown, kind)
             atomic_write_text(report_path, markdown)
             atomic_write_json(outline_path, outline)
             success, last_gate = run_deploy(

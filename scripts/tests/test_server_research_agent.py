@@ -94,6 +94,13 @@ class ServerResearchAgentTests(unittest.TestCase):
         self.assertIn("不得使用价格、数字或交易执行词", prompt)
         self.assertIn("至少三项 SOURCE_JSON 中有精确数字的辅助证据", prompt)
         self.assertIn("不得在“信息来源与核验说明”之前使用“需进一步核验”", prompt)
+        self.assertIn("今日观点”第一段必须包含可机器读取的 `置信度：", prompt)
+
+    def test_visible_headline_is_bounded_before_title_gate(self) -> None:
+        markdown = "# 08月07日晨报\n\n## 【今日观点】\n" + ("震荡延续但需要多维证据共同验证" * 8)
+        bounded = MODULE.normalize_visible_headline(markdown, "daily")
+        headline = bounded.splitlines()[-1]
+        self.assertLessEqual(len("".join(headline.split())), 50)
 
     def test_model_output_cannot_change_fixed_logic(self) -> None:
         payload = {
