@@ -74,6 +74,17 @@ def _codex_environment() -> dict[str, str]:
         "DEEPSEEK_API_KEY",
     ):
         environment.pop(name, None)
+    # The systemd jobs run as root, while the long-lived Codex credential is
+    # deliberately stored under the server automation state directory.  Keep
+    # the CLI pointed at that directory for both the authentication probe and
+    # the actual model invocation; otherwise a timer checks root's empty
+    # ~/.codex and falsely reports that the ChatGPT backend is unavailable.
+    state_root = Path(
+        environment.get("PALM_OIL_SERVER_STATE_ROOT", "/srv/palm-oil-daily/state")
+    )
+    environment["HOME"] = str(state_root / "home")
+    environment["CODEX_HOME"] = str(state_root / "home" / ".codex")
+    environment["XDG_CACHE_HOME"] = str(state_root / "cache")
     return environment
 
 

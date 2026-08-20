@@ -59,6 +59,29 @@ class ServerModelBackendCodexTests(unittest.TestCase):
         self.assertIn("--ignore-user-config", exec_command)
         self.assertNotIn("OPENAI_API_KEY", exec_environment)
         self.assertNotIn("CODEX_API_KEY", exec_environment)
+        self.assertEqual(exec_environment["HOME"], "/srv/palm-oil-daily/state/home")
+        self.assertEqual(
+            exec_environment["CODEX_HOME"], "/srv/palm-oil-daily/state/home/.codex"
+        )
+        self.assertEqual(
+            exec_environment["XDG_CACHE_HOME"], "/srv/palm-oil-daily/state/cache"
+        )
+
+    def test_codex_environment_uses_configured_server_state_root(self):
+        with mock.patch.dict(
+            os.environ,
+            {"PALM_OIL_SERVER_STATE_ROOT": "/var/lib/palm-oil-state"},
+            clear=True,
+        ):
+            environment = MODULE._codex_environment()
+
+        self.assertEqual(environment["HOME"], "/var/lib/palm-oil-state/home")
+        self.assertEqual(
+            environment["CODEX_HOME"], "/var/lib/palm-oil-state/home/.codex"
+        )
+        self.assertEqual(
+            environment["XDG_CACHE_HOME"], "/var/lib/palm-oil-state/cache"
+        )
 
     def test_codex_provider_rejects_api_key_login(self):
         completed = subprocess.CompletedProcess(
