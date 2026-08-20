@@ -17,6 +17,7 @@ SCHEMA_VERSION = "forecast-generation-feedback-v1"
 PRODUCTS = ("P", "Y", "OI")
 MIN_ACTIVE_DAYS = 5
 CONFIDENCE_STARS = {"low": 2, "medium": 3, "uncapped": 5}
+STALE_CALIBRATION_DAYS = 7
 
 
 def _load_object(path: Path) -> dict[str, Any] | None:
@@ -132,6 +133,54 @@ def _product_policy(product: str, group: dict[str, Any], active: bool) -> dict[s
 def build_feedback(metrics_path: Path, review_dir: Path, as_of_text: str) -> dict[str, Any]:
     as_of = date.fromisoformat(as_of_text)
     metrics = _load_object(metrics_path)
+    metrics_as_of = metrics.get("as_of") if metrics else None
+    try:
+        metrics_day = date.fromisoformat(str(metrics_as_of))
+        calibration_stale = (as_of - metrics_day).days > STALE_CALIBRATION_DAYS
+    except ValueError:
+        calibration_stale = metrics is not None
+    if calibration_stale:
+        products = {
+            product: {
+                "product": product,
+                "sample_count": 0,
+                "directional_accuracy": None,
+                "close_range_coverage": None,
+                "miss_rate": None,
+                "action": "observe_only",
+                "max_confidence": "low",
+                "max_confidence_stars": CONFIDENCE_STARS["low"],
+                "reasons": ["可用预测复盘超过更新窗口"],
+            }
+            for product in PRODUCTS
+        }
+        return {
+            "schema_version": SCHEMA_VERSION,
+            "as_of": as_of_text,
+            "metrics_as_of": None,
+            "last_evaluated_as_of": metrics_as_of,
+            "status": "calibration_unavailable",
+            "calibration_window": "stale_no_current_review",
+            "source_metrics": f"data/forecast/metrics/{metrics_path.name}",
+            "version_key": None,
+            "valid_trade_day_count": 0,
+            "minimum_active_trade_days": MIN_ACTIVE_DAYS,
+            "products": products,
+            "overall_metrics": {},
+            "high_confidence_history": {},
+            "core_view_confidence_cap": "low",
+            "core_view_confidence_cap_stars": CONFIDENCE_STARS["low"],
+            "consecutive_error_streaks": {},
+            "human_approval_required": False,
+            "generation_rules": [
+                "预测复盘已超出更新窗口，不能作为本期方向或准确度证据。",
+                "本期只能使用当日可核验行情与供需证据，核心观点置信度不高于两星。",
+                "不得自动修改永久评分权重、概率映射或策略参数。",
+            ],
+            "required_report_disclosures": [
+                "预测校准：当前没有7日内可复核的已评估样本，预测历史不作为本期方向或准确度证据；本期核心观点置信度不高于★★☆☆☆。"
+            ],
+        }
     version_key, version = _latest_metric(metrics)
     valid_days = int(version.get("valid_trade_day_count") or 0) if version else 0
     active = valid_days >= MIN_ACTIVE_DAYS
@@ -204,7 +253,7 @@ def build_feedback(metrics_path: Path, review_dir: Path, as_of_text: str) -> dic
     return {
         "schema_version": SCHEMA_VERSION,
         "as_of": as_of_text,
-        "metrics_as_of": metrics.get("as_of") if metrics else None,
+        "metrics_as_of": metrics_as_of,
         "status": status,
         "source_metrics": f"data/forecast/metrics/{metrics_path.name}",
         "version_key": version_key,

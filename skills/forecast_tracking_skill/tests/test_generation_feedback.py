@@ -82,6 +82,21 @@ class GenerationFeedbackTest(unittest.TestCase):
         self.assertEqual(feedback["products"]["P"]["action"], "observe_only")
         self.assertIn("样本不足", feedback["required_report_disclosures"][0])
 
+    def test_stale_metrics_are_replaced_with_a_fresh_unavailable_constraint(self) -> None:
+        root = self.environment()
+        self.write_json(root / "metrics.json", metrics(10))
+        feedback = builder.build_feedback(root / "metrics.json", root / "reviews", "2026-07-25")
+        self.assertEqual(feedback["status"], "calibration_unavailable")
+        self.assertIsNone(feedback["metrics_as_of"])
+        self.assertEqual(feedback["last_evaluated_as_of"], "2026-07-14")
+        self.assertEqual(feedback["core_view_confidence_cap_stars"], 2)
+        feedback_path = root / "feedback.json"
+        self.write_json(feedback_path, feedback)
+        disclosure = feedback["required_report_disclosures"][0]
+        report = root / "report.md"
+        report.write_text(f"# 07月25日晨报\n\n## 【今日观点】\n\n震荡。置信度：★★☆☆☆。\n\n## 【信息来源与核验说明】\n\n{disclosure}\n", encoding="utf-8")
+        self.assertTrue(validator.validate_report(report, feedback_path, "2026-07-25")["can_publish"])
+
     def test_low_p_accuracy_downgrades_main_view_and_caps_confidence(self) -> None:
         root = self.environment()
         self.write_json(root / "metrics.json", metrics(10, p_accuracy=0.4))

@@ -421,6 +421,21 @@ def main() -> int:
         source_snapshot = load_json(Path(built["snapshot"]))
         feedback = None
         if kind == "daily":
+            feedback_builder = load_module(
+                "server_generation_feedback_builder",
+                runtime_root
+                / "skills"
+                / "forecast_tracking_skill"
+                / "scripts"
+                / "build_generation_feedback.py",
+            )
+            feedback_path = runtime_root / "data" / "forecast" / "feedback" / "latest.json"
+            feedback = feedback_builder.build_feedback(
+                runtime_root / "data" / "forecast" / "metrics" / "latest.json",
+                runtime_root / "data" / "review" / "daily",
+                report_date,
+            )
+            feedback_builder._write_atomically(feedback_path, feedback)
             feedback_value = load_json(runtime_root / "data" / "forecast" / "feedback" / "latest.json")
             if not isinstance(feedback_value, dict):
                 raise ResearchAgentError("daily forecast feedback must be a JSON object")

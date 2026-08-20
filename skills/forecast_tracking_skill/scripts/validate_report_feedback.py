@@ -35,8 +35,16 @@ def validate_report(report: Path, feedback: Path, report_date: str) -> dict[str,
             errors.append("预测校准上下文超过7天，必须重新生成")
     except ValueError:
         errors.append("预测校准上下文缺少有效as_of")
+    calibration_unavailable = payload.get("status") == "calibration_unavailable"
     metrics_as_of = payload.get("metrics_as_of")
-    if metrics_as_of is not None:
+    if calibration_unavailable:
+        if payload.get("calibration_window") != "stale_no_current_review":
+            errors.append("预测校准不可用状态缺少更新窗口标记")
+        if metrics_as_of is not None:
+            errors.append("预测校准不可用状态不得沿用过期统计")
+        if payload.get("core_view_confidence_cap_stars") != 2:
+            errors.append("预测校准不可用时核心观点必须限制为两星")
+    elif metrics_as_of is not None:
         try:
             metrics_day = date.fromisoformat(str(metrics_as_of))
             metrics_age = (report_day - metrics_day).days
