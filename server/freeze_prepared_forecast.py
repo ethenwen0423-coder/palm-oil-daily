@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import json
+import sys
 from pathlib import Path
 
 
@@ -18,6 +19,12 @@ class PreparedForecastError(RuntimeError):
 
 def load_update_module():
     script = ROOT / "scripts" / "update_oil_futures_data.py"
+    # The updater imports sibling scripts by their module name.  Loading it via
+    # importlib from ``server/`` otherwise omits that sibling directory from
+    # Python's module search path in the unattended server runtime.
+    scripts_dir = str(script.parent)
+    if scripts_dir not in sys.path:
+        sys.path.insert(0, scripts_dir)
     spec = importlib.util.spec_from_file_location("prepared_forecast_update", script)
     if spec is None or spec.loader is None:
         raise PreparedForecastError(f"cannot load forecast integration: {script}")
