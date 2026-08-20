@@ -81,6 +81,18 @@ class ServerResearchAgentTests(unittest.TestCase):
             MODULE.select_due(datetime(2026, 8, 8, 21, 15, tzinfo=timezone))
         )
 
+    def test_prompt_bounds_the_visible_headline(self) -> None:
+        prompt = MODULE.build_prompt(
+            report_date="2026-08-07",
+            kind="daily",
+            source_snapshot={},
+            feedback=None,
+            correction="",
+        )
+        self.assertIn("页面 Headline", prompt)
+        self.assertIn("不得超过 50 个字符", prompt)
+        self.assertIn("不得使用价格、数字或交易执行词", prompt)
+
     def test_model_output_cannot_change_fixed_logic(self) -> None:
         payload = {
             "report_markdown": "# 08月07日晨报\n" + ("报告内容" * 500),

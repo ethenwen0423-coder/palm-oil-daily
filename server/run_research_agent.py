@@ -214,6 +214,7 @@ def build_prompt(
 1. 报告日期为 {report_date}，类型为 {kind}，一级标题必须精确为“# {title}”。
 2. 正文栏目按此顺序且标题格式为 `## 【栏目】`：{json.dumps(sections, ensure_ascii=False)}。
 3. 正文可见字符预算 {budget}；消息链接与固定免责声明不计入预算。
+3a. `## 【今日观点】`（周报为 `## 【一句话核心观点】`）标题后的第一句是页面 Headline：日报去除空白后不得超过 50 个字符，周报不得超过 100 个字符；只写一句明确观点，不得使用价格、数字或交易执行词。该句必须短于其后的解释段落。
 4. 只能复制 SOURCE_JSON 中的数字、价格、涨跌、时间、合约、score 与 strategy_recommendation；禁止自行计算或创造任何价格、概率、止损、目标、仓位与来源。
 5. P/Y/OI 三个 rank=1 合约及其 exact price 必须在关键数据中各出现一次；每个数字同时写明 SOURCE_JSON 中的时点口径。
 6. 今日/下周交易计划必须来自 strategy_recommendation。若源中没有止损、目标或仓位，明确写“源数据未给出，不新开仓”，不得补造数字。
