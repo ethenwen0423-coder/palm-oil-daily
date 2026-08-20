@@ -92,6 +92,8 @@ class ServerResearchAgentTests(unittest.TestCase):
         self.assertIn("页面 Headline", prompt)
         self.assertIn("不得超过 50 个字符", prompt)
         self.assertIn("不得使用价格、数字或交易执行词", prompt)
+        self.assertIn("至少三项 SOURCE_JSON 中有精确数字的辅助证据", prompt)
+        self.assertIn("不得在“信息来源与核验说明”之前使用“需进一步核验”", prompt)
 
     def test_model_output_cannot_change_fixed_logic(self) -> None:
         payload = {
