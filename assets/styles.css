@@ -3910,7 +3910,7 @@ body.home-page {
 
 .research-entry-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1px;
   background: rgba(220, 240, 213, 0.12);
 }
@@ -4750,6 +4750,10 @@ body.home-page {
 }
 
 @media (max-width: 700px) {
+  .research-entry-grid {
+    grid-template-columns: 1fr;
+  }
+
   .supply-country-heading,
   .supply-country-status,
   .supply-update-notice,
