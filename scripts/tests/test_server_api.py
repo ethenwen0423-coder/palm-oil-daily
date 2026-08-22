@@ -4,6 +4,7 @@ import tempfile
 import unittest
 from datetime import datetime, timezone
 from pathlib import Path
+from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -53,7 +54,8 @@ class ServerApiStatusTests(unittest.TestCase):
             "data/review/latest_review.json",
         ):
             self.assertIn(path, runner)
-        self.assertIn('cmp -s server/api.py "$DEPLOY_ROOT/api.py"', runner)
+        self.assertIn('server/api.py server/contract_analysis.py', runner)
+        self.assertIn('cmp -s "$api_source" "$DEPLOY_ROOT/$api_name"', runner)
         self.assertIn('cp server/update-site.sh "$RUNNER_CANDIDATE"', runner)
         self.assertIn('mv -f "$RUNNER_CANDIDATE" "$RUNNER_PATH"', runner)
         self.assertNotIn('cp server/update-site.sh "$RUNNER_PATH"', runner)
@@ -163,6 +165,24 @@ class ServerApiStatusTests(unittest.TestCase):
         self.assertTrue(item["available"])
         self.assertEqual(item["state"], "ready")
         self.assertTrue(item["observed_at"].startswith("2026-07-30"))
+
+    def test_contract_analysis_is_cached_by_selected_symbol(self):
+        class FakeModule:
+            calls = []
+
+            @classmethod
+            def analyze_contract(cls, data_root, symbol):
+                cls.calls.append((data_root, symbol))
+                return {"symbol": symbol, "contract": {"symbol": symbol}}
+
+        API._CONTRACT_ANALYSIS_CACHE.clear()
+        with patch.object(API, "_load_contract_analysis_module", return_value=FakeModule):
+            first = API.contract_analysis(self.data_root, "p2701")
+            second = API.contract_analysis(self.data_root, "P2701")
+
+        self.assertEqual(first["cache"], "miss")
+        self.assertEqual(second["cache"], "hit")
+        self.assertEqual(FakeModule.calls, [(self.data_root, "P2701")])
 
 
 if __name__ == "__main__":

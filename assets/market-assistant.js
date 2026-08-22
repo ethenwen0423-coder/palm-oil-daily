@@ -62,6 +62,23 @@
     return parsed > 0 ? "up" : parsed < 0 ? "down" : "flat";
   }
 
+  function watchDimension(item) {
+    const evidence = array(item.evidence_ids).join(" ").toLowerCase();
+    const trigger = `${first(item.trigger, "")} ${first(item.item, "")}`;
+    if (evidence.includes("quant:") || /突破|观察位|均线|趋势|量化|波动/.test(trigger)) {
+      return { key: "technical", label: "技术面", evidenceLabel: "价格与趋势证据" };
+    }
+    if (evidence.includes("supply:") || /供需|库存|出口|产量|官方|外盘/.test(trigger)) {
+      return { key: "fundamental", label: "基本面", evidenceLabel: "供需与外盘证据" };
+    }
+    return { key: "technical", label: "技术面", evidenceLabel: "行情结构证据" };
+  }
+
+  function displayEvidenceValue(item) {
+    const value = first(item && item.value, "待核验");
+    return item && item.source === "reports" && /^\d{4}-\d{2}-\d{2}/.test(String(value)) ? `${fmtTime(value, true)} 周报` : value;
+  }
+
   function renderBrief(payload) {
     $("market-state").textContent = first(payload.market_state, "待判断");
     $("decision-title").textContent = first(payload.headline, "等待 AI 研究结论");
@@ -69,11 +86,31 @@
     $("decision-summary").textContent = first(payload.summary, "暂无可发布摘要。");
     $("brief-generated").textContent = `生成 ${fmtTime(payload.generated_at || payload.updated_at, true)}`;
 
-    const moves = array(payload.key_moves).slice(0, 4);
-    $("decision-evidence").innerHTML = moves.length ? moves.map((item) => `<span>${esc(first(item.label, "证据"))} · ${esc(first(item.value, "待核验"))}</span>`).join("") : "<span>证据待补充</span>";
+    const priorityRank = { "高": 1, "中": 2, "低": 3 };
+    const watch = array(payload.watchlist).slice().sort((a, b) => (priorityRank[a.priority] || 99) - (priorityRank[b.priority] || 99)).slice(0, 3);
+    const dimensions = watch.map(watchDimension);
+    const fundamentalCount = dimensions.filter((item) => item.key === "fundamental").length;
+    const technicalCount = dimensions.filter((item) => item.key === "technical").length;
+    const fundamentalWatch = watch.find((item, index) => dimensions[index].key === "fundamental");
+    const technicalWatch = watch.find((item, index) => dimensions[index].key === "technical");
+    const confidence = first(payload.confidence, "待核验");
+    const risks = array(payload.risks);
+    const boundary = confidence === "低" ? "暂不扩大方向判断" : confidence === "中" ? "等待更多同向证据" : "按已确认方向跟踪";
+    $("decision-thesis").innerHTML = `<section class="thesis-card is-fundamental"><span>基本面</span><strong>${esc(fundamentalWatch ? "确认不足" : "等待新增资料")}</strong><p>${esc(first(fundamentalWatch && fundamentalWatch.why, "尚无足够供需证据支持单边判断。"))}</p></section><section class="thesis-card is-technical"><span>技术面</span><strong>${esc(technicalWatch ? first(technicalWatch.trigger, "等待趋势确认") : "等待趋势确认")}</strong><p>${esc(first(technicalWatch && technicalWatch.why, "技术与量化状态等待下一次有效突破。"))}</p></section><section class="thesis-card is-boundary"><span>执行边界</span><strong>${esc(`${confidence}置信度 · ${boundary}`)}</strong><p>${esc(first(risks[0], "缺少可核验的新证据时，维持当前观察结论。"))}</p></section>`;
 
-    const watch = array(payload.watchlist).slice().sort((a, b) => Number(a.priority || 99) - Number(b.priority || 99)).slice(0, 3);
-    $("priority-list").innerHTML = watch.length ? watch.map((item) => `<li><div><strong>${esc(first(item.item, "关注项"))}</strong><span>${esc(first(item.trigger, item.why || "等待触发条件"))}</span></div></li>`).join("") : "<li><div><strong>暂无新触发</strong><span>继续按自动任务周期检查</span></div></li>";
+    const moves = array(payload.key_moves).slice(0, 3);
+    $("decision-evidence").innerHTML = moves.length ? moves.map((item) => `<article><span>${esc(first(item.label, "证据"))}</span><strong>${esc(displayEvidenceValue(item))}</strong><p>${esc(first(item.interpretation, "等待进一步解释。"))}</p></article>`).join("") : "<p class='empty-state'>暂无新增关键证据，继续按任务周期检查。</p>";
+    const actions = array(payload.actions).slice(0, 2);
+    const actionLabels = { completed: "已完成", monitoring: "监控中", blocked: "待补数据" };
+    $("decision-action-list").innerHTML = actions.length ? actions.map((item) => `<article><span>${esc(actionLabels[item.status] || first(item.status, "待检查"))}</span><strong>${esc(first(item.task, "检查任务"))}</strong><p>${esc(first(item.next_check, item.result || "等待下一轮检查"))}</p></article>`).join("") : "<p class='empty-state'>暂无可发布任务；系统仍会持续检查。</p>";
+
+    $("priority-mode-summary").textContent = watch.length ? `基本面 ${fundamentalCount} · 技术面 ${technicalCount}` : "等待新增证据";
+    $("priority-list").innerHTML = watch.length ? watch.map((item, index) => {
+      const dimension = dimensions[index];
+      const evidenceCount = array(item.evidence_ids).length;
+      const priorityLabel = first(item.priority, "观察");
+      return `<li class="priority-item is-${dimension.key}"><div class="priority-topline"><span class="priority-kind">${esc(dimension.label)}</span><span class="priority-level">${esc(priorityLabel)}优先</span></div><strong>${esc(first(item.item, "关注项"))}</strong><p>${esc(first(item.why, "等待更多证据确认。"))}</p><footer><span><b>触发</b>${esc(first(item.trigger, "等待下一次检查"))}</span><span><b>依据</b>${esc(dimension.evidenceLabel)}${evidenceCount ? ` · ${evidenceCount}项` : ""}</span></footer></li>`;
+    }).join("") : "<li class='priority-item is-empty'><strong>暂无新触发</strong><p>继续按自动任务周期检查基本面与技术面证据。</p></li>";
     $("trigger-list").innerHTML = watch.length ? watch.map((item) => `<li><strong>${esc(first(item.item, "关注项"))}</strong><span>${esc(first(item.trigger, "等待下一次自动检查"))}</span></li>`).join("") : "<li><strong>暂无等待触发</strong><span>系统仍会持续检查</span></li>";
   }
 
@@ -88,38 +125,136 @@
     }).join("") : "<article class='pulse-card'>暂无可用行情</article>";
   }
 
-  function eventTime(item) { return item.observed_at || item.generated_at || item.updated_at || item.date; }
+  function eventTime(item) { return item.time || item.observed_at || item.generated_at || item.updated_at || item.date; }
+
+  function monitoringMode(data) {
+    const weekday = new Intl.DateTimeFormat("en-US", { weekday: "short", timeZone: "Asia/Shanghai" }).format(new Date());
+    const researchSession = data.status && data.status.automation && data.status.automation.research && data.status.automation.research.session;
+    return weekday === "Sat" || weekday === "Sun" || researchSession === "weekend" || researchSession === "holiday" ? "closed" : "continuous";
+  }
+
+  function timestamp(value) {
+    const text = String(value == null ? "" : value);
+    const dateOnly = text.match(/^(\d{4})-(\d{2})-(\d{2})(?:-|$)/);
+    const parsed = dateOnly && !text.includes("T") && !text.includes(":") ? new Date(`${dateOnly[1]}-${dateOnly[2]}-${dateOnly[3]}T00:00:00+08:00`) : new Date(value);
+    return parsed.getTime();
+  }
+
+  function relativeAge(value) {
+    const text = String(value == null ? "" : value);
+    if (/^\d{4}-\d{2}-\d{2}(?:-|$)/.test(text) && !text.includes("T") && !text.includes(":")) return "当日发布";
+    const time = timestamp(value);
+    if (!Number.isFinite(time)) return "时间待核验";
+    const minutes = Math.max(0, Math.floor((Date.now() - time) / 60000));
+    if (minutes < 1) return "刚刚";
+    if (minutes < 60) return `${minutes} 分钟前`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours} 小时前`;
+    return `${Math.floor(hours / 24)} 天前`;
+  }
+
+  function eventScope(item, fallback) {
+    const ids = array(item && item.evidence_ids).map((id) => String(id).split(":").pop().toUpperCase()).filter(Boolean);
+    return ids.length ? ids.slice(0, 3).join(" · ") : fallback;
+  }
+
+  function moveImpact(value) {
+    const matched = String(value == null ? "" : value).match(/[-+]?\d+(?:\.\d+)?%/g) || [];
+    const largest = matched.reduce((max, item) => Math.max(max, Math.abs(Number(item.replace("%", "")))), 0);
+    return largest >= 3 ? "高" : largest >= 1 ? "中" : "低";
+  }
 
   function buildTimeline(data) {
     const events = [];
-    array(data.brief.key_moves).forEach((item) => events.push({ type: "move", title: first(item.label, "行情证据"), summary: first(item.value, "数值待核验"), detail: first(item.interpretation, "暂无补充解释"), source: first(item.source, "已发布数据"), time: eventTime(item) }));
-    array(data.brief.actions).forEach((item) => events.push({ type: "agent", title: first(item.task, "Agent 任务"), summary: first(item.result, item.status || "已处理"), detail: first(item.next_check, "等待下一次自动检查"), source: "AI Agent", time: eventTime(item) || data.brief.generated_at }));
+    const now = new Date().toISOString();
+    const closed = monitoringMode(data) === "closed";
+    array(data.brief.key_moves).forEach((item) => events.push({
+      type: "move", category: "市场异动", title: first(item.label, "行情证据"), summary: first(item.value, "数值待核验"),
+      detail: first(item.interpretation, "暂无补充解释"), evidence: array(item.evidence_ids), source: first(item.source, "已发布数据"),
+      time: eventTime(item), scope: eventScope(item, "相关合约"), impact: moveImpact(item.value), nextCheck: "下一轮行情检查"
+    }));
+    array(data.brief.actions).forEach((item) => events.push({
+      type: "agent", category: "Agent 任务", title: first(item.task, "Agent 任务"), summary: first(item.result, item.status || "已处理"),
+      detail: first(item.result, "自动任务已执行"), evidence: array(item.evidence_ids), source: "AI Agent", time: eventTime(item) || data.brief.generated_at,
+      scope: eventScope(item, "系统任务"), impact: item.status === "error" ? "高" : "低", nextCheck: first(item.next_check, "等待下一次自动检查")
+    }));
     const report = array(data.reports.reports || data.reports).slice(0, 1)[0];
-    if (report) events.push({ type: "report", title: first(report.headline || report.title, "最新研究报告"), summary: first(report.summary || report.subtitle, "研究报告已发布"), detail: "点击 AI 报告导航可查看完整正文与来源。", source: first(report.source, "Vinson Research"), time: eventTime(report) });
-    if (data.supply && Object.keys(data.supply).length) {
+    if (report) events.push({
+      type: "report", category: "研究报告", title: first(report.headline || report.title, "最新研究报告"),
+      summary: first(report.summary || report.subtitle, "研究报告已发布"), detail: "完整论证、数据出处与风险说明保留在 AI 报告正文中。",
+      evidence: [first(report.id || report.slug, "最新报告")], source: first(report.source, "Vinson Research"), time: eventTime(report),
+      scope: "油脂研究", impact: "中", nextCheck: "下一次研究任务"
+    });
+    if (data.supply && !data.supply._error && Object.keys(data.supply).length) {
       const countries = Object.values(data.supply.countries || {});
       const summary = countries.length ? countries.map((item) => `${first(item.name, "来源")} ${first(item.latest_period, "待更新")}`).join(" · ") : "供需资料已检查";
       const detail = countries.length ? countries.map((item) => `${first(item.name, "来源")}：${first(item.status_message, item.status || "已检查")}`).join("；") : `数据更新：${first(data.supply.generated_at, "待核验")}`;
-      events.push({ type: "supply", title: "官方供需资料检查", summary, detail, source: "MPOB · GAPKI · USDA", time: data.supply.generated_at || data.supply.checked_at || data.supply.updated_at });
+      events.push({ type: "supply", category: "供需更新", title: "官方供需资料检查", summary, detail,
+        evidence: countries.map((item) => first(item.name, "官方来源")), source: "MPOB · GAPKI · USDA",
+        time: data.supply.generated_at || data.supply.checked_at || data.supply.updated_at, scope: "P · Y · OI", impact: "中", nextCheck: "按官方发布周期复查" });
     }
-    return events.sort((a, b) => new Date(eventTime(b) || 0) - new Date(eventTime(a) || 0));
+    const datasets = Object.values((data.status && data.status.datasets) || {});
+    const health = { ready: 0, stale: 0, invalid: 0 };
+    datasets.forEach((item) => {
+      const key = item.state === "ready" ? "ready" : item.state === "invalid" || item.state === "missing" ? "invalid" : "stale";
+      health[key] += 1;
+    });
+    events.push({
+      type: "agent", category: "数据巡检", title: "数据链状态检查",
+      summary: datasets.length ? `正常 ${health.ready} · 延迟 ${health.stale} · 缺失 ${health.invalid}` : "状态接口暂无分项结果，已保留巡检记录",
+      detail: datasets.length ? "本条来自数据健康接口，只说明数据集可用性，不代表市场出现新变化。" : "未取得分项状态；系统将在下一轮继续请求，不用旧结果冒充新增证据。",
+      evidence: datasets.slice(0, 6).map((item) => `${first(item.label, item.route)}：${first(item.state, "待查")}`), source: "Data Health", time: now,
+      scope: "数据链", impact: health.invalid ? "高" : health.stale || !datasets.length ? "中" : "低", nextCheck: "60 秒后"
+    });
+    events.push({
+      type: "agent", category: closed ? "休市心跳" : "监控心跳", title: closed ? "休市期间监控持续运行" : "24h 监控心跳",
+      summary: closed ? "行情保持最近交易快照；研究、供需、触发条件与数据健康继续检查。" : "行情与研究链按各自周期持续检查。",
+      detail: closed ? "本次只记录系统检查，没有把休市期间未变化的价格包装成新行情。" : "本次心跳确认检查链仍在运行；若无新增证据，时间线只更新巡检状态。",
+      evidence: [closed ? "当前为休市监控模式" : "当前为连续监控模式", `最近行情快照：${fmtTime(data.oil && data.oil.updated_at, true)}`],
+      source: "24h 监控系统", time: now, scope: "全品种", impact: "低", nextCheck: "60 秒后"
+    });
+    return events.sort((a, b) => (timestamp(eventTime(b)) || 0) - (timestamp(eventTime(a)) || 0));
   }
 
   function renderTimeline(events, filter = "all") {
     const visible = filter === "all" ? events : events.filter((item) => item.type === filter);
     const labels = { move: "行情", report: "研究", supply: "供需", agent: "AGENT" };
-    $("intelligence-timeline").innerHTML = visible.length ? visible.map((item, index) => `<article class="timeline-item" data-type="${esc(item.type)}"><time class="timeline-time">${esc(fmtTime(item.time, true))}</time><span class="timeline-marker ${item.type === "report" ? "is-degraded" : "is-ready"}">${esc(labels[item.type] || item.type)}</span><div class="timeline-content"><button type="button" aria-expanded="false" aria-controls="timeline-detail-${index}"><span class="timeline-copy"><h3>${esc(item.title)}</h3><p>${esc(item.summary)}</p><span class="timeline-meta"><span>${esc(item.source)}</span></span></span><span class="timeline-toggle" aria-hidden="true">＋</span></button><div id="timeline-detail-${index}" class="timeline-detail">${esc(item.detail)}</div></div></article>`).join("") : "<p class='empty-state'>当前筛选下没有事件。</p>";
+    document.querySelectorAll("[data-filter]").forEach((button) => {
+      const type = button.dataset.filter;
+      const count = type === "all" ? events.length : events.filter((item) => item.type === type).length;
+      button.innerHTML = `<span>${esc(button.dataset.label || labels[type] || type)}</span><b>${count}</b>`;
+    });
+    $("intelligence-timeline").innerHTML = visible.length ? visible.map((item, index) => {
+      const detailId = `timeline-detail-${filter}-${index}`;
+      const evidence = array(item.evidence).filter(Boolean);
+      return `<article class="timeline-item" data-type="${esc(item.type)}">
+        <time class="timeline-time" datetime="${esc(item.time)}"><strong>${esc(fmtTime(item.time, false))}</strong><small>${esc(relativeAge(item.time))}</small></time>
+        <div class="timeline-content">
+          <button type="button" aria-expanded="false" aria-controls="${detailId}">
+            <span class="timeline-copy"><span class="timeline-title-row"><b class="timeline-category">${esc(item.category || labels[item.type] || item.type)}</b><h3>${esc(item.title)}</h3></span><p>${esc(item.summary)}</p></span>
+            <span class="timeline-context"><span><small>影响合约</small><b>${esc(first(item.scope, "待核验"))}</b></span><span><small>来源</small><b>${esc(item.source)}</b></span><span><small>影响级别</small><b class="impact-${esc(item.impact || "低")}">${esc(first(item.impact, "低"))}</b></span></span>
+            <span class="timeline-toggle" aria-hidden="true">展开</span>
+          </button>
+          <div id="${detailId}" class="timeline-detail">
+            <section><span>为什么重要</span><p>${esc(item.detail)}</p></section>
+            <section><span>关键证据</span>${evidence.length ? `<ul>${evidence.map((entry) => `<li>${esc(entry)}</li>`).join("")}</ul>` : "<p>本轮没有新增可核验证据。</p>"}</section>
+            <section><span>下一步检查</span><p>${esc(first(item.nextCheck, "等待下一轮自动检查"))}</p></section>
+          </div>
+        </div>
+      </article>`;
+    }).join("") : "<p class='empty-state'>当前筛选下没有事件；系统仍会每 60 秒继续检查。</p>";
     document.querySelectorAll(".timeline-content button").forEach((button) => button.addEventListener("click", () => {
       const detail = document.getElementById(button.getAttribute("aria-controls"));
       const open = button.getAttribute("aria-expanded") === "true";
       button.setAttribute("aria-expanded", String(!open));
       detail.classList.toggle("is-open", !open);
+      button.querySelector(".timeline-toggle").textContent = open ? "展开" : "收起";
     }));
   }
 
   function renderOilDesk(payload) {
     const oilProducts = new Set(["P", "Y", "OI", "FCPO", "CPOTR"]);
-    const contracts = array(payload.contracts).filter((item) => oilProducts.has(item.product));
+    const contracts = array(payload.contracts).filter((item) => oilProducts.has(item.product) && (Number(item.contract_rank) === 2 || !item.contract_rank));
     $("oil-desk-updated").textContent = `行情 ${fmtTime(payload.updated_at, true)}`;
     $("oil-desk-source").textContent = first(payload.source, "行情数据源待核验");
     $("oil-desk-grid").innerHTML = contracts.length ? contracts.map((item) => {
@@ -172,20 +307,42 @@
       return array(items).map((item) => `<div><strong>${esc(first(item.title, "要点"))}</strong><span>${esc(first(item.text, "需进一步核验"))}</span></div>`).join("");
     }
 
-    function render(contract) {
+    function render(contract, response = {}) {
       const technical = contract.technical || {};
       const fundamental = contract.fundamental || {};
+      const judgement = contract.judgement || {};
       const indicators = technical.indicators || {};
       const levels = technical.levels || {};
       const news = array(contract.news_hotspots).slice(0, 4);
-      result.innerHTML = `<article class="contract-result-head"><div><span>${esc(first(contract.exchange, "--"))} · ${esc(first(contract.category, "--"))}</span><h3>${esc(first(contract.product, "品种"))} <small>${esc(first(contract.symbol, "--"))}</small></h3><p>交易日 ${esc(first(contract.trade_date, "需进一步核验"))}</p></div><div class="contract-result-price ${direction(contract.change_pct)}"><strong>${esc(numberOrText(contract.price))}</strong><span>${esc(pct(contract.change_pct))}</span></div></article><div class="contract-analysis-grid"><section><header><span>技术面</span><h4>${esc(first(technical.trend, "需进一步核验"))}</h4></header><p>${esc(first(technical.summary, "暂无结构化技术结论。"))}</p><dl class="contract-indicators">${Object.entries(indicators).slice(0, 6).map(([name, value]) => `<div><dt>${esc(name)}</dt><dd>${esc(numberOrText(value))}</dd></div>`).join("")}</dl><div class="contract-levels">${Object.entries(levels).map(([name, value]) => `<span>${esc(name)} <b>${esc(numberOrText(value))}</b></span>`).join("")}</div><div class="contract-detail-list">${detailList(technical.details)}</div></section><section><header><span>基本面与新闻</span><h4>${esc(first(fundamental.category, contract.category || "需进一步核验"))}</h4></header><p>${esc(first(fundamental.summary, "暂无结构化基本面结论。"))}</p><div class="contract-detail-list">${detailList(fundamental.factors)}</div><div class="contract-news">${news.length ? news.map((item) => `<div><span>${esc(first(item.date, "--"))} · ${esc(first(item.source, "来源待核验"))}</span>${item.url ? `<a href="${esc(item.url)}" target="_blank" rel="noopener noreferrer">${esc(first(item.title, "新闻"))}</a>` : `<strong>${esc(first(item.title, "新闻"))}</strong>`}</div>`).join("") : "<p>暂无直接新闻证据。</p>"}</div></section></div><p class="contract-quality">${esc(first(contract.data_quality, "数据质量说明待补充"))}</p>`;
+      const sources = array(response.sources);
+      const sourceState = (status) => status === "ready" ? "已更新" : status === "not_applicable" ? "不适用" : status === "insufficient" ? "样本不足" : "已降级";
+      const evidence = array(judgement.key_evidence);
+      result.innerHTML = `<article class="contract-result-head"><div><span>${esc(first(contract.exchange, "--"))} · ${esc(first(contract.category, "--"))}</span><h3>${esc(first(contract.product, "品种"))} <small>${esc(first(contract.symbol, "--"))}</small></h3><p>交易日 ${esc(first(contract.trade_date, "需进一步核验"))} · 生成 ${esc(fmtTime(response.generated_at, true))}</p></div><div class="contract-result-price ${direction(contract.change_pct)}"><strong>${esc(numberOrText(contract.price))}</strong><span>${esc(pct(contract.change_pct))}</span></div></article>${judgement.stance ? `<article class="contract-judgement"><div><span>后台综合判断</span><h4>${esc(judgement.stance)} <small>置信度 ${esc(first(judgement.confidence, "低"))}</small></h4><p>${esc(first(judgement.summary, "等待结构化判断。"))}</p></div><ul>${evidence.map((item) => `<li>${esc(item)}</li>`).join("")}</ul><p class="contract-risk">${esc(first(judgement.risk, "该判断不构成交易指令。"))}</p></article>` : ""}<div class="contract-analysis-grid"><section><header><span>技术面 · 即时重算</span><h4>${esc(first(technical.trend, "需进一步核验"))}</h4></header><p>${esc(first(technical.summary, "暂无结构化技术结论。"))}</p><dl class="contract-indicators">${Object.entries(indicators).slice(0, 6).map(([name, value]) => `<div><dt>${esc(name)}</dt><dd>${esc(numberOrText(value))}</dd></div>`).join("")}</dl><div class="contract-levels">${Object.entries(levels).map(([name, value]) => `<span>${esc(name)} <b>${esc(numberOrText(value))}</b></span>`).join("")}</div><div class="contract-detail-list">${detailList(technical.details)}</div></section><section><header><span>基本面与新闻 · 按品种检查</span><h4>${esc(first(fundamental.category, contract.category || "需进一步核验"))}</h4></header><p>${esc(first(fundamental.summary, "暂无结构化基本面结论。"))}</p><div class="contract-detail-list">${detailList(fundamental.factors)}</div><div class="contract-news">${news.length ? news.map((item) => `<div><span>${esc(first(item.date, "--"))} · ${esc(first(item.source, "来源待核验"))}</span>${item.url ? `<a href="${esc(item.url)}" target="_blank" rel="noopener noreferrer">${esc(first(item.title, "新闻"))}</a>` : `<strong>${esc(first(item.title, "新闻"))}</strong>`}</div>`).join("") : "<p>暂无直接新闻证据。</p>"}</div></section></div>${sources.length ? `<div class="contract-sources"><strong>本次来源状态</strong>${sources.map((item) => `<span class="${item.status === "ready" ? "is-ready" : item.status === "not_applicable" ? "" : "is-degraded"}"><b>${esc(first(item.name, "数据源"))}</b>${esc(sourceState(item.status))} · ${esc(item.observed_at ? fmtTime(item.observed_at, true) : first(item.detail, "时间待核验"))}</span>`).join("")}</div>` : ""}<p class="contract-quality">${esc(first(contract.data_quality, "数据质量说明待补充"))}</p>`;
     }
 
     exchangeFilter.onchange = populate;
-    $("assistant-contract-confirm").onclick = () => {
-      const contract = contracts.find((item) => item.symbol === contractSelect.value);
-      result.innerHTML = contract ? "" : "<p class='empty-state'>请选择有效的具体合约。</p>";
-      if (contract) render(contract);
+    $("assistant-contract-confirm").onclick = async () => {
+      const button = $("assistant-contract-confirm");
+      const symbol = contractSelect.value;
+      const snapshot = contracts.find((item) => item.symbol === symbol);
+      if (!snapshot) {
+        result.innerHTML = "<p class='empty-state'>请选择有效的具体合约。</p>";
+        return;
+      }
+      button.disabled = true;
+      button.textContent = "正在分析…";
+      result.innerHTML = `<div class="contract-loading"><span></span><strong>正在按 ${esc(symbol)} 请求后台</strong><p>依次检查最新行情、日线技术结构与该品种相关基本面源。</p></div>`;
+      try {
+        const response = await fetch(`/api/assistant/contract-analysis?symbol=${encodeURIComponent(symbol)}`, { cache: "no-store" });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok || !payload.contract) throw new Error(first(payload.message, `后台返回 ${response.status}`));
+        render(payload.contract, payload);
+      } catch (error) {
+        result.innerHTML = `<div class="contract-request-error"><strong>${esc(symbol)} 即时分析未完成</strong><p>${esc(first(error && error.message, "后台数据源暂不可用"))}</p><span>为避免误判，本次不自动展示旧的静态结论。你可以稍后重试。</span></div>`;
+      } finally {
+        button.disabled = false;
+        button.textContent = "查看分析";
+      }
     };
     populate();
   }
@@ -219,9 +376,7 @@
   }
 
   function renderMonitorMode(data) {
-    const shanghaiWeekday = new Intl.DateTimeFormat("en-US", { weekday: "short", timeZone: "Asia/Shanghai" }).format(new Date());
-    const researchSession = data.status && data.status.automation && data.status.automation.research && data.status.automation.research.session;
-    const nonTrading = shanghaiWeekday === "Sat" || shanghaiWeekday === "Sun" || researchSession === "weekend" || researchSession === "holiday";
+    const nonTrading = monitoringMode(data) === "closed";
     $("monitor-mode-label").className = nonTrading ? "is-degraded" : "is-ready";
     $("monitor-mode-label").textContent = nonTrading ? "休市监控" : "连续监控";
     $("monitor-mode-title").textContent = nonTrading ? "价格冻结，研究链继续运行" : "行情与研究分轨更新";
@@ -234,11 +389,14 @@
     $("background-checked").textContent = latest ? `最近后台完成：${first(latest.label, "自动任务")} · ${fmtTime(latest.last_success_at, true)}` : "后台任务时间待核验";
   }
 
+  let activeTimelineFilter = "all";
+
   function bindFilters(events) {
-    document.querySelectorAll("[data-filter]").forEach((button) => button.addEventListener("click", () => {
+    document.querySelectorAll("[data-filter]").forEach((button) => button.onclick = () => {
+      activeTimelineFilter = button.dataset.filter;
       document.querySelectorAll("[data-filter]").forEach((item) => item.classList.toggle("is-active", item === button));
-      renderTimeline(events, button.dataset.filter);
-    }));
+      renderTimeline(events, activeTimelineFilter);
+    });
   }
 
   async function load() {
@@ -257,9 +415,11 @@
     renderStatus(data.status || { status: "degraded" });
     renderMonitorMode(data);
     const events = buildTimeline(data);
-    renderTimeline(events);
+    renderTimeline(events, activeTimelineFilter);
     bindFilters(events);
-    $("refresh-note").textContent = `最近检查 ${fmtTime(new Date().toISOString(), false)} · 每 60 秒刷新`;
+    const checkedAt = new Date().toISOString();
+    $("refresh-note").textContent = `最近检查 ${fmtTime(checkedAt, false)} · 每 60 秒刷新`;
+    $("timeline-refresh-state").textContent = `${monitoringMode(data) === "closed" ? "休市也持续检查" : "连续检查中"} · ${fmtTime(checkedAt, false)}`;
   }
 
   function clock() { $("live-clock").textContent = new Intl.DateTimeFormat("zh-CN", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).format(new Date()); }

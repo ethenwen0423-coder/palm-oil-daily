@@ -3,11 +3,14 @@ from __future__ import annotations
 
 import json
 import os
+import importlib.util
+import threading
+import time as monotonic_time
 from datetime import date, datetime, time, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlsplit
+from urllib.parse import parse_qs, urlsplit
 from zoneinfo import ZoneInfo
 
 
@@ -15,6 +18,9 @@ DATA_ROOT = Path(os.environ.get("PALM_OIL_DATA_ROOT", "/site/data"))
 HOST = os.environ.get("PALM_OIL_API_HOST", "0.0.0.0")
 PORT = int(os.environ.get("PALM_OIL_API_PORT", "8000"))
 SHANGHAI = ZoneInfo("Asia/Shanghai")
+CONTRACT_ANALYSIS_CACHE_SECONDS = int(os.environ.get("PALM_OIL_CONTRACT_ANALYSIS_CACHE_SECONDS", "60"))
+_CONTRACT_ANALYSIS_CACHE: dict[str, tuple[float, dict[str, Any]]] = {}
+_CONTRACT_ANALYSIS_LOCK = threading.Lock()
 
 ROUTES = {
     "/api/reports": "reports.json",
@@ -144,6 +150,30 @@ UPSTREAM_ROUTES = {
 
 def load_json(path: Path) -> Any:
     return json.loads(path.read_bytes())
+
+
+def _load_contract_analysis_module():
+    module_path = Path(__file__).with_name("contract_analysis.py")
+    spec = importlib.util.spec_from_file_location("palm_oil_contract_analysis", module_path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError("contract analysis module unavailable")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def contract_analysis(data_root: Path, symbol: str) -> dict[str, Any]:
+    normalized = str(symbol or "").strip().upper()
+    now = monotonic_time.monotonic()
+    with _CONTRACT_ANALYSIS_LOCK:
+        cached = _CONTRACT_ANALYSIS_CACHE.get(normalized)
+        if cached and now - cached[0] < CONTRACT_ANALYSIS_CACHE_SECONDS:
+            return {**cached[1], "cache": "hit"}
+    module = _load_contract_analysis_module()
+    payload = module.analyze_contract(data_root, normalized)
+    with _CONTRACT_ANALYSIS_LOCK:
+        _CONTRACT_ANALYSIS_CACHE[normalized] = (now, payload)
+    return {**payload, "cache": "miss"}
 
 
 def parse_timestamp(value: Any, *, end_of_day: bool = False) -> datetime | None:
@@ -315,7 +345,8 @@ class Handler(BaseHTTPRequestHandler):
             self.wfile.write(raw)
 
     def _serve(self, *, include_body: bool) -> None:
-        path = urlsplit(self.path).path.rstrip("/") or "/"
+        request = urlsplit(self.path)
+        path = request.path.rstrip("/") or "/"
         if path in {"/healthz", "/api/health"}:
             payload = build_status(DATA_ROOT)
             unavailable = {
@@ -343,6 +374,21 @@ class Handler(BaseHTTPRequestHandler):
             return
         if path == "/api/status":
             self._send_json(200, build_status(DATA_ROOT), include_body=include_body)
+            return
+        if path == "/api/assistant/contract-analysis":
+            symbol = parse_qs(request.query).get("symbol", [""])[0]
+            try:
+                payload = contract_analysis(DATA_ROOT, symbol)
+            except Exception as exc:
+                status = int(getattr(exc, "status", 502))
+                code = str(getattr(exc, "code", "analysis_failed"))
+                self._send_json(
+                    status,
+                    {"error": code, "message": str(exc)},
+                    include_body=include_body,
+                )
+                return
+            self._send_json(200, payload, include_body=include_body)
             return
 
         relative = ROUTES.get(path)

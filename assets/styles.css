@@ -3238,6 +3238,24 @@ body.home-page {
   background: rgba(244, 248, 242, 0.035);
 }
 
+.hero-button-option {
+  border-color: rgba(220, 240, 213, 0.2);
+  background: rgba(244, 248, 242, 0.035);
+  color: rgba(244, 248, 242, 0.86);
+}
+
+.hero-button-option:hover,
+.hero-button-option:focus-visible,
+.hero-button-option[aria-current="page"] {
+  border-color: var(--signal-strong);
+  background: var(--signal-strong);
+  color: #071712;
+}
+
+.hero-button-option:active {
+  transform: translateX(2px) scale(0.995);
+}
+
 .hero-button:hover {
   border-color: rgba(201, 240, 194, 0.68);
   transform: translateX(3px);

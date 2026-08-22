@@ -7,7 +7,7 @@
     <meta name="description" content="自动归集证据、监控走势并生成可追溯的油脂市场判断。" />
     <meta name="theme-color" content="#07130f" />
     <link rel="icon" href="data:," />
-    <link rel="stylesheet" href="assets/market-assistant.css?v=20260822-5" />
+    <link rel="stylesheet" href="assets/market-assistant.css?v=20260822-9" />
   </head>
   <body>
     <header class="command-header">
@@ -44,25 +44,32 @@
             <div class="confidence"><small>置信度</small><strong id="confidence-value">--</strong></div>
           </div>
           <p id="decision-summary" class="decision-summary">助手只读取已发布数据，不修改场外结构与量化模型规则。</p>
-          <div id="decision-evidence" class="evidence-chips" aria-label="判断证据"></div>
+          <div id="decision-thesis" class="decision-thesis" aria-label="研判结构"><p class="skeleton">正在拆解基本面、技术面与风险边界…</p></div>
+          <div class="decision-operations">
+            <section aria-labelledby="decision-evidence-title">
+              <header><span>KEY EVIDENCE</span><h2 id="decision-evidence-title">关键依据</h2></header>
+              <div id="decision-evidence" class="decision-evidence-list" aria-label="判断证据"></div>
+            </section>
+            <section aria-labelledby="decision-action-title">
+              <header><span>NEXT VALIDATION</span><h2 id="decision-action-title">下一步验证</h2></header>
+              <div id="decision-action-list" class="decision-action-list"><p class="skeleton">读取检查任务中…</p></div>
+            </section>
+          </div>
         </article>
         <aside class="priority-panel" aria-labelledby="priority-title">
-          <div class="panel-heading"><div><span>NOW WATCH</span><h2 id="priority-title">当前优先级</h2></div><small>触发后重算</small></div>
+          <div class="panel-heading priority-heading"><div><span>NOW WATCH</span><h2 id="priority-title">当前优先级</h2></div><small id="priority-mode-summary">基本面与技术面</small></div>
           <ol id="priority-list" class="priority-list"><li class="skeleton">正在读取关注队列…</li></ol>
         </aside>
       </section>
 
-      <section class="pulse-section" aria-labelledby="pulse-title">
-        <div class="section-heading compact"><div><span>MARKET SNAPSHOT</span><h2 id="pulse-title">五品种行情快照</h2></div><p id="pulse-updated">等待行情</p></div>
+      <section id="oil-desk" class="market-hub" aria-labelledby="pulse-title">
+        <div class="section-heading compact market-hub-heading"><div><span>MARKET &amp; OILS</span><h2 id="pulse-title">行情快照与油脂合约</h2></div><p id="pulse-updated">等待行情</p></div>
         <div id="market-pulse" class="market-pulse"><article class="pulse-card skeleton">正在读取行情…</article></div>
-      </section>
-
-      <section id="oil-desk" class="integrated-section" aria-labelledby="oil-desk-title">
-        <div class="section-heading integrated-heading">
-          <div><span>OILS FUTURES DESK</span><h2 id="oil-desk-title">油脂主力</h2></div>
+        <div class="market-hub-subheading">
+          <div><span>OILS FUTURES DESK</span><h3 id="oil-desk-title">次主力与外盘参照</h3></div>
           <p id="oil-desk-updated">等待行情</p>
         </div>
-        <div id="oil-desk-grid" class="oil-desk-grid"><article class="data-card skeleton">正在读取油脂主力…</article></div>
+        <div id="oil-desk-grid" class="oil-desk-grid is-compact"><article class="data-card skeleton">正在读取油脂合约…</article></div>
         <p id="oil-desk-source" class="section-source">数据源等待加载</p>
       </section>
 
@@ -93,12 +100,15 @@
         <article class="timeline-panel">
           <div class="section-heading timeline-heading">
             <div><span>INTELLIGENCE TIMELINE</span><h2>情报与证据时间线</h2></div>
-            <div class="filter-group" role="group" aria-label="筛选情报类型">
-              <button type="button" class="is-active" data-filter="all">全部</button>
-              <button type="button" data-filter="move">行情</button>
-              <button type="button" data-filter="report">研究</button>
-              <button type="button" data-filter="supply">供需</button>
-              <button type="button" data-filter="agent">Agent</button>
+            <div class="timeline-heading-actions">
+              <div class="filter-group" role="group" aria-label="筛选情报类型">
+                <button type="button" class="is-active" data-filter="all" data-label="全部">全部</button>
+                <button type="button" data-filter="move" data-label="行情">行情</button>
+                <button type="button" data-filter="report" data-label="研究">研究</button>
+                <button type="button" data-filter="supply" data-label="供需">供需</button>
+                <button type="button" data-filter="agent" data-label="Agent">Agent</button>
+              </div>
+              <p id="timeline-refresh-state" class="timeline-refresh-state">每 60 秒持续检查</p>
             </div>
           </div>
           <div id="intelligence-timeline" class="timeline-list" aria-live="polite"><p class="empty-state">正在编排事件证据…</p></div>
@@ -128,9 +138,9 @@
     </main>
 
     <footer><div class="shell"><span>Vinson Research · 24h Market Assistant</span><p>仅作研究与信息整理，不构成投资建议。缺失或过期数据会明确标记。</p></div></footer>
-    <script src="data/reports.js?v=20260822-5"></script>
-    <script src="data/oil_futures.js?v=20260822-5"></script>
-    <script src="data/exchange_futures.js?v=20260822-5"></script>
-    <script src="assets/market-assistant.js?v=20260822-5"></script>
+    <script src="data/reports.js?v=20260822-8"></script>
+    <script src="data/oil_futures.js?v=20260822-8"></script>
+    <script src="data/exchange_futures.js?v=20260822-8"></script>
+    <script src="assets/market-assistant.js?v=20260822-9"></script>
   </body>
 </html>

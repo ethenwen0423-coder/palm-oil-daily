@@ -54,10 +54,14 @@ python3 server/sync_live_data.py \
   --target "$LIVE_DATA_ROOT"
 
 api_changed=false
-if ! cmp -s server/api.py "$DEPLOY_ROOT/api.py"; then
-  cp server/api.py "$DEPLOY_ROOT/api.py"
-  api_changed=true
-fi
+for api_source in server/api.py server/contract_analysis.py
+do
+  api_name="$(basename "$api_source")"
+  if ! cmp -s "$api_source" "$DEPLOY_ROOT/$api_name"; then
+    cp "$api_source" "$DEPLOY_ROOT/$api_name"
+    api_changed=true
+  fi
+done
 
 if ! cmp -s server/update-site.sh "$RUNNER_PATH"; then
   cp server/update-site.sh "$RUNNER_CANDIDATE"
