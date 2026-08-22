@@ -4,178 +4,133 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>24h 盯盘助手 | Vinson Research</title>
-    <meta
-      name="description"
-      content="自动汇总棕榈油研究、行情走势、全品种异动、供需资料与数据健康状态。"
-    />
-    <meta name="theme-color" content="#061410" />
+    <meta name="description" content="自动归集证据、监控走势并生成可追溯的油脂市场判断。" />
+    <meta name="theme-color" content="#07130f" />
     <link rel="icon" href="data:," />
-    <link rel="stylesheet" href="assets/market-assistant.css?v=20260730-1" />
+    <link rel="stylesheet" href="assets/market-assistant.css?v=20260822-5" />
   </head>
   <body>
-    <header class="monitor-header">
-      <div class="monitor-shell monitor-nav">
-        <a href="index.html" class="monitor-brand">
-          <span>Vinson Research</span>
-          <strong>24h Market Assistant</strong>
+    <header class="command-header">
+      <div class="shell command-nav">
+        <a href="index.html" class="brand" aria-label="返回 Vinson Research 首页">
+          <span><strong>Vinson Research</strong><small>24h Market Assistant</small></span>
         </a>
-        <nav aria-label="盯盘助手导航">
-          <a href="oil-futures.html">油脂行情</a>
-          <a href="futures.html">全品种</a>
+        <nav aria-label="主导航">
+          <a href="#assistant-overview" aria-current="page">盯盘总览</a>
+          <a href="#oil-desk">油脂主力</a>
+          <a href="#supply-desk">供需数据</a>
+          <a href="#all-contracts">全品种</a>
           <a href="reports.html">AI 报告</a>
         </nav>
+        <div class="header-actions">
+          <a class="home-return" href="index.html" aria-label="返回网站首页"><span aria-hidden="true">←</span> 返回首页</a>
+          <div class="live-state"><span id="overall-state" class="is-loading">连接数据链</span><time id="live-clock">--:--:--</time></div>
+        </div>
       </div>
     </header>
 
-    <main class="monitor-shell">
-      <section class="monitor-hero">
-        <div>
-          <p>Collect · Monitor · Analyze</p>
-          <h1>24h 盯盘助手</h1>
-          <span>资料自动归集，走势集中观察，AI 研究结果随数据链更新。</span>
-        </div>
-        <aside>
-          <span id="monitor-overall-state" class="monitor-state is-loading">正在连接数据链</span>
-          <strong id="monitor-clock">--:--:--</strong>
-          <small id="monitor-refresh-note">每 60 秒检查一次更新</small>
+    <main id="assistant-overview" class="shell">
+      <section class="monitor-mode" aria-label="连续监控模式">
+        <div><span id="monitor-mode-label" class="is-loading">正在判断运行模式</span><strong id="monitor-mode-title">行情与研究分轨更新</strong></div>
+        <p id="monitor-mode-detail">行情只跟随真实交易时段，研究、供需、AI 判断和自动任务全年持续检查。</p>
+        <small id="background-checked">等待后台任务状态</small>
+      </section>
+
+      <section class="decision-band" aria-labelledby="decision-title">
+        <article class="decision-copy">
+          <div class="eyebrow-row"><span>AI 当前判断</span><span id="brief-generated">等待最新简报</span></div>
+          <div class="decision-title-row">
+            <div><p id="market-state" class="market-state">读取中</p><h1 id="decision-title">正在建立证据链</h1></div>
+            <div class="confidence"><small>置信度</small><strong id="confidence-value">--</strong></div>
+          </div>
+          <p id="decision-summary" class="decision-summary">助手只读取已发布数据，不修改场外结构与量化模型规则。</p>
+          <div id="decision-evidence" class="evidence-chips" aria-label="判断证据"></div>
+        </article>
+        <aside class="priority-panel" aria-labelledby="priority-title">
+          <div class="panel-heading"><div><span>NOW WATCH</span><h2 id="priority-title">当前优先级</h2></div><small>触发后重算</small></div>
+          <ol id="priority-list" class="priority-list"><li class="skeleton">正在读取关注队列…</li></ol>
         </aside>
       </section>
 
-      <section class="monitor-section" aria-labelledby="data-health-title">
-        <header class="monitor-section-heading">
-          <div><span>Data Health</span><h2 id="data-health-title">自动更新状态</h2></div>
-          <p>标明自动任务归属与观测时间；“延迟”表示最近有效数据，不等于实时。</p>
-        </header>
-        <div id="monitor-data-health" class="health-grid">
-          <article class="monitor-placeholder">正在读取数据更新时间…</article>
+      <section class="pulse-section" aria-labelledby="pulse-title">
+        <div class="section-heading compact"><div><span>MARKET SNAPSHOT</span><h2 id="pulse-title">五品种行情快照</h2></div><p id="pulse-updated">等待行情</p></div>
+        <div id="market-pulse" class="market-pulse"><article class="pulse-card skeleton">正在读取行情…</article></div>
+      </section>
+
+      <section id="oil-desk" class="integrated-section" aria-labelledby="oil-desk-title">
+        <div class="section-heading integrated-heading">
+          <div><span>OILS FUTURES DESK</span><h2 id="oil-desk-title">油脂主力</h2></div>
+          <p id="oil-desk-updated">等待行情</p>
         </div>
+        <div id="oil-desk-grid" class="oil-desk-grid"><article class="data-card skeleton">正在读取油脂主力…</article></div>
+        <p id="oil-desk-source" class="section-source">数据源等待加载</p>
       </section>
 
-      <section class="monitor-grid monitor-grid-primary">
-        <article class="monitor-card monitor-report-card">
-          <header><span>Latest AI Research</span><a id="monitor-report-link" href="reports.html">查看全文 →</a></header>
-          <time id="monitor-report-date">等待报告</time>
-          <h2 id="monitor-report-headline">正在读取最新研究结论</h2>
-          <p id="monitor-report-summary">AI 报告会按照既有日报与周报流程自动发布。</p>
-        </article>
-
-        <article class="monitor-card monitor-ai-card">
-          <header><span>Live AI Brief</span><small id="monitor-ai-generated">等待生成</small></header>
-          <h2 id="monitor-ai-headline">正在生成证据约束的盯盘简报</h2>
-          <p id="monitor-ai-summary">AI 只读取已发布数据，不修改场外结构库或量化模型规则。</p>
-          <dl class="monitor-facts">
-            <div><dt>市场状态</dt><dd id="monitor-ai-state">--</dd></div>
-            <div><dt>置信度</dt><dd id="monitor-ai-confidence">--</dd></div>
-          </dl>
-        </article>
+      <section id="supply-desk" class="integrated-section" aria-labelledby="supply-desk-title">
+        <div class="section-heading integrated-heading">
+          <div><span>SUPPLY &amp; DEMAND</span><h2 id="supply-desk-title">产地供需数据</h2></div>
+          <p id="supply-desk-updated">等待官方资料</p>
+        </div>
+        <div id="supply-desk-grid" class="supply-desk-grid"><article class="data-card skeleton">正在读取供需数据…</article></div>
+        <p id="supply-desk-note" class="section-source">官方来源状态等待检查</p>
       </section>
 
-      <section class="monitor-grid monitor-grid-ai">
-        <article class="monitor-card monitor-task-card">
-          <header><span>AI Work Queue</span><small id="monitor-ai-status">只读证据约束生成</small></header>
-          <h2>AI 已完成与正在处理</h2>
-          <ul id="monitor-task-list">
-            <li>正在识别缺失资料与主要异动…</li>
-          </ul>
-        </article>
-
-        <article class="monitor-card monitor-evidence-card">
-          <header><span>Grounded Moves</span><small>数值由证据自动回填</small></header>
-          <h2>关键异动与解释</h2>
-          <ul id="monitor-key-moves">
-            <li>正在读取来源与观测时间…</li>
-          </ul>
-        </article>
+      <section id="all-contracts" class="integrated-section" aria-labelledby="all-contracts-title">
+        <div class="section-heading integrated-heading">
+          <div><span>ALL FUTURES</span><h2 id="all-contracts-title">全品种主力分析</h2></div>
+          <p id="all-contracts-updated">等待合约数据</p>
+        </div>
+        <div class="contract-controls">
+          <label>交易所<select id="assistant-exchange-filter"><option value="all">全部交易所</option><option value="DCE">大商所</option><option value="CZCE">郑商所</option><option value="SHFE">上期所</option><option value="GFEX">广期所</option><option value="CFFEX">中金所</option></select></label>
+          <label>品种与合约<select id="assistant-contract-select"><option value="">等待数据加载</option></select></label>
+          <button id="assistant-contract-confirm" type="button">查看分析</button>
+        </div>
+        <p id="assistant-contract-note" class="contract-note">合约按数据集内的流动性排序展示。</p>
+        <div id="assistant-contract-result" class="contract-result" aria-live="polite"><p class="empty-state">请选择一个主力合约查看技术面、基本面与新闻证据。</p></div>
       </section>
 
-      <section class="monitor-grid monitor-grid-ai">
-        <article class="monitor-card monitor-watch-card">
-          <header><span>Watchlist</span><small>触发后重新生成</small></header>
-          <h2>下一步关注</h2>
-          <ul id="monitor-watch-list">
-            <li>等待 AI 建立关注队列…</li>
-          </ul>
-        </article>
-
-        <article class="monitor-card monitor-risk-card">
-          <header><span>Risk Gate</span><small>缺失与冲突必须显式标记</small></header>
-          <h2>当前风险与限制</h2>
-          <ul id="monitor-risk-list">
-            <li>正在核验数据时间与来源完整性…</li>
-          </ul>
-        </article>
-      </section>
-
-      <section class="monitor-grid">
-        <article class="monitor-card">
-          <header><span>Dynamic Model Output</span><a href="quant-model.html">查看固定模型规则 →</a></header>
-          <h2>量化模型动态输出</h2>
-          <p id="monitor-quant-updated" class="monitor-meta">等待动态信号更新时间</p>
-          <div id="monitor-quant-list" class="quote-list"></div>
-        </article>
-
-        <article class="monitor-card">
-          <header><span>Contract Discovery</span><a href="oil-futures.html">查看合约行情 →</a></header>
-          <h2>当前主力与次主力</h2>
-          <p id="monitor-contracts-updated" class="monitor-meta">等待合约识别时间</p>
-          <div id="monitor-contracts-list" class="mover-list"></div>
-        </article>
-      </section>
-
-      <section class="monitor-grid">
-        <article class="monitor-card">
-          <header><span>Oils Watch</span><a href="oil-futures.html">打开油脂行情 →</a></header>
-          <h2>油脂主力走势</h2>
-          <p id="monitor-oil-updated" class="monitor-meta">等待行情更新时间</p>
-          <div id="monitor-oil-list" class="quote-list"></div>
-        </article>
-
-        <article class="monitor-card">
-          <header><span>Market Movers</span><a href="futures.html">打开全品种 →</a></header>
-          <h2>全品种涨跌异动</h2>
-          <p id="monitor-exchange-updated" class="monitor-meta">等待行情更新时间</p>
-          <div class="mover-columns">
-            <div><strong>涨幅靠前</strong><div id="monitor-gainers" class="mover-list"></div></div>
-            <div><strong>跌幅靠前</strong><div id="monitor-losers" class="mover-list"></div></div>
+      <section class="workspace">
+        <article class="timeline-panel">
+          <div class="section-heading timeline-heading">
+            <div><span>INTELLIGENCE TIMELINE</span><h2>情报与证据时间线</h2></div>
+            <div class="filter-group" role="group" aria-label="筛选情报类型">
+              <button type="button" class="is-active" data-filter="all">全部</button>
+              <button type="button" data-filter="move">行情</button>
+              <button type="button" data-filter="report">研究</button>
+              <button type="button" data-filter="supply">供需</button>
+              <button type="button" data-filter="agent">Agent</button>
+            </div>
           </div>
+          <div id="intelligence-timeline" class="timeline-list" aria-live="polite"><p class="empty-state">正在编排事件证据…</p></div>
         </article>
+
+        <aside class="right-rail">
+          <section class="rail-card" aria-labelledby="trigger-title">
+            <div class="panel-heading"><div><span>WAITING TRIGGERS</span><h2 id="trigger-title">等待触发</h2></div></div>
+            <ul id="trigger-list" class="trigger-list"><li class="skeleton">读取条件中…</li></ul>
+          </section>
+          <section class="rail-card" aria-labelledby="agent-title">
+            <div class="panel-heading"><div><span>AGENT STATUS</span><h2 id="agent-title">自动任务</h2></div></div>
+            <div id="agent-summary" class="status-list"><p class="skeleton">读取任务状态中…</p></div>
+          </section>
+          <section class="rail-card" aria-labelledby="health-title">
+            <div class="panel-heading"><div><span>DATA HEALTH</span><h2 id="health-title">数据健康</h2></div><a href="#system-status">详情</a></div>
+            <div id="health-summary" class="health-summary"><p class="skeleton">读取数据状态中…</p></div>
+            <div id="dataset-status-list" class="dataset-status-list"><p class="skeleton">读取各项数据时间…</p></div>
+          </section>
+        </aside>
       </section>
 
-      <section class="monitor-grid">
-        <article class="monitor-card">
-          <header><span>Official Data</span><a href="supply-demand.html">查看供需详情 →</a></header>
-          <h2>官方供需资料检查</h2>
-          <p id="monitor-supply-message">正在读取 MPOB、GAPKI 与 USDA 数据检查状态。</p>
-          <dl class="monitor-facts">
-            <div><dt>最近检查</dt><dd id="monitor-supply-checked">--</dd></div>
-            <div><dt>数据更新</dt><dd id="monitor-supply-updated">--</dd></div>
-          </dl>
-        </article>
-
-        <article class="monitor-card">
-          <header><span>Model Evidence</span><a href="quant-model.html">查看量化模型 →</a></header>
-          <h2>预测评估状态</h2>
-          <p id="monitor-forecast-status">正在读取样本与评估状态。</p>
-          <dl class="monitor-facts">
-            <div><dt>评估截至</dt><dd id="monitor-forecast-date">--</dd></div>
-            <div><dt>公开状态</dt><dd id="monitor-forecast-public">--</dd></div>
-          </dl>
-        </article>
-      </section>
-
-      <section class="monitor-boundary">
-        <strong>固定逻辑边界</strong>
-        <p>场外结构类型与量化模型规则保持版本化固定；行情、报告、供需、合约、评估和数据健康状态自动更新。</p>
+      <section id="system-status" class="system-strip" aria-label="系统边界与刷新状态">
+        <div><strong id="system-label" class="is-loading">系统检查中</strong><small id="refresh-note">每 60 秒自动刷新</small></div>
+        <p>行情、报告、供需、合约、评估与健康状态自动更新；缺失或过期数据会明确标注。</p>
       </section>
     </main>
 
-    <footer class="monitor-footer">
-      <div class="monitor-shell">
-        <span>Vinson Research · 24h Market Assistant</span>
-        <p>仅作研究与信息整理，不构成投资建议。过期或缺失数据会明确标记。</p>
-      </div>
-    </footer>
-
-    <script src="assets/market-assistant.js?v=20260731-3"></script>
+    <footer><div class="shell"><span>Vinson Research · 24h Market Assistant</span><p>仅作研究与信息整理，不构成投资建议。缺失或过期数据会明确标记。</p></div></footer>
+    <script src="data/reports.js?v=20260822-5"></script>
+    <script src="data/oil_futures.js?v=20260822-5"></script>
+    <script src="data/exchange_futures.js?v=20260822-5"></script>
+    <script src="assets/market-assistant.js?v=20260822-5"></script>
   </body>
 </html>

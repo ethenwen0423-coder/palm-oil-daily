@@ -1,420 +1,268 @@
-(() => {
+(function () {
   "use strict";
 
-  const POLL_INTERVAL_MS = 60000;
-  const DATASETS = {
+  const sources = {
     reports: ["/api/reports", "data/reports.json"],
     oil: ["/api/oil-futures", "data/oil_futures.json"],
     exchange: ["/api/exchange-futures", "data/exchange_futures.json"],
-    quant: ["/api/quant-model-signals", "data/quant_model_signals.json"],
-    contracts: ["/api/contracts/current", "data/contracts/current_contracts.json"],
     supply: ["/api/supply-demand", "data/supply-demand.json"],
-    forecast: ["/api/forecast/metrics/latest", "data/forecast/metrics/latest.json"],
     brief: ["/api/assistant/brief", "data/market_assistant_brief.json"],
-  };
-  const STATUS_LABELS = {
-    ready: "正常",
-    stale: "延迟",
-    missing: "缺失",
-    invalid: "异常",
-  };
-  const SESSION_LABELS = {
-    morning: "早盘",
-    midday: "午盘",
-    close: "收盘",
-    night_open: "夜盘开盘",
-    night_close: "夜盘收盘",
-    overnight: "凌晨尾盘",
-    manual: "手动",
-  };
-  const OWNER_LABELS = {
-    "server-market-collector": "服务器行情任务",
-    "server-supply-collector": "服务器官方资料任务",
-    "server-ai-brief": "服务器 AI 任务",
-    "upstream-sync": "自动发布同步",
-    "server-api": "服务器 API",
-    "static-fallback": "静态回退",
+    status: ["/api/status"]
   };
 
-  const element = (id) => document.getElementById(id);
-  const escapeHtml = (value) => String(value ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
+  const $ = (id) => document.getElementById(id);
+  const esc = (value) => String(value == null ? "" : value).replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[char]));
+  const array = (value) => Array.isArray(value) ? value : [];
+  const first = (value, fallback = "--") => value == null || value === "" ? fallback : value;
+  const staticFallbacks = {
+    reports: () => window.PALM_OIL_REPORTS,
+    oil: () => window.OIL_FUTURES_CONTRACTS,
+    exchange: () => window.EXCHANGE_FUTURES_DATA
+  };
 
-  async function fetchJson(url) {
-    const response = await fetch(url, {
-      cache: "no-store",
-      credentials: "same-origin",
-      headers: { Accept: "application/json" },
-    });
-    if (!response.ok) throw new Error(`${url} HTTP ${response.status}`);
-    return response.json();
-  }
-
-  async function fetchWithFallback([api, fallback]) {
-    try {
-      return { payload: await fetchJson(api), source: "api" };
-    } catch (apiError) {
-      return {
-        payload: await fetchJson(fallback),
-        source: "static",
-        error: String(apiError.message || apiError),
-      };
+  async function fetchFirst(urls) {
+    let lastError;
+    for (const url of urls) {
+      try {
+        const response = await fetch(url, { cache: "no-store" });
+        if (!response.ok) throw new Error(`${response.status} ${url}`);
+        return await response.json();
+      } catch (error) { lastError = error; }
     }
+    throw lastError || new Error("数据不可用");
   }
 
-  function formatDateTime(value) {
-    if (!value) return "需进一步核验";
-    const normalized = String(value).includes("T")
-      ? String(value)
-      : `${String(value).replace(" ", "T")}:00+08:00`;
-    const parsed = new Date(normalized);
-    if (!Number.isFinite(parsed.getTime())) return String(value);
-    return parsed.toLocaleString("zh-CN", {
-      timeZone: "Asia/Shanghai",
-      hour12: false,
-    });
+  function fmtTime(value, includeDate) {
+    if (!value) return "时间待核验";
+    const dateOnly = String(value).match(/^(\d{4})-(\d{2})-(\d{2})(?:-|$)/);
+    if (dateOnly && !String(value).includes("T") && !String(value).includes(":")) return `${dateOnly[2]}/${dateOnly[3]}`;
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return String(value);
+    return new Intl.DateTimeFormat("zh-CN", { month: includeDate ? "2-digit" : undefined, day: includeDate ? "2-digit" : undefined, hour: "2-digit", minute: "2-digit", hour12: false }).format(date);
   }
 
-  function formatAge(seconds) {
-    if (!Number.isFinite(Number(seconds))) return "观测时间需进一步核验";
-    const minutes = Math.floor(Number(seconds) / 60);
-    if (minutes < 60) return `${Math.max(minutes, 0)} 分钟前`;
-    const hours = Math.floor(minutes / 60);
-    if (hours < 48) return `${hours} 小时前`;
-    return `${Math.floor(hours / 24)} 天前`;
+  function number(value, digits = 0) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed.toLocaleString("zh-CN", { maximumFractionDigits: digits, minimumFractionDigits: digits }) : "--";
   }
 
-  function number(value) {
-    const parsed = Number(String(value ?? "").replaceAll(",", "").replace("%", ""));
-    return Number.isFinite(parsed) ? parsed : null;
+  function numberOrText(value) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed.toLocaleString("zh-CN") : first(value, "--");
   }
 
-  function changeClass(value) {
-    const parsed = number(value);
-    return parsed > 0 ? "is-up" : parsed < 0 ? "is-down" : "is-flat";
-  }
-
-  function formatChange(value) {
-    const parsed = number(value);
-    if (parsed === null) return "需核验";
+  function pct(value) {
+    const parsed = Number(String(value == null ? "" : value).replace("%", ""));
+    if (!Number.isFinite(parsed)) return "--";
     return `${parsed > 0 ? "+" : ""}${parsed.toFixed(2)}%`;
   }
 
-  function syntheticStatus(results) {
-    const labels = {
-      reports: "研究报告",
-      oil: "油脂行情",
-      exchange: "全品种行情",
-      quant: "动态量化信号",
-      contracts: "主力合约",
-      supply: "供需资料",
-      forecast: "预测评估",
-      brief: "AI 盯盘简报",
-    };
-    const datasets = {};
-    Object.entries(results).forEach(([key, result]) => {
-      datasets[`local:${key}`] = {
-        label: labels[key],
-        state: result ? "ready" : "missing",
-        observed_at: null,
-        age_seconds: null,
-        source: result?.source || "missing",
-        owner: result?.source === "api" ? "server-api" : "static-fallback",
-      };
-    });
-    return {
-      status: Object.values(datasets).every((item) => item.state === "ready") ? "ok" : "degraded",
-      datasets,
-    };
+  function direction(value) {
+    const parsed = Number(String(value == null ? "" : value).replace("%", ""));
+    return parsed > 0 ? "up" : parsed < 0 ? "down" : "flat";
   }
 
-  function renderHealth(status, results) {
-    const datasets = status?.datasets || {};
-    const cards = Object.values(datasets).map((item) => {
-      const state = item.state || "missing";
-      return `
-        <article class="health-card is-${escapeHtml(state)}">
-          <header>
-            <strong>${escapeHtml(item.label || item.route || "数据集")}</strong>
-            <span>${escapeHtml(STATUS_LABELS[state] || state)}</span>
-          </header>
-          <p>${escapeHtml([
-            OWNER_LABELS[item.owner] || item.owner || "来源需进一步核验",
-            item.observed_at ? `${formatAge(item.age_seconds)} · ${formatDateTime(item.observed_at)}` : "观测时间需进一步核验",
-          ].join(" · "))}</p>
-        </article>
-      `;
-    });
-    element("monitor-data-health").innerHTML = cards.join("");
+  function renderBrief(payload) {
+    $("market-state").textContent = first(payload.market_state, "待判断");
+    $("decision-title").textContent = first(payload.headline, "等待 AI 研究结论");
+    $("confidence-value").textContent = first(payload.confidence, "--");
+    $("decision-summary").textContent = first(payload.summary, "暂无可发布摘要。");
+    $("brief-generated").textContent = `生成 ${fmtTime(payload.generated_at || payload.updated_at, true)}`;
 
-    const fallbackUsed = Object.values(results).some((item) => item?.source === "static");
-    const degraded = status?.status !== "ok" || fallbackUsed;
-    const badge = element("monitor-overall-state");
-    badge.className = `monitor-state ${degraded ? "is-degraded" : "is-ready"}`;
-    badge.textContent = degraded ? "部分数据延迟或回退" : "数据链运行正常";
+    const moves = array(payload.key_moves).slice(0, 4);
+    $("decision-evidence").innerHTML = moves.length ? moves.map((item) => `<span>${esc(first(item.label, "证据"))} · ${esc(first(item.value, "待核验"))}</span>`).join("") : "<span>证据待补充</span>";
+
+    const watch = array(payload.watchlist).slice().sort((a, b) => Number(a.priority || 99) - Number(b.priority || 99)).slice(0, 3);
+    $("priority-list").innerHTML = watch.length ? watch.map((item) => `<li><div><strong>${esc(first(item.item, "关注项"))}</strong><span>${esc(first(item.trigger, item.why || "等待触发条件"))}</span></div></li>`).join("") : "<li><div><strong>暂无新触发</strong><span>继续按自动任务周期检查</span></div></li>";
+    $("trigger-list").innerHTML = watch.length ? watch.map((item) => `<li><strong>${esc(first(item.item, "关注项"))}</strong><span>${esc(first(item.trigger, "等待下一次自动检查"))}</span></li>`).join("") : "<li><strong>暂无等待触发</strong><span>系统仍会持续检查</span></li>";
   }
 
-  function renderReport(result) {
-    const reports = Array.isArray(result?.payload) ? result.payload : [];
-    const latest = reports[0] || {};
-    element("monitor-report-date").textContent = latest.date
-      ? `${latest.date} · ${latest.kind === "weekend" ? "周报" : "日报"}`
-      : "等待报告";
-    element("monitor-report-headline").textContent = latest.headline || latest.title || "暂无最新研究结论";
-    element("monitor-report-summary").textContent = latest.summary || "报告摘要需进一步核验。";
-    element("monitor-report-link").href = latest.date
-      ? `report.html?id=${encodeURIComponent(latest.date)}`
-      : "reports.html";
+  function renderPulse(payload) {
+    const desiredProducts = ["P", "Y", "OI", "M", "RM"];
+    const allContracts = array(payload.contracts);
+    const contracts = desiredProducts.map((product) => allContracts.find((item) => item.product === product && Number(item.contract_rank) === 1) || allContracts.find((item) => item.product === product)).filter(Boolean);
+    $("pulse-updated").textContent = `行情快照 ${fmtTime(payload.updated_at, true)}`;
+    $("market-pulse").innerHTML = contracts.length ? contracts.map((item) => {
+      const change = item.change_pct != null ? item.change_pct : item.change;
+      return `<article class="pulse-card"><header><strong>${esc(first(item.name, item.symbol))}</strong><span>${esc(first(item.symbol, "--"))}</span></header><div class="pulse-price"><strong>${number(item.price)}</strong><b class="${direction(change)}">${pct(change)}</b></div><div class="pulse-meta"><span>成交 ${esc(numberOrText(item.volume))}</span><span>持仓 ${esc(numberOrText(item.open_interest))}</span></div></article>`;
+    }).join("") : "<article class='pulse-card'>暂无可用行情</article>";
   }
 
-  function renderOil(result) {
-    const payload = result?.payload || {};
-    const contracts = Array.isArray(payload.contracts) ? payload.contracts : [];
-    const main = contracts
-      .filter((item) => item.contract_rank === 1 || ["FCPO", "CPOTR"].includes(String(item.symbol || "").toUpperCase()))
-      .slice(0, 8);
-    element("monitor-oil-updated").textContent = payload.updated_at
-      ? `${formatDateTime(payload.updated_at)} · ${SESSION_LABELS[payload.update_session] || "行情"}`
-      : "行情更新时间需进一步核验";
-    element("monitor-oil-list").innerHTML = main.length
-      ? main.map((item) => `
-          <div class="quote-row">
-            <div><strong>${escapeHtml(item.name || item.product || item.symbol)}</strong><small>${escapeHtml(item.contract || item.symbol || "")}</small></div>
-            <b>${escapeHtml(item.price || "--")}</b>
-            <span class="${changeClass(item.change)}">${escapeHtml(item.change || "--")}</span>
-          </div>
-        `).join("")
-      : '<p class="monitor-meta">暂无可用油脂合约，需进一步核验。</p>';
-  }
+  function eventTime(item) { return item.observed_at || item.generated_at || item.updated_at || item.date; }
 
-  function renderMovers(result) {
-    const payload = result?.payload || {};
-    const contracts = (Array.isArray(payload.contracts) ? payload.contracts : [])
-      .filter((item) => number(item.change_pct) !== null);
-    const gainers = [...contracts].sort((a, b) => number(b.change_pct) - number(a.change_pct)).slice(0, 5);
-    const losers = [...contracts].sort((a, b) => number(a.change_pct) - number(b.change_pct)).slice(0, 5);
-    element("monitor-exchange-updated").textContent = payload.updated_at
-      ? `${formatDateTime(payload.updated_at)} · ${SESSION_LABELS[payload.update_session] || "行情"}`
-      : "行情更新时间需进一步核验";
-    const render = (items) => items.map((item) => `
-      <div class="mover-row">
-        <span>${escapeHtml(item.product || item.symbol)}</span>
-        <b class="${changeClass(item.change_pct)}">${formatChange(item.change_pct)}</b>
-      </div>
-    `).join("");
-    element("monitor-gainers").innerHTML = render(gainers);
-    element("monitor-losers").innerHTML = render(losers);
-  }
-
-  function renderSupply(result) {
-    const payload = result?.payload || {};
-    element("monitor-supply-message").textContent = payload.update_message || "官方资料检查状态需进一步核验。";
-    element("monitor-supply-checked").textContent = formatDateTime(payload.checked_at || payload.generated_at);
-    element("monitor-supply-updated").textContent = formatDateTime(payload.data_updated_at);
-  }
-
-  function renderQuant(result) {
-    const payload = result?.payload || {};
-    const modelId = payload.default_model_id || "";
-    const grouped = payload.model_contracts || {};
-    const contracts = Array.isArray(grouped[modelId]) ? grouped[modelId] : [];
-    const signals = contracts.filter((item) => item?.rank === 1).slice(0, 5);
-    element("monitor-quant-updated").textContent = payload.market_updated_at
-      ? `${formatDateTime(payload.market_updated_at)} · ${SESSION_LABELS[payload.market_update_session] || "模型输出"}`
-      : "动态信号更新时间需进一步核验";
-    element("monitor-quant-list").innerHTML = signals.length
-      ? signals.map((item) => {
-          const flat = item?.signals?.flat || {};
-          return `
-            <div class="quote-row">
-              <div>
-                <strong>${escapeHtml(item.product_name || item.product || item.symbol)}</strong>
-                <small>${escapeHtml(item.symbol || "")} · ${escapeHtml(item.model_scope_label || "规则试算")}</small>
-              </div>
-              <b>${escapeHtml(flat.action || "需核验")}</b>
-              <span>${escapeHtml(flat.execution || "none")}</span>
-            </div>
-          `;
-        }).join("")
-      : '<p class="monitor-meta">暂无可验证的动态量化输出；模型规则本身仍保持固定。</p>';
-  }
-
-  function renderContracts(result) {
-    const payload = result?.payload || {};
-    const products = payload.products && typeof payload.products === "object"
-      ? payload.products
-      : {};
-    const entries = Object.entries(products).slice(0, 8);
-    element("monitor-contracts-updated").textContent = payload.generated_at
-      ? `${formatDateTime(payload.generated_at)} · ${escapeHtml(payload.source || "来源需核验")}`
-      : "合约识别时间需进一步核验";
-    element("monitor-contracts-list").innerHTML = entries.length
-      ? entries.map(([product, items]) => {
-          const ranked = Array.isArray(items)
-            ? items.filter((item) => item?.rank === 1 || item?.rank === 2).slice(0, 2)
-            : [];
-          const symbols = ranked.map((item) => `${item.label || `第${item.rank}位`} ${item.symbol || "--"}`);
-          return `
-            <div class="mover-row">
-              <span>${escapeHtml(ranked[0]?.product_name || product)}</span>
-              <b>${escapeHtml(symbols.join(" · ") || "需核验")}</b>
-            </div>
-          `;
-        }).join("")
-      : '<p class="monitor-meta">暂无主力与次主力合约识别结果。</p>';
-  }
-
-  function renderForecast(result) {
-    const payload = result?.payload || {};
-    element("monitor-forecast-date").textContent = payload.as_of || "需进一步核验";
-    if (payload.public_display_allowed) {
-      element("monitor-forecast-status").textContent = "评估样本达到公开展示门槛，可查看模型证据。";
-      element("monitor-forecast-public").textContent = "可公开";
-    } else {
-      element("monitor-forecast-status").textContent = "当前评估样本不足，不将历史命中率包装成可靠预测能力。";
-      element("monitor-forecast-public").textContent = "样本不足";
+  function buildTimeline(data) {
+    const events = [];
+    array(data.brief.key_moves).forEach((item) => events.push({ type: "move", title: first(item.label, "行情证据"), summary: first(item.value, "数值待核验"), detail: first(item.interpretation, "暂无补充解释"), source: first(item.source, "已发布数据"), time: eventTime(item) }));
+    array(data.brief.actions).forEach((item) => events.push({ type: "agent", title: first(item.task, "Agent 任务"), summary: first(item.result, item.status || "已处理"), detail: first(item.next_check, "等待下一次自动检查"), source: "AI Agent", time: eventTime(item) || data.brief.generated_at }));
+    const report = array(data.reports.reports || data.reports).slice(0, 1)[0];
+    if (report) events.push({ type: "report", title: first(report.headline || report.title, "最新研究报告"), summary: first(report.summary || report.subtitle, "研究报告已发布"), detail: "点击 AI 报告导航可查看完整正文与来源。", source: first(report.source, "Vinson Research"), time: eventTime(report) });
+    if (data.supply && Object.keys(data.supply).length) {
+      const countries = Object.values(data.supply.countries || {});
+      const summary = countries.length ? countries.map((item) => `${first(item.name, "来源")} ${first(item.latest_period, "待更新")}`).join(" · ") : "供需资料已检查";
+      const detail = countries.length ? countries.map((item) => `${first(item.name, "来源")}：${first(item.status_message, item.status || "已检查")}`).join("；") : `数据更新：${first(data.supply.generated_at, "待核验")}`;
+      events.push({ type: "supply", title: "官方供需资料检查", summary, detail, source: "MPOB · GAPKI · USDA", time: data.supply.generated_at || data.supply.checked_at || data.supply.updated_at });
     }
+    return events.sort((a, b) => new Date(eventTime(b) || 0) - new Date(eventTime(a) || 0));
   }
 
-  function renderFallbackTasks(status, results) {
-    const tasks = [];
-    const degraded = Object.values(status?.datasets || {})
-      .filter((item) => item.state !== "ready")
-      .map((item) => item.label || item.route);
-    if (degraded.length) tasks.push(`优先补采或核验：${degraded.slice(0, 4).join("、")}`);
-
-    const exchange = results.exchange?.payload?.contracts || [];
-    const movers = exchange
-      .filter((item) => number(item.change_pct) !== null)
-      .sort((a, b) => Math.abs(number(b.change_pct)) - Math.abs(number(a.change_pct)))
-      .slice(0, 3)
-      .map((item) => `${item.product || item.symbol} ${formatChange(item.change_pct)}`);
-    if (movers.length) tasks.push(`关注全品种绝对波动：${movers.join("；")}`);
-
-    const report = Array.isArray(results.reports?.payload) ? results.reports.payload[0] : null;
-    if (report?.summary) tasks.push(`沿用最新报告触发器：${report.summary}`);
-    if (!tasks.length) tasks.push("数据链无明显异常，继续等待下一次行情或官方资料更新。");
-    element("monitor-task-list").innerHTML = tasks.map((item) => `<li>${escapeHtml(item)}</li>`).join("");
-    element("monitor-ai-status").textContent = "AI 简报暂不可用，当前展示规则化回退队列";
+  function renderTimeline(events, filter = "all") {
+    const visible = filter === "all" ? events : events.filter((item) => item.type === filter);
+    const labels = { move: "行情", report: "研究", supply: "供需", agent: "AGENT" };
+    $("intelligence-timeline").innerHTML = visible.length ? visible.map((item, index) => `<article class="timeline-item" data-type="${esc(item.type)}"><time class="timeline-time">${esc(fmtTime(item.time, true))}</time><span class="timeline-marker ${item.type === "report" ? "is-degraded" : "is-ready"}">${esc(labels[item.type] || item.type)}</span><div class="timeline-content"><button type="button" aria-expanded="false" aria-controls="timeline-detail-${index}"><span class="timeline-copy"><h3>${esc(item.title)}</h3><p>${esc(item.summary)}</p><span class="timeline-meta"><span>${esc(item.source)}</span></span></span><span class="timeline-toggle" aria-hidden="true">＋</span></button><div id="timeline-detail-${index}" class="timeline-detail">${esc(item.detail)}</div></div></article>`).join("") : "<p class='empty-state'>当前筛选下没有事件。</p>";
+    document.querySelectorAll(".timeline-content button").forEach((button) => button.addEventListener("click", () => {
+      const detail = document.getElementById(button.getAttribute("aria-controls"));
+      const open = button.getAttribute("aria-expanded") === "true";
+      button.setAttribute("aria-expanded", String(!open));
+      detail.classList.toggle("is-open", !open);
+    }));
   }
 
-  function renderBrief(result, status, results) {
-    const payload = result?.payload;
-    if (!payload || payload.status !== "ready") {
-      element("monitor-ai-headline").textContent = "AI 简报暂不可用";
-      element("monitor-ai-summary").textContent = "继续展示最近有效数据，并等待下一次自动生成。";
-      element("monitor-ai-generated").textContent = "生成时间需进一步核验";
-      element("monitor-ai-state").textContent = "数据不足";
-      element("monitor-ai-confidence").textContent = "低";
-      element("monitor-key-moves").innerHTML = "";
-      element("monitor-watch-list").innerHTML = "";
-      element("monitor-risk-list").innerHTML = "<li>AI 结果缺失，不将规则回退包装成模型结论。</li>";
-      renderFallbackTasks(status, results);
-      return;
+  function renderOilDesk(payload) {
+    const oilProducts = new Set(["P", "Y", "OI", "FCPO", "CPOTR"]);
+    const contracts = array(payload.contracts).filter((item) => oilProducts.has(item.product));
+    $("oil-desk-updated").textContent = `行情 ${fmtTime(payload.updated_at, true)}`;
+    $("oil-desk-source").textContent = first(payload.source, "行情数据源待核验");
+    $("oil-desk-grid").innerHTML = contracts.length ? contracts.map((item) => {
+      const change = item.change_pct != null ? item.change_pct : item.change;
+      const rank = item.contract_rank ? `流动性 #${item.contract_rank}` : first(item.market, "海外参照");
+      return `<article class="data-card oil-contract-card"><header><div><span>${esc(first(item.market, "--"))}</span><h3>${esc(first(item.name, item.product))}</h3></div><b>${esc(rank)}</b></header><div class="contract-quote"><strong>${esc(numberOrText(item.price))}</strong><span class="${direction(change)}">${esc(pct(change))}</span></div><dl><div><dt>合约</dt><dd>${esc(first(item.symbol, "--"))}</dd></div><div><dt>成交</dt><dd>${esc(numberOrText(item.volume))}</dd></div><div><dt>持仓</dt><dd>${esc(numberOrText(item.open_interest))}</dd></div></dl></article>`;
+    }).join("") : "<article class='data-card'><p class='empty-state'>暂无可用油脂主力数据。</p></article>";
+  }
+
+  function latestMetric(metric) {
+    const series = array(metric && metric.series);
+    const latest = series[series.length - 1];
+    const previous = series[series.length - 2];
+    if (!latest) return { value: "--", period: "待更新", change: "--" };
+    const raw = Number(latest.value);
+    const prior = Number(previous && previous.value);
+    const useWan = metric.display_unit === "万吨" && Number.isFinite(raw);
+    const value = Number.isFinite(raw) ? number(useWan ? raw / 10000 : raw, useWan ? 1 : 0) : first(latest.value, "--");
+    const change = Number.isFinite(raw) && Number.isFinite(prior) && prior !== 0 ? pct((raw / prior - 1) * 100) : "--";
+    return { value, period: first(latest.period, "待更新"), change, unit: first(metric.display_unit, metric.unit || "") };
+  }
+
+  function renderSupplyDesk(payload) {
+    const countries = Object.values(payload.countries || {});
+    $("supply-desk-updated").textContent = `检查 ${fmtTime(payload.checked_at || payload.generated_at, true)}`;
+    $("supply-desk-note").textContent = first(payload.update_message, "官方来源状态待核验");
+    $("supply-desk-grid").innerHTML = countries.length ? countries.map((country) => {
+      const metrics = Object.values(country.metrics || {}).slice(0, 4);
+      return `<article class="data-card supply-country-card"><header><div><span>${esc(first(country.latest_period, "待更新"))}</span><h3>${esc(first(country.name, "产地"))}</h3></div><b class="${country.status === "ok" ? "is-ready" : "is-degraded"}">${esc(country.status === "ok" ? "官方已更新" : first(country.status, "待核验"))}</b></header><div class="supply-metrics">${metrics.map((metric) => { const latest = latestMetric(metric); return `<div><span>${esc(first(metric.label, "指标"))}</span><strong>${esc(latest.value)} <small>${esc(latest.unit)}</small></strong><em class="${direction(latest.change)}">环比 ${esc(latest.change)}</em></div>`; }).join("")}</div><p>${esc(first(country.status_message, "官方数据状态待核验"))}</p>${country.source && country.source.url ? `<a href="${esc(country.source.url)}" target="_blank" rel="noopener noreferrer">${esc(first(country.source.name, "查看官方来源"))} ↗</a>` : ""}</article>`;
+    }).join("") : "<article class='data-card'><p class='empty-state'>暂无结构化供需数据。</p></article>";
+  }
+
+  function renderContractDesk(payload) {
+    const contracts = array(payload.contracts);
+    const exchangeFilter = $("assistant-exchange-filter");
+    const contractSelect = $("assistant-contract-select");
+    const result = $("assistant-contract-result");
+    const exchangeNames = { DCE: "大商所", CZCE: "郑商所", SHFE: "上期所", GFEX: "广期所", CFFEX: "中金所" };
+    $("all-contracts-updated").textContent = `行情 ${fmtTime(payload.updated_at, true)}`;
+
+    function populate() {
+      const exchange = exchangeFilter.value;
+      const options = contracts.filter((item) => exchange === "all" || item.exchange === exchange);
+      const groups = options.reduce((acc, item) => { (acc[item.exchange] ||= []).push(item); return acc; }, {});
+      contractSelect.innerHTML = `<option value="">选择具体主力合约</option>${Object.entries(groups).map(([code, items]) => `<optgroup label="${esc(exchangeNames[code] || code)} · ${items.length} 个品种">${items.map((item) => `<option value="${esc(item.symbol)}">${esc(item.product)} ${esc(item.symbol)}</option>`).join("")}</optgroup>`).join("")}`;
+      $("assistant-contract-note").textContent = `${exchange === "all" ? "五大交易所" : (exchangeNames[exchange] || exchange)}当前收录 ${options.length} 个主力合约。`;
     }
 
-    element("monitor-ai-headline").textContent = payload.headline || "AI 盯盘简报";
-    element("monitor-ai-summary").textContent = payload.summary || "摘要需进一步核验。";
-    element("monitor-ai-generated").textContent = payload.generated_at
-      ? `${formatDateTime(payload.generated_at)} · ${SESSION_LABELS[payload.update_session] || "自动"}`
-      : "生成时间需进一步核验";
-    element("monitor-ai-state").textContent = payload.market_state || "需核验";
-    element("monitor-ai-confidence").textContent = payload.confidence || "需核验";
-    element("monitor-ai-status").textContent = "只读证据约束生成 · 数值由数据源回填";
+    function detailList(items) {
+      return array(items).map((item) => `<div><strong>${esc(first(item.title, "要点"))}</strong><span>${esc(first(item.text, "需进一步核验"))}</span></div>`).join("");
+    }
 
-    const keyMoves = Array.isArray(payload.key_moves) ? payload.key_moves : [];
-    element("monitor-key-moves").innerHTML = keyMoves.map((item) => `
-      <li>
-        <strong>${escapeHtml(item.label || item.evidence_id)}</strong>
-        <b>${escapeHtml(item.value || "需核验")}</b>
-        <span>${escapeHtml(item.interpretation || "")}</span>
-        <small>${escapeHtml(item.source || "")} · ${escapeHtml(formatDateTime(item.observed_at))}</small>
-      </li>
-    `).join("");
+    function render(contract) {
+      const technical = contract.technical || {};
+      const fundamental = contract.fundamental || {};
+      const indicators = technical.indicators || {};
+      const levels = technical.levels || {};
+      const news = array(contract.news_hotspots).slice(0, 4);
+      result.innerHTML = `<article class="contract-result-head"><div><span>${esc(first(contract.exchange, "--"))} · ${esc(first(contract.category, "--"))}</span><h3>${esc(first(contract.product, "品种"))} <small>${esc(first(contract.symbol, "--"))}</small></h3><p>交易日 ${esc(first(contract.trade_date, "需进一步核验"))}</p></div><div class="contract-result-price ${direction(contract.change_pct)}"><strong>${esc(numberOrText(contract.price))}</strong><span>${esc(pct(contract.change_pct))}</span></div></article><div class="contract-analysis-grid"><section><header><span>技术面</span><h4>${esc(first(technical.trend, "需进一步核验"))}</h4></header><p>${esc(first(technical.summary, "暂无结构化技术结论。"))}</p><dl class="contract-indicators">${Object.entries(indicators).slice(0, 6).map(([name, value]) => `<div><dt>${esc(name)}</dt><dd>${esc(numberOrText(value))}</dd></div>`).join("")}</dl><div class="contract-levels">${Object.entries(levels).map(([name, value]) => `<span>${esc(name)} <b>${esc(numberOrText(value))}</b></span>`).join("")}</div><div class="contract-detail-list">${detailList(technical.details)}</div></section><section><header><span>基本面与新闻</span><h4>${esc(first(fundamental.category, contract.category || "需进一步核验"))}</h4></header><p>${esc(first(fundamental.summary, "暂无结构化基本面结论。"))}</p><div class="contract-detail-list">${detailList(fundamental.factors)}</div><div class="contract-news">${news.length ? news.map((item) => `<div><span>${esc(first(item.date, "--"))} · ${esc(first(item.source, "来源待核验"))}</span>${item.url ? `<a href="${esc(item.url)}" target="_blank" rel="noopener noreferrer">${esc(first(item.title, "新闻"))}</a>` : `<strong>${esc(first(item.title, "新闻"))}</strong>`}</div>`).join("") : "<p>暂无直接新闻证据。</p>"}</div></section></div><p class="contract-quality">${esc(first(contract.data_quality, "数据质量说明待补充"))}</p>`;
+    }
 
-    const watchlist = Array.isArray(payload.watchlist) ? payload.watchlist : [];
-    element("monitor-watch-list").innerHTML = watchlist.map((item) => `
-      <li>
-        <strong>${escapeHtml(item.priority || "中")} · ${escapeHtml(item.item || "")}</strong>
-        <span>${escapeHtml(item.trigger || "")}：${escapeHtml(item.why || "")}</span>
-      </li>
-    `).join("");
-
-    const actions = Array.isArray(payload.actions) ? payload.actions : [];
-    element("monitor-task-list").innerHTML = actions.map((item) => `
-      <li>
-        <strong>${escapeHtml(item.task || "")}</strong>
-        <span>${escapeHtml(item.result || "")}</span>
-        <small>${escapeHtml(item.status || "")} · ${escapeHtml(item.next_check || "")}</small>
-      </li>
-    `).join("");
-
-    const risks = Array.isArray(payload.risks) ? payload.risks : [];
-    element("monitor-risk-list").innerHTML = risks.map((item) => `<li>${escapeHtml(item)}</li>`).join("");
+    exchangeFilter.onchange = populate;
+    $("assistant-contract-confirm").onclick = () => {
+      const contract = contracts.find((item) => item.symbol === contractSelect.value);
+      result.innerHTML = contract ? "" : "<p class='empty-state'>请选择有效的具体合约。</p>";
+      if (contract) render(contract);
+    };
+    populate();
   }
 
-  let lastFingerprint = "";
-  let loading = false;
+  function renderStatus(payload) {
+    const state = first(payload.status, "degraded");
+    const klass = state === "ready" ? "is-ready" : state === "error" ? "is-error" : "is-degraded";
+    $("overall-state").className = klass;
+    $("overall-state").textContent = state === "ready" ? "数据链正常" : state === "degraded" ? "部分数据延迟" : "数据链异常";
+    $("system-label").textContent = $("overall-state").textContent;
+    $("system-label").className = klass;
+    const datasets = Object.values(payload.datasets || {});
+    const counts = { ready: 0, stale: 0, invalid: 0 };
+    datasets.forEach((item) => { const key = item.state === "ready" ? "ready" : item.state === "invalid" || item.state === "missing" ? "invalid" : "stale"; counts[key] += 1; });
+    $("health-summary").innerHTML = `<div class="health-stat"><strong class="is-ready">${counts.ready}</strong><span>正常</span></div><div class="health-stat"><strong class="is-degraded">${counts.stale}</strong><span>延迟</span></div><div class="health-stat"><strong class="is-error">${counts.invalid}</strong><span>缺失</span></div>`;
+    const datasetOrder = ["/api/assistant/brief", "/api/reports", "/api/supply-demand", "/api/oil-futures", "/api/exchange-futures", "/api/forecast/metrics/latest"];
+    const orderedDatasets = datasetOrder.map((route) => payload.datasets && payload.datasets[route]).filter(Boolean);
+    $("dataset-status-list").innerHTML = orderedDatasets.length ? orderedDatasets.map((item) => {
+      const itemClass = item.state === "ready" ? "is-ready" : item.state === "invalid" || item.state === "missing" ? "is-error" : "is-degraded";
+      const stateLabel = item.state === "ready" ? "正常" : item.state === "stale" ? "延迟" : item.state === "missing" ? "缺失" : first(item.state, "待查");
+      return `<div class="dataset-row"><span><strong>${esc(first(item.label, item.route))}</strong><small>${esc(fmtTime(item.observed_at || item.updated_at, true))}</small></span><b class="${itemClass}">${esc(stateLabel)}</b></div>`;
+    }).join("") : "<p class='empty-state'>暂无分项数据状态</p>";
+    const automation = Object.entries(payload.automation || {});
+    $("agent-summary").innerHTML = automation.length ? automation.slice(0, 6).map(([name, item]) => {
+      const itemState = typeof item === "string" ? item : item.state || item.status;
+      const itemClass = itemState === "ready" || itemState === "active" ? "is-ready" : "is-degraded";
+      const label = typeof item === "string" ? name : first(item.label, name);
+      const checked = typeof item === "string" ? "" : fmtTime(item.last_success_at, true);
+      return `<div class="status-row"><span><strong>${esc(label)}</strong><small>${esc(checked)}</small></span><b class="${itemClass}">${esc(itemState === "ready" ? "已运行" : first(itemState, "待检查"))}</b></div>`;
+    }).join("") : "<p class='empty-state'>暂无任务状态</p>";
+  }
 
-  async function refresh() {
-    if (loading) return;
-    loading = true;
-    try {
-      const entries = await Promise.all(
-        Object.entries(DATASETS).map(async ([key, config]) => {
-          try {
-            return [key, await fetchWithFallback(config)];
-          } catch (_error) {
-            return [key, null];
-          }
-        }),
-      );
-      const results = Object.fromEntries(entries);
-      let status;
-      try {
-        status = await fetchJson("/api/status");
-      } catch (_error) {
-        status = syntheticStatus(results);
+  function renderMonitorMode(data) {
+    const shanghaiWeekday = new Intl.DateTimeFormat("en-US", { weekday: "short", timeZone: "Asia/Shanghai" }).format(new Date());
+    const researchSession = data.status && data.status.automation && data.status.automation.research && data.status.automation.research.session;
+    const nonTrading = shanghaiWeekday === "Sat" || shanghaiWeekday === "Sun" || researchSession === "weekend" || researchSession === "holiday";
+    $("monitor-mode-label").className = nonTrading ? "is-degraded" : "is-ready";
+    $("monitor-mode-label").textContent = nonTrading ? "休市监控" : "连续监控";
+    $("monitor-mode-title").textContent = nonTrading ? "价格冻结，研究链继续运行" : "行情与研究分轨更新";
+    const snapshotAt = data.oil && data.oil.updated_at;
+    $("monitor-mode-detail").textContent = nonTrading
+      ? `行情保持最近交易时段快照（${fmtTime(snapshotAt, true)}）；研究、供需、AI 判断、触发条件和数据健康继续更新。`
+      : `行情按真实交易时段刷新；研究、供需、AI 判断、触发条件和数据健康独立持续更新。`;
+    const automation = Object.values((data.status && data.status.automation) || {}).filter((item) => item && typeof item === "object" && item.last_success_at);
+    const latest = automation.sort((a, b) => new Date(b.last_success_at) - new Date(a.last_success_at))[0];
+    $("background-checked").textContent = latest ? `最近后台完成：${first(latest.label, "自动任务")} · ${fmtTime(latest.last_success_at, true)}` : "后台任务时间待核验";
+  }
+
+  function bindFilters(events) {
+    document.querySelectorAll("[data-filter]").forEach((button) => button.addEventListener("click", () => {
+      document.querySelectorAll("[data-filter]").forEach((item) => item.classList.toggle("is-active", item === button));
+      renderTimeline(events, button.dataset.filter);
+    }));
+  }
+
+  async function load() {
+    const entries = await Promise.all(Object.entries(sources).map(async ([key, urls]) => {
+      try { return [key, await fetchFirst(urls)]; } catch (error) {
+        const fallback = staticFallbacks[key] && staticFallbacks[key]();
+        return [key, fallback || { _error: error.message }];
       }
-
-      const nextFingerprint = JSON.stringify({ status, results });
-      if (nextFingerprint === lastFingerprint) return;
-      lastFingerprint = nextFingerprint;
-      renderHealth(status, results);
-      renderReport(results.reports);
-      renderOil(results.oil);
-      renderMovers(results.exchange);
-      renderQuant(results.quant);
-      renderContracts(results.contracts);
-      renderSupply(results.supply);
-      renderForecast(results.forecast);
-      renderBrief(results.brief, status, results);
-      element("monitor-refresh-note").textContent = `最近检查：${new Date().toLocaleTimeString("zh-CN", { hour12: false })} · 每 60 秒自动检查`;
-    } catch (error) {
-      const badge = element("monitor-overall-state");
-      badge.className = "monitor-state is-error";
-      badge.textContent = "数据链读取失败";
-      element("monitor-refresh-note").textContent = String(error.message || error);
-    } finally {
-      loading = false;
-    }
+    }));
+    const data = Object.fromEntries(entries);
+    renderBrief(data.brief || {});
+    renderPulse(data.oil || {});
+    renderOilDesk(data.oil || {});
+    renderSupplyDesk(data.supply || {});
+    renderContractDesk(data.exchange || {});
+    renderStatus(data.status || { status: "degraded" });
+    renderMonitorMode(data);
+    const events = buildTimeline(data);
+    renderTimeline(events);
+    bindFilters(events);
+    $("refresh-note").textContent = `最近检查 ${fmtTime(new Date().toISOString(), false)} · 每 60 秒刷新`;
   }
 
-  function updateClock() {
-    element("monitor-clock").textContent = new Date().toLocaleTimeString("zh-CN", {
-      timeZone: "Asia/Shanghai",
-      hour12: false,
-    });
-  }
-
-  updateClock();
-  window.setInterval(updateClock, 1000);
-  refresh();
-  window.setInterval(() => {
-    if (document.visibilityState !== "hidden") refresh();
-  }, POLL_INTERVAL_MS);
+  function clock() { $("live-clock").textContent = new Intl.DateTimeFormat("zh-CN", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).format(new Date()); }
+  clock(); setInterval(clock, 1000);
+  load(); setInterval(load, 60000);
 })();
