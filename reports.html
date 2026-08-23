@@ -70,11 +70,17 @@
       </div>
     </footer>
 
+    <script src="data/version.js"></script>
+    <script src="assets/api-data-loader.js?v=20260730-api2"></script>
     <script>
-      document.write('<script src="data/reports.js?v=' + window.PALM_OIL_CACHE_BUST + '"><\/script>');
-    </script>
-    <script>
-      document.write('<script src="assets/app.js?v=' + window.PALM_OIL_CACHE_BUST + '"><\/script>');
+      window.PalmOilDataLoader.boot({
+        endpoint: "/api/reports",
+        globalName: "PALM_OIL_REPORTS",
+        fallbackSrc: "data/reports.js",
+        consumerSrc: "assets/app.js",
+        cacheBust: window.PALM_OIL_DATA_VERSION || window.PALM_OIL_CACHE_BUST,
+        pollIntervalMs: 60000,
+      });
     </script>
   </body>
 </html>

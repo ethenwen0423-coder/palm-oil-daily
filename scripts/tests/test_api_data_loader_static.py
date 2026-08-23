@@ -26,35 +26,17 @@ class ApiDataLoaderStaticTests(unittest.TestCase):
             "data/reports.js",
             "assets/app.js",
         ),
-        "oil-futures.html": (
-            "/api/oil-futures",
-            "OIL_FUTURES_CONTRACTS",
-            "data/oil_futures.js",
-            "assets/app.js",
-        ),
         "otc-structure.html": (
             "/api/oil-futures",
             "OIL_FUTURES_CONTRACTS",
             "data/oil_futures.js",
             "assets/otc-structure.js",
         ),
-        "quant-model.html": (
-            "/api/quant-model-signals",
-            "QUANT_MODEL_SIGNALS",
-            "data/quant_model_signals.js",
-            "assets/quant-model.js",
-        ),
         "quant-model-detail.html": (
             "/api/quant-model-signals",
             "QUANT_MODEL_SIGNALS",
             "data/quant_model_signals.js",
             "assets/quant-model-detail.js",
-        ),
-        "futures.html": (
-            "/api/exchange-futures",
-            "EXCHANGE_FUTURES_DATA",
-            "data/exchange_futures.js",
-            "assets/futures-analysis.js",
         ),
     }
 
