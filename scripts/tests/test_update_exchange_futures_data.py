@@ -49,6 +49,38 @@ class ExchangeFuturesFundamentalTest(unittest.TestCase):
         self.assertEqual(result["snapshot_date"], "2026-08-21")
         self.assertEqual(result["snapshot_price"], 159)
 
+    def test_previous_contracts_prefers_last_valid_technical_snapshot(self):
+        invalid = {
+            "contracts": [{"product": "豆油", "technical": {"status": "需进一步核验"}}]
+        }
+        valid = {
+            "contracts": [{"product": "豆油", "technical": {"status": "ok", "trend": "偏多"}}]
+        }
+        original_output = UPDATE.OUTPUT
+        original_run = UPDATE.subprocess.run
+        with self.subTest("valid git snapshot replaces invalid live snapshot"):
+            import tempfile
+            import json
+            from types import SimpleNamespace
+
+            with tempfile.TemporaryDirectory() as temporary:
+                path = Path(temporary) / "exchange.js"
+                path.write_text(
+                    "window.EXCHANGE_FUTURES_DATA = " + json.dumps(invalid) + ";\n",
+                    encoding="utf-8",
+                )
+                UPDATE.OUTPUT = path
+                UPDATE.subprocess.run = lambda *args, **kwargs: SimpleNamespace(
+                    returncode=0,
+                    stdout="window.EXCHANGE_FUTURES_DATA = " + json.dumps(valid) + ";\n",
+                )
+                try:
+                    result = UPDATE.previous_contracts()
+                finally:
+                    UPDATE.OUTPUT = original_output
+                    UPDATE.subprocess.run = original_run
+        self.assertEqual(result["豆油"]["technical"]["trend"], "偏多")
+
     def test_repository_indicator_runtime_supports_linux_collection(self):
         closes = [
             100 + index * 0.2 + ((index % 7) - 3) * 0.5

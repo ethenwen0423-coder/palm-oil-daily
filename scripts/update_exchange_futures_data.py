@@ -377,19 +377,24 @@ def percent_change(trade: Any, preclose: Any) -> float | None:
 
 def fetch_history(symbol: str) -> list[dict[str, Any]]:
     """Use the same Sina endpoint wrapped by AkShare, with a bounded timeout."""
-    try:
-        response = requests.get(
-            SINA_DAILY_URL,
-            params={"symbol": symbol, "type": "2021_04_12"},
-            headers={"Referer": "https://finance.sina.com.cn/futures/", "User-Agent": "Mozilla/5.0"},
-            timeout=12,
-        )
-        response.raise_for_status()
-        match = re.search(r"=\((\[.*\])\)", response.text, re.S)
-        if not match:
-            return []
-        rows = json.loads(match.group(1))
-    except (requests.RequestException, ValueError, json.JSONDecodeError):
+    rows = None
+    for attempt in range(3):
+        try:
+            response = requests.get(
+                SINA_DAILY_URL,
+                params={"symbol": symbol, "type": "2021_04_12"},
+                headers={"Referer": "https://finance.sina.com.cn/futures/", "User-Agent": "Mozilla/5.0"},
+                timeout=12,
+            )
+            response.raise_for_status()
+            match = re.search(r"=\((\[.*\])\)", response.text, re.S)
+            if match:
+                rows = json.loads(match.group(1))
+                break
+        except (requests.RequestException, ValueError, json.JSONDecodeError):
+            pass
+        time.sleep(attempt + 1)
+    if not isinstance(rows, list):
         return []
 
     history = []
@@ -565,7 +570,12 @@ def previous_contracts() -> dict[str, dict[str, Any]]:
             continue
         for item in payload.get("contracts", []):
             if isinstance(item, dict) and item.get("product"):
-                records.setdefault(str(item["product"]), item)
+                product = str(item["product"])
+                existing = records.get(product, {})
+                existing_ok = (existing.get("technical") or {}).get("status") == "ok"
+                candidate_ok = (item.get("technical") or {}).get("status") == "ok"
+                if product not in records or (candidate_ok and not existing_ok):
+                    records[product] = item
     return records
 
 
@@ -1033,6 +1043,21 @@ def build_contracts(
                 rate_snapshot,
             )
         )
+        technical = technical_summary(
+            helper,
+            levels_helper,
+            history,
+            price,
+            main.get("tradedate"),
+        )
+        previous_technical = (fallback.get(product_name) or {}).get("technical") or {}
+        if technical.get("status") != "ok" and previous_technical.get("status") == "ok":
+            technical = {
+                **previous_technical,
+                "snapshot_date": previous_technical.get("snapshot_date") or (fallback.get(product_name) or {}).get("trade_date"),
+                "snapshot_mode": "carried_completed_close",
+                "summary": f"日线源本轮暂不可用，沿用最近成功技术快照；{previous_technical.get('summary') or '等待下一轮复核。'}",
+            }
         contracts.append({
             "symbol": symbol,
             "product": product_name,
@@ -1043,13 +1068,7 @@ def build_contracts(
             "volume": int(main["volume"]),
             "open_interest": int(main["position"]),
             "trade_date": str(main.get("tradedate") or ""),
-            "technical": technical_summary(
-                helper,
-                levels_helper,
-                history,
-                price,
-                main.get("tradedate"),
-            ),
+            "technical": technical,
             "fundamental": fundamental,
             "news_hotspots": headlines,
             "data_quality": (
