@@ -24,8 +24,8 @@ class ContractAnalysisFrontendTests(unittest.TestCase):
 
     def test_asset_version_was_bumped(self):
         html = (ROOT / "assistant.html").read_text(encoding="utf-8")
-        self.assertIn("market-assistant.css?v=20260822-9", html)
-        self.assertIn("market-assistant.js?v=20260822-9", html)
+        self.assertIn("market-assistant.css?v=20260823-1", html)
+        self.assertIn("market-assistant.js?v=20260823-1", html)
 
 
 if __name__ == "__main__":

@@ -7,14 +7,18 @@
     <meta name="description" content="自动归集证据、监控走势并生成可追溯的油脂市场判断。" />
     <meta name="theme-color" content="#07130f" />
     <link rel="icon" href="data:," />
-    <link rel="stylesheet" href="assets/market-assistant.css?v=20260822-9" />
+    <link rel="stylesheet" href="assets/market-assistant.css?v=20260823-1" />
   </head>
-  <body>
+  <body class="assistant-page">
     <header class="command-header">
       <div class="shell command-nav">
         <a href="index.html" class="brand" aria-label="返回 Vinson Research 首页">
-          <span><strong>Vinson Research</strong><small>24h Market Assistant</small></span>
+          <span><strong>Vinson Research</strong><small>24h 盯盘助手</small></span>
         </a>
+        <div class="workspace-label" aria-label="当前工作台">
+          <strong>Signal Grid</strong>
+          <span>油脂研究与情报总览</span>
+        </div>
         <nav aria-label="主导航">
           <a href="#assistant-overview" aria-current="page">盯盘总览</a>
           <a href="#oil-desk">油脂主力</a>
@@ -45,16 +49,20 @@
           </div>
           <p id="decision-summary" class="decision-summary">助手只读取已发布数据，不修改场外结构与量化模型规则。</p>
           <div id="decision-thesis" class="decision-thesis" aria-label="研判结构"><p class="skeleton">正在拆解基本面、技术面与风险边界…</p></div>
-          <div class="decision-operations">
-            <section aria-labelledby="decision-evidence-title">
-              <header><span>KEY EVIDENCE</span><h2 id="decision-evidence-title">关键依据</h2></header>
-              <div id="decision-evidence" class="decision-evidence-list" aria-label="判断证据"></div>
-            </section>
-            <section aria-labelledby="decision-action-title">
-              <header><span>NEXT VALIDATION</span><h2 id="decision-action-title">下一步验证</h2></header>
-              <div id="decision-action-list" class="decision-action-list"><p class="skeleton">读取检查任务中…</p></div>
-            </section>
-          </div>
+          <a class="decision-primary-action" href="#intelligence-workspace">查看完整研判 <span aria-hidden="true">→</span></a>
+          <details class="decision-details">
+            <summary>展开关键证据与下一步验证</summary>
+            <div class="decision-operations">
+              <section aria-labelledby="decision-evidence-title">
+                <header><span>KEY EVIDENCE</span><h2 id="decision-evidence-title">关键依据</h2></header>
+                <div id="decision-evidence" class="decision-evidence-list" aria-label="判断证据"></div>
+              </section>
+              <section aria-labelledby="decision-action-title">
+                <header><span>NEXT VALIDATION</span><h2 id="decision-action-title">下一步验证</h2></header>
+                <div id="decision-action-list" class="decision-action-list"><p class="skeleton">读取检查任务中…</p></div>
+              </section>
+            </div>
+          </details>
         </article>
         <aside class="priority-panel" aria-labelledby="priority-title">
           <div class="panel-heading priority-heading"><div><span>NOW WATCH</span><h2 id="priority-title">当前优先级</h2></div><small id="priority-mode-summary">基本面与技术面</small></div>
@@ -65,12 +73,11 @@
       <section id="oil-desk" class="market-hub" aria-labelledby="pulse-title">
         <div class="section-heading compact market-hub-heading"><div><span>MARKET &amp; OILS</span><h2 id="pulse-title">行情快照与油脂合约</h2></div><p id="pulse-updated">等待行情</p></div>
         <div id="market-pulse" class="market-pulse"><article class="pulse-card skeleton">正在读取行情…</article></div>
-        <div class="market-hub-subheading">
-          <div><span>OILS FUTURES DESK</span><h3 id="oil-desk-title">次主力与外盘参照</h3></div>
-          <p id="oil-desk-updated">等待行情</p>
-        </div>
-        <div id="oil-desk-grid" class="oil-desk-grid is-compact"><article class="data-card skeleton">正在读取油脂合约…</article></div>
-        <p id="oil-desk-source" class="section-source">数据源等待加载</p>
+        <details class="oil-desk-details">
+          <summary><span>OILS FUTURES DESK</span><strong id="oil-desk-title">展开次主力与外盘参照</strong><small id="oil-desk-updated">等待行情</small></summary>
+          <div id="oil-desk-grid" class="oil-desk-grid is-compact"><article class="data-card skeleton">正在读取油脂合约…</article></div>
+          <p id="oil-desk-source" class="section-source">数据源等待加载</p>
+        </details>
       </section>
 
       <section id="supply-desk" class="integrated-section" aria-labelledby="supply-desk-title">
@@ -96,7 +103,7 @@
         <div id="assistant-contract-result" class="contract-result" aria-live="polite"><p class="empty-state">请选择一个主力合约查看技术面、基本面与新闻证据。</p></div>
       </section>
 
-      <section class="workspace">
+      <section id="intelligence-workspace" class="workspace">
         <article class="timeline-panel">
           <div class="section-heading timeline-heading">
             <div><span>INTELLIGENCE TIMELINE</span><h2>情报与证据时间线</h2></div>
@@ -141,6 +148,6 @@
     <script src="data/reports.js?v=20260822-8"></script>
     <script src="data/oil_futures.js?v=20260822-8"></script>
     <script src="data/exchange_futures.js?v=20260822-8"></script>
-    <script src="assets/market-assistant.js?v=20260822-9"></script>
+    <script src="assets/market-assistant.js?v=20260823-1"></script>
   </body>
 </html>
