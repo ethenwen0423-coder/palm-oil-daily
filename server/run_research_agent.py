@@ -202,7 +202,7 @@ def build_prompt(
             "AI观点风险提示",
         ]
     )
-    budget = "1000-1400" if kind == "daily" else "1600-2000"
+    budget = "1000-1400" if kind == "daily" else "1600-2400"
     title = datetime.fromisoformat(report_date).strftime("%m月%d日") + (
         "晨报" if kind == "daily" else "周报"
     )

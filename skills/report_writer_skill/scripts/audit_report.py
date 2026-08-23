@@ -39,7 +39,7 @@ WEEKEND_SECTIONS = (
     "消息来源链接",
     "AI观点风险提示",
 )
-BODY_LIMITS = {"daily": (1000, 1400), "weekend": (1600, 2000)}
+BODY_LIMITS = {"daily": (1000, 1400), "weekend": (1600, 2400)}
 CRITICAL_KEYS = ("domestic.soybean_oil", "domestic.palm_oil", "domestic.rapeseed_oil")
 TRADE_FIELDS = (
     "trade_trigger",
