@@ -188,6 +188,54 @@ def build_context(payloads: dict[str, Any]) -> dict[str, Any]:
             )
         )
 
+    # Always expose oil technical and observed fundamental evidence explicitly.
+    # The generic exchange-price records above are insufficient for a grounded
+    # weekend brief because prices may be unchanged while the evidence remains
+    # decision-relevant.
+    for index, item in enumerate(exchange_contracts):
+        if not isinstance(item, dict):
+            continue
+        symbol = clean_text(item.get("symbol"), 30).upper()
+        variety_match = re.match(r"[A-Z]+", symbol)
+        variety = variety_match.group(0) if variety_match else ""
+        if variety not in {"P", "Y", "OI"}:
+            continue
+        technical = item.get("technical") if isinstance(item.get("technical"), dict) else {}
+        indicators = technical.get("indicators") if isinstance(technical.get("indicators"), dict) else {}
+        if technical.get("status") == "ok":
+            evidence.append(
+                evidence_record(
+                    f"technical:{symbol or index}",
+                    "exchange-futures",
+                    f"{clean_text(item.get('product') or symbol, 40)}最近收盘技术结构",
+                    (
+                        f"{clean_text(technical.get('trend') or '待判断', 20)}；"
+                        f"收盘 {clean_text(technical.get('snapshot_price'), 30)}；"
+                        f"MA20 {clean_text(indicators.get('MA20'), 30)}；"
+                        f"RSI12 {clean_text(indicators.get('RSI12'), 30)}"
+                    ),
+                    observed_at=clean_text(technical.get("snapshot_date") or item.get("trade_date"), 40),
+                    detail=clean_text(technical.get("summary"), 220),
+                )
+            )
+        fundamental = item.get("fundamental") if isinstance(item.get("fundamental"), dict) else {}
+        factors = fundamental.get("factors") if isinstance(fundamental.get("factors"), list) else []
+        observed = [
+            factor for factor in factors
+            if isinstance(factor, dict) and "跟踪框架" not in clean_text(factor.get("title"), 40)
+        ][:2]
+        for factor_index, factor in enumerate(observed):
+            evidence.append(
+                evidence_record(
+                    f"fundamental:{symbol or index}:{factor_index}",
+                    "exchange-futures",
+                    f"{clean_text(item.get('product') or symbol, 40)}{clean_text(factor.get('title'), 50)}",
+                    clean_text(factor.get("text") or "需进一步核验", 160),
+                    observed_at=clean_text(factor.get("date") or exchange.get("fundamental_updated_at"), 40),
+                    detail=clean_text(fundamental.get("summary"), 220),
+                )
+            )
+
     model_id = clean_text(quant.get("default_model_id"), 80)
     model_contracts = quant.get("model_contracts")
     selected_signals = (
@@ -246,6 +294,28 @@ def build_context(payloads: dict[str, Any]) -> dict[str, Any]:
             detail="MPOB、GAPKI、USDA 的公开检查状态；无更新不等于数据缺失。",
         )
     )
+    countries = supply.get("countries") if isinstance(supply.get("countries"), dict) else {}
+    for country_key, country in countries.items():
+        if not isinstance(country, dict):
+            continue
+        metrics = country.get("metrics") if isinstance(country.get("metrics"), dict) else {}
+        for metric_key, metric in list(metrics.items())[:4]:
+            if not isinstance(metric, dict):
+                continue
+            series = metric.get("series") if isinstance(metric.get("series"), list) else []
+            latest = series[-1] if series and isinstance(series[-1], dict) else {}
+            if latest.get("value") in (None, ""):
+                continue
+            evidence.append(
+                evidence_record(
+                    f"supply:{clean_text(country_key, 30)}:{clean_text(metric_key, 30)}",
+                    "supply-demand",
+                    f"{clean_text(country.get('name') or country_key, 40)}{clean_text(metric.get('label') or metric_key, 40)}",
+                    f"{clean_text(latest.get('value'), 40)} {clean_text(metric.get('display_unit') or metric.get('unit'), 20)}",
+                    observed_at=clean_text(latest.get("period") or country.get("latest_period"), 40),
+                    detail=clean_text(country.get("status_message"), 180),
+                )
+            )
     forecast_value = (
         "达到公开展示门槛"
         if forecast.get("public_display_allowed")
@@ -324,7 +394,9 @@ def build_prompt(context: dict[str, Any]) -> str:
 3. headline、summary、interpretation、item、why、task、result、risks 不得包含任何阿拉伯数字；数值由程序依据 evidence_id 自动回填，避免模型编造。
 4. 数据缺失、冲突或时间不一致时降低 confidence，并明确写入 risks。
 5. 结论先行，中文简洁；actions 表示 AI 已完成、正在监控或被数据阻断的工作。
-6. 不要输出 Markdown，只输出 JSON 对象。
+6. 休市时技术判断必须引用最近完成交易日的 technical 证据；只要 fundamental 或 supply 证据有最近成功值，就不得描述为数据为空。供需与基本面检查独立于开休市持续运行。
+7. 有技术与基本面证据时，watchlist 至少分别包含一项技术面和一项基本面关注事项。
+8. 不要输出 Markdown，只输出 JSON 对象。
 
 允许的证据编号：
 {json.dumps(evidence_ids, ensure_ascii=False)}

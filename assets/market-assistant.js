@@ -79,7 +79,61 @@
     return item && item.source === "reports" && /^\d{4}-\d{2}-\d{2}/.test(String(value)) ? `${fmtTime(value, true)} 周报` : value;
   }
 
-  function renderBrief(payload) {
+  function contractVariety(item) {
+    const matched = String(item && item.symbol || "").toUpperCase().match(/^[A-Z]+/);
+    return matched ? matched[0] : "";
+  }
+
+  function structuredWatch(data) {
+    const core = array(data.exchange && data.exchange.contracts).filter((item) => ["P", "Y", "OI"].includes(contractVariety(item)));
+    const technical = core.filter((item) => item.technical && item.technical.status === "ok").slice(0, 3);
+    const technicalDates = technical.map((item) => item.technical.snapshot_date || item.trade_date).filter(Boolean).sort();
+    const technicalWhy = technical.map((item) => {
+      const indicators = item.technical.indicators || {};
+      const rsi = Number(indicators.RSI12);
+      return `${first(item.product, item.symbol)} ${first(item.technical.trend, "待判断")}${Number.isFinite(rsi) ? ` · RSI ${rsi.toFixed(1)}` : ""}`;
+    }).join("；");
+
+    const factors = core.flatMap((item) => array(item.fundamental && item.fundamental.factors)
+      .filter((factor) => !/跟踪框架/.test(first(factor.title, "")))
+      .slice(0, 2)
+      .map((factor) => ({ item, factor }))
+    ).slice(0, 4);
+    const fundamentalWhy = factors.map(({ item, factor }) => `${first(item.product, item.symbol)}：${first(factor.text, factor.title)}`).join("；");
+
+    const countries = Object.values((data.supply && data.supply.countries) || {});
+    const supplyWhy = countries.map((country) => {
+      const metrics = Object.values(country.metrics || {}).slice(0, 3).map((metric) => {
+        const latest = latestMetric(metric);
+        return `${first(metric.label, "指标")} ${latest.value}${latest.unit}`;
+      }).join("、");
+      return `${first(country.name, "产地")} ${first(country.latest_period, "最近一期")}：${metrics || "沿用最近成功值"}`;
+    }).join("；");
+
+    const result = [];
+    if (technical.length) result.push({
+      _dimension: "technical", priority: "高", item: "油脂最近收盘技术结构",
+      trigger: monitoringMode(data) === "closed" ? "休市锁定最近收盘" : "随有效交易日更新",
+      why: technicalWhy,
+      evidence_ids: technical.map((item) => `technical:${item.symbol}:${item.technical.snapshot_date || item.trade_date}`),
+      _date: technicalDates.at(-1) || ""
+    });
+    if (factors.length) result.push({
+      _dimension: "fundamental", priority: "高", item: "仓单、基差与现货证据",
+      trigger: "基本面持续检查",
+      why: fundamentalWhy,
+      evidence_ids: factors.map(({ item, factor }) => `fundamental:${item.symbol}:${first(factor.title, "evidence")}`)
+    });
+    if (countries.length) result.push({
+      _dimension: "fundamental", priority: "中", item: "产地供需持续更新",
+      trigger: "官方数据更新",
+      why: supplyWhy,
+      evidence_ids: countries.map((country) => `supply:${first(country.name, "official")}:${first(country.latest_period, "latest")}`)
+    });
+    return result;
+  }
+
+  function renderBrief(payload, data) {
     $("market-state").textContent = first(payload.market_state, "待判断");
     $("decision-title").textContent = first(payload.headline, "等待 AI 研究结论");
     $("confidence-value").textContent = first(payload.confidence, "--");
@@ -87,8 +141,15 @@
     $("brief-generated").textContent = `生成 ${fmtTime(payload.generated_at || payload.updated_at, true)}`;
 
     const priorityRank = { "高": 1, "中": 2, "低": 3 };
-    const watch = array(payload.watchlist).slice().sort((a, b) => (priorityRank[a.priority] || 99) - (priorityRank[b.priority] || 99)).slice(0, 3);
-    const dimensions = watch.map(watchDimension);
+    const structured = structuredWatch(data);
+    const watch = structured.length
+      ? structured.slice(0, 3)
+      : array(payload.watchlist).slice().sort((a, b) => (priorityRank[a.priority] || 99) - (priorityRank[b.priority] || 99)).slice(0, 3);
+    const dimensions = watch.map((item) => item._dimension === "fundamental"
+      ? { key: "fundamental", label: "基本面", evidenceLabel: "官方供需与现货证据" }
+      : item._dimension === "technical"
+        ? { key: "technical", label: "技术面", evidenceLabel: "最近收盘指标" }
+        : watchDimension(item));
     const fundamentalCount = dimensions.filter((item) => item.key === "fundamental").length;
     const technicalCount = dimensions.filter((item) => item.key === "technical").length;
     const fundamentalWatch = watch.find((item, index) => dimensions[index].key === "fundamental");
@@ -96,7 +157,8 @@
     const confidence = first(payload.confidence, "待核验");
     const risks = array(payload.risks);
     const boundary = confidence === "低" ? "暂不扩大方向判断" : confidence === "中" ? "等待更多同向证据" : "按已确认方向跟踪";
-    $("decision-thesis").innerHTML = `<section class="thesis-card is-fundamental"><span>基本面</span><strong>${esc(fundamentalWatch ? "确认不足" : "等待新增资料")}</strong><p>${esc(first(fundamentalWatch && fundamentalWatch.why, "尚无足够供需证据支持单边判断。"))}</p></section><section class="thesis-card is-technical"><span>技术面</span><strong>${esc(technicalWatch ? first(technicalWatch.trigger, "等待趋势确认") : "等待趋势确认")}</strong><p>${esc(first(technicalWatch && technicalWatch.why, "技术与量化状态等待下一次有效突破。"))}</p></section><section class="thesis-card is-boundary"><span>执行边界</span><strong>${esc(`${confidence}置信度 · ${boundary}`)}</strong><p>${esc(first(risks[0], "缺少可核验的新证据时，维持当前观察结论。"))}</p></section>`;
+    const closed = monitoringMode(data) === "closed";
+    $("decision-thesis").innerHTML = `<section class="thesis-card is-fundamental"><span>基本面</span><strong>${esc(fundamentalWatch ? "证据持续更新" : "等待新增资料")}</strong><p>${esc(first(fundamentalWatch && fundamentalWatch.why, "尚无足够供需证据支持单边判断。"))}</p></section><section class="thesis-card is-technical"><span>技术面</span><strong>${esc(technicalWatch ? (closed ? "锁定最近交易日收盘" : first(technicalWatch.trigger, "随有效交易日更新")) : "等待趋势确认")}</strong><p>${esc(first(technicalWatch && technicalWatch.why, "技术与量化状态等待下一次有效突破。"))}</p></section><section class="thesis-card is-boundary"><span>执行边界</span><strong>${esc(`${confidence}置信度 · ${boundary}`)}</strong><p>${esc(closed ? "休市不生成伪行情；技术面沿用最近收盘，基本面与官方供需继续检查。" : first(risks[0], "缺少可核验的新证据时，维持当前观察结论。"))}</p></section>`;
 
     const moves = array(payload.key_moves).slice(0, 3);
     $("decision-evidence").innerHTML = moves.length ? moves.map((item) => `<article><span>${esc(first(item.label, "证据"))}</span><strong>${esc(displayEvidenceValue(item))}</strong><p>${esc(first(item.interpretation, "等待进一步解释。"))}</p></article>`).join("") : "<p class='empty-state'>暂无新增关键证据，继续按任务周期检查。</p>";
@@ -450,7 +512,7 @@
       }
     }));
     const data = Object.fromEntries(entries);
-    renderBrief(data.brief || {});
+    renderBrief(data.brief || {}, data);
     renderPulse(data.oil || {});
     renderOilDesk(data.oil || {});
     renderSupplyDesk(data.supply || {});

@@ -115,11 +115,13 @@ class ServerMarketCollectorTests(unittest.TestCase):
             datetime(2026, 7, 31, 15, 5, tzinfo=timezone): ("close", "2026-07-31"),
             datetime(2026, 7, 31, 21, 20, tzinfo=timezone): ("night_open", "2026-07-31"),
             datetime(2026, 7, 31, 23, 10, tzinfo=timezone): ("night_close", "2026-07-31"),
-            datetime(2026, 8, 1, 2, 40, tzinfo=timezone): ("overnight", "2026-07-31"),
         }
         for now, expected in cases.items():
             with self.subTest(now=now):
                 self.assertEqual(COLLECTOR.select_session(now), expected)
+        self.assertIsNone(
+            COLLECTOR.select_session(datetime(2026, 8, 1, 2, 40, tzinfo=timezone))
+        )
         self.assertIsNone(
             COLLECTOR.select_session(datetime(2026, 8, 2, 12, 0, tzinfo=timezone))
         )

@@ -375,7 +375,7 @@ def percent_change(trade: Any, preclose: Any) -> float | None:
     return round((current - previous) / previous * 100, 2)
 
 
-def fetch_history(symbol: str) -> list[dict[str, float]]:
+def fetch_history(symbol: str) -> list[dict[str, Any]]:
     """Use the same Sina endpoint wrapped by AkShare, with a bounded timeout."""
     try:
         response = requests.get(
@@ -396,23 +396,37 @@ def fetch_history(symbol: str) -> list[dict[str, float]]:
     for row in rows[-220:]:
         if isinstance(row, dict):
             open_, high, low, close = (as_number(row.get(key)) for key in ("o", "h", "l", "c"))
+            trade_date = normalize_date(row.get("d") or row.get("date"))
         elif isinstance(row, list) and len(row) >= 5:
             open_, high, low, close = (as_number(row[index]) for index in range(1, 5))
+            trade_date = normalize_date(row[0])
         else:
             continue
         if None in (open_, high, low, close):
             continue
-        history.append({"open": open_, "high": high, "low": low, "close": close})
+        history.append({"date": trade_date, "open": open_, "high": high, "low": low, "close": close})
     return history
 
 
-def technical_summary(helper: Any, levels_helper: Any, history: list[dict[str, float]], price: float | None) -> dict[str, Any]:
-    if price is None or len(history) < 60:
+def technical_summary(
+    helper: Any,
+    levels_helper: Any,
+    history: list[dict[str, Any]],
+    price: float | None,
+    quote_trade_date: Any = "",
+) -> dict[str, Any]:
+    if len(history) < 60:
         return {"status": "需进一步核验", "summary": "日线历史样本不足，暂不输出技术判断。"}
     closes = [row["close"] for row in history]
     highs = [row["high"] for row in history]
     lows = [row["low"] for row in history]
-    closes[-1] = price
+    snapshot_date = normalize_date(history[-1].get("date"))
+    quote_date = normalize_date(quote_trade_date)
+    # A Friday-night quote is frequently labelled with the following Monday.
+    # It must not be injected into completed daily bars during a weekend.
+    use_completed_close = price is None or bool(snapshot_date and quote_date and quote_date > snapshot_date)
+    analysis_price = closes[-1] if use_completed_close else price
+    closes[-1] = analysis_price
     ma = helper.calculate_ma(closes)
     macd = helper.calculate_macd(closes)
     rsi = helper.calculate_rsi(closes)
@@ -426,17 +440,17 @@ def technical_summary(helper: Any, levels_helper: Any, history: list[dict[str, f
     signals = []
     score = 50
     if ma20 is not None:
-        if price > ma20:
+        if analysis_price > ma20:
             score += 10
             signals.append("价格位于20日均线上方")
         else:
             score -= 10
             signals.append("价格位于20日均线下方")
     if ma20 is not None and ma60 is not None:
-        if price > ma20 > ma60:
+        if analysis_price > ma20 > ma60:
             score += 8
             signals.append("中期均线结构偏多")
-        elif price < ma20 < ma60:
+        elif analysis_price < ma20 < ma60:
             score -= 8
             signals.append("中期均线结构偏空")
     if dif is not None and dea is not None:
@@ -462,6 +476,9 @@ def technical_summary(helper: Any, levels_helper: Any, history: list[dict[str, f
     nearest_resistance = (discovered_levels.get("nearest_resistance") or {}).get("price")
     return {
         "status": "ok",
+        "snapshot_date": snapshot_date or quote_date,
+        "snapshot_mode": "completed_close" if use_completed_close else "intraday",
+        "snapshot_price": clean_number(analysis_price),
         "trend": trend,
         "score": score,
         "summary": "；".join(signals) if signals else "指标暂未形成一致方向。",
@@ -1026,7 +1043,13 @@ def build_contracts(
             "volume": int(main["volume"]),
             "open_interest": int(main["position"]),
             "trade_date": str(main.get("tradedate") or ""),
-            "technical": technical_summary(helper, levels_helper, history, price),
+            "technical": technical_summary(
+                helper,
+                levels_helper,
+                history,
+                price,
+                main.get("tradedate"),
+            ),
             "fundamental": fundamental,
             "news_hotspots": headlines,
             "data_quality": (

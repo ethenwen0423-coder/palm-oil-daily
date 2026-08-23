@@ -42,7 +42,10 @@ def parse_now(value: str | None) -> datetime:
 def select_session(now: datetime) -> tuple[str, str] | None:
     weekday = now.isoweekday()
     minutes = now.hour * 60 + now.minute
-    if 2 <= weekday <= 6 and 160 <= minutes < 390:
+    # The Friday night session belongs to Monday's trading date.  Saturday
+    # early morning is therefore a market-closed period and must not overwrite
+    # Friday's completed-close snapshot.
+    if 2 <= weekday <= 5 and 160 <= minutes < 390:
         return "overnight", (now.date() - timedelta(days=1)).isoformat()
     if not 1 <= weekday <= 5:
         return None

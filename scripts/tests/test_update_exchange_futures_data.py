@@ -26,6 +26,29 @@ RUNTIME_SPEC.loader.exec_module(RUNTIME)
 
 
 class ExchangeFuturesFundamentalTest(unittest.TestCase):
+    def test_future_session_quote_does_not_replace_latest_completed_close(self):
+        history = [
+            {
+                "date": f"2026-05-{(index % 28) + 1:02d}",
+                "open": 100 + index,
+                "high": 102 + index,
+                "low": 98 + index,
+                "close": 100 + index,
+            }
+            for index in range(60)
+        ]
+        history[-1]["date"] = "2026-08-21"
+        result = UPDATE.technical_summary(
+            RUNTIME,
+            RUNTIME,
+            history,
+            999,
+            "2026-08-24",
+        )
+        self.assertEqual(result["snapshot_mode"], "completed_close")
+        self.assertEqual(result["snapshot_date"], "2026-08-21")
+        self.assertEqual(result["snapshot_price"], 159)
+
     def test_repository_indicator_runtime_supports_linux_collection(self):
         closes = [
             100 + index * 0.2 + ((index % 7) - 3) * 0.5
