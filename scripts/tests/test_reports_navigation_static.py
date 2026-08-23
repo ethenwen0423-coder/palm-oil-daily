@@ -6,21 +6,21 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class ReportsNavigationStaticTests(unittest.TestCase):
-    def test_reports_page_exposes_all_primary_shortcuts(self):
+    def test_reports_page_exposes_current_clean_shortcuts(self):
         html = (ROOT / "reports.html").read_text(encoding="utf-8")
         expected_links = {
-            "历史报告": "reports.html",
-            "油脂主力": "oil-futures.html",
-            "供需数据": "supply-demand.html",
-            "全品种分析": "futures.html",
-            "量化模型": "quant-model.html",
-            "场外结构": "otc-structure.html",
+            "历史报告": "/reports",
+            "24h 盯盘助手": "/assistant",
         }
 
         for label, target in expected_links.items():
             with self.subTest(label=label):
                 self.assertIn(f'href="{target}">{label}</a>', html)
-                self.assertTrue((ROOT / target).is_file(), target)
+
+        self.assertNotIn('href="oil-futures.html"', html)
+        self.assertNotIn('href="supply-demand.html"', html)
+        self.assertNotIn('href="futures.html"', html)
+        self.assertNotIn('href="quant-model.html"', html)
 
 
 if __name__ == "__main__":

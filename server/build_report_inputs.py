@@ -43,6 +43,16 @@ def load_object(path: Path) -> dict[str, Any]:
     return payload
 
 
+def load_list(path: Path) -> list[dict[str, Any]]:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ReportInputError(f"cannot read server dataset: {path}") from exc
+    if not isinstance(payload, list):
+        raise ReportInputError(f"server dataset must be a list: {path}")
+    return [item for item in payload if isinstance(item, dict)]
+
+
 def parse_dataset_timestamp(value: Any, label: str) -> datetime:
     if not isinstance(value, str) or not value.strip():
         raise ReportInputError(f"missing freshness timestamp: {label}")
@@ -101,7 +111,11 @@ def as_number(value: Any) -> float | None:
         return None
 
 
-def rank_one_contracts(payload: dict[str, Any]) -> dict[str, dict[str, Any]]:
+def rank_one_contracts(
+    payload: dict[str, Any],
+    *,
+    report_date: str | None = None,
+) -> dict[str, dict[str, Any]]:
     selected: dict[str, dict[str, Any]] = {}
     for item in payload.get("contracts", []):
         if not isinstance(item, dict):
@@ -119,6 +133,19 @@ def rank_one_contracts(payload: dict[str, Any]) -> dict[str, dict[str, Any]]:
     if missing:
         raise ReportInputError(f"missing rank-1 contracts: {', '.join(missing)}")
     for product, item in selected.items():
+        trade_date = str(item.get("trade_date") or "").strip()
+        if report_date and trade_date:
+            try:
+                observed = datetime.fromisoformat(trade_date).date()
+                expected = datetime.fromisoformat(report_date).date()
+            except ValueError as exc:
+                raise ReportInputError(
+                    f"invalid rank-1 contract trade date: {product}={trade_date}"
+                ) from exc
+            if observed > expected:
+                raise ReportInputError(
+                    f"future-dated rank-1 contract: {product}={trade_date} report={report_date}"
+                )
         score = item.get("score")
         strategy = item.get("strategy_recommendation")
         if not isinstance(score, dict) or not score.get("stance"):
@@ -148,11 +175,17 @@ def market_record(item: dict[str, Any]) -> dict[str, Any]:
         "high": as_number(item.get("high")),
         "low": as_number(item.get("low")),
         "close": as_number(item.get("preclose")),
+        "settlement": as_number(item.get("settle")),
         "volume": as_number(item.get("volume")),
         "open_interest": as_number(item.get("open_interest")),
         "verification": item.get("verification") or "需进一步核验",
         "score": item.get("score"),
         "strategy_recommendation": item.get("strategy_recommendation"),
+        "view": item.get("view"),
+        "technical_detail": item.get("technical_detail") or [],
+        "fundamental_detail": item.get("fundamental_detail") or [],
+        "note": item.get("note"),
+        "quality_note": item.get("quality_note"),
     }
 
 
@@ -163,9 +196,137 @@ def first_contract(payload: dict[str, Any], product: str) -> dict[str, Any] | No
     return None
 
 
-def build_snapshot(
+def latest_official_metric(country: dict[str, Any], key: str) -> dict[str, Any] | None:
+    metric = (country.get("metrics") or {}).get(key)
+    if not isinstance(metric, dict):
+        return None
+    series = [item for item in metric.get("series", []) if isinstance(item, dict)]
+    if not series:
+        return None
+    latest = series[-1]
+    previous = series[-2] if len(series) > 1 else None
+    value = as_number(latest.get("value"))
+    previous_value = as_number(previous.get("value")) if previous else None
+    change_pct = None
+    if value is not None and previous_value not in (None, 0):
+        change_pct = round((value - previous_value) / previous_value * 100, 2)
+    source = country.get("source") if isinstance(country.get("source"), dict) else {}
+    return {
+        "label": metric.get("label") or key,
+        "period": latest.get("period"),
+        "value": value,
+        "unit": metric.get("unit"),
+        "display_unit": metric.get("display_unit"),
+        "published_at": latest.get("published_at"),
+        "source": source.get("name"),
+        "source_url": latest.get("source_url") or source.get("url"),
+        "previous_period": previous.get("period") if previous else None,
+        "previous_value": previous_value,
+        "change_pct": change_pct,
+    }
+
+
+def previous_report(
     data_root: Path,
     report_date: str,
+    kind: str,
+) -> dict[str, Any] | None:
+    reports_path = data_root / "reports.json"
+    if not reports_path.is_file():
+        return None
+    expected_kind = "weekend" if kind == "weekend" else "daily"
+    candidates = [
+        item
+        for item in load_list(reports_path)
+        if str(item.get("date") or "") < report_date
+        and str(item.get("kind") or "") == expected_kind
+    ]
+    if not candidates:
+        return None
+    item = max(candidates, key=lambda row: str(row.get("date") or ""))
+    return {
+        "date": item.get("date"),
+        "title": item.get("title"),
+        "headline": item.get("headline"),
+        "content": item.get("content"),
+        "updated_at": item.get("updated_at"),
+    }
+
+
+def previous_source_snapshot(
+    runtime_root: Path,
+    report_date: str,
+    kind: str,
+) -> dict[str, Any] | None:
+    candidates: list[tuple[str, Path]] = []
+    for path in (runtime_root / "source_runs").glob(
+        f"*-{kind}/raw/futures_market_data.json"
+    ):
+        run_date = path.parents[1].name.removesuffix(f"-{kind}")
+        if re.fullmatch(r"20\d{2}-\d{2}-\d{2}", run_date) and run_date < report_date:
+            candidates.append((run_date, path))
+    if not candidates:
+        return None
+    run_date, path = max(candidates, key=lambda item: item[0])
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(payload, dict):
+        return None
+    return {
+        "date": run_date,
+        "timestamp": payload.get("timestamp"),
+        "domestic": payload.get("domestic") or {},
+        "external": payload.get("external") or {},
+        "fundamental": payload.get("fundamental") or {},
+    }
+
+
+def market_comparison(
+    current: dict[str, Any],
+    previous: dict[str, Any] | None,
+) -> dict[str, Any]:
+    if not previous:
+        return {"status": "unavailable", "reason": "no prior structured snapshot"}
+    changes: dict[str, Any] = {}
+    previous_domestic = previous.get("domestic") or {}
+    for key, row in (current.get("domestic") or {}).items():
+        old = previous_domestic.get(key) if isinstance(previous_domestic, dict) else None
+        old = old if isinstance(old, dict) else {}
+        current_price = as_number(row.get("price")) if isinstance(row, dict) else None
+        previous_price = as_number(old.get("price"))
+        current_contract = row.get("contract") if isinstance(row, dict) else None
+        previous_contract = old.get("contract")
+        comparable = bool(
+            current_price is not None
+            and previous_price not in (None, 0)
+            and current_contract == previous_contract
+        )
+        changes[key] = {
+            "current_contract": current_contract,
+            "previous_contract": previous_contract,
+            "current_price": current_price,
+            "previous_price": previous_price,
+            "comparable": comparable,
+            "price_change": round(current_price - previous_price, 2) if comparable else None,
+            "change_pct": round((current_price - previous_price) / previous_price * 100, 2)
+            if comparable
+            else None,
+        }
+    return {
+        "status": "ready",
+        "previous_date": previous.get("date"),
+        "previous_timestamp": previous.get("timestamp"),
+        "products": changes,
+    }
+
+
+def build_snapshot(
+    data_root: Path,
+    runtime_root: Path,
+    report_date: str,
+    kind: str,
     now: datetime,
 ) -> dict[str, Any]:
     oil = load_object(data_root / "oil_futures.json")
@@ -173,7 +334,7 @@ def build_snapshot(
     exchange = load_object(data_root / "exchange_futures.json")
     quant = load_object(data_root / "quant_model_signals.json")
     contracts = load_object(data_root / "contracts" / "current_contracts.json")
-    selected = rank_one_contracts(oil)
+    selected = rank_one_contracts(oil, report_date=report_date)
 
     external: dict[str, Any] = {}
     for product, key in (("FCPO", "bmd_palm_oil"), ("CPOTR", "indonesia_cpo_spot")):
@@ -181,15 +342,25 @@ def build_snapshot(
         if item:
             external[key] = market_record(item)
 
+    domestic = {
+        PRODUCT_KEYS[product]: market_record(item)
+        for product, item in selected.items()
+    }
+    p_price = as_number(domestic["palm_oil"].get("price"))
+    y_price = as_number(domestic["soybean_oil"].get("price"))
+    oi_price = as_number(domestic["rapeseed_oil"].get("price"))
+    malaysia = ((supply.get("countries") or {}).get("malaysia") or {})
+    official_metrics = {
+        key: value
+        for key in ("production", "exports", "stocks")
+        if (value := latest_official_metric(malaysia, key)) is not None
+    }
     snapshot = {
         "date": report_date,
         "timestamp": now.isoformat(timespec="seconds"),
         "market_status": "服务器自动采集",
         "source_mode": "server_live_data",
-        "domestic": {
-            PRODUCT_KEYS[product]: market_record(item)
-            for product, item in selected.items()
-        },
+        "domestic": domestic,
         "external": external,
         "fundamental": {
             "official_supply_demand": {
@@ -197,6 +368,25 @@ def build_snapshot(
                 "source": "MPOB/GAPKI/USDA official checks",
                 "fetched_at": supply.get("checked_at") or supply.get("generated_at"),
                 "summary": supply.get("update_message") or "需进一步核验",
+                "latest_metrics": official_metrics,
+            },
+            "spread": {
+                "soybean_palm_spread": {
+                    "name": "豆棕价差",
+                    "price": round(y_price - p_price, 2)
+                    if y_price is not None and p_price is not None
+                    else None,
+                    "unit": "元/吨",
+                    "as_of": oil.get("updated_at"),
+                },
+                "rapeseed_soybean_spread": {
+                    "name": "菜豆油价差",
+                    "price": round(oi_price - y_price, 2)
+                    if oi_price is not None and y_price is not None
+                    else None,
+                    "unit": "元/吨",
+                    "as_of": oil.get("updated_at"),
+                },
             },
             "exchange_context": {
                 "status": "ok" if exchange.get("contracts") else "missing",
@@ -213,7 +403,14 @@ def build_snapshot(
             "supply_checked_at": supply.get("checked_at") or supply.get("generated_at"),
             "contracts_generated_at": contracts.get("generated_at"),
             "fixed_logic": ["otc_structure_library", "quant_model_rules"],
+            "market_references": oil.get("market_references") or [],
         },
+    }
+    prior_snapshot = previous_source_snapshot(runtime_root, report_date, kind)
+    snapshot["research_history"] = {
+        "previous_report": previous_report(data_root, report_date, kind),
+        "previous_source_snapshot": prior_snapshot,
+        "market_comparison": market_comparison(snapshot, prior_snapshot),
     }
     return snapshot
 
@@ -296,7 +493,7 @@ def write_source_run(
     raw_root = run_root / "raw"
     raw_root.mkdir(parents=True, exist_ok=True)
     manifest = build_manifest(data_root, report_date, kind, now)
-    snapshot = build_snapshot(data_root, report_date, now)
+    snapshot = build_snapshot(data_root, runtime_root, report_date, kind, now)
     raw_path = raw_root / "futures_market_data.json"
     raw_path.write_text(
         json.dumps(snapshot, ensure_ascii=False, indent=2) + "\n",

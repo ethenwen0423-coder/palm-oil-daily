@@ -26,6 +26,7 @@ class ServerAutomationInstallerTests(unittest.TestCase):
         self.assertIn('PUBLIC_ACCESS_MODE="${PALM_OIL_PUBLIC_ACCESS_MODE:-private}"', script)
         self.assertIn('"--apply must run as root"', script)
         self.assertIn("server/sync_live_data.py", script)
+        self.assertIn('install -m 0644 "$SITE_ROOT/server/Caddyfile" "$DEPLOY_ROOT/Caddyfile"', script)
         self.assertIn("server/enable_ai_automation.sh", script)
         self.assertIn("compose.automation.yaml", script)
         self.assertIn("$LIVE_DATA_ROOT:/site/data:ro", script)

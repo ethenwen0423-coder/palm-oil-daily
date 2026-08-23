@@ -427,7 +427,7 @@
   }
 
   function reportHref(report) {
-    return `report.html?id=${encodeURIComponent(report.date)}`;
+    return `/report?id=${encodeURIComponent(report.date)}`;
   }
 
   function reportTime(report) {

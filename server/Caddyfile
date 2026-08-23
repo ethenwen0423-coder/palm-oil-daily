@@ -1,0 +1,44 @@
+palm.vinsontesla.com {
+  encode zstd gzip
+
+  header {
+    X-Content-Type-Options nosniff
+    Referrer-Policy strict-origin-when-cross-origin
+    Strict-Transport-Security "max-age=31536000; includeSubDomains"
+  }
+
+  @document path / /assistant /reports /report /otc-structure /otc-structure/library /*.html
+  header @document Cache-Control "no-cache, no-store, must-revalidate"
+
+  route {
+    respond /healthz "ok" 200
+
+    @api path /api/*
+    reverse_proxy @api api:8000
+
+    @private path /.git* /.github* /scripts* /skills* /source_runs* /references* /server*
+    respond @private 404
+
+    redir /index.html / 308
+    redir /assistant.html /assistant 308
+    redir /reports.html /reports 308
+    redir /report.html /report 308
+    redir /otc-structure.html /otc-structure 308
+    redir /otc-structure-library.html /otc-structure/library 308
+    redir /oil-futures.html /assistant#oil-desk 308
+    redir /supply-demand.html /assistant#supply-desk 308
+    redir /futures.html /assistant#all-contracts 308
+    redir /quant-model.html /assistant 308
+    redir /quant-model-detail.html /assistant 308
+
+    rewrite /assistant /assistant.html
+    rewrite /reports /reports.html
+    rewrite /report /report.html
+    rewrite /otc-structure /otc-structure.html
+    rewrite /otc-structure/library /otc-structure-library.html
+
+    root * /srv
+    try_files {path} {path}/ /index.html
+    file_server
+  }
+}

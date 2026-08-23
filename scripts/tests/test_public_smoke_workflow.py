@@ -13,7 +13,8 @@ class PublicSmokeWorkflowTests(unittest.TestCase):
         self.assertIn('cron: "*/15 * * * *"', workflow)
         self.assertIn("https://palm.vinsontesla.com", workflow)
         self.assertIn('"$SITE_URL/api/status"', workflow)
-        self.assertIn('"$SITE_URL/assistant.html"', workflow)
+        self.assertIn('"$SITE_URL/assistant"', workflow)
+        self.assertIn("%{redirect_url}", workflow)
         for route in (
             "/api/reports",
             "/api/oil-futures",

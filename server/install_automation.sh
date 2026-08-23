@@ -52,6 +52,7 @@ for required in \
   "$SITE_ROOT/server/build_report_inputs.py" \
   "$SITE_ROOT/server/freeze_prepared_forecast.py" \
   "$SITE_ROOT/server/sync_live_data.py" \
+  "$SITE_ROOT/server/Caddyfile" \
   "$SITE_ROOT/scripts/deploy_report.sh" \
   "$REQUIREMENTS" \
   "$COMPOSE_FILE"
@@ -130,6 +131,7 @@ install -d -m 0755 \
   "$STATE_ROOT/home" \
   "$STATE_ROOT/cache"
 install -d -m 0700 "$STATE_ROOT/home/.codex"
+install -m 0644 "$SITE_ROOT/server/Caddyfile" "$DEPLOY_ROOT/Caddyfile"
 
 for runtime_root in "$MARKET_RUNTIME_ROOT" "$AI_RUNTIME_ROOT" "$RESEARCH_RUNTIME_ROOT"; do
   if [[ -e "$runtime_root" && ! -d "$runtime_root/.git" ]]; then

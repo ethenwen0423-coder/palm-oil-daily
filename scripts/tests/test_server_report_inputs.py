@@ -37,6 +37,9 @@ def contract(product: str, price: str, change: str) -> dict[str, object]:
         "trade_date": "2026-08-07",
         "source": "server test",
         "verification": "价格一致",
+        "view": "技术偏强，等待基本面确认",
+        "technical_detail": ["收盘位于短期均线上方"],
+        "fundamental_detail": ["豆棕价差仍处倒挂"],
         "score": {
             "total": 0,
             "technical": 0,
@@ -90,6 +93,31 @@ class ServerReportInputsTest(unittest.TestCase):
                 "checked_at": "2026-08-08T09:20:00+08:00",
                 "update_status": "no_change",
                 "update_message": "官网暂未更新数据",
+                "countries": {
+                    "malaysia": {
+                        "source": {"name": "MPOB", "url": "https://example.test/mpob"},
+                        "metrics": {
+                            "production": {
+                                "label": "CPO产量",
+                                "unit": "tonnes",
+                                "series": [
+                                    {"period": "2026-05", "value": 100, "published_at": "2026-06-10"},
+                                    {"period": "2026-06", "value": 110, "published_at": "2026-07-10"},
+                                ],
+                            },
+                            "exports": {
+                                "label": "棕榈油出口",
+                                "unit": "tonnes",
+                                "series": [{"period": "2026-06", "value": 90, "published_at": "2026-07-10"}],
+                            },
+                            "stocks": {
+                                "label": "棕榈油库存",
+                                "unit": "tonnes",
+                                "series": [{"period": "2026-06", "value": 120, "published_at": "2026-07-10"}],
+                            },
+                        },
+                    }
+                },
             },
         )
         write_json(
@@ -103,6 +131,19 @@ class ServerReportInputsTest(unittest.TestCase):
                     "OI": [{"symbol": "OI2609"}],
                 },
             },
+        )
+        write_json(
+            root,
+            "reports.json",
+            [
+                {
+                    "date": "2026-08-02-weekend",
+                    "kind": "weekend",
+                    "title": "08月02日周报",
+                    "headline": "供应压力仍需价格确认",
+                    "content": "历史正文",
+                }
+            ],
         )
 
     def test_builds_manifest_and_numeric_snapshot_from_live_data(self) -> None:
@@ -122,6 +163,10 @@ class ServerReportInputsTest(unittest.TestCase):
             manifest = json.loads(Path(payload["manifest"]).read_text(encoding="utf-8"))
             self.assertEqual(snapshot["domestic"]["palm_oil"]["price"], 9200.0)
             self.assertEqual(snapshot["domestic"]["soybean_oil"]["change_pct"], -0.5)
+            self.assertEqual(snapshot["domestic"]["palm_oil"]["technical_detail"], ["收盘位于短期均线上方"])
+            self.assertEqual(snapshot["fundamental"]["official_supply_demand"]["latest_metrics"]["production"]["change_pct"], 10.0)
+            self.assertEqual(snapshot["fundamental"]["spread"]["soybean_palm_spread"]["price"], -900.0)
+            self.assertEqual(snapshot["research_history"]["previous_report"]["date"], "2026-08-02-weekend")
             self.assertEqual(snapshot["server_evidence"]["fixed_logic"], [
                 "otc_structure_library",
                 "quant_model_rules",
@@ -177,6 +222,25 @@ class ServerReportInputsTest(unittest.TestCase):
                     "2026-08-08",
                     "daily",
                     MODULE.parse_now("2026-08-08T09:00:00+08:00"),
+                )
+
+    def test_future_dated_rank_one_contract_fails_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            data = base / "live-data"
+            runtime = base / "runtime"
+            self.build_data(data)
+            oil_path = data / "oil_futures.json"
+            oil = json.loads(oil_path.read_text(encoding="utf-8"))
+            oil["contracts"][0]["trade_date"] = "2026-08-09"
+            oil_path.write_text(json.dumps(oil), encoding="utf-8")
+            with self.assertRaisesRegex(MODULE.ReportInputError, "future-dated rank-1 contract"):
+                MODULE.write_source_run(
+                    data,
+                    runtime,
+                    "2026-08-08",
+                    "weekend",
+                    MODULE.parse_now("2026-08-08T21:15:00+08:00"),
                 )
 
 

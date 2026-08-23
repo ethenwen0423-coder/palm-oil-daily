@@ -98,6 +98,39 @@ class ServerResearchAgentTests(unittest.TestCase):
         self.assertIn("至少三项 SOURCE_JSON 中有精确数字的辅助证据", prompt)
         self.assertIn("不得在“信息来源与核验说明”之前使用“需进一步核验”", prompt)
         self.assertIn("今日观点”第一段必须包含可机器读取的 `置信度：", prompt)
+        self.assertIn("内部元数据，不得写成市场驱动", prompt)
+        self.assertIn("必须逐字写：本报告由AI基于公开信息", prompt)
+
+    def test_weekend_prompt_requires_history_tables_and_relative_value(self) -> None:
+        prompt = MODULE.build_prompt(
+            report_date="2026-08-09",
+            kind="weekend",
+            source_snapshot={"research_history": {}},
+            feedback=None,
+            correction="",
+        )
+        self.assertIn("research_history.previous_report", prompt)
+        self.assertIn("本周起建立连续验证基线", prompt)
+        self.assertIn("必须使用 Markdown 表格", prompt)
+        self.assertIn("分别列出 P、Y、OI 三行", prompt)
+        self.assertIn("豆棕价差与菜豆油价差", prompt)
+
+    def test_persistent_context_restores_previous_source_runs(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            state = base / "state"
+            runtime = base / "runtime"
+            report = runtime / "reports" / "2026-08-09-weekend.md"
+            run_root = runtime / "source_runs" / "2026-08-09-weekend"
+            report.parent.mkdir(parents=True)
+            run_root.mkdir(parents=True)
+            report.write_text("report", encoding="utf-8")
+            (run_root / "manifest.json").write_text("{}", encoding="utf-8")
+            MODULE.persist_outputs(state, runtime, report, run_root)
+            restored = base / "restored"
+            (restored / "reports").mkdir(parents=True)
+            MODULE.restore_persistent_outputs(state, restored)
+            self.assertTrue((restored / "source_runs/2026-08-09-weekend/manifest.json").is_file())
 
     def test_visible_headline_is_bounded_before_title_gate(self) -> None:
         markdown = "# 08月07日晨报\n\n## 【今日观点】\n" + ("震荡延续但需要多维证据共同验证" * 8)

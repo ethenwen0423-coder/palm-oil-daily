@@ -47,10 +47,12 @@ class SupplyDemandStaticTests(unittest.TestCase):
             {"palm", "soybean", "rapeseed", "sunflower"},
         )
 
-    def test_navigation_links_to_supply_demand_page(self):
-        for filename in ("index.html", "reports.html", "oil-futures.html", "futures.html"):
+    def test_legacy_supply_page_is_integrated_into_assistant(self):
+        caddy = (ROOT / "server" / "Caddyfile").read_text(encoding="utf-8")
+        self.assertIn("redir /supply-demand.html /assistant#supply-desk 308", caddy)
+        for filename in ("index.html", "reports.html"):
             html = (ROOT / filename).read_text(encoding="utf-8")
-            self.assertIn('href="supply-demand.html"', html, filename)
+            self.assertNotIn('href="supply-demand.html"', html, filename)
 
     def test_automation_follows_daily_report_and_uses_strict_allowlist(self):
         deploy = (ROOT / "scripts" / "deploy_supply_demand_data.sh").read_text(encoding="utf-8")

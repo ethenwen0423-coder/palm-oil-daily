@@ -55,6 +55,8 @@ class ServerApiStatusTests(unittest.TestCase):
         ):
             self.assertIn(path, runner)
         self.assertIn('server/api.py server/contract_analysis.py', runner)
+        self.assertIn('cmp -s server/Caddyfile "$DEPLOY_ROOT/Caddyfile"', runner)
+        self.assertIn('compose up -d api web', runner)
         self.assertIn('cmp -s "$api_source" "$DEPLOY_ROOT/$api_name"', runner)
         self.assertIn('cp server/update-site.sh "$RUNNER_CANDIDATE"', runner)
         self.assertIn('mv -f "$RUNNER_CANDIDATE" "$RUNNER_PATH"', runner)

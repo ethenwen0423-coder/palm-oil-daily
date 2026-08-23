@@ -52,7 +52,7 @@
     document.querySelector("#detail-skill").textContent = model.skill || "待核验";
     document.querySelector("#detail-validation-note").textContent = model.validation_note || "";
     document.querySelector("#detail-risk-notice").textContent = model.risk_notice || "不保证未来表现。";
-    document.querySelector("#detail-use-link").href = `quant-model.html?model=${encodeURIComponent(model.id)}`;
+    document.querySelector("#detail-use-link").href = "/assistant";
     document.querySelector("#detail-universe").innerHTML = (model.universe || [])
       .map((item) => `<span>${escapeHtml(item)}</span>`)
       .join("");

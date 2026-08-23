@@ -40,6 +40,10 @@ WEEKEND_SECTIONS = (
     "AI观点风险提示",
 )
 BODY_LIMITS = {"daily": (1000, 1400), "weekend": (1600, 2400)}
+AI_DISCLAIMER = (
+    "本报告由AI基于公开信息、已调用数据源和既定研究框架生成，仅代表生成时点的研究判断，"
+    "不构成投资建议或交易指令。期货价格波动较大，客户应结合自身风险承受能力独立决策。"
+)
 CRITICAL_KEYS = ("domestic.soybean_oil", "domestic.palm_oil", "domestic.rapeseed_oil")
 TRADE_FIELDS = (
     "trade_trigger",
@@ -304,6 +308,32 @@ def _duplicate_sentences(text: str) -> list[str]:
     return duplicates
 
 
+def _has_markdown_table(text: str) -> bool:
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    return any(
+        lines[index].startswith("|")
+        and lines[index].endswith("|")
+        and re.fullmatch(r"\|[\s:|-]+\|", lines[index + 1]) is not None
+        for index in range(len(lines) - 1)
+    )
+
+
+def _future_source_dates(value: Any, report_date: str, prefix: str = "") -> list[str]:
+    failures: list[str] = []
+    if isinstance(value, dict):
+        for key, child in value.items():
+            path = f"{prefix}.{key}" if prefix else key
+            if key in {"fetched_at", "published_at", "trade_date"} and isinstance(child, str):
+                matched = re.match(r"(20\d{2}-\d{2}-\d{2})", child.strip())
+                if matched and matched.group(1) > report_date:
+                    failures.append(f"{path}={matched.group(1)}")
+            failures.extend(_future_source_dates(child, report_date, path))
+    elif isinstance(value, list):
+        for index, child in enumerate(value):
+            failures.extend(_future_source_dates(child, report_date, f"{prefix}[{index}]"))
+    return failures
+
+
 def _atomic_write(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary: Path | None = None
@@ -431,6 +461,12 @@ def audit_report(
         warnings.append(f"可复核的非关键数字仅 {len(sampled)} 项，未达到固定抽样 3 项")
         components["data_accuracy"] = max(0, components["data_accuracy"] - (3 - len(sampled)) * 2)
 
+    report_date = str(outline.get("report_date") or source.get("date") or "")
+    future_dates = _future_source_dates(source, report_date) if report_date else []
+    if future_dates:
+        hard_failures.append(f"源数据含报告日之后的日期：{', '.join(future_dates[:5])}")
+        components["freshness_source_state"] = 0
+
     for field in TRADE_FIELDS:
         value = outline.get(field)
         if not isinstance(value, str):
@@ -466,6 +502,16 @@ def audit_report(
     if not outline.get("data_cutoff") or "信息来源与核验说明" not in names:
         components["freshness_source_state"] = max(0, components["freshness_source_state"] - 5)
     core_text = re.split(r"^##\s*【信息来源与核验说明】", text, maxsplit=1, flags=re.MULTILINE)[0]
+    forbidden_source_state = [
+        marker
+        for marker in ("source_error", "抓取失败", "官方检查失败", "官方来源不可访问")
+        if marker in core_text
+    ]
+    if forbidden_source_state:
+        hard_failures.append(
+            f"数据源错误被升级为正文驱动：{', '.join(forbidden_source_state)}"
+        )
+        components["freshness_source_state"] = 0
     gap_count = core_text.count("需进一步核验")
     if gap_count > 2:
         warnings.append(f"核心正文出现 {gap_count} 处“需进一步核验”，应集中到证据缺口说明")
@@ -488,6 +534,45 @@ def audit_report(
                 hard_failures.append(f"预测 feedback 不可用：{exc}")
 
     driver_text = _section(text, "核心驱动与预期差") if kind == "daily" else _section(text, "本周验证与预期差")
+    driver_names = " ".join(
+        str((outline.get(field) or {}).get("name") or "")
+        for field in ("primary_driver", "secondary_driver")
+        if isinstance(outline.get(field), dict)
+    )
+    if "评分" in driver_text or "评分" in driver_names or re.search(r"(?:driver|technical|fundamental)\s*=", driver_text, re.I):
+        hard_failures.append("内部评分被用作研究驱动")
+        components["causal_chain_expectation_gap"] = 0
+    if not any(
+        marker in driver_text + driver_names
+        for marker in ("供给", "供应", "需求", "库存", "出口", "产量", "基差", "价差", "进口", "压榨")
+    ):
+        hard_failures.append("核心驱动缺少基本面或相对价值证据")
+        components["causal_chain_expectation_gap"] = 0
+
+    if kind == "weekend":
+        history = source.get("research_history") if isinstance(source.get("research_history"), dict) else {}
+        previous = history.get("previous_report") if isinstance(history.get("previous_report"), dict) else None
+        validation_text = _section(text, "本周验证与预期差")
+        if previous:
+            previous_date = str(previous.get("date") or "").removesuffix("-weekend")
+            previous_title = str(previous.get("title") or "")
+            previous_headline = str(previous.get("headline") or "")
+            if previous_date not in validation_text or not any(
+                value and value in validation_text for value in (previous_title, previous_headline)
+            ):
+                hard_failures.append("周报未引用并验证上一期报告")
+        elif "建立连续验证基线" not in validation_text:
+            hard_failures.append("无历史周报时未声明建立连续验证基线")
+        for section_name in ("核心数据变化", "下周主线与事件", "交易计划"):
+            if not _has_markdown_table(_section(text, section_name)):
+                hard_failures.append(f"周报栏目缺少结构化表格：{section_name}")
+        trade_plan = _section(text, "交易计划")
+        for symbol in ("P", "Y", "OI"):
+            if re.search(rf"(?:^|\|)\s*{symbol}(?:\d{{4}})?\s*(?:\||$)", trade_plan, re.MULTILINE) is None:
+                hard_failures.append(f"周报交易计划缺少品种：{symbol}")
+        for spread_name in ("豆棕价差", "菜豆油价差"):
+            if spread_name not in text:
+                hard_failures.append(f"周报缺少相对价值指标：{spread_name}")
     if not any(marker in driver_text for marker in ("→", "传导", "因此", "使得")):
         errors.append("核心驱动缺少可识别的因果链")
         components["causal_chain_expectation_gap"] -= 5
@@ -502,6 +587,10 @@ def audit_report(
     if not any(marker in _section(text, "风险提示") for marker in ("失效", "若", "一旦", "推翻")):
         errors.append("风险提示未写成可检验的失效条件")
         components["risk_invalidation"] -= 5
+
+    if AI_DISCLAIMER not in _section(text, "AI观点风险提示"):
+        hard_failures.append("AI观点风险提示未使用完整固定声明")
+        components["structural_completeness"] = 0
 
     conclusion_count = text.count("【结论】")
     if conclusion_count > 2:

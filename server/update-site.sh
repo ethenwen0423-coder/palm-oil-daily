@@ -63,6 +63,12 @@ do
   fi
 done
 
+web_changed=false
+if ! cmp -s server/Caddyfile "$DEPLOY_ROOT/Caddyfile"; then
+  cp server/Caddyfile "$DEPLOY_ROOT/Caddyfile"
+  web_changed=true
+fi
+
 if ! cmp -s server/update-site.sh "$RUNNER_PATH"; then
   cp server/update-site.sh "$RUNNER_CANDIDATE"
   chmod 755 "$RUNNER_CANDIDATE"
@@ -84,8 +90,14 @@ if [ "$PUBLIC_ACCESS_MODE" = private ]; then
     compose restart api
   fi
   compose stop web || true
-elif [ "$api_changed" = true ]; then
-  compose restart api
+else
+  compose up -d api web
+  if [ "$api_changed" = true ]; then
+    compose restart api
+  fi
+  if [ "$web_changed" = true ]; then
+    compose restart web
+  fi
 fi
 
 check_endpoint() {

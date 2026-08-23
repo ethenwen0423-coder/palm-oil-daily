@@ -222,7 +222,7 @@
         </div>
 
         <footer class="quant-result-footer">
-          <p><strong>模型</strong> ${escapeHtml(model.name || "待核验")} · <a href="quant-model-detail.html?model=${encodeURIComponent(model.id || "")}">查看策略详情</a></p>
+          <p><strong>模型</strong> ${escapeHtml(model.name || "待核验")} · <a href="/assistant">返回盯盘助手</a></p>
           <p><strong>数据来源</strong> ${escapeHtml(contract.data_source || signal.data_source || "AkShare 国内期货日线")} · 标的：${escapeHtml(contract.symbol)} · 模型 skill：${escapeHtml(model.skill || "generate-oilseed-trade-signal")}</p>
           <p><strong>行情更新</strong> ${escapeHtml(quoteUpdated)} · <strong>模型生成</strong> ${escapeHtml(generated)} · 回测单边成本假设 0.04%</p>
           <p>本结果为策略信号，不保证未来表现，不构成个人化投资建议。</p>
@@ -261,7 +261,7 @@
     activeModelName.textContent = model.short_name || model.name || "未命名模型";
     activeModelSummary.textContent = model.summary || "策略说明待补充";
     modelStatus.textContent = `${model.status_label || "已启用"} · ${model.timeframe || "周期待核验"} · v${model.version || "1.0"}`;
-    const detailHref = `quant-model-detail.html?model=${encodeURIComponent(activeModelId)}`;
+    const detailHref = "/assistant";
     modelDetailLink.href = detailHref;
     activeModelDetailLink.href = detailHref;
     populateContracts();

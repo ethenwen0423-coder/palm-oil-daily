@@ -139,12 +139,21 @@ def restore_persistent_outputs(state_root: Path, runtime_root: Path) -> None:
                 dirs_exist_ok=True,
                 copy_function=shutil.copy2,
             )
+    source_store = state_root / "research-context" / "source_runs"
+    if source_store.is_dir():
+        shutil.copytree(
+            source_store,
+            runtime_root / "source_runs",
+            dirs_exist_ok=True,
+            copy_function=shutil.copy2,
+        )
 
 
 def persist_outputs(
     state_root: Path,
     runtime_root: Path,
     report_path: Path,
+    run_root: Path,
 ) -> None:
     report_store = state_root / "research-reports"
     report_store.mkdir(parents=True, exist_ok=True)
@@ -159,6 +168,13 @@ def persist_outputs(
                 dirs_exist_ok=True,
                 copy_function=shutil.copy2,
             )
+    context_store = state_root / "research-context" / "source_runs" / run_root.name
+    shutil.copytree(
+        run_root,
+        context_store,
+        dirs_exist_ok=True,
+        copy_function=shutil.copy2,
+    )
 
 
 def load_json(path: Path) -> Any:
@@ -217,6 +233,24 @@ def build_prompt(
         if feedback
         else "★★★★★"
     )
+    kind_requirements = (
+        """
+日报研究要求：
+- 两个主驱动至少一个必须来自基本面事实（供给、需求、库存、出口、产量、基差或价差）；技术面只能说明触发与确认，不能替代基本面解释。
+- score、driver/fundamental/technical 分数、数据条数、采集状态均是内部元数据，不得写成市场驱动或正文结论。
+- `source_error`、抓取失败、官方检查失败只允许出现在“信息来源与核验说明”，不得进入观点、驱动、策略或优先级判断。
+"""
+        if kind == "daily"
+        else """
+周报研究要求：
+- 必须读取 research_history.previous_report，先复述上一期日期及核心判断，再用本期事实说明“兑现/部分兑现/未兑现”；若历史为空，明确写“本周起建立连续验证基线”，不得假造上期观点。
+- 核心数据变化必须优先使用 research_history.market_comparison 与 official_supply_demand.latest_metrics；不得把单日涨跌冒充周度变化，也不得从 score 推导变化。
+- `## 【核心数据变化】`、`## 【下周主线与事件】`、`## 【交易计划】`必须使用 Markdown 表格。交易计划必须分别列出 P、Y、OI 三行，并写触发、确认、失效、仓位/行动和有效期。
+- 正文必须同时解释豆棕价差与菜豆油价差各自说明什么；两个主驱动至少一个必须来自供给、需求、库存、出口、产量、基差或价差等基本面事实。
+- score、driver/fundamental/technical 分数、数据条数、采集状态均是内部元数据，不得写成市场驱动或正文结论。
+- `source_error`、抓取失败、官方检查失败只允许出现在“信息来源与核验说明”，不得进入观点、驱动、交易计划或下周主线。
+"""
+    )
     correction_block = f"\n上次门禁反馈，必须逐项修正：\n{correction}\n" if correction else ""
     return f"""
 你是部署在腾讯云、只使用给定证据的油脂研究报告写作器。不要联网，不要调用工具，不要读取其他文件。
@@ -229,7 +263,7 @@ def build_prompt(
 3. 正文可见字符预算 {budget}；消息链接与固定免责声明不计入预算。
 3a. `## 【今日观点】`（周报为 `## 【一句话核心观点】`）标题后的第一句是页面 Headline：日报去除空白后不得超过 50 个字符，周报不得超过 100 个字符；只写一句明确观点，不得使用价格、数字或交易执行词。该句必须短于其后的解释段落。
 4. 只能复制 SOURCE_JSON 中的数字、价格、涨跌、时间、合约、score 与 strategy_recommendation；禁止自行计算或创造任何价格、概率、止损、目标、仓位与来源。
-4a. “关键数据与价格”除 P/Y/OI 三个 rank=1 合约外，必须再列出至少三项 SOURCE_JSON 中有精确数字的辅助证据（优先 FCPO、CBOT、WTI、库存或价差）；每项均写名称、精确数字与该字段的时点。若源中没有三项，停止输出而不要编造。
+4a. 数据栏目除 P/Y/OI 三个 rank=1 合约外，必须再列出至少三项 SOURCE_JSON 中有精确数字的辅助证据（优先官方供需、FCPO、CBOT、WTI、库存或价差）；每项均写名称、精确数字与该字段的时点。若源中没有三项，停止输出而不要编造。
 5. P/Y/OI 三个 rank=1 合约及其 exact price 必须在关键数据中各出现一次；每个数字同时写明 SOURCE_JSON 中的时点口径。
 6. 今日/下周交易计划必须来自 strategy_recommendation。若源中没有止损、目标或仓位，明确写“源数据未给出，不新开仓”，不得补造数字。
 7. 只选两个 Level 1 驱动，写清事实→机制→P/Y/OI影响→预期与现实→结论；最强反证和可检验失效条件必须明确。
@@ -238,7 +272,9 @@ def build_prompt(
 10. 日报在“信息来源与核验说明”中逐字包含 REQUIRED_DISCLOSURES 的每一句；反馈只能降低置信度或增加反证，不能提高置信度。
 10a. 日报“今日观点”第一段必须包含可机器读取的 `置信度：{confidence_cap}`，outline.research_confidence 也必须精确为 `{confidence_cap}`。
 11. 不得在“信息来源与核验说明”之前使用“需进一步核验”；所有证据缺口只能集中在该栏目、最多写一次。禁止把未核验信息升级为主驱动。场外结构类型库和量化模型规则不可更改。
-12. 最后固定写 AI 风险声明，说明仅为研究判断、不构成投资建议或交易指令。
+12. `## 【AI观点风险提示】`必须逐字写：本报告由AI基于公开信息、已调用数据源和既定研究框架生成，仅代表生成时点的研究判断，不构成投资建议或交易指令。期货价格波动较大，客户应结合自身风险承受能力独立决策。
+
+{kind_requirements}
 
 REQUIRED_DISCLOSURES：
 {disclosure_text}
@@ -601,7 +637,7 @@ def main() -> int:
             previous_snapshot.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(runtime_root / "data" / "oil_futures.js", previous_snapshot)
         changed = validate_change_scope(runtime_root)
-        persist_outputs(state_root, runtime_root, report_path)
+        persist_outputs(state_root, runtime_root, report_path, run_root)
         synced = sync_module.sync_research(
             runtime_root / "data",
             live_data_root,

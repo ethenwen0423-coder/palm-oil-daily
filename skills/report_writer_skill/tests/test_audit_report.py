@@ -245,6 +245,48 @@ class AuditReportTest(unittest.TestCase):
         self.assertFalse(result["can_publish"])
         self.assertTrue(any("重复长句" in item for item in result["errors"]))
 
+    def test_future_dated_source_record_blocks_publication(self) -> None:
+        _, report, outline, source, feedback = self.run_audit()
+        payload = json.loads(source.read_text(encoding="utf-8"))
+        payload["domestic"]["palm_oil"]["published_at"] = "2026-07-28"
+        source.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+        result = audit.audit_report(report, outline, "daily", source, feedback)
+        self.assertFalse(result["can_publish"])
+        self.assertTrue(any("报告日之后" in item for item in result["hard_failures"]))
+
+    def test_source_error_cannot_be_promoted_to_driver(self) -> None:
+        _, report, outline, source, feedback = self.run_audit()
+        report.write_text(
+            report.read_text(encoding="utf-8").replace(
+                "第二驱动是", "source_error 是当前主驱动。第二驱动是"
+            ),
+            encoding="utf-8",
+        )
+        result = audit.audit_report(report, outline, "daily", source, feedback)
+        self.assertFalse(result["can_publish"])
+        self.assertTrue(any("数据源错误被升级" in item for item in result["hard_failures"]))
+
+    def test_internal_score_cannot_be_research_driver(self) -> None:
+        _, report, outline, source, feedback = self.run_audit()
+        payload = json.loads(outline.read_text(encoding="utf-8"))
+        payload["primary_driver"]["name"] = "基本面评分50"
+        outline.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+        result = audit.audit_report(report, outline, "daily", source, feedback)
+        self.assertFalse(result["can_publish"])
+        self.assertTrue(any("内部评分" in item for item in result["hard_failures"]))
+
+    def test_short_ai_disclaimer_blocks_publication(self) -> None:
+        _, report, outline, source, feedback = self.run_audit()
+        report.write_text(
+            report.read_text(encoding="utf-8").replace(
+                "期货价格波动较大，客户应结合自身风险承受能力独立决策。", ""
+            ),
+            encoding="utf-8",
+        )
+        result = audit.audit_report(report, outline, "daily", source, feedback)
+        self.assertFalse(result["can_publish"])
+        self.assertTrue(any("完整固定声明" in item for item in result["hard_failures"]))
+
 
 if __name__ == "__main__":
     unittest.main()
