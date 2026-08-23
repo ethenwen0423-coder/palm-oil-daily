@@ -317,6 +317,31 @@ class DeployReportTest(unittest.TestCase):
         )
         self.assertIn("scripts/publish_report.py", calls)
 
+    def test_server_target_ignores_restored_history_but_gates_current_weekly(self) -> None:
+        result, calls = self.run_deploy(
+            "reports/2026-07-13-weekend.md\nreports/2026-07-20-weekend.md",
+            PALM_OIL_TARGET_REPORT="reports/2026-07-20-weekend.md",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn("source_runs/2026-07-13-weekend", calls)
+        self.assertIn(
+            "skills/data_quality_gate_skill/scripts/validate_data.py --manifest source_runs/2026-07-20-weekend/manifest.json --strict",
+            calls,
+        )
+        self.assertIn(
+            "skills/report_writer_skill/scripts/audit_report.py --report reports/2026-07-20-weekend.md",
+            calls,
+        )
+
+    def test_server_target_must_be_a_changed_dated_report(self) -> None:
+        result, calls = self.run_deploy(
+            "reports/2026-07-20-weekend.md",
+            PALM_OIL_TARGET_REPORT="reports/2026-07-21-weekend.md",
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("target report is not present", result.stderr)
+        self.assertNotIn("scripts/publish_report.py", calls)
+
     def test_multiple_daily_dates_fail_before_publish(self) -> None:
         result, calls = self.run_deploy("reports/2026-07-14.md\nreports/2026-07-15.md")
         self.assertNotEqual(result.returncode, 0)

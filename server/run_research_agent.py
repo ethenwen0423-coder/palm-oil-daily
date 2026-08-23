@@ -539,6 +539,7 @@ def main() -> int:
             **os.environ,
             "PALM_OIL_PUBLISH_MODE": "files",
             "PALM_OIL_REPORT_DATA_MODE": "prepared",
+            "PALM_OIL_TARGET_REPORT": f"reports/{identity}.md",
             "PYTHONUNBUFFERED": "1",
         }
         correction = ""
