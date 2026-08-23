@@ -186,6 +186,40 @@ class FundamentalRefreshBoundaryTest(unittest.TestCase):
         self.assertIn("需进一步核验", result["source"])
         self.assertIn("沿用 2026-07-31", result["verification"])
 
+    def test_non_night_refresh_rejects_future_session_quote(self):
+        source = {
+            "contract": "Y2701",
+            "price": 8819,
+            "tradedate": "2026-08-24",
+            "source": "akshare:futures_zh_realtime",
+        }
+        completed = {
+            "contract": "Y2701",
+            "price": 8805,
+            "tradedate": "2026-08-21",
+            "source": "akshare:futures_zh_daily_sina",
+        }
+        result = OIL.prefer_completed_close(
+            source,
+            completed,
+            accept_future_session=False,
+        )
+        self.assertEqual(result["price"], 8805)
+        self.assertEqual(result["tradedate"], "2026-08-21")
+        self.assertEqual(result["_discarded_future_trade_date"], "2026-08-24")
+
+    def test_real_night_refresh_accepts_next_trading_date(self):
+        source = {"price": 8819, "tradedate": "2026-08-24"}
+        completed = {"price": 8805, "tradedate": "2026-08-21"}
+        self.assertIs(
+            OIL.prefer_completed_close(
+                source,
+                completed,
+                accept_future_session=True,
+            ),
+            source,
+        )
+
     def test_overnight_carry_accepts_previous_trading_day_snapshot(self):
         payload = {
             "fundamental_updated_at": "2026-07-30 06:18",

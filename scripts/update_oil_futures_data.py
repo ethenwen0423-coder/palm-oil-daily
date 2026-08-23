@@ -797,6 +797,31 @@ def matching_previous_contract(
     return None
 
 
+def prefer_completed_close(
+    source: dict[str, Any],
+    daily: dict[str, Any] | None,
+    *,
+    accept_future_session: bool,
+) -> dict[str, Any]:
+    """Keep the latest completed close outside a real night-session refresh."""
+    completed = daily if isinstance(daily, dict) else {}
+    source_date = str(source.get("tradedate") or "")[:10]
+    completed_date = str(completed.get("tradedate") or "")[:10]
+    if (
+        not accept_future_session
+        and source_date
+        and completed_date
+        and source_date > completed_date
+        and as_float(completed.get("price")) is not None
+    ):
+        return {
+            **completed,
+            "_completed_close": True,
+            "_discarded_future_trade_date": source_date,
+        }
+    return source
+
+
 def merge_domestic(
     spec: dict[str, Any],
     selected_contract: dict[str, Any],
@@ -804,6 +829,7 @@ def merge_domestic(
     ak: Any,
     review_learning: dict[str, Any] | None = None,
     previous_contract: dict[str, Any] | None = None,
+    accept_future_session: bool = False,
 ) -> dict[str, Any]:
     skill_record = (snapshot or {}).get("domestic", {}).get(spec["key"], {})
     selected_symbol = concrete_contract(selected_contract.get("symbol"))
@@ -821,6 +847,11 @@ def merge_domestic(
         source = {**source, **{key: value for key, value in realtime.items() if value is not None}}
     if daily:
         source = {**daily, **{key: value for key, value in source.items() if value not in (None, "", "需进一步核验")}}
+    source = prefer_completed_close(
+        source,
+        daily,
+        accept_future_session=accept_future_session,
+    )
 
     contract = concrete_contract(source.get("contract")) or fallback_contract or selected_contract.get("symbol") or spec["symbol"]
     hithink = hithink_contract(contract) if concrete_contract(contract) else {"status": "missing", "message": "缺少可核验的具体合约代码"}
@@ -828,7 +859,12 @@ def merge_domestic(
         f"实时行情源暂不可用；沿用 {source.get('tradedate') or '最近一次'} "
         "同合约有效快照，需进一步核验。"
         if source.get("_carried_market")
-        else verification_note(source, hithink)
+        else (
+            f"非夜盘刷新发现未来交易日 {source.get('_discarded_future_trade_date')}；"
+            f"已锁定最近完整收盘 {source.get('tradedate')}。"
+            if source.get("_completed_close")
+            else verification_note(source, hithink)
+        )
     )
     price = as_float(source.get("price"))
     rank = selected_contract.get("rank")
@@ -1464,6 +1500,7 @@ def main() -> int:
             ak,
             review_learning,
             matching_previous_contract(previous_payload, selected),
+            accept_future_session=(args.update_session in {"night_open", "night_close", "overnight"}),
         )
         for spec in DOMESTIC
         for selected in discovery_products.get(spec["symbol"], [])
