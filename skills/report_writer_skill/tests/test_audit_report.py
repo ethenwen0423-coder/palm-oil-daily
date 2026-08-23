@@ -142,6 +142,12 @@ def valid_report() -> str:
 
 
 class AuditReportTest(unittest.TestCase):
+    def test_integral_prices_accept_decimal_zero_formatting(self) -> None:
+        pattern = audit._number_pattern(8819.0)
+        self.assertIsNotNone(pattern.search("豆油 8819.0"))
+        self.assertIsNotNone(pattern.search("豆油 8,819.00"))
+        self.assertIsNone(pattern.search("豆油 8819.5"))
+
     def environment(self) -> tuple[Path, Path, Path, Path]:
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)

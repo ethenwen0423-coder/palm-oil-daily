@@ -210,6 +210,14 @@ def _has_numeric_claim(line: str, aliases: tuple[str, ...]) -> bool:
 def _number_pattern(value: float, tolerance: float | None = None) -> re.Pattern[str]:
     tolerance = tolerance if tolerance is not None else max(0.01, abs(value) * 0.000001)
     decimals = 2 if abs(value - round(value)) > tolerance else 0
+    if decimals == 0:
+        integer = int(round(value))
+        candidates = {str(integer), f"{integer:,}"}
+        escaped = "|".join(
+            rf"{re.escape(item)}(?:\.0+)?"
+            for item in sorted(candidates, key=len, reverse=True)
+        )
+        return re.compile(rf"(?<![\d.])(?:{escaped})(?![\d.])")
     candidates = {
         f"{value:.{decimals}f}",
         f"{value:,.{decimals}f}",
