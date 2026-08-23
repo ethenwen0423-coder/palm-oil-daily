@@ -37,6 +37,11 @@ class FakeUpdate:
 
 
 class ServerPreparedForecastTests(unittest.TestCase):
+    def test_update_module_imports_sibling_dependencies(self) -> None:
+        update = MODULE.load_update_module()
+        self.assertTrue(callable(update.run_forecast_recorder))
+        self.assertTrue(callable(update.run_data_quality_gate))
+
     def test_quality_gate_precedes_freeze(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             oil = Path(temporary) / "oil_futures.js"

@@ -333,6 +333,24 @@ class DeployReportTest(unittest.TestCase):
             calls,
         )
 
+    def test_server_target_ignores_restored_history_and_freezes_current_daily(self) -> None:
+        result, calls = self.run_deploy(
+            "reports/2026-07-13-weekend.md\nreports/2026-07-17.md\nreports/2026-07-20.md",
+            PALM_OIL_TARGET_REPORT="reports/2026-07-20.md",
+            PALM_OIL_REPORT_DATA_MODE="prepared",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn("source_runs/2026-07-13-weekend", calls)
+        self.assertNotIn("source_runs/2026-07-17-daily", calls)
+        self.assertIn(
+            "skills/data_quality_gate_skill/scripts/validate_data.py --manifest source_runs/2026-07-20-daily/manifest.json --strict",
+            calls,
+        )
+        self.assertIn(
+            "server/freeze_prepared_forecast.py --report-date 2026-07-20 --oil-futures data/oil_futures.js",
+            calls,
+        )
+
     def test_server_target_must_be_a_changed_dated_report(self) -> None:
         result, calls = self.run_deploy(
             "reports/2026-07-20-weekend.md",
