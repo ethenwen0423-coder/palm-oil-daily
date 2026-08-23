@@ -5586,20 +5586,29 @@ body.home-page,
   border-radius: 6px;
 }
 
-.hero-button-option {
-  background: transparent;
+.hero-actions .hero-button {
+  border-color: rgba(220, 240, 213, .2);
+  background: rgba(244, 248, 242, .035);
+  color: rgba(244, 248, 242, .86);
 }
 
-.hero-button-option:hover,
-.hero-button-option:focus-visible,
-.hero-button-option[aria-current="page"] {
+.hero-actions .hero-button:hover,
+.hero-actions .hero-button:focus-visible {
   border-color: rgba(112, 209, 154, .48);
   background: rgba(112, 209, 154, .12);
   color: #f4f8f2;
 }
 
-.hero-button-secondary {
-  background: rgba(244, 248, 242, .025);
+.hero-actions .hero-button:active {
+  transform: translateX(2px) scale(.995);
+}
+
+.hero-button-icon {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+  filter: invert(94%) sepia(7%) saturate(176%) hue-rotate(63deg) brightness(105%) contrast(96%);
+  opacity: .92;
 }
 
 .home-page .newspaper-layout {
