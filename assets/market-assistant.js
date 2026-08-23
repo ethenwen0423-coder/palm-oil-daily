@@ -399,6 +399,49 @@
     });
   }
 
+  function bindSectionNavigation() {
+    const links = Array.from(document.querySelectorAll('.command-nav > nav a[href^="#"]'));
+    const items = links.map((link) => ({
+      link,
+      section: document.querySelector(link.getAttribute("href"))
+    })).filter((item) => item.section);
+    if (!items.length) return;
+
+    const setCurrent = (current) => {
+      items.forEach(({ link }) => {
+        if (link === current) link.setAttribute("aria-current", "location");
+        else link.removeAttribute("aria-current");
+      });
+    };
+
+    const updateCurrent = () => {
+      const headerOffset = 116;
+      const positions = items.map((item) => ({ ...item, top: item.section.getBoundingClientRect().top }));
+      const reachedBottom = window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 4;
+      if (reachedBottom) {
+        const lastSection = items.slice().sort((a, b) => a.section.offsetTop - b.section.offsetTop).at(-1);
+        setCurrent(lastSection.link);
+        return;
+      }
+      const passed = positions.filter((item) => item.top <= headerOffset).sort((a, b) => b.top - a.top);
+      const upcoming = positions.filter((item) => item.top > headerOffset).sort((a, b) => a.top - b.top);
+      setCurrent((passed[0] || upcoming[0] || positions[0]).link);
+    };
+
+    items.forEach(({ link }) => link.addEventListener("click", () => setCurrent(link)));
+    let scheduled = false;
+    window.addEventListener("scroll", () => {
+      if (scheduled) return;
+      scheduled = true;
+      window.requestAnimationFrame(() => {
+        updateCurrent();
+        scheduled = false;
+      });
+    }, { passive: true });
+    window.addEventListener("hashchange", updateCurrent);
+    updateCurrent();
+  }
+
   async function load() {
     const entries = await Promise.all(Object.entries(sources).map(async ([key, urls]) => {
       try { return [key, await fetchFirst(urls)]; } catch (error) {
@@ -423,6 +466,7 @@
   }
 
   function clock() { $("live-clock").textContent = new Intl.DateTimeFormat("zh-CN", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).format(new Date()); }
+  bindSectionNavigation();
   clock(); setInterval(clock, 1000);
   load(); setInterval(load, 60000);
 })();

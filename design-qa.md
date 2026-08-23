@@ -1,59 +1,61 @@
-**Design QA — Signal Grid site refresh**
+# 24h 盯盘助手导航高亮与品牌修复 QA
 
-- Source visual truth: `/Users/ethen/.codex/generated_images/01a029b7-39c7-7aa2-a6b9-09183a664138/exec-b46b7733-9300-49fd-832a-fde884a7e20b.png`
-- Implementation: `http://127.0.0.1:8790/assistant.html`
-- Desktop screenshot: `/tmp/palm-signal-grid-desktop.jpg`
-- Mobile screenshot: `/tmp/palm-signal-grid-mobile.jpg`
-- Expanded-timeline screenshot: `/tmp/palm-signal-grid-timeline-expanded-viewport.jpg`
-- Combined comparison: `/tmp/palm-signal-grid-comparison.jpg`
-- Source pixels: 1487 x 1058.
-- Desktop implementation pixels/CSS viewport: 1440 x 1024 at device scale 1.
-- Mobile implementation pixels/CSS viewport: 390 x 844 at device scale 1.
-- Comparison normalization: source and desktop capture were independently scaled to 720 x 512 and placed side by side in a 1440 x 512 comparison image.
-- State: assistant loaded from local static datasets; market correctly presented as a last-known snapshot and the research/status chain remained active.
+## Evidence
 
-**Full-view comparison evidence**
+- Source visual truth: `/var/folders/xx/r68yfq7n04n256vjslj6z3r00000gn/T/codex-clipboard-57c0fc4b-348a-4d08-92ee-df40ee6a1703.png`
+- Browser-rendered implementation: `/tmp/palm-nav-highlight.dhPInY/nav-highlight-final.png`
+- Focused same-size comparison: `/tmp/palm-nav-highlight.dhPInY/nav-highlight-final-comparison.png`
+- Browser viewport: 1280 × 720 CSS px, device scale factor 1
+- Source pixels: 374 × 578
+- Implementation full-view pixels: 1280 × 720
+- Implementation comparison crop: 374 × 578 from viewport origin (0, 0)
+- Density normalization: both focused regions compared at 374 × 578 physical pixels; no scaling applied
+- State: page top, `盯盘总览` current, pointer hovering `油脂主力`
 
-The implementation carries over the selected design's core composition: fixed left command rail, compact system bar, AI judgment plus priority split, one merged market module, evidence timeline, and right-side operational rail. The same pine-black, mint, ivory, amber, red, and cyan semantic palette is used. Above-the-fold density now keeps the timeline visible at 1440 x 1024.
+## Full-view comparison evidence
 
-The AI area is intentionally taller than the generated concept because the existing product requires explicit fundamental, technical, and execution-boundary explanations. Secondary evidence and the secondary oil-contract desk are collapsed by default so this added research depth does not crowd the primary scan path.
+- The assistant layout, dark green palette, left navigation placement, content density, borders, and typography hierarchy remain consistent with the existing Signal Grid design.
+- Only the intended navigation/brand region changed; market cards, research content, filters, and action controls did not move.
+- The left rail now begins below the 68 px header and extends to the viewport bottom instead of overlapping the header.
 
-**Focused-region comparison evidence**
+## Focused region comparison evidence
 
-- Timeline expansion: the first row expands into three bounded columns (why it matters, evidence, next check); document width remains 1440 px and the expanded detail remains inside the 781 px timeline content area.
-- Market module: the five primary contracts remain visible in one row; secondary contracts and external references expand inside the same module.
-- Mobile: the AI judgment and priority panel stack to one column at 390 px; document and body widths both remain 390 px with no horizontal overflow.
+- The source screenshot shows `盯盘总览` and hovered `油脂主力` with the same active treatment. The final capture keeps the green rail and stronger panel fill only on `盯盘总览`; `油脂主力` receives a lower-contrast hover fill without an active rail.
+- `Vinson Research` and `24h 盯盘助手` are fully visible in the final focused comparison. Computed brand bounds are inside the header, and casing is no longer forced to uppercase.
 
-**Required fidelity surfaces**
+## Findings
 
-- Fonts and typography: compact sans-serif UI, tabular numerals, strong Chinese hierarchy, and restrained English micro-labels match the terminal direction. Real research titles wrap naturally rather than being truncated to the concept's mock copy.
-- Spacing and layout rhythm: 68 px command bar, 176 px desktop rail, compact 6–10 px section radii, and divider-led grouping reproduce the selected direction without card nesting.
-- Colors and visual tokens: deep pine surfaces, mint actions/status, amber confidence and warnings, and red/green market semantics are consistent across the assistant, homepage, reports, and OTC pages.
-- Image quality and asset fidelity: the target is UI-led and contains no required photography or custom illustration. Existing product assets were preserved; no placeholder art or approximate custom icon assets were introduced.
-- Copy and content: production-bound Chinese research content, data timestamps, health states, contract values, and risk boundaries are preserved. Concept-only mock values were not copied into the implementation.
+- No actionable P0/P1/P2 findings remain.
+- Fonts and typography: passed. Brand uses a standard system Latin stack at 700/15 px, normal casing, 0.01 em spacing, and does not wrap or clip.
+- Spacing and layout rhythm: passed. Sidebar geometry is top 68 px, height 652 px at the 1280 × 720 viewport; active and hover states retain existing padding and radii.
+- Colors and visual tokens: passed. Current state uses the existing `--green` token; hover uses a deliberately weaker 3.5% green fill.
+- Image quality and asset fidelity: not applicable; this UI region contains no raster images, logos, or custom icons.
+- Copy and content: passed. Navigation labels and brand copy are unchanged except presentation casing.
 
-**Findings**
+## Comparison history
 
-No actionable P0, P1, or P2 issues remain.
+1. Initial P1: hover and current navigation shared the same selector and visual treatment, producing two highlighted items. Fixed by separating hover/focus/current CSS and enforcing exactly one `aria-current="location"` link.
+2. Initial P1: the fixed sidebar was positioned relative to the backdrop-filtered sticky header, causing it to overlap and visually clip the brand. Fixed by disabling the unnecessary header backdrop filter on this page; post-fix geometry confirms the sidebar begins at 68 px.
+3. Initial P2: clicking the final `全品种` section could resolve back to `供需数据` because the document could not scroll its heading to the header threshold. Fixed with an explicit bottom-of-document branch; click regression now returns one matching current link for all four sections.
+4. Post-fix visual comparison: no remaining P0/P1/P2 differences in the affected region.
 
-**Comparison history**
+## Primary interactions tested
 
-- Initial P2: AI evidence and the full secondary oil desk pushed the timeline below the first viewport. Fix: kept the richer judgment summary visible, moved deeper evidence and secondary contracts into native expandable sections, and rechecked the same 1440 x 1024 state. Post-fix evidence: `/tmp/palm-signal-grid-desktop.jpg` and `/tmp/palm-signal-grid-comparison.jpg`.
-- Initial P1: the desktop decision grid overrode the mobile single-column breakpoint, causing the AI title and priority list to overlap at 390 px. Fix: restored explicit one-column decision/workspace tracks below 980 px and removed the inter-column border. Post-fix evidence: `/tmp/palm-signal-grid-mobile.jpg`; document width equals viewport width.
-- Earlier functional issue rechecked: expanding timeline detail previously risked abnormal layout. Post-fix evidence: `/tmp/palm-signal-grid-timeline-expanded-viewport.jpg`; expanded row stays within the timeline and page width does not grow.
+- Clicked `盯盘总览`, `油脂主力`, `供需数据`, and `全品种`; each produced exactly one matching current item.
+- Hovered `油脂主力` while `盯盘总览` remained current; only `盯盘总览` retained `aria-current` and the strong active rail.
+- Checked browser console warnings/errors: none.
 
-**Primary interactions tested**
+## Implementation checklist
 
-- Timeline row expand/collapse.
-- Intelligence category filter (`研究`: 1 matching item, active state updated).
-- Secondary oil desk expand/collapse (5 cards rendered).
-- Persistent return-to-home link navigates to `index.html`.
-- Desktop and mobile horizontal-overflow checks.
-- Browser console: no errors or warnings in the tested local assistant state.
-- Contract-analysis request wiring remains covered by `scripts.tests.test_contract_analysis_frontend` (3/3 passing); the standalone static server does not provide the production analysis backend.
+- [x] Separate hover and current navigation styles.
+- [x] Add scroll/click tracking with a single current item.
+- [x] Handle the bottom-most section correctly.
+- [x] Restore readable brand casing, font, spacing, and complete visibility.
+- [x] Bump CSS/JS asset versions to avoid stale browser cache.
+- [x] Pass automated tests and browser interaction regression.
 
-**Follow-up polish**
+## Follow-up polish
 
-- P3: add a compact icon set to the desktop command rail only if a production-safe local icon dependency is later approved; text labels are currently clearer than introducing a remote runtime dependency.
+- None required for this scoped repair.
 
 final result: passed

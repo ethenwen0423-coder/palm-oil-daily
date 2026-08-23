@@ -290,6 +290,8 @@ footer { border-top: 1px solid var(--line); } footer > div { display: flex; just
   min-height: 68px;
   background: rgba(6, 17, 14, .96);
   border-bottom-color: rgba(139, 207, 163, .18);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 
 .assistant-page .command-nav {
@@ -303,20 +305,31 @@ footer { border-top: 1px solid var(--line); } footer > div { display: flex; just
   border-right: 1px solid var(--line);
 }
 
+.assistant-page .brand > span {
+  min-width: 0;
+  overflow: visible;
+}
+
 .assistant-page .brand strong {
+  display: block;
+  overflow: visible;
   color: var(--green);
-  font: 800 13px/1.2 Inter, "PingFang SC", sans-serif;
-  letter-spacing: .14em;
-  text-transform: uppercase;
+  font: 700 15px/1.35 "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif;
+  letter-spacing: .01em;
+  text-transform: none;
+  white-space: nowrap;
 }
 
 .assistant-page .brand small {
-  margin-top: 5px;
+  display: block;
+  margin-top: 3px;
   color: var(--text);
-  font-size: 11px;
-  font-weight: 720;
-  letter-spacing: .08em;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: .045em;
   text-transform: none;
+  white-space: nowrap;
 }
 
 .workspace-label {
@@ -395,11 +408,23 @@ footer { border-top: 1px solid var(--line); } footer > div { display: flex; just
     border-radius: 5px;
     font-size: 11px;
     font-weight: 720;
+    transition: border-color .16s ease, background-color .16s ease, color .16s ease;
   }
 
   .assistant-page .command-nav > nav a + a { margin-top: 4px; }
 
-  .assistant-page .command-nav > nav a:hover,
+  .assistant-page .command-nav > nav a:hover {
+    background: rgba(112, 209, 154, .035);
+    color: #bed0c5;
+  }
+
+  .assistant-page .command-nav > nav a:focus-visible {
+    outline: 1px solid rgba(112, 209, 154, .55);
+    outline-offset: -1px;
+    color: var(--text);
+  }
+
+  .assistant-page .command-nav > nav a[aria-current="location"],
   .assistant-page .command-nav > nav a[aria-current="page"] {
     border-left-color: var(--green);
     background: rgba(112, 209, 154, .1);

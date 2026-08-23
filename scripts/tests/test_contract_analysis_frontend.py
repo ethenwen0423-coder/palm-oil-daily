@@ -24,8 +24,24 @@ class ContractAnalysisFrontendTests(unittest.TestCase):
 
     def test_asset_version_was_bumped(self):
         html = (ROOT / "assistant.html").read_text(encoding="utf-8")
-        self.assertIn("market-assistant.css?v=20260823-1", html)
-        self.assertIn("market-assistant.js?v=20260823-1", html)
+        self.assertIn("market-assistant.css?v=20260823-2", html)
+        self.assertIn("market-assistant.js?v=20260823-2", html)
+
+    def test_assistant_navigation_has_one_scroll_tracked_current_section(self):
+        script = (ROOT / "assets" / "market-assistant.js").read_text(encoding="utf-8")
+        style = (ROOT / "assets" / "market-assistant.css").read_text(encoding="utf-8")
+        self.assertIn("function bindSectionNavigation()", script)
+        self.assertIn('link.setAttribute("aria-current", "location")', script)
+        self.assertIn('else link.removeAttribute("aria-current")', script)
+        self.assertIn("reachedBottom", script)
+        self.assertIn('a[aria-current="location"]', style)
+
+    def test_brand_keeps_normal_case_and_readable_spacing(self):
+        style = (ROOT / "assets" / "market-assistant.css").read_text(encoding="utf-8")
+        self.assertIn("text-transform: none", style)
+        self.assertIn("font: 700 15px/1.35", style)
+        self.assertIn("letter-spacing: .01em", style)
+        self.assertIn("backdrop-filter: none", style)
 
 
 if __name__ == "__main__":
