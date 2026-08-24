@@ -50,6 +50,8 @@ class MarketAssistantStaticTests(unittest.TestCase):
         self.assertNotIn('category: "休市心跳"', script)
         self.assertNotIn('category: "监控心跳"', script)
         self.assertNotIn("array(data.brief.actions).forEach", script)
+        self.assertIn('watch: ["/api/assistant/watch", "data/market_watch.json"]', script)
+        self.assertIn('data-filter="event"', html)
         self.assertNotIn('data-filter="agent"', html)
 
     def test_home_page_links_to_assistant(self):

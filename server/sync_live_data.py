@@ -40,7 +40,9 @@ MARKET_PATHS = (
     "quant_model_signals.js",
     "quant_model_signals.json",
     "contracts/current_contracts.json",
+    "market_watch.json",
 )
+MARKET_BOOTSTRAP_PATHS = tuple(path for path in MARKET_PATHS if path != "market_watch.json")
 AI_PATHS = (
     "market_assistant_brief.json",
 )
@@ -56,6 +58,7 @@ JSON_PATHS = {
     "exchange_futures.json",
     "quant_model_signals.json",
     "contracts/current_contracts.json",
+    "market_watch.json",
     "market_assistant_brief.json",
 }
 
@@ -177,7 +180,7 @@ def sync_upstream(source_root: Path, target_root: Path) -> dict[str, object]:
     if not supply_owned:
         groups.append(("supply", SUPPLY_PATHS))
     if not market_owned:
-        groups.append(("market", MARKET_PATHS))
+        groups.append(("market", MARKET_BOOTSTRAP_PATHS))
     if not ai_owned:
         groups.append(("ai", AI_PATHS))
     requested = tuple(relative for _, paths in groups for relative in paths)

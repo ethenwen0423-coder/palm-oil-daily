@@ -7,6 +7,7 @@
     exchange: ["/api/exchange-futures", "data/exchange_futures.json"],
     supply: ["/api/supply-demand", "data/supply-demand.json"],
     brief: ["/api/assistant/brief", "data/market_assistant_brief.json"],
+    watch: ["/api/assistant/watch", "data/market_watch.json"],
     status: ["/api/status"]
   };
 
@@ -232,6 +233,14 @@
 
   function buildTimeline(data) {
     const events = [];
+    array(data.watch && data.watch.events).forEach((item) => events.push({
+      type: item.kind === "event" ? "event" : "move",
+      category: first(item.category, "市场扫描"), title: first(item.title, "市场事件"),
+      summary: first(item.summary, "来源内容待核验"), detail: first(item.interpretation, "暂无影响研判"),
+      evidence: eventEvidence(item), source: first(item.source, "市场扫描"), time: eventTime(item),
+      scope: first(item.scope, "相关合约"), impact: first(item.impact, "低"), nextCheck: "下一轮5分钟扫描",
+      url: item.url
+    }));
     array(data.brief.key_moves).forEach((item) => events.push({
       type: "move", category: "市场异动", title: first(item.label, "行情证据"), summary: first(item.value, "数值待核验"),
       detail: first(item.interpretation, "暂无补充解释"), evidence: eventEvidence(item), source: first(item.source, "已发布数据"),
@@ -257,7 +266,7 @@
 
   function renderTimeline(events, filter = "all") {
     const visible = filter === "all" ? events : events.filter((item) => item.type === filter);
-    const labels = { move: "行情", report: "研究", supply: "供需" };
+    const labels = { move: "行情", event: "事件", report: "研究", supply: "供需" };
     document.querySelectorAll("[data-filter]").forEach((button) => {
       const type = button.dataset.filter;
       const count = type === "all" ? events.length : events.filter((item) => item.type === type).length;
@@ -276,6 +285,7 @@
           </button>
           <div id="${detailId}" class="timeline-detail">
             <section><span>为什么重要</span><p>${esc(item.detail)}</p></section>
+            ${item.url ? `<section><a href="${esc(item.url)}" target="_blank" rel="noopener noreferrer">查看来源原文</a></section>` : ""}
             <section><span>关键证据</span>${evidence.length ? `<ul>${evidence.map((entry) => `<li>${esc(entry)}</li>`).join("")}</ul>` : "<p>本轮没有新增可核验证据。</p>"}</section>
             <section><span>下一步检查</span><p>${esc(first(item.nextCheck, "等待下一轮自动检查"))}</p></section>
           </div>
@@ -501,7 +511,8 @@
     bindFilters(events);
     const checkedAt = new Date().toISOString();
     $("refresh-note").textContent = `页面刷新 ${fmtTime(checkedAt, false)} · 不把系统检查写入时间线`;
-    $("timeline-refresh-state").textContent = "仅显示已发布证据 · 每 60 秒刷新";
+    const scanAt = data.watch && data.watch.generated_at;
+    $("timeline-refresh-state").textContent = scanAt ? `5分钟全量扫描 · 最近 ${fmtTime(scanAt, false)} · 仅显示可追溯证据` : "等待首轮5分钟市场扫描";
   }
 
   function clock() { $("live-clock").textContent = new Intl.DateTimeFormat("zh-CN", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).format(new Date()); }

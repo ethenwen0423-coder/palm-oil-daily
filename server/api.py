@@ -35,6 +35,7 @@ ROUTES = {
     "/api/forecast/feedback/latest": "forecast/feedback/latest.json",
     "/api/review/latest": "review/latest_review.json",
     "/api/assistant/brief": "market_assistant_brief.json",
+    "/api/assistant/watch": "market_watch.json",
 }
 
 DATASET_RULES = {
@@ -98,6 +99,11 @@ DATASET_RULES = {
         "stale_after_seconds": 60 * 60 * 6,
         "timestamp_fields": ("generated_at",),
     },
+    "/api/assistant/watch": {
+        "label": "5分钟市场扫描",
+        "stale_after_seconds": 60 * 12,
+        "timestamp_fields": ("generated_at",),
+    },
 }
 
 AUTOMATION_MARKERS = {
@@ -109,6 +115,7 @@ AUTOMATION_MARKERS = {
             "/api/exchange-futures",
             "/api/quant-model-signals",
             "/api/contracts/current",
+            "/api/assistant/watch",
         ),
     },
     "supply": {

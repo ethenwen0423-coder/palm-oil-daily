@@ -79,7 +79,7 @@ class ServerAutomationInstallerTests(unittest.TestCase):
             "/usr/sbin:/usr/bin:/sbin:/bin",
             installer,
         )
-        self.assertIn('"*-*-* *:0/10:00"', installer)
+        self.assertIn('"*-*-* *:0/5:00"', installer)
         self.assertIn('"*-*-* *:02/10:00"', installer)
         self.assertIn('"*-*-* *:07/20:00"', installer)
         self.assertIn('"*-*-* *:10/15:00"', installer)

@@ -252,10 +252,10 @@ write_service \
   "run_market_collector.py"
 write_timer \
   "$temporary_root/palm-oil-market-collector.timer" \
-  "Retry palm oil market refresh every ten minutes" \
+  "Scan full palm oil market and events every five minutes" \
   "palm-oil-market-collector.service" \
-  "*-*-* *:0/10:00" \
-  "30s"
+  "*-*-* *:0/5:00" \
+  "20s"
 write_service \
   "$temporary_root/palm-oil-research-agent.service" \
   "Generate governed palm oil research reports on the server" \

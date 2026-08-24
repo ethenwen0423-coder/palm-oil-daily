@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import fcntl
+import importlib.util
 import json
 import os
 import shutil
@@ -15,6 +16,14 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import IO
 from zoneinfo import ZoneInfo
+
+_WATCH_SPEC = importlib.util.spec_from_file_location(
+    "palm_oil_market_watch", Path(__file__).with_name("market_watch.py")
+)
+if _WATCH_SPEC is None or _WATCH_SPEC.loader is None:
+    raise RuntimeError("market watch module is unavailable")
+market_watch = importlib.util.module_from_spec(_WATCH_SPEC)
+_WATCH_SPEC.loader.exec_module(market_watch)
 
 
 SHANGHAI = ZoneInfo("Asia/Shanghai")
@@ -62,7 +71,7 @@ def select_session(now: datetime) -> tuple[str, str] | None:
     return None
 
 
-def refresh_slot(now: datetime, interval_minutes: int = 10) -> str:
+def refresh_slot(now: datetime, interval_minutes: int = 5) -> str:
     """Return the idempotency slot for one scheduled market refresh."""
     if interval_minutes <= 0 or 60 % interval_minutes:
         raise ValueError("interval_minutes must be a positive divisor of 60")
@@ -233,6 +242,18 @@ def acquire_lock(path: Path) -> IO[str] | None:
     return stream
 
 
+def private_value(path: Path, key: str) -> str | None:
+    """Read a single secret without exporting or logging the environment file."""
+    try:
+        for line in path.read_text(encoding="utf-8").splitlines():
+            name, separator, value = line.strip().removeprefix("export ").partition("=")
+            if separator and name.strip() == key and value.strip():
+                return value.strip().strip('"').strip("'")
+    except OSError:
+        pass
+    return None
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -258,6 +279,11 @@ def main() -> int:
     parser.add_argument("--now", default=os.environ.get("PALM_OIL_COLLECTOR_NOW"))
     parser.add_argument("--force-session", choices=SESSIONS)
     parser.add_argument("--fundamental-date")
+    parser.add_argument(
+        "--interval-minutes",
+        type=int,
+        default=int(os.environ.get("PALM_OIL_MARKET_INTERVAL_MINUTES", "5")),
+    )
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 
@@ -282,7 +308,11 @@ def main() -> int:
         return 0
 
     session, fundamental_date = selected
-    slot = refresh_slot(now)
+    try:
+        slot = refresh_slot(now, args.interval_minutes)
+    except ValueError as exc:
+        print(json.dumps({"status": "error", "reason": str(exc)}, ensure_ascii=False))
+        return 2
     site_root = args.site_root.resolve()
     runtime_root = args.runtime_root.resolve()
     live_data_root = args.live_data_root.resolve()
@@ -305,6 +335,7 @@ def main() -> int:
         "session": session,
         "fundamental_date": fundamental_date,
         "refresh_slot": slot,
+        "interval_minutes": args.interval_minutes,
         "site_root": str(site_root),
         "runtime_root": str(runtime_root),
         "live_data_root": str(live_data_root),
@@ -376,6 +407,29 @@ def main() -> int:
                     timeout=2400,
                     output=log,
                 )
+        previous_watch: dict[str, object] = {}
+        try:
+            previous_watch = market_watch.load_json(live_data_root / "market_watch.json")
+        except (OSError, ValueError, json.JSONDecodeError):
+            pass
+        try:
+            previous_quotes = market_watch.load_json(state_root / "market-watch" / "quotes.json")
+        except (OSError, ValueError, json.JSONDecodeError):
+            previous_quotes = {}
+        oil = market_watch.load_json(runtime_root / "data" / "oil_futures.json")
+        exchange = market_watch.load_json(runtime_root / "data" / "exchange_futures.json")
+        watch, quotes = market_watch.build_watch(
+            oil,
+            exchange,
+            previous_quotes,
+            previous_watch.get("events", []) if isinstance(previous_watch.get("events"), list) else [],
+            datetime.now(SHANGHAI),
+            os.environ.get("MX_APIKEY") or private_value(state_root / "private.env", "MX_APIKEY"),
+        )
+        watch["session"] = session
+        watch["refresh_slot"] = slot
+        market_watch.atomic_write(runtime_root / "data" / "market_watch.json", watch)
+        market_watch.atomic_write(state_root / "market-watch" / "quotes.json", quotes)
         synced = sync_module.sync_market(
             runtime_root / "data",
             live_data_root,

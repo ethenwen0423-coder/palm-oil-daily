@@ -33,6 +33,7 @@ class ServerApiStatusTests(unittest.TestCase):
         self.assertEqual(API.ROUTES["/api/supply-demand"], "supply-demand.json")
         self.assertEqual(API.ROUTES["/api/reports"], "reports.json")
         self.assertEqual(API.ROUTES["/api/assistant/brief"], "market_assistant_brief.json")
+        self.assertEqual(API.ROUTES["/api/assistant/watch"], "market_watch.json")
         self.assertEqual(
             API.ROUTES["/api/forecast/feedback/latest"],
             "forecast/feedback/latest.json",

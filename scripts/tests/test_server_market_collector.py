@@ -126,13 +126,13 @@ class ServerMarketCollectorTests(unittest.TestCase):
             COLLECTOR.select_session(datetime(2026, 8, 2, 12, 0, tzinfo=timezone))
         )
 
-    def test_refresh_slots_allow_one_publish_per_ten_minute_window(self):
+    def test_refresh_slots_allow_one_publish_per_five_minute_window(self):
         timezone = COLLECTOR.SHANGHAI
         self.assertEqual(
             COLLECTOR.refresh_slot(
                 datetime(2026, 7, 31, 11, 35, 29, tzinfo=timezone)
             ),
-            "20260731T1130",
+            "20260731T1135",
         )
         self.assertEqual(
             COLLECTOR.refresh_slot(
@@ -188,7 +188,7 @@ class ServerMarketCollectorTests(unittest.TestCase):
             live = base / "live"
             write_all_datasets(upstream, "bootstrap")
             first = SYNC.sync_upstream(upstream, live)
-            self.assertEqual(first["bootstrapped"], list(SYNC.MARKET_PATHS))
+            self.assertEqual(first["bootstrapped"], list(SYNC.MARKET_BOOTSTRAP_PATHS))
             self.assertEqual(first["reports_copied"], list(SYNC.REPORT_PATHS))
             self.assertEqual(first["review_copied"], list(SYNC.REVIEW_PATHS))
             self.assertEqual(first["supply_copied"], list(SYNC.SUPPLY_PATHS))
