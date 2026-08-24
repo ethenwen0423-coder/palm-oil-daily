@@ -107,10 +107,10 @@ python3 skills/report_writer_skill/scripts/audit_report.py \
   --kind weekend \
   --source-json "source_runs/$REPORT_DATE-weekend/raw/futures_market_data.weekly_compatible.json" \
   --output "source_runs/$REPORT_DATE-weekend/report_quality.json" \
-  --min-score 85
+  --min-score 92
 ```
 
-低于 85 分或出现任一一票否决项均不得发布：关键行情/价位错误、Level 2/3 成为主线、方向冲突、必需栏目/提纲缺失。关键数字全量复核，其他数字按固定种子至少抽取 3 项。来源口径差异可解释时记 `WARN`。
+低于 92 分或出现任一一票否决项均不得发布：关键行情/价位错误、Level 2/3 成为主线、方向冲突、必需栏目/提纲缺失、首屏 Top Call 未同时写明基准方向/行动/失效条件/置信度、主驱动未明确排序为“主驱动一/主驱动二”、四种周一情景或 Y/OI 对 P 的同步/背离处理缺失、下周事件未覆盖周一至周五。不得以“栏目齐全、数字正确”代替研究判断。关键数字全量复核，其他数字按固定种子至少抽取 3 项。来源口径差异可解释时记 `WARN`。
 
 最后按 `skills/vinson-research-writing/checklist.md` 自检。
 

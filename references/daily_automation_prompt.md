@@ -137,10 +137,10 @@ python3 skills/report_writer_skill/scripts/audit_report.py \
   --source-json "source_runs/$REPORT_DATE-daily/raw/futures_market_data.json" \
   --feedback data/forecast/feedback/latest.json \
   --output "source_runs/$REPORT_DATE-daily/report_quality.json" \
-  --min-score 85
+  --min-score 92
 ```
 
-低于 85 分或出现以下任一情况均不得发布：关键行情/价位错误、主线使用陈旧 Level 2/3 信息、预测披露缺失、交易方向冲突、必需栏目或提纲缺失。来源口径不同但可解释时可记 `WARN`，不得放过关键数字错误。
+低于 92 分或出现以下任一情况均不得发布：关键行情/价位错误、主线使用陈旧 Level 2/3 信息、预测披露缺失、交易方向冲突、必需栏目或提纲缺失、首屏 Top Call 未同时写明基准方向/行动/失效条件/置信度、主驱动未明确排序为“主驱动一/主驱动二”、开盘三情景或 Y/OI 对 P 的同步/背离处理缺失。不得以“栏目齐全、数字正确”代替研究判断。来源口径不同但可解释时可记 `WARN`，不得放过关键数字错误。
 
 发布前再按 `skills/vinson-research-writing/checklist.md` 自检，并完成 forecast tracking 的发布前冻结审计，禁止使用当日未来或收盘后数据。
 

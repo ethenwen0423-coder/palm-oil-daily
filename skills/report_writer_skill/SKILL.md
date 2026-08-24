@@ -117,7 +117,7 @@ python3 skills/report_writer_skill/scripts/audit_report.py \
   --source-json "source_runs/<date>-daily/raw/futures_market_data.json" \
   --feedback data/forecast/feedback/latest.json \
   --output "source_runs/<date>-daily/report_quality.json" \
-  --min-score 85
+  --min-score 92
 ```
 
 Use `--kind weekend` and the weekend source-run paths for a weekly report.
@@ -132,7 +132,7 @@ The editor checks:
 - at least three other numeric facts are sampled with a fixed seed;
 - daily forecast disclosures are present exactly;
 - source/snapshot times and evidence gaps are disclosed;
-- the quality score is at least 85/100.
+- the quality score is at least 92/100. A score cannot compensate for a missing actionable Top Call, ranked two-driver analysis, or complete opening scenarios.
 
 Scoring:
 
@@ -152,7 +152,9 @@ Regardless of total score, publication is blocked by:
 - stale Level 2/3 evidence used as a main driver;
 - a missing required forecast disclosure;
 - contradictory baseline/trading directions;
-- a missing required report section or invalid outline.
+- a missing required report section or invalid outline;
+- a first-screen Top Call that omits the baseline stance, action, invalidation condition, or research confidence;
+- an unranked driver section, incomplete opening scenarios, or (for weekly reports) an event calendar that does not cover Monday through Friday.
 
 `WARN` is appropriate for an explainable source-method difference. Do not turn a critical numeric error into a tolerance warning.
 

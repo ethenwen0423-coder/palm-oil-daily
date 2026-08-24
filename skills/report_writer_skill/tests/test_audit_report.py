@@ -106,7 +106,7 @@ def valid_report() -> str:
 
 ## 【核心驱动与预期差】
 
-截至2026-07-24 17:59，FCPO 4723点保持相对韧性，进口成本→国内盘面支撑→P确认后偏强。第二驱动是截至2026-07-27 08:22的内盘分化，它限制单边追价。市场预期供应收紧，现实是内盘尚未确认，当前定价并不充分。最强反证是原油急跌并带动外盘油脂回落，该情景会推翻偏多判断。
+主驱动一：截至2026-07-24 17:59，FCPO 4723点保持相对韧性，进口成本→国内盘面支撑→P确认后偏强。主驱动二：截至2026-07-27 08:22的内盘分化限制单边追价。市场预期供应收紧，现实是内盘尚未确认，当前定价并不充分。最强反证是原油急跌并带动外盘油脂回落，该情景会推翻偏多判断。
 
 ## 【关键数据与价格】
 
@@ -139,7 +139,7 @@ def valid_report() -> str:
     count = audit.visible_body_chars(report)
     if count < 1050:
         filler = "研究补充说明资金与价差需要共同确认否则不改变基准判断"
-        report = report.replace("第二驱动是", filler * ((1050 - count) // len(filler) + 1) + "。第二驱动是")
+        report = report.replace("市场预期", filler * ((1050 - count) // len(filler) + 1) + "。市场预期")
     return report
 
 
@@ -271,7 +271,7 @@ class AuditReportTest(unittest.TestCase):
         _, report, outline, source, feedback = self.run_audit()
         report.write_text(
             report.read_text(encoding="utf-8").replace(
-                "第二驱动是", "source_error 是当前主驱动。第二驱动是"
+                "主驱动二：", "主驱动二：source_error 是当前主驱动。"
             ),
             encoding="utf-8",
         )

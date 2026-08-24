@@ -114,7 +114,7 @@ for report_path in "${changed_reports[@]}"; do
     --kind "$report_kind"
     --source-json "$source_json"
     --output "${run_dir}/report_quality.json"
-    --min-score 85
+    --min-score 92
   )
   if [[ "$report_kind" == "daily" ]]; then
     report_audit+=(--feedback data/forecast/feedback/latest.json)

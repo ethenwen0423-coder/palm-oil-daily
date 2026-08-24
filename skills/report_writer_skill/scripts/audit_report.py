@@ -40,6 +40,7 @@ WEEKEND_SECTIONS = (
     "AI观点风险提示",
 )
 BODY_LIMITS = {"daily": (1000, 1700), "weekend": (1600, 2400)}
+QUALITY_RELEASE_SCORE = 92
 AI_DISCLAIMER = (
     "本报告由AI基于公开信息、已调用数据源和既定研究框架生成，仅代表生成时点的研究判断，"
     "不构成投资建议或交易指令。期货价格波动较大，客户应结合自身风险承受能力独立决策。"
@@ -138,6 +139,51 @@ def _section_names(text: str) -> list[str]:
 def _section(text: str, name: str) -> str:
     match = re.search(rf"^##\s*【{re.escape(name)}】\s*\n(?P<body>.*?)(?=^##\s*【|\Z)", text, re.MULTILINE | re.DOTALL)
     return match.group("body").strip() if match else ""
+
+
+def _require_top_call(text: str, outline: dict[str, Any], kind: str, errors: list[str], components: dict[str, int]) -> None:
+    """Reject a formally complete report whose first screen is not actionable."""
+    name = "今日观点" if kind == "daily" else "一句话核心观点"
+    section = _section(text, name)
+    missing: list[str] = []
+    stance = str(outline.get("market_stance") or "")
+    confidence = str(outline.get("research_confidence") or "")
+    if stance and stance not in section:
+        missing.append("基准方向")
+    if confidence and confidence not in section:
+        missing.append("研究置信度")
+    if not any(marker in section for marker in ("失效", "推翻", "放弃", "反证")):
+        missing.append("失效条件")
+    if not any(marker in section for marker in ("策略", "执行", "观望", "空仓", "交易", "不追")):
+        missing.append("行动含义")
+    if missing:
+        errors.append(f"{name} 未形成可执行 Top Call：缺少{'、'.join(missing)}")
+        components["view_trade_consistency"] = max(0, components["view_trade_consistency"] - 6)
+
+
+def _require_decision_sections(text: str, kind: str, errors: list[str], components: dict[str, int]) -> None:
+    """Check decision structures that headings and numeric checks cannot prove."""
+    driver_name = "核心驱动与预期差" if kind == "daily" else "本周验证与预期差"
+    drivers = _section(text, driver_name)
+    if not ("主驱动一" in drivers and "主驱动二" in drivers):
+        errors.append(f"{driver_name} 必须明确排序为“主驱动一/主驱动二”，避免新闻平铺")
+        components["causal_chain_expectation_gap"] = max(0, components["causal_chain_expectation_gap"] - 4)
+    scenario_name = "开盘推演" if kind == "daily" else "周一开盘推演"
+    scenarios = _section(text, scenario_name)
+    required = ("高开", "平开", "低开") if kind == "daily" else ("高开高走", "高开震荡", "高开回落", "低开")
+    missing_scenarios = [item for item in required if item not in scenarios]
+    if missing_scenarios:
+        errors.append(f"{scenario_name} 缺少情景：{'、'.join(missing_scenarios)}")
+        components["view_trade_consistency"] = max(0, components["view_trade_consistency"] - 4)
+    if not ("Y" in scenarios and "OI" in scenarios and any(marker in scenarios for marker in ("同步", "背离", "分化"))):
+        errors.append(f"{scenario_name} 未说明 Y/OI 同步或背离对 P 的处理")
+        components["view_trade_consistency"] = max(0, components["view_trade_consistency"] - 3)
+    if kind == "weekend":
+        events = _section(text, "下周主线与事件")
+        missing_days = [day for day in ("周一", "周二", "周三", "周四", "周五") if day not in events]
+        if missing_days:
+            errors.append(f"下周主线与事件缺少交易周覆盖：{'、'.join(missing_days)}")
+            components["structural_completeness"] = max(0, components["structural_completeness"] - 3)
 
 
 def visible_body_chars(text: str) -> int:
@@ -377,7 +423,7 @@ def audit_report(
     kind: str,
     source_json: Path,
     feedback_path: Path | None = None,
-    min_score: int = 85,
+    min_score: int = QUALITY_RELEASE_SCORE,
 ) -> dict[str, Any]:
     errors: list[str] = []
     warnings: list[str] = []
@@ -504,6 +550,9 @@ def audit_report(
         stance_text = _section(text, "一句话核心观点") + _section(text, "交易计划")
         if isinstance(stance, str) and stance not in stance_text:
             hard_failures.append(f"周报正文未落实基准方向：{stance}")
+
+    _require_top_call(text, outline, kind, errors, components)
+    _require_decision_sections(text, kind, errors, components)
 
     stale_drivers: list[str] = []
     for field in ("primary_driver", "secondary_driver"):
@@ -667,7 +716,7 @@ def main() -> int:
     parser.add_argument("--source-json", required=True, type=Path)
     parser.add_argument("--feedback", type=Path)
     parser.add_argument("--output", type=Path)
-    parser.add_argument("--min-score", type=int, default=85)
+    parser.add_argument("--min-score", type=int, default=QUALITY_RELEASE_SCORE)
     args = parser.parse_args()
     result = audit_report(
         report=args.report,
