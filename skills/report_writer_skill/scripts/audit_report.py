@@ -305,6 +305,12 @@ def _has_number(text: str, token: str) -> bool:
 
 def _duplicate_sentences(text: str) -> list[str]:
     body = re.split(r"^##\s*【消息来源链接】", text, maxsplit=1, flags=re.MULTILINE)[0]
+    # Repeated trigger/confirmation/invalidation cells are expected in the
+    # required P/Y/OI strategy tables.  Repetition quality applies to prose,
+    # not to structured execution contracts.
+    body = "\n".join(
+        line for line in body.splitlines() if not line.lstrip().startswith("|")
+    )
     seen: dict[str, str] = {}
     duplicates: list[str] = []
     for raw in re.split(r"[。！？\n]", body):

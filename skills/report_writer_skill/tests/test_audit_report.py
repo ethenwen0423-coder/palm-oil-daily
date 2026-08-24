@@ -247,6 +247,17 @@ class AuditReportTest(unittest.TestCase):
         self.assertFalse(result["can_publish"])
         self.assertTrue(any("重复长句" in item for item in result["errors"]))
 
+    def test_repeated_strategy_table_cells_are_not_duplicate_prose(self) -> None:
+        text = """## 【交易计划】
+
+| 品种 | 失效条件 |
+| --- | --- |
+| P | 若价格突破区间且驱动/资金同向，震荡判断失效。 |
+| Y | 若价格突破区间且驱动/资金同向，震荡判断失效。 |
+| OI | 若价格突破区间且驱动/资金同向，震荡判断失效。 |
+"""
+        self.assertEqual(audit._duplicate_sentences(text), [])
+
     def test_future_dated_source_record_blocks_publication(self) -> None:
         _, report, outline, source, feedback = self.run_audit()
         payload = json.loads(source.read_text(encoding="utf-8"))
