@@ -160,6 +160,29 @@ class ServerResearchAgentTests(unittest.TestCase):
         self.assertIn("震荡等待基本面确认。\n\n置信度：★★☆☆☆。", updated)
         self.assertEqual(updated.count("置信度："), 1)
 
+    def test_daily_audit_contracts_expose_stance_and_invalidation(self) -> None:
+        markdown = """# 08月24日晨报
+
+## 【今日交易信号】
+
+| 品种 | 行动 |
+|---|---|
+| P | 等待 |
+
+## 【风险提示】
+
+供需与价格可能背离。
+
+## 【信息来源与核验说明】
+"""
+        updated = MODULE.ensure_daily_audit_contracts(
+            markdown,
+            {"market_stance": "震荡", "invalidation_condition": "P跌破观察区间"},
+            "daily",
+        )
+        self.assertIn("今日策略：震荡。", updated)
+        self.assertIn("可检验失效条件：P跌破观察区间。", updated)
+
     def test_model_output_cannot_change_fixed_logic(self) -> None:
         payload = {
             "report_markdown": "# 08月07日晨报\n" + ("报告内容" * 500),

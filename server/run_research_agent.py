@@ -218,7 +218,7 @@ def build_prompt(
             "AI观点风险提示",
         ]
     )
-    budget = "1000-1400" if kind == "daily" else "1600-2400"
+    budget = "1000-1700" if kind == "daily" else "1600-2400"
     title = datetime.fromisoformat(report_date).strftime("%m月%d日") + (
         "晨报" if kind == "daily" else "周报"
     )
@@ -348,6 +348,42 @@ def ensure_visible_confidence(
     body = "\n".join([lines[0], "", f"置信度：{rating}。", *lines[1:]]).strip()
     updated = f"{match.group(1)}{body}\n"
     return markdown[: match.start()] + updated + markdown[match.end() :]
+
+
+def ensure_daily_audit_contracts(
+    markdown: str,
+    outline: dict[str, Any],
+    kind: str,
+) -> str:
+    """Expose the audited direction and invalidation without inventing values."""
+    if kind != "daily":
+        return markdown
+    stance = str(outline.get("market_stance") or "")
+    invalidation = str(outline.get("invalidation_condition") or "").strip()
+
+    signal_pattern = re.compile(
+        r"(## 【今日交易信号】\s*\n)(.*?)(?=\n## 【|\Z)",
+        re.DOTALL,
+    )
+    signal_match = signal_pattern.search(markdown)
+    if signal_match and stance in {"偏多", "偏空", "震荡", "观望"}:
+        body = signal_match.group(2).strip()
+        body = re.sub(r"^今日策略[：:].*?\n+", "", body)
+        updated = f"{signal_match.group(1)}今日策略：{stance}。\n\n{body}\n"
+        markdown = markdown[: signal_match.start()] + updated + markdown[signal_match.end() :]
+
+    risk_pattern = re.compile(
+        r"(## 【风险提示】\s*\n)(.*?)(?=\n## 【|\Z)",
+        re.DOTALL,
+    )
+    risk_match = risk_pattern.search(markdown)
+    if risk_match and invalidation:
+        body = risk_match.group(2).strip()
+        if "失效条件" not in body:
+            body = f"{body}\n\n可检验失效条件：{invalidation}。"
+        updated = f"{risk_match.group(1)}{body}\n"
+        markdown = markdown[: risk_match.start()] + updated + markdown[risk_match.end() :]
+    return markdown
 
 
 def run_openai(schema: Path, prompt: str, *, timeout: int) -> dict[str, Any]:
@@ -631,6 +667,7 @@ def main() -> int:
             markdown, outline = enforce_confidence_cap(markdown, outline, feedback, kind)
             markdown = normalize_visible_headline(markdown, kind)
             markdown = ensure_visible_confidence(markdown, outline, kind)
+            markdown = ensure_daily_audit_contracts(markdown, outline, kind)
             atomic_write_text(report_path, markdown)
             atomic_write_json(outline_path, outline)
             success, last_gate = run_deploy(

@@ -39,7 +39,7 @@ WEEKEND_SECTIONS = (
     "消息来源链接",
     "AI观点风险提示",
 )
-BODY_LIMITS = {"daily": (1000, 1400), "weekend": (1600, 2400)}
+BODY_LIMITS = {"daily": (1000, 1700), "weekend": (1600, 2400)}
 AI_DISCLAIMER = (
     "本报告由AI基于公开信息、已调用数据源和既定研究框架生成，仅代表生成时点的研究判断，"
     "不构成投资建议或交易指令。期货价格波动较大，客户应结合自身风险承受能力独立决策。"
@@ -156,8 +156,17 @@ def _flatten_records(value: Any, prefix: str = "") -> list[NumericRecord]:
     if not isinstance(value, dict):
         return rows
     price = value.get("price")
+    if not isinstance(price, (int, float)) or isinstance(price, bool):
+        metric_value = value.get("value")
+        price = metric_value if isinstance(metric_value, (int, float)) and not isinstance(metric_value, bool) else price
     if isinstance(price, (int, float)) and not isinstance(price, bool):
-        name = value.get("name") if isinstance(value.get("name"), str) else prefix
+        name = (
+            value.get("name")
+            if isinstance(value.get("name"), str)
+            else value.get("label")
+            if isinstance(value.get("label"), str)
+            else prefix
+        )
         aliases = ALIASES.get(prefix, (name,))
         change_pct = value.get("change_pct")
         rows.append(
