@@ -216,8 +216,12 @@
   }
 
   function eventScope(item, fallback) {
-    const ids = array(item && item.evidence_ids).map((id) => String(id).split(":").pop().toUpperCase()).filter(Boolean);
+    const ids = array(item && (item.evidence_ids || item.evidence_id)).map((id) => String(id).split(":").pop().toUpperCase()).filter(Boolean);
     return ids.length ? ids.slice(0, 3).join(" · ") : fallback;
+  }
+
+  function eventEvidence(item) {
+    return array(item && (item.evidence_ids || item.evidence_id));
   }
 
   function moveImpact(value) {
@@ -228,17 +232,10 @@
 
   function buildTimeline(data) {
     const events = [];
-    const now = new Date().toISOString();
-    const closed = monitoringMode(data) === "closed";
     array(data.brief.key_moves).forEach((item) => events.push({
       type: "move", category: "市场异动", title: first(item.label, "行情证据"), summary: first(item.value, "数值待核验"),
-      detail: first(item.interpretation, "暂无补充解释"), evidence: array(item.evidence_ids), source: first(item.source, "已发布数据"),
+      detail: first(item.interpretation, "暂无补充解释"), evidence: eventEvidence(item), source: first(item.source, "已发布数据"),
       time: eventTime(item), scope: eventScope(item, "相关合约"), impact: moveImpact(item.value), nextCheck: "下一轮行情检查"
-    }));
-    array(data.brief.actions).forEach((item) => events.push({
-      type: "agent", category: "Agent 任务", title: first(item.task, "Agent 任务"), summary: first(item.result, item.status || "已处理"),
-      detail: first(item.result, "自动任务已执行"), evidence: array(item.evidence_ids), source: "AI Agent", time: eventTime(item) || data.brief.generated_at,
-      scope: eventScope(item, "系统任务"), impact: item.status === "error" ? "高" : "低", nextCheck: first(item.next_check, "等待下一次自动检查")
     }));
     const report = array(data.reports.reports || data.reports).slice(0, 1)[0];
     if (report) events.push({
@@ -255,32 +252,12 @@
         evidence: countries.map((item) => first(item.name, "官方来源")), source: "MPOB · GAPKI · USDA",
         time: data.supply.generated_at || data.supply.checked_at || data.supply.updated_at, scope: "P · Y · OI", impact: "中", nextCheck: "按官方发布周期复查" });
     }
-    const datasets = Object.values((data.status && data.status.datasets) || {});
-    const health = { ready: 0, stale: 0, invalid: 0 };
-    datasets.forEach((item) => {
-      const key = item.state === "ready" ? "ready" : item.state === "invalid" || item.state === "missing" ? "invalid" : "stale";
-      health[key] += 1;
-    });
-    events.push({
-      type: "agent", category: "数据巡检", title: "数据链状态检查",
-      summary: datasets.length ? `正常 ${health.ready} · 延迟 ${health.stale} · 缺失 ${health.invalid}` : "状态接口暂无分项结果，已保留巡检记录",
-      detail: datasets.length ? "本条来自数据健康接口，只说明数据集可用性，不代表市场出现新变化。" : "未取得分项状态；系统将在下一轮继续请求，不用旧结果冒充新增证据。",
-      evidence: datasets.slice(0, 6).map((item) => `${first(item.label, item.route)}：${first(item.state, "待查")}`), source: "Data Health", time: now,
-      scope: "数据链", impact: health.invalid ? "高" : health.stale || !datasets.length ? "中" : "低", nextCheck: "60 秒后"
-    });
-    events.push({
-      type: "agent", category: closed ? "休市心跳" : "监控心跳", title: closed ? "休市期间监控持续运行" : "24h 监控心跳",
-      summary: closed ? "行情保持最近交易快照；研究、供需、触发条件与数据健康继续检查。" : "行情与研究链按各自周期持续检查。",
-      detail: closed ? "本次只记录系统检查，没有把休市期间未变化的价格包装成新行情。" : "本次心跳确认检查链仍在运行；若无新增证据，时间线只更新巡检状态。",
-      evidence: [closed ? "当前为休市监控模式" : "当前为连续监控模式", `最近行情快照：${fmtTime(data.oil && data.oil.updated_at, true)}`],
-      source: "24h 监控系统", time: now, scope: "全品种", impact: "低", nextCheck: "60 秒后"
-    });
     return events.sort((a, b) => (timestamp(eventTime(b)) || 0) - (timestamp(eventTime(a)) || 0));
   }
 
   function renderTimeline(events, filter = "all") {
     const visible = filter === "all" ? events : events.filter((item) => item.type === filter);
-    const labels = { move: "行情", report: "研究", supply: "供需", agent: "AGENT" };
+    const labels = { move: "行情", report: "研究", supply: "供需" };
     document.querySelectorAll("[data-filter]").forEach((button) => {
       const type = button.dataset.filter;
       const count = type === "all" ? events.length : events.filter((item) => item.type === type).length;
@@ -304,7 +281,7 @@
           </div>
         </div>
       </article>`;
-    }).join("") : "<p class='empty-state'>当前筛选下没有事件；系统仍会每 60 秒继续检查。</p>";
+    }).join("") : "<p class='empty-state'>当前没有新增可发布的市场、研究或供需证据。</p>";
     document.querySelectorAll(".timeline-content button").forEach((button) => button.addEventListener("click", () => {
       const detail = document.getElementById(button.getAttribute("aria-controls"));
       const open = button.getAttribute("aria-expanded") === "true";
@@ -523,8 +500,8 @@
     renderTimeline(events, activeTimelineFilter);
     bindFilters(events);
     const checkedAt = new Date().toISOString();
-    $("refresh-note").textContent = `最近检查 ${fmtTime(checkedAt, false)} · 每 60 秒刷新`;
-    $("timeline-refresh-state").textContent = `${monitoringMode(data) === "closed" ? "休市也持续检查" : "连续检查中"} · ${fmtTime(checkedAt, false)}`;
+    $("refresh-note").textContent = `页面刷新 ${fmtTime(checkedAt, false)} · 不把系统检查写入时间线`;
+    $("timeline-refresh-state").textContent = "仅显示已发布证据 · 每 60 秒刷新";
   }
 
   function clock() { $("live-clock").textContent = new Intl.DateTimeFormat("zh-CN", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).format(new Date()); }

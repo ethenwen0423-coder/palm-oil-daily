@@ -42,6 +42,16 @@ class MarketAssistantStaticTests(unittest.TestCase):
         self.assertIn("不修改场外结构与量化模型规则", html)
         self.assertIn("缺失或过期数据会明确标注", html)
 
+    def test_timeline_contains_published_evidence_not_browser_heartbeats(self):
+        script = (ROOT / "assets" / "market-assistant.js").read_text(encoding="utf-8")
+        html = (ROOT / "assistant.html").read_text(encoding="utf-8")
+        self.assertIn("function eventEvidence(item)", script)
+        self.assertNotIn('category: "数据巡检"', script)
+        self.assertNotIn('category: "休市心跳"', script)
+        self.assertNotIn('category: "监控心跳"', script)
+        self.assertNotIn("array(data.brief.actions).forEach", script)
+        self.assertNotIn('data-filter="agent"', html)
+
     def test_home_page_links_to_assistant(self):
         html = (ROOT / "index.html").read_text(encoding="utf-8")
         self.assertGreaterEqual(html.count('href="/assistant"'), 2)
