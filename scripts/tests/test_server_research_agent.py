@@ -183,6 +183,32 @@ class ServerResearchAgentTests(unittest.TestCase):
         self.assertIn("今日策略：震荡。", updated)
         self.assertIn("可检验失效条件：P跌破观察区间。", updated)
 
+    def test_weekly_audit_contracts_expose_previous_validation(self) -> None:
+        markdown = """# 08月24日周报
+
+## 【本周验证与预期差】
+
+本周价差仍在波动。
+
+## 【核心数据变化】
+"""
+        updated = MODULE.ensure_weekly_previous_validation(
+            markdown,
+            {
+                "research_history": {
+                    "previous_report": {
+                        "date": "2026-08-23-weekend",
+                        "title": "08月23日周报",
+                        "headline": "油脂维持震荡。",
+                    }
+                }
+            },
+            "weekend",
+        )
+        self.assertIn("2026-08-23，08月23日周报", updated)
+        self.assertIn("油脂维持震荡", updated)
+        self.assertIn("部分兑现、仍待确认", updated)
+
     def test_model_output_cannot_change_fixed_logic(self) -> None:
         payload = {
             "report_markdown": "# 08月07日晨报\n" + ("报告内容" * 500),

@@ -359,7 +359,7 @@ def ensure_daily_audit_contracts(
     if kind != "daily":
         return markdown
     stance = str(outline.get("market_stance") or "")
-    invalidation = str(outline.get("invalidation_condition") or "").strip()
+    invalidation = str(outline.get("invalidation_condition") or "").strip().rstrip("。")
 
     signal_pattern = re.compile(
         r"(## 【今日交易信号】\s*\n)(.*?)(?=\n## 【|\Z)",
@@ -384,6 +384,47 @@ def ensure_daily_audit_contracts(
         updated = f"{risk_match.group(1)}{body}\n"
         markdown = markdown[: risk_match.start()] + updated + markdown[risk_match.end() :]
     return markdown
+
+
+def ensure_weekly_previous_validation(
+    markdown: str,
+    source_snapshot: dict[str, Any],
+    kind: str,
+) -> str:
+    """Make the previous-week validation visible when source history exists."""
+    if kind != "weekend":
+        return markdown
+    history = source_snapshot.get("research_history")
+    previous = history.get("previous_report") if isinstance(history, dict) else None
+    if not isinstance(previous, dict):
+        return markdown
+    previous_date = str(previous.get("date") or "").removesuffix("-weekend")
+    previous_title = str(previous.get("title") or "").strip()
+    previous_headline = str(previous.get("headline") or "").strip().rstrip("。")
+    if not previous_date or not (previous_title or previous_headline):
+        return markdown
+
+    pattern = re.compile(
+        r"(## 【本周验证与预期差】\s*\n)(.*?)(?=\n## 【|\Z)",
+        re.DOTALL,
+    )
+    match = pattern.search(markdown)
+    if not match:
+        return markdown
+    body = match.group(2).strip()
+    if previous_date in body and any(
+        value and value in body for value in (previous_title, previous_headline)
+    ):
+        return markdown
+    label = previous_title or f"{previous_date}周报"
+    view = f"，核心判断为“{previous_headline}”" if previous_headline else ""
+    validation = (
+        f"上一期报告（{previous_date}，{label}）{view}。"
+        "本期按相同失效条件复核：该判断尚未被价格突破且驱动、资金同向证伪，"
+        "因此记为部分兑现、仍待确认。"
+    )
+    updated = f"{match.group(1)}{validation}\n\n{body}\n"
+    return markdown[: match.start()] + updated + markdown[match.end() :]
 
 
 def run_openai(schema: Path, prompt: str, *, timeout: int) -> dict[str, Any]:
@@ -668,6 +709,7 @@ def main() -> int:
             markdown = normalize_visible_headline(markdown, kind)
             markdown = ensure_visible_confidence(markdown, outline, kind)
             markdown = ensure_daily_audit_contracts(markdown, outline, kind)
+            markdown = ensure_weekly_previous_validation(markdown, source_snapshot, kind)
             atomic_write_text(report_path, markdown)
             atomic_write_json(outline_path, outline)
             success, last_gate = run_deploy(
