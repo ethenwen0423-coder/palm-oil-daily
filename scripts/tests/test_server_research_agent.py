@@ -209,6 +209,34 @@ class ServerResearchAgentTests(unittest.TestCase):
         self.assertIn("油脂维持震荡", updated)
         self.assertIn("部分兑现、仍待确认", updated)
 
+    def test_weekly_existing_view_only_gets_missing_iso_date(self) -> None:
+        markdown = """# 08月24日周报
+
+## 【本周验证与预期差】
+
+上一期为08月23日周报，核心判断是“油脂维持震荡。”本期部分兑现。
+
+## 【核心数据变化】
+"""
+        updated = MODULE.ensure_weekly_previous_validation(
+            markdown,
+            {
+                "research_history": {
+                    "previous_report": {
+                        "date": "2026-08-23-weekend",
+                        "title": "08月23日周报",
+                        "headline": "油脂维持震荡。",
+                    }
+                }
+            },
+            "weekend",
+        )
+        self.assertIn("上一期报告日期：2026-08-23。", updated)
+        self.assertEqual(updated.count("油脂维持震荡"), 1)
+
+    def test_report_punctuation_is_normalized(self) -> None:
+        self.assertEqual(MODULE.normalize_report_punctuation("失效。；等待。。"), "失效；等待。")
+
     def test_model_output_cannot_change_fixed_logic(self) -> None:
         payload = {
             "report_markdown": "# 08月07日晨报\n" + ("报告内容" * 500),

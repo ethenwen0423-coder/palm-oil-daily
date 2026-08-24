@@ -412,10 +412,14 @@ def ensure_weekly_previous_validation(
     if not match:
         return markdown
     body = match.group(2).strip()
-    if previous_date in body and any(
+    has_previous_view = any(
         value and value in body for value in (previous_title, previous_headline)
-    ):
+    )
+    if previous_date in body and has_previous_view:
         return markdown
+    if has_previous_view:
+        updated = f"{match.group(1)}上一期报告日期：{previous_date}。\n\n{body}\n"
+        return markdown[: match.start()] + updated + markdown[match.end() :]
     label = previous_title or f"{previous_date}周报"
     view = f"，核心判断为“{previous_headline}”" if previous_headline else ""
     validation = (
@@ -425,6 +429,10 @@ def ensure_weekly_previous_validation(
     )
     updated = f"{match.group(1)}{validation}\n\n{body}\n"
     return markdown[: match.start()] + updated + markdown[match.end() :]
+
+
+def normalize_report_punctuation(markdown: str) -> str:
+    return markdown.replace("。；", "；").replace("。。", "。")
 
 
 def run_openai(schema: Path, prompt: str, *, timeout: int) -> dict[str, Any]:
@@ -710,6 +718,7 @@ def main() -> int:
             markdown = ensure_visible_confidence(markdown, outline, kind)
             markdown = ensure_daily_audit_contracts(markdown, outline, kind)
             markdown = ensure_weekly_previous_validation(markdown, source_snapshot, kind)
+            markdown = normalize_report_punctuation(markdown)
             atomic_write_text(report_path, markdown)
             atomic_write_json(outline_path, outline)
             success, last_gate = run_deploy(
