@@ -237,6 +237,8 @@ def build_prompt(
         """
 日报研究要求：
 - 两个主驱动至少一个必须来自基本面事实（供给、需求、库存、出口、产量、基差或价差）；技术面只能说明触发与确认，不能替代基本面解释。
+- “缺少数据”“暂无新增驱动”“来源失败”是证据边界，不是基本面驱动；不得用数据缺口支撑方向判断。
+- `## 【今日交易信号】`必须使用 Markdown 表格并分别列出 P、Y、OI 三行，逐品种写触发、确认、失效、行动/仓位与有效期。
 - score、driver/fundamental/technical 分数、数据条数、采集状态均是内部元数据，不得写成市场驱动或正文结论。
 - `source_error`、抓取失败、官方检查失败只允许出现在“信息来源与核验说明”，不得进入观点、驱动、策略或优先级判断。
 """
@@ -319,6 +321,33 @@ def enforce_confidence_cap(markdown: str, outline: dict[str, Any], feedback: dic
     body = match.group(2).rstrip()
     updated = f"{match.group(1)}{body}\n\n置信度：{rating}。"
     return markdown[: match.start()] + updated + markdown[match.end() :], outline
+
+
+def ensure_visible_confidence(
+    markdown: str,
+    outline: dict[str, Any],
+    kind: str,
+) -> str:
+    """Make the audited outline rating visible even if the model omits it."""
+    if kind != "daily":
+        return markdown
+    rating = str(outline.get("research_confidence") or "")
+    if re.fullmatch(r"[★☆]{5}", rating) is None:
+        return markdown
+    section_pattern = re.compile(
+        r"(## 【今日观点】\s*\n)(.*?)(?=\n## 【|\Z)",
+        re.DOTALL,
+    )
+    match = section_pattern.search(markdown)
+    if match is None:
+        return markdown
+    body = re.sub(r"\n*置信度[：:]\s*[★☆]{5}[。.]?", "", match.group(2)).strip()
+    lines = body.splitlines()
+    if not lines:
+        return markdown
+    body = "\n".join([lines[0], "", f"置信度：{rating}。", *lines[1:]]).strip()
+    updated = f"{match.group(1)}{body}\n"
+    return markdown[: match.start()] + updated + markdown[match.end() :]
 
 
 def run_openai(schema: Path, prompt: str, *, timeout: int) -> dict[str, Any]:
@@ -601,6 +630,7 @@ def main() -> int:
             )
             markdown, outline = enforce_confidence_cap(markdown, outline, feedback, kind)
             markdown = normalize_visible_headline(markdown, kind)
+            markdown = ensure_visible_confidence(markdown, outline, kind)
             atomic_write_text(report_path, markdown)
             atomic_write_json(outline_path, outline)
             success, last_gate = run_deploy(

@@ -542,6 +542,12 @@ def audit_report(
     if "评分" in driver_text or "评分" in driver_names or re.search(r"(?:driver|technical|fundamental)\s*=", driver_text, re.I):
         hard_failures.append("内部评分被用作研究驱动")
         components["causal_chain_expectation_gap"] = 0
+    if any(
+        marker in driver_text
+        for marker in ("缺少供需增量", "暂无强新增驱动", "数据缺失", "来源失败")
+    ):
+        hard_failures.append("证据缺口被用作市场主驱动")
+        components["causal_chain_expectation_gap"] = 0
     if not any(
         marker in driver_text + driver_names
         for marker in ("供给", "供应", "需求", "库存", "出口", "产量", "基差", "价差", "进口", "压榨")
@@ -573,6 +579,13 @@ def audit_report(
         for spread_name in ("豆棕价差", "菜豆油价差"):
             if spread_name not in text:
                 hard_failures.append(f"周报缺少相对价值指标：{spread_name}")
+    else:
+        trade_signal = _section(text, "今日交易信号")
+        if not _has_markdown_table(trade_signal):
+            hard_failures.append("日报交易信号缺少结构化表格")
+        for symbol in ("P", "Y", "OI"):
+            if re.search(rf"(?:^|\|)\s*{symbol}(?:\d{{4}})?\s*(?:\||$)", trade_signal, re.MULTILINE) is None:
+                hard_failures.append(f"日报交易信号缺少品种：{symbol}")
     if not any(marker in driver_text for marker in ("→", "传导", "因此", "使得")):
         errors.append("核心驱动缺少可识别的因果链")
         components["causal_chain_expectation_gap"] -= 5

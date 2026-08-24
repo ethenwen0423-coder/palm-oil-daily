@@ -101,6 +101,8 @@ def valid_report() -> str:
 | 品种 | 触发 | 确认 | 止损 | 目标 | 仓位 | 有效期 |
 |---|---:|---:|---:|---:|---:|---|
 | P | 9510元/吨 | 9520元/吨 | 9480元/吨 | 9600-9650元/吨 | 20% | 2026-07-27 11:30 |
+| Y | 与P同步走强 | 成交确认 | 反向走弱 | 源数据未给出 | 不新开仓 | 日内 |
+| OI | 与P同步走强 | 成交确认 | 反向走弱 | 源数据未给出 | 不新开仓 | 日内 |
 
 ## 【核心驱动与预期差】
 
@@ -286,6 +288,19 @@ class AuditReportTest(unittest.TestCase):
         result = audit.audit_report(report, outline, "daily", source, feedback)
         self.assertFalse(result["can_publish"])
         self.assertTrue(any("完整固定声明" in item for item in result["hard_failures"]))
+
+    def test_missing_data_cannot_be_fundamental_driver(self) -> None:
+        _, report, outline, source, feedback = self.run_audit()
+        report.write_text(
+            report.read_text(encoding="utf-8").replace(
+                "截至2026-07-24 17:59，FCPO 4723点保持相对韧性",
+                "缺少供需增量信息，因此维持震荡",
+            ),
+            encoding="utf-8",
+        )
+        result = audit.audit_report(report, outline, "daily", source, feedback)
+        self.assertFalse(result["can_publish"])
+        self.assertTrue(any("证据缺口" in item for item in result["hard_failures"]))
 
 
 if __name__ == "__main__":

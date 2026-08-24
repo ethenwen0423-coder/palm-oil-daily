@@ -100,6 +100,7 @@ class ServerResearchAgentTests(unittest.TestCase):
         self.assertIn("今日观点”第一段必须包含可机器读取的 `置信度：", prompt)
         self.assertIn("内部元数据，不得写成市场驱动", prompt)
         self.assertIn("必须逐字写：本报告由AI基于公开信息", prompt)
+        self.assertIn("分别列出 P、Y、OI 三行", prompt)
 
     def test_weekend_prompt_requires_history_tables_and_relative_value(self) -> None:
         prompt = MODULE.build_prompt(
@@ -148,6 +149,16 @@ class ServerResearchAgentTests(unittest.TestCase):
         )
         self.assertIn("置信度：★★☆☆☆。", updated)
         self.assertEqual(outline["research_confidence"], "★★☆☆☆")
+
+    def test_final_confidence_repair_uses_audited_outline_rating(self) -> None:
+        markdown = "# 08月24日晨报\n\n## 【今日观点】\n\n震荡等待基本面确认。\n\n## 【今日交易信号】\n"
+        updated = MODULE.ensure_visible_confidence(
+            markdown,
+            {"research_confidence": "★★☆☆☆"},
+            "daily",
+        )
+        self.assertIn("震荡等待基本面确认。\n\n置信度：★★☆☆☆。", updated)
+        self.assertEqual(updated.count("置信度："), 1)
 
     def test_model_output_cannot_change_fixed_logic(self) -> None:
         payload = {
