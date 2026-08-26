@@ -202,7 +202,8 @@ h1 { margin: 0; font: 600 clamp(30px, 3.3vw, 42px)/1.04 Georgia, "Songti SC", se
 .timeline-content p { overflow-wrap: anywhere; margin: 4px 0 0; color: var(--muted); font-size: 9px; line-height: 1.45; }
 .timeline-context { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; min-width: 0; }
 .timeline-context > span { min-width: 0; }.timeline-context small, .timeline-context b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }.timeline-context small { color: #70867a; font-size: 7px; }.timeline-context b { margin-top: 4px; color: #b8c8be; font-size: 8px; font-weight: 600; }
-.timeline-context .impact-高 { color: var(--red); }.timeline-context .impact-中 { color: var(--gold); }.timeline-context .impact-低 { color: var(--green); }
+.timeline-context b[class^="impact-"] { display: inline-flex; align-items: center; width: max-content; min-width: 22px; padding: 3px 7px; border: 1px solid currentColor; border-radius: 999px; line-height: 1; }
+.timeline-context .impact-高 { color: #f08a82; background: rgba(221,116,107,.15); }.timeline-context .impact-中 { color: #e4bd74; background: rgba(213,173,103,.14); }.timeline-context .impact-低 { color: #86d7a2; background: rgba(120,199,148,.13); }
 .timeline-toggle { min-width: 32px; padding: 5px 0; border: 1px solid var(--line); border-radius: 5px; color: var(--muted); font-size: 8px; text-align: center; }
 .timeline-content button:hover, .timeline-content button:focus-visible { outline: none; background: rgba(120,199,148,.035); }.timeline-content button:focus-visible .timeline-toggle { border-color: var(--green); color: var(--text); }
 .timeline-detail { display: none; grid-template-columns: 1.2fr 1.5fr .8fr; gap: 0; margin: 0 12px 11px; border: 1px solid var(--line); border-radius: 7px; background: rgba(7,19,15,.56); color: #bac9bf; }
