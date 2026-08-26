@@ -124,6 +124,22 @@ class ServerApiStatusTests(unittest.TestCase):
         self.assertEqual(status["automation"]["research"]["state"], "pending")
         self.assertNotIn("credential", json.dumps(status))
 
+    def test_public_payload_masks_institution_brand_names(self):
+        payload = API.public_payload(
+            {
+                "label": "华泰天玑只读采集",
+                "source": "HTFC Tianji",
+                "evidence": ["htfc-news:KX1", "华泰期货研报"],
+                "url": "https://www.htfc.com/",
+            }
+        )
+
+        rendered = json.dumps(payload, ensure_ascii=False)
+        for forbidden in ("华泰", "天玑", "HTFC", "Tianji", "htfc.com"):
+            self.assertNotIn(forbidden, rendered)
+        self.assertEqual(payload["label"], "机构资讯只读采集")
+        self.assertEqual(payload["source"], "机构资讯数据")
+
     def test_research_and_review_markers_replace_upstream_ownership(self):
         now = datetime(2026, 7, 30, 14, 0, tzinfo=timezone.utc)
         self.write_json("reports.json", [{"date": "2026-07-30"}])

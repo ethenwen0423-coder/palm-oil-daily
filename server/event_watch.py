@@ -129,9 +129,9 @@ def rss_events(watch: Any, now: datetime, timeout: int = 10) -> tuple[list[dict[
 
 
 def htfc_flash_events(watch: Any, base_url: str | None, api_key: str | None, now: datetime, timeout: int = 12) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-    name = "华泰天玑·油脂油料快讯"
+    name = "机构资讯·油脂油料快讯"
     if not base_url or not api_key:
-        return [], {"name": name, "state": "unavailable", "detail": "生产环境未配置 HTFC_BASE_URL/HTFC_API_KEY。"}
+        return [], {"name": name, "state": "unavailable", "detail": "机构资讯接口未配置。"}
     url = base_url.rstrip("/") + HTFC_FLASH_PATH + "?" + urllib.parse.urlencode({"tags": "tags150", "lastId": "", "type": ""})
     try:
         payload = request_json(url, timeout, headers={"apikey": api_key})
@@ -180,9 +180,9 @@ def category_pairs(payload: Any) -> list[tuple[str, str]]:
 
 
 def htfc_report_events(watch: Any, base_url: str | None, api_key: str | None, now: datetime, timeout: int = 12) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-    name = "华泰天玑·研报"
+    name = "机构资讯·研报"
     if not base_url or not api_key:
-        return [], {"name": name, "state": "unavailable", "detail": "生产环境未配置 HTFC_BASE_URL/HTFC_API_KEY。"}
+        return [], {"name": name, "state": "unavailable", "detail": "机构资讯接口未配置。"}
     try:
         types = request_json(base_url.rstrip("/") + HTFC_REPORT_TYPES_PATH, timeout, headers={"apikey": api_key})
         matching = [(label, value) for label, value in category_pairs(types) if watch.flash_relevant(label)]

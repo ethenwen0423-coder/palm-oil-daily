@@ -45,6 +45,8 @@ class MarketAssistantStaticTests(unittest.TestCase):
         self.assertIn("const sectorGroups", script)
         self.assertIn("renderPulse(data.oil || {}, data.watch || {})", script)
         self.assertIn('live ? "盘中行情" : "行情快照"', script)
+        self.assertIn("const publicText", script)
+        self.assertIn("institutional-feed", script)
 
     def test_assistant_preserves_fixed_logic_boundary(self):
         html = (ROOT / "assistant.html").read_text(encoding="utf-8")

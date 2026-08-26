@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import os
 import importlib.util
+import re
 import threading
 import time as monotonic_time
 from datetime import date, datetime, time, timezone
@@ -106,7 +107,7 @@ DATASET_RULES = {
         "timestamp_fields": ("generated_at",),
     },
     "/api/htfc/tianji": {
-        "label": "华泰天玑",
+        "label": "机构资讯数据",
         "stale_after_seconds": 60 * 60,
         "timestamp_fields": ("generated_at",),
     },
@@ -151,7 +152,7 @@ AUTOMATION_MARKERS = {
         ),
     },
     "htfc": {
-        "label": "华泰天玑只读采集",
+        "label": "机构资讯只读采集",
         "path": ".server-htfc-ready.json",
         "routes": ("/api/htfc/tianji",),
     },
@@ -168,6 +169,36 @@ UPSTREAM_ROUTES = {
 
 def load_json(path: Path) -> Any:
     return json.loads(path.read_bytes())
+
+
+PUBLIC_TEXT_REPLACEMENTS = (
+    (re.compile(r"https?://(?:www\.)?htfc\.com/?", re.IGNORECASE), ""),
+    (re.compile(r"htfc[-_ ]news", re.IGNORECASE), "institutional-news"),
+    (re.compile(r"htfc[-_ ]kline", re.IGNORECASE), "institutional-kline"),
+    (re.compile(r"HTFC\s*Tianji", re.IGNORECASE), "机构资讯数据"),
+    (re.compile(r"htfc[-_ ]tianji", re.IGNORECASE), "institutional-feed"),
+    (re.compile(r"华泰天玑"), "机构资讯"),
+    (re.compile(r"华泰期货"), "机构研究"),
+    (re.compile(r"天玑", re.IGNORECASE), "机构资讯"),
+    (re.compile(r"HTFC", re.IGNORECASE), "机构资讯"),
+)
+
+
+def public_text(value: str) -> str:
+    text = value
+    for pattern, replacement in PUBLIC_TEXT_REPLACEMENTS:
+        text = pattern.sub(replacement, text)
+    return text
+
+
+def public_payload(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {key: public_payload(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [public_payload(item) for item in value]
+    if isinstance(value, str):
+        return public_text(value)
+    return value
 
 
 def _load_contract_analysis_module():
@@ -352,7 +383,7 @@ class Handler(BaseHTTPRequestHandler):
     server_version = "PalmOilDataAPI/2"
 
     def _send_json(self, status: int, payload: Any, *, include_body: bool = True) -> None:
-        raw = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+        raw = json.dumps(public_payload(payload), ensure_ascii=False, separators=(",", ":")).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Cache-Control", "no-store, max-age=0")

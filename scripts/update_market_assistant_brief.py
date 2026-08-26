@@ -364,11 +364,11 @@ def build_context(payloads: dict[str, Any]) -> dict[str, Any]:
         evidence.append(
             evidence_record(
                 f"htfc-news:{identity}",
-                "htfc-tianji",
-                clean_text(item.get("title") or item.get("tag2") or item.get("tagName") or "天玑快讯", 80),
+                "institutional-feed",
+                clean_text(item.get("title") or item.get("tag2") or item.get("tagName") or "机构快讯", 80),
                 clean_text(item.get("content") or "需进一步核验", 160),
                 observed_at=clean_text(f"{item.get('date', '')} {item.get('time', '')}", 40),
-                detail="华泰天玑油脂油料快讯；属于资讯证据，不替代官方供需数据。",
+                detail="机构油脂油料快讯；属于资讯证据，不替代官方供需数据。",
             )
         )
 
@@ -385,7 +385,7 @@ def build_context(payloads: dict[str, Any]) -> dict[str, Any]:
         evidence.append(
             evidence_record(
                 f"htfc-kline:{clean_text(symbol, 20)}",
-                "htfc-tianji",
+                "institutional-feed",
                 f"{clean_text(label.get('name') or symbol, 40)}智能K线",
                 f"最近收盘 {clean_text(closes[-1] if closes else '需进一步核验', 30)}",
                 observed_at=clean_text(data.get("kLineAiReportDate") or htfc.get("generated_at"), 40),

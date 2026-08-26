@@ -1,5 +1,24 @@
 (function () {
-  const reports = Array.isArray(window.PALM_OIL_REPORTS) ? window.PALM_OIL_REPORTS : [];
+  function publicText(value) {
+    return String(value == null ? "" : value)
+      .replace(/https?:\/\/(?:www\.)?htfc\.com\/?/gi, "")
+      .replace(/htfc[-_ ]news/gi, "institutional-news")
+      .replace(/htfc[-_ ]kline/gi, "institutional-kline")
+      .replace(/HTFC\s*Tianji/gi, "机构资讯数据")
+      .replace(/htfc[-_ ]tianji/gi, "institutional-feed")
+      .replace(/华泰天玑/g, "机构资讯")
+      .replace(/华泰期货/g, "机构研究")
+      .replace(/天玑/gi, "机构资讯")
+      .replace(/HTFC/gi, "机构资讯");
+  }
+
+  function publicPayload(value) {
+    if (Array.isArray(value)) return value.map(publicPayload);
+    if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, publicPayload(item)]));
+    return typeof value === "string" ? publicText(value) : value;
+  }
+
+  const reports = Array.isArray(window.PALM_OIL_REPORTS) ? window.PALM_OIL_REPORTS.map(publicPayload) : [];
   const latestDate = document.querySelector("#latest-date");
   const latestUpdated = document.querySelector("#latest-updated");
   const recentList = document.querySelector("#recent-list");
@@ -32,7 +51,7 @@
   const downloadLink = document.querySelector("#download-link");
 
   function escapeHtml(value) {
-    return String(value)
+    return publicText(value)
       .replaceAll("&", "&amp;")
       .replaceAll("<", "&lt;")
       .replaceAll(">", "&gt;")
