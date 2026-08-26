@@ -415,17 +415,63 @@ footer { border-top: 1px solid var(--line); } footer > div { display: flex; just
   background: rgba(6, 17, 14, .56);
 }
 
+.assistant-page .sector-view-card.is-expanded { grid-column: span 2; }
+.assistant-page .sector-view-toggle {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  text-align: left;
+  background: transparent;
+  cursor: pointer;
+}
+.assistant-page .sector-view-toggle:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 5px;
+  border-radius: 3px;
+}
+
 .assistant-page .sector-view-card.is-strong { border-top-color: var(--green); }
 .assistant-page .sector-view-card.is-weak { border-top-color: var(--red); }
 .assistant-page .sector-view-card.is-split { border-top-color: var(--gold); }
-.assistant-page .sector-view-card header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.assistant-page .sector-view-card header strong { font-size: 12px; }
-.assistant-page .sector-view-card header span { color: var(--muted); font-size: 9px; font-weight: 750; }
-.assistant-page .sector-view-card.is-strong header span { color: var(--green); }
-.assistant-page .sector-view-card.is-weak header span { color: var(--red); }
-.assistant-page .sector-view-card.is-split header span { color: var(--gold); }
-.assistant-page .sector-view-card p { min-height: 42px; margin: 10px 0; color: #b7c9be; font-size: 10px; line-height: 1.55; }
-.assistant-page .sector-view-card footer { padding-top: 9px; border-top: 1px solid var(--line); color: var(--muted); font-size: 8px; line-height: 1.5; }
+.assistant-page .sector-view-toggle > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.assistant-page .sector-view-toggle > header strong { font-size: 12px; }
+.assistant-page .sector-view-toggle > header span { color: var(--muted); font-size: 9px; font-weight: 750; }
+.assistant-page .sector-view-card.is-strong .sector-view-toggle > header span { color: var(--green); }
+.assistant-page .sector-view-card.is-weak .sector-view-toggle > header span { color: var(--red); }
+.assistant-page .sector-view-card.is-split .sector-view-toggle > header span { color: var(--gold); }
+.assistant-page .sector-summary { min-height: 42px; margin: 10px 0; color: #b7c9be; font-size: 10px; line-height: 1.55; }
+.assistant-page .sector-view-affordance {
+  display: block;
+  padding-top: 9px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 8px;
+  font-weight: 700;
+}
+.assistant-page .sector-view-affordance::after { content: " ＋"; color: var(--green); }
+.assistant-page .sector-view-toggle[aria-expanded="true"] .sector-view-affordance::after { content: " −"; }
+.assistant-page .sector-evidence-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.assistant-page .sector-evidence-list[hidden] { display: none; }
+.assistant-page .sector-evidence-item {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid rgba(118, 151, 132, .18);
+  border-radius: 4px;
+  background: rgba(3, 13, 10, .48);
+}
+.assistant-page .sector-evidence-item header { display: block; }
+.assistant-page .sector-evidence-item strong { display: block; color: var(--text); font-size: 9px; }
+.assistant-page .sector-evidence-item header span { display: block; margin-top: 3px; color: var(--muted); font-size: 8px; }
+.assistant-page .sector-evidence-item p { min-height: 0; margin: 8px 0 0; color: #c4d5cb; font-size: 9px; line-height: 1.5; }
+.assistant-page .sector-evidence-item small { display: block; margin-top: 5px; color: var(--muted); font-size: 8px; line-height: 1.5; }
 
 @media (min-width: 981px) {
   .assistant-page .command-nav > nav {
@@ -721,5 +767,7 @@ footer { border-top: 1px solid var(--line); } footer > div { display: flex; just
   .assistant-page .monitor-mode { grid-template-columns: 1fr; }
   .assistant-page .sector-intelligence { scroll-margin-top: 104px; margin-top: 10px; padding: 15px; }
   .assistant-page .sector-view-grid { grid-template-columns: 1fr; }
+  .assistant-page .sector-view-card.is-expanded { grid-column: span 1; }
+  .assistant-page .sector-evidence-list { grid-template-columns: 1fr; }
   .assistant-page .sector-view-card p { min-height: 0; }
 }

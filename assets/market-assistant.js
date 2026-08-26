@@ -205,18 +205,52 @@
     }).filter(Boolean);
   }
 
+  const expandedSectors = new Set();
+
+  function sectorEvidenceDetails(evidence) {
+    const items = array(evidence);
+    if (!items.length) {
+      return "<section class='sector-evidence-item is-empty'><strong>暂无可追溯证据</strong><p>等待下一轮行情与事件采集。</p></section>";
+    }
+    return items.map((item) => {
+      const source = first(item.source, "来源待核验");
+      const observedAt = item.observed_at ? fmtTime(item.observed_at, true) : "时间待核验";
+      return `<section class="sector-evidence-item"><header><strong>${esc(first(item.label, "行情证据"))}</strong><span>${esc(source)} · ${esc(observedAt)}</span></header><p>${esc(first(item.value, "数值待核验"))}</p>${item.detail ? `<small>${esc(item.detail)}</small>` : ""}</section>`;
+    }).join("");
+  }
+
+  function bindSectorViewToggles() {
+    const grid = $("sector-view-grid");
+    grid.onclick = (event) => {
+      const button = event.target.closest(".sector-view-toggle");
+      if (!button || !grid.contains(button)) return;
+      const sector = button.dataset.sector;
+      const details = $(button.getAttribute("aria-controls"));
+      const expanded = button.getAttribute("aria-expanded") === "true";
+      button.setAttribute("aria-expanded", String(!expanded));
+      button.querySelector(".sector-view-affordance").textContent = expanded ? "展开证据链" : "收起证据链";
+      button.closest(".sector-view-card").classList.toggle("is-expanded", !expanded);
+      details.hidden = expanded;
+      if (expanded) expandedSectors.delete(sector);
+      else expandedSectors.add(sector);
+    };
+  }
+
   function renderSectorViews(payload, data) {
     const generated = array(payload.sector_views);
     const views = generated.length ? generated : sectorFallback(data.exchange || {});
     $("sector-intelligence-updated").textContent = generated.length
       ? `AI 生成 ${fmtTime(payload.generated_at || payload.updated_at, true)}`
       : `行情结构 ${fmtTime((data.exchange || {}).updated_at, true)}`;
-    $("sector-view-grid").innerHTML = views.length ? views.map((item) => {
-      const evidence = array(item.evidence)[0] || {};
+    $("sector-view-grid").innerHTML = views.length ? views.map((item, index) => {
+      const sector = first(item.sector, "未分类板块");
+      const expanded = expandedSectors.has(sector);
+      const detailsId = `sector-evidence-${index}`;
       const state = first(item.state, "数据不足");
       const stateClass = state === "偏强" ? "is-strong" : state === "偏弱" ? "is-weak" : state === "分化" ? "is-split" : "is-neutral";
-      return `<article class="sector-view-card ${stateClass}"><header><strong>${esc(first(item.sector, "未分类板块"))}</strong><span>${esc(state)}</span></header><p>${esc(first(item.summary, "等待板块研判。"))}</p><footer>${esc(first(evidence.value, "等待可追溯行情证据"))}</footer></article>`;
+      return `<article class="sector-view-card ${stateClass}${expanded ? " is-expanded" : ""}"><button class="sector-view-toggle" type="button" data-sector="${esc(sector)}" aria-expanded="${expanded}" aria-controls="${detailsId}"><header><strong>${esc(sector)}</strong><span>${esc(state)}</span></header><p class="sector-summary">${esc(first(item.summary, "等待板块研判。"))}</p><span class="sector-view-affordance">${expanded ? "收起证据链" : "展开证据链"}</span></button><div class="sector-evidence-list" id="${detailsId}"${expanded ? "" : " hidden"}>${sectorEvidenceDetails(item.evidence)}</div></article>`;
     }).join("") : "<article class='sector-view-card is-empty'><strong>暂无板块数据</strong><p>等待下一轮全市场行情刷新。</p></article>";
+    bindSectorViewToggles();
   }
 
   function compactLots(value) {

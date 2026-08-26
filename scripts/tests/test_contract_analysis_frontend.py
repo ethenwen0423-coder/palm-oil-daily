@@ -24,8 +24,8 @@ class ContractAnalysisFrontendTests(unittest.TestCase):
 
     def test_asset_version_was_bumped(self):
         html = (ROOT / "assistant.html").read_text(encoding="utf-8")
-        self.assertIn("market-assistant.css?v=20260823-2", html)
-        self.assertIn("market-assistant.js?v=20260826-3", html)
+        self.assertIn("market-assistant.css?v=20260826-4", html)
+        self.assertIn("market-assistant.js?v=20260826-4", html)
 
     def test_assistant_navigation_has_one_scroll_tracked_current_section(self):
         script = (ROOT / "assets" / "market-assistant.js").read_text(encoding="utf-8")
