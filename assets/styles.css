@@ -5505,6 +5505,225 @@ body.home-page {
   }
 }
 
+/* Production visual system: deep navy surfaces with platinum typography. */
+:root {
+  color-scheme: dark;
+  --bg: #07111f;
+  --panel: #0e1b2d;
+  --ink: #f0f3f8;
+  --muted: #a7b2c3;
+  --line: #2a3a51;
+  --accent: #d8dee9;
+  --accent-dark: #ffffff;
+  --gold: #d8dee9;
+  --deep: #07111f;
+  --deep-2: #10213a;
+  --danger: #ef8b84;
+  --shadow: 0 18px 42px rgba(0, 0, 0, 0.26);
+}
+
+html,
+body,
+body.detail-page,
+body.section-page,
+body.otc-page,
+body.otc-library-page,
+body.quant-page,
+body.redirect-page {
+  background: radial-gradient(circle at 84% -12%, rgba(103, 134, 181, 0.2), transparent 36%), #07111f;
+  color: var(--ink);
+}
+
+body.home-page,
+.home-page .newspaper-layout {
+  background:
+    radial-gradient(circle at 88% 4%, rgba(129, 151, 185, 0.16), transparent 31%),
+    linear-gradient(155deg, #07111f 0%, #0c1a2d 52%, #081321 100%);
+}
+
+.hero,
+.masthead,
+.quant-detail-hero,
+.otc-hero,
+.library-hero,
+.section-page-header {
+  background-color: #0b1829;
+}
+
+.hero {
+  background:
+    linear-gradient(135deg, rgba(7, 17, 31, 0.98), rgba(18, 36, 59, 0.96) 52%, rgba(5, 13, 25, 0.99)),
+    var(--deep);
+}
+
+.home-anchor-nav,
+.section-page-nav {
+  border-color: rgba(216, 222, 233, 0.16);
+  background: rgba(7, 17, 31, 0.88);
+}
+
+.market-brief,
+.sources-section,
+.newspaper-section,
+.report-view,
+.archive,
+.source-card,
+.brief-report-item,
+.research-entry-card,
+.section-page-intro,
+.section-page-main,
+.otc-form,
+.otc-result,
+.otc-library-entry,
+.library-toolbar,
+.library-content,
+.library-boundary,
+.quant-detail-facts,
+.quant-detail-aside,
+.quant-rule-card,
+.quant-detail-risk {
+  border-color: var(--line);
+  background: #0e1b2d;
+  box-shadow: var(--shadow);
+  color: var(--ink);
+}
+
+.newspaper-section,
+.report-view,
+.archive,
+.quant-detail-facts,
+.quant-detail-aside,
+.quant-rule-card {
+  background-image: none;
+}
+
+.report-content th,
+.archive-item,
+select,
+input,
+textarea,
+.otc-field select,
+.otc-field input,
+.library-filters input,
+.quant-detail-model-picker select,
+.quant-detail-tags span,
+.quant-detail-risk,
+.otc-result-empty {
+  border-color: var(--line);
+  background: #13243a;
+  color: var(--ink);
+}
+
+.report-link,
+.archive-item,
+.back-link,
+.quant-detail-section-heading h2,
+.quant-rule-card h3,
+.quant-detail-facts strong,
+.otc-intro h1,
+.library-hero h1,
+.section-page-intro h1 {
+  color: var(--ink);
+}
+
+.report-link small,
+.archive-item span,
+.quant-detail-note,
+.quant-rule-card > p,
+.quant-rule-card li,
+.quant-detail-facts span,
+.section-page-intro p,
+.otc-intro p,
+.library-hero p,
+.site-footer,
+.quant-footer {
+  color: var(--muted);
+}
+
+.section-heading,
+.report-toolbar,
+.report-link,
+.quant-detail-facts,
+.quant-detail-facts > div,
+.quant-rule-card,
+.report-content th,
+.report-content td,
+.section-page-nav,
+.library-toolbar,
+.otc-library-entry {
+  border-color: var(--line);
+}
+
+.hero-button-primary,
+.otc-submit,
+.quant-detail-use,
+.otc-library-entry > a {
+  background: #d8dee9;
+  border-color: #d8dee9;
+  color: #07111f;
+}
+
+.hero-button-secondary,
+.hero-button-option,
+.download-link,
+.quant-back,
+.section-page-nav a,
+.home-anchor-nav a {
+  border-color: rgba(216, 222, 233, 0.34);
+  background: rgba(216, 222, 233, 0.06);
+  color: var(--ink);
+}
+
+.hero-button-primary:hover,
+.otc-submit:hover,
+.quant-detail-use:hover,
+.otc-library-entry > a:hover {
+  background: #ffffff;
+  color: #07111f;
+}
+
+.quant-detail-hero,
+.otc-hero,
+.library-hero {
+  background:
+    radial-gradient(circle at 86% 12%, rgba(151, 174, 211, 0.2), transparent 32%),
+    linear-gradient(135deg, #07111f, #162b47 62%, #07111f);
+}
+
+.quant-detail-risk {
+  border-left-color: #d8dee9;
+}
+
+.quant-detail-risk span,
+.otc-eyebrow,
+.quant-eyebrow,
+.section-heading span,
+.section-label,
+.label {
+  color: #d8dee9;
+}
+
+.redirect-page {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  margin: 0;
+  padding: 24px;
+}
+
+.redirect-page p {
+  margin: 0;
+}
+
+.redirect-page a {
+  display: inline-flex;
+  padding: 12px 16px;
+  border: 1px solid rgba(216, 222, 233, 0.34);
+  background: #0e1b2d;
+  color: var(--ink);
+  text-decoration: none;
+}
+
 /* Signal Grid site-wide refinement — selected Product Design direction, 2026-08-23 */
 :root {
   --deep: #06110e;
