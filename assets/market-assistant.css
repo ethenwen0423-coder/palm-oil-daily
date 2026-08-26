@@ -1,16 +1,16 @@
 :root {
   color-scheme: dark;
-  --bg: #07111f;
-  --panel: #0d1a2b;
-  --panel-2: #13243a;
-  --line: rgba(205, 216, 232, .14);
-  --line-strong: rgba(205, 216, 232, .28);
-  --text: #f0f3f8;
-  --muted: #a7b2c3;
-  --green: #6ac59d;
-  --gold: #d8dee9;
-  --red: #ef8b84;
-  --blue: #8bb8ea;
+  --bg: #07130f;
+  --panel: #0b1b15;
+  --panel-2: #0e241b;
+  --line: rgba(176, 211, 187, .14);
+  --line-strong: rgba(176, 211, 187, .25);
+  --text: #edf5ef;
+  --muted: #91a69a;
+  --green: #78c794;
+  --gold: #d5ad67;
+  --red: #dd746b;
+  --blue: #77a8db;
   --shell: 1480px;
 }
 * { box-sizing: border-box; }
@@ -20,7 +20,7 @@ button, a { font: inherit; }
 a { color: inherit; text-decoration: none; }
 button { color: inherit; }
 .shell { width: min(calc(100% - 48px), var(--shell)); margin-inline: auto; }
-.command-header { position: sticky; top: 0; z-index: 20; border-bottom: 1px solid var(--line); background: rgba(7, 17, 31, .92); backdrop-filter: blur(18px); }
+.command-header { position: sticky; top: 0; z-index: 20; border-bottom: 1px solid var(--line); background: rgba(7, 19, 15, .92); backdrop-filter: blur(18px); }
 .command-nav { min-height: 60px; display: flex; align-items: center; gap: 34px; }
 .brand { display: flex; align-items: center; gap: 10px; min-width: 242px; }
 .brand > span:last-child { display: flex; flex-direction: column; }
@@ -40,7 +40,7 @@ button { color: inherit; }
 .monitor-mode > div { display: flex; align-items: center; gap: 10px; }.monitor-mode span { font-size: 10px; font-weight: 800; letter-spacing: .12em; }.monitor-mode strong { font-size: 12px; }.monitor-mode p { margin: 0; color: #bdcbc2; font-size: 11px; line-height: 1.5; }.monitor-mode small { color: var(--muted); font-size: 9px; text-align: right; }
 
 .decision-band { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(390px, .8fr); min-height: 420px; margin-top: 12px; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: var(--panel); }
-.decision-copy { min-width: 0; padding: 23px 28px 25px; border-right: 1px solid var(--line); background: #102139; }
+.decision-copy { min-width: 0; padding: 23px 28px 25px; border-right: 1px solid var(--line); background: #0c2018; }
 .eyebrow-row, .panel-heading, .section-heading { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
 .eyebrow-row > span:first-child, .section-heading span, .panel-heading span { color: var(--green); font-size: 10px; font-weight: 800; letter-spacing: .17em; }
 .eyebrow-row > span:last-child, .panel-heading small, .section-heading p { color: var(--muted); font-size: 11px; }
@@ -65,7 +65,7 @@ h1 { margin: 0; font: 600 clamp(30px, 3.3vw, 42px)/1.04 Georgia, "Songti SC", se
 .decision-evidence-list article, .decision-action-list article { min-width: 0; padding-top: 7px; border-top: 1px solid var(--line); }
 .decision-evidence-list article > span { display: block; overflow: hidden; color: #b9c8bf; font-size: 9px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }.decision-evidence-list article > strong { display: block; margin-top: 4px; color: var(--gold); font: 600 9px/1.35 ui-monospace, monospace; }.decision-evidence-list article > p, .decision-action-list article > p { overflow-wrap: anywhere; margin: 3px 0 0; color: var(--muted); font-size: 8px; line-height: 1.45; }
 .decision-action-list article { display: grid; grid-template-columns: auto minmax(0,1fr); gap: 4px 7px; }.decision-action-list article > span { grid-row: 1 / span 2; align-self: start; padding: 4px 5px; border-radius: 4px; background: rgba(120,199,148,.1); color: var(--green); font-size: 7px; white-space: nowrap; }.decision-action-list article > strong { overflow-wrap: anywhere; font-size: 9px; line-height: 1.4; }
-.priority-panel { padding: 22px 25px; background: radial-gradient(circle at 92% 8%, rgba(139,184,234,.1), transparent 35%), #0b1728; }
+.priority-panel { padding: 22px 25px; background: radial-gradient(circle at 92% 8%, rgba(119,168,219,.08), transparent 35%), #0a1813; }
 .panel-heading h2, .section-heading h2 { margin: 5px 0 0; font: 500 20px/1.2 Georgia, "Songti SC", serif; }
 .priority-heading > small { padding: 5px 8px; border: 1px solid var(--line); border-radius: 999px; background: rgba(7,19,15,.5); }
 .priority-list { display: grid; gap: 9px; margin: 14px 0 0; padding: 0; list-style: none; counter-reset: priority; }
@@ -85,7 +85,7 @@ h1 { margin: 0; font: 600 clamp(30px, 3.3vw, 42px)/1.04 Georgia, "Songti SC", se
 .priority-item footer span { min-width: 0; padding-top: 7px; border-top: 1px solid var(--line); color: var(--muted); font-size: 8px; line-height: 1.45; }
 .priority-item footer b { display: block; margin-bottom: 3px; color: #70867a; font-size: 7px; letter-spacing: .1em; }
 
-.market-hub { scroll-margin-top: 80px; margin: 16px 0 20px; padding: 17px 18px 15px; border: 1px solid var(--line); border-radius: 12px; background: linear-gradient(145deg, rgba(19,36,58,.94), rgba(8,18,33,.98)); }
+.market-hub { scroll-margin-top: 80px; margin: 16px 0 20px; padding: 17px 18px 15px; border: 1px solid var(--line); border-radius: 12px; background: linear-gradient(145deg, rgba(14,36,27,.76), rgba(9,24,18,.92)); }
 .section-heading.compact h2 { font-size: 18px; }
 .market-hub-heading { padding-bottom: 2px; }
 .market-pulse { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 9px; margin-top: 10px; }
@@ -140,9 +140,9 @@ h1 { margin: 0; font: 600 clamp(30px, 3.3vw, 42px)/1.04 Georgia, "Songti SC", se
 
 .contract-controls { display: grid; grid-template-columns: minmax(150px, .45fr) minmax(260px, 1fr) auto; align-items: end; gap: 10px; margin-top: 16px; }
 .contract-controls label { display: grid; gap: 6px; color: var(--muted); font-size: 9px; }
-.contract-controls select, .contract-controls button { min-height: 38px; border: 1px solid var(--line-strong); border-radius: 7px; background: #0a1728; color: var(--text); }
+.contract-controls select, .contract-controls button { min-height: 38px; border: 1px solid var(--line-strong); border-radius: 7px; background: #091812; color: var(--text); }
 .contract-controls select { width: 100%; padding: 0 11px; }
-.contract-controls button { padding: 0 18px; background: var(--green); color: #06111f; cursor: pointer; font-size: 11px; font-weight: 800; }
+.contract-controls button { padding: 0 18px; background: var(--green); color: #07130f; cursor: pointer; font-size: 11px; font-weight: 800; }
 .contract-controls button:hover, .contract-controls button:focus-visible { outline: 2px solid rgba(120,199,148,.25); outline-offset: 2px; }
 .contract-controls button:disabled { cursor: wait; opacity: .65; }
 .contract-note { margin: 9px 0 0; color: var(--muted); font-size: 9px; }
