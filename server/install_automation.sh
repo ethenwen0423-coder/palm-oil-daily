@@ -367,12 +367,24 @@ systemctl enable --now palm-oil-market-collector.timer
 systemctl enable --now palm-oil-event-watch.timer
 systemctl enable --now palm-oil-supply-demand.timer
 systemctl enable --now palm-oil-prediction-review.timer
-systemctl enable --now palm-oil-htfc-tianji.timer
 systemctl start palm-oil-market-collector.service
 systemctl start palm-oil-event-watch.service
 systemctl start palm-oil-supply-demand.service
-systemctl start palm-oil-htfc-tianji.service
 systemctl start palm-oil-prediction-review.service
+
+htfc_key_present=false
+htfc_base_present=false
+if [[ -r "$AI_ENV_FILE" ]]; then
+  grep -Eq '^(export[[:space:]]+)?HTFC_API_KEY=.+$' "$AI_ENV_FILE" && htfc_key_present=true
+  grep -Eq '^(export[[:space:]]+)?HTFC_BASE_URL=.+$' "$AI_ENV_FILE" && htfc_base_present=true
+fi
+if [[ "$htfc_key_present" == true && "$htfc_base_present" == true ]]; then
+  systemctl enable --now palm-oil-htfc-tianji.timer
+  systemctl start palm-oil-htfc-tianji.service
+else
+  systemctl disable --now palm-oil-htfc-tianji.timer >/dev/null 2>&1 || true
+  echo "HTFC Tianji timer installed but disabled: HTFC_BASE_URL/HTFC_API_KEY are not configured."
+fi
 
 systemctl --no-pager --full status palm-oil-market-collector.service || true
 systemctl --no-pager list-timers palm-oil-market-collector.timer
