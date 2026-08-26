@@ -10,7 +10,7 @@ import re
 import tempfile
 import urllib.error
 import urllib.request
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -21,6 +21,14 @@ MX_SEARCH_URL = "https://mkapi2.dfcfs.com/finskillshub/api/claw/news-search"
 EASTMONEY_FLASH_URL = "https://newsinfo.eastmoney.com/kuaixun/v2/api/list?column=102&p=1&limit=100"
 NEWS_QUERY = "棕榈油 豆油 菜油 油脂油料 FCPO MPOB GAPKI USDA 原油 生物柴油 出口 库存"
 MAX_EVENTS = 60
+MAX_MARKET_EVENTS = 12
+MAX_MARKET_EVENTS_PER_SCAN = 2
+MIN_CANDIDATE_MOVE_PCT = 0.55
+DIRECT_MOVE_PCT = 0.90
+CONFIRMED_MOVE_PCT = 1.00
+EXTREME_MOVE_PCT = 1.50
+MARKET_EVENT_COOLDOWN = timedelta(minutes=45)
+REARM_INCREMENT_PCT = 0.50
 
 
 def number(value: Any) -> float | None:
@@ -49,6 +57,8 @@ def contracts(*payloads: dict[str, Any]) -> list[dict[str, Any]]:
                 result[symbol] = {
                     "symbol": symbol,
                     "name": str(item.get("name") or item.get("product") or symbol),
+                    "product": str(item.get("product") or ""),
+                    "category": str(item.get("category") or "待分类"),
                     "price": price,
                     "change_pct": number(item.get("change_pct") if item.get("change_pct") is not None else item.get("change")),
                 }
@@ -73,31 +83,123 @@ def event_id(prefix: str, *parts: Any) -> str:
     return f"{prefix}:{hashlib.sha256(text.encode('utf-8')).hexdigest()[:16]}"
 
 
-def price_events(current: list[dict[str, Any]], previous: dict[str, Any], now: datetime) -> list[dict[str, Any]]:
-    events: list[dict[str, Any]] = []
+def event_movement(item: dict[str, Any]) -> float:
+    matched = re.search(r"(?:上涨|下跌)\s*([0-9.]+)%", str(item.get("title") or ""))
+    return number(matched.group(1)) if matched else 0.0
+
+
+def filtered_market_history(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    kept: list[dict[str, Any]] = []
+    latest_by_scope: dict[str, datetime] = {}
+    for item in items:
+        if item.get("kind") != "market":
+            continue
+        if "确认异动" not in str(item.get("category") or "") and event_movement(item) < DIRECT_MOVE_PCT:
+            continue
+        scope = str(item.get("scope") or "")
+        observed = parsed_time(item.get("observed_at"))
+        latest = latest_by_scope.get(scope)
+        if observed is not None and latest is not None and latest - observed < MARKET_EVENT_COOLDOWN:
+            continue
+        if observed is not None:
+            latest_by_scope[scope] = observed
+        kept.append(item)
+        if len(kept) >= MAX_MARKET_EVENTS:
+            break
+    return kept
+
+
+def parsed_time(value: Any) -> datetime | None:
+    try:
+        parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        return parsed if parsed.tzinfo else parsed.replace(tzinfo=SHANGHAI)
+    except (TypeError, ValueError):
+        return None
+
+
+def price_events(
+    current: list[dict[str, Any]],
+    previous: dict[str, Any],
+    now: datetime,
+) -> tuple[list[dict[str, Any]], dict[str, Any], int]:
+    candidates: list[tuple[float, dict[str, Any], dict[str, Any]]] = []
+    quote_state: dict[str, Any] = {}
     for item in current:
-        prior = number((previous.get(item["symbol"]) or {}).get("price"))
+        prior_state = previous.get(item["symbol"]) if isinstance(previous.get(item["symbol"]), dict) else {}
+        prior = number(prior_state.get("price"))
+        state = {
+            "price": item["price"],
+            "observed_at": now.isoformat(timespec="seconds"),
+            "candidate_direction": None,
+            "candidate_count": 0,
+            "candidate_anchor_price": None,
+            "candidate_started_at": None,
+            "last_event_at": prior_state.get("last_event_at"),
+            "last_event_direction": prior_state.get("last_event_direction"),
+            "last_event_move_pct": prior_state.get("last_event_move_pct"),
+        }
+        quote_state[item["symbol"]] = state
         if prior is None or prior <= 0:
             continue
         delta_pct = (item["price"] - prior) / prior * 100
-        if abs(delta_pct) < 0.35:
+        direction_sign = 1 if delta_pct > 0 else -1
+        if abs(delta_pct) < MIN_CANDIDATE_MOVE_PCT:
             continue
-        impact, interpretation = impact_for(item["name"], delta_pct)
-        direction = "上涨" if delta_pct > 0 else "下跌"
-        events.append({
+        same_candidate = prior_state.get("candidate_direction") == direction_sign
+        anchor = number(prior_state.get("candidate_anchor_price")) if same_candidate else prior
+        anchor = anchor if anchor is not None and anchor > 0 else prior
+        candidate_count = int(prior_state.get("candidate_count") or 0) + 1 if same_candidate else 1
+        cumulative_pct = (item["price"] - anchor) / anchor * 100
+        state.update({
+            "candidate_direction": direction_sign,
+            "candidate_count": candidate_count,
+            "candidate_anchor_price": anchor,
+            "candidate_started_at": prior_state.get("candidate_started_at") if same_candidate else now.isoformat(timespec="seconds"),
+        })
+        direct = abs(delta_pct) >= DIRECT_MOVE_PCT
+        confirmed = candidate_count >= 2 and abs(cumulative_pct) >= CONFIRMED_MOVE_PCT
+        if not direct and not confirmed:
+            continue
+        movement = delta_pct if direct else cumulative_pct
+        last_event_at = parsed_time(prior_state.get("last_event_at"))
+        last_direction = number(prior_state.get("last_event_direction"))
+        last_move = abs(number(prior_state.get("last_event_move_pct")) or 0)
+        cooling = last_event_at is not None and now - last_event_at < MARKET_EVENT_COOLDOWN
+        materially_larger = abs(movement) >= max(EXTREME_MOVE_PCT, last_move + REARM_INCREMENT_PCT)
+        sharp_reversal = last_direction is not None and direction_sign != int(last_direction) and abs(movement) >= EXTREME_MOVE_PCT
+        if cooling and not (materially_larger or sharp_reversal):
+            continue
+        impact, interpretation = impact_for(item["name"], movement)
+        direction = "上涨" if movement > 0 else "下跌"
+        window_minutes = 5 if direct else min(candidate_count * 5, 15)
+        event = {
             "id": event_id("price", item["symbol"], now.strftime("%Y%m%d%H%M")),
             "kind": "market",
-            "category": "5分钟行情异动",
-            "title": f"{item['name']} {direction} {abs(delta_pct):.2f}%",
-            "summary": f"{item['symbol']} {prior:.2f} → {item['price']:.2f}；当日涨跌 {item['change_pct'] if item['change_pct'] is not None else '待核验'}%。",
+            "category": f"{window_minutes}分钟确认异动",
+            "title": f"{item['name']} {direction} {abs(movement):.2f}%",
+            "summary": f"{item['symbol']} {(prior if direct else anchor):.2f} → {item['price']:.2f}；当日涨跌 {item['change_pct'] if item['change_pct'] is not None else '待核验'}%。",
             "interpretation": interpretation,
             "impact": impact,
             "scope": item["symbol"],
             "source": "全量期货行情扫描",
             "observed_at": now.isoformat(timespec="seconds"),
             "evidence_ids": [f"quote:{item['symbol']}", f"watch:price:{item['symbol']}"],
+        }
+        candidates.append((abs(movement), event, state))
+    candidates.sort(key=lambda row: row[0], reverse=True)
+    published = candidates[:MAX_MARKET_EVENTS_PER_SCAN]
+    for _, event, state in candidates:
+        movement = number(re.search(r"([0-9.]+)%$", event["title"]).group(1)) or 0
+        state.update({
+            "last_event_at": now.isoformat(timespec="seconds"),
+            "last_event_direction": 1 if "上涨" in event["title"] else -1,
+            "last_event_move_pct": movement,
+            "candidate_direction": None,
+            "candidate_count": 0,
+            "candidate_anchor_price": None,
+            "candidate_started_at": None,
         })
-    return events
+    return [event for _, event, _ in published], quote_state, len(candidates)
 
 
 def extract_records(payload: Any) -> list[dict[str, Any]]:
@@ -228,7 +330,7 @@ def build_watch(oil: dict[str, Any], exchange: dict[str, Any], previous_quotes: 
     deliberate: slow or forbidden research sources must never delay quotes.
     """
     scanned = contracts(oil, exchange)
-    fresh_prices = price_events(scanned, previous_quotes, now)
+    fresh_prices, quote_state, detected_moves = price_events(scanned, previous_quotes, now)
     merged: dict[str, dict[str, Any]] = {
         str(item.get("id")): item
         for item in previous_events
@@ -241,16 +343,23 @@ def build_watch(oil: dict[str, Any], exchange: dict[str, Any], previous_quotes: 
     }
     for item in fresh_prices:
         merged[item["id"]] = item
-    events = sorted(merged.values(), key=lambda item: str(item.get("observed_at") or ""), reverse=True)[:MAX_EVENTS]
+    ordered = sorted(merged.values(), key=lambda item: str(item.get("observed_at") or ""), reverse=True)
+    market_events = filtered_market_history(ordered)
+    other_events = [item for item in ordered if item.get("kind") != "market"][:MAX_EVENTS - MAX_MARKET_EVENTS]
+    events = sorted(market_events + other_events, key=lambda item: str(item.get("observed_at") or ""), reverse=True)[:MAX_EVENTS]
     sources = [{"name": "全量期货行情", "state": "ready" if scanned else "error", "detail": f"本轮覆盖 {len(scanned)} 个有价格的合约。"}]
     payload = {
         "schema_version": 1,
         "status": "ready" if scanned else "degraded",
         "generated_at": now.isoformat(timespec="seconds"),
         "timezone": "Asia/Shanghai",
-        "coverage": {"priced_contracts": len(scanned), "event_count": len(events)},
+        "coverage": {
+            "priced_contracts": len(scanned),
+            "event_count": len(events),
+            "market_moves_detected": detected_moves,
+            "market_moves_published": len(fresh_prices),
+        },
         "sources": sources,
         "events": events,
     }
-    quotes = {item["symbol"]: {"price": item["price"], "observed_at": now.isoformat(timespec="seconds")} for item in scanned}
-    return payload, quotes
+    return payload, quote_state
