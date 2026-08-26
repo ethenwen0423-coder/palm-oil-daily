@@ -59,6 +59,11 @@ class MarketWatchTests(unittest.TestCase):
         self.assertEqual(events[0]["source"], "东方财富7x24快讯")
         self.assertEqual(events[0]["url"], "https://wap.eastmoney.com/a/1.html")
 
+    def test_generic_tariff_story_is_not_treated_as_oil_event(self):
+        self.assertFalse(WATCH.flash_relevant("家具出口遭遇美国关税调查"))
+        self.assertTrue(WATCH.flash_relevant("布伦特原油期货跌幅扩大至3%"))
+        self.assertTrue(WATCH.flash_relevant("大豆产区降雨改善单产预期"))
+
 
 if __name__ == "__main__":
     unittest.main()

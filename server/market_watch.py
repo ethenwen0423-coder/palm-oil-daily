@@ -121,6 +121,23 @@ def event_time(item: dict[str, Any], fallback: datetime) -> str:
     return fallback.isoformat(timespec="seconds")
 
 
+def flash_relevant(text: str) -> bool:
+    normalized = text.lower()
+    direct = (
+        "棕榈", "豆油", "菜油", "油菜", "大豆", "豆粕", "菜粕", "油脂",
+        "原油", "生物柴油", "mpob", "农产品期货", "商品期货",
+    )
+    if any(keyword in normalized for keyword in direct):
+        return True
+    if "美联储" in normalized:
+        return True
+    weather = ("干旱", "降雨", "洪水", "厄尔尼诺", "拉尼娜")
+    agriculture = ("农业", "作物", "产区", "种植", "收割", "单产")
+    return any(word in normalized for word in weather) and any(
+        word in normalized for word in agriculture
+    )
+
+
 def eastmoney_flash_events(now: datetime, timeout: int = 10) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     request = urllib.request.Request(
         EASTMONEY_FLASH_URL,
@@ -132,18 +149,13 @@ def eastmoney_flash_events(now: datetime, timeout: int = 10) -> tuple[list[dict[
     except (urllib.error.URLError, urllib.error.HTTPError, json.JSONDecodeError, OSError) as exc:
         return [], {"name": "东方财富7x24快讯", "state": "error", "detail": f"公开快讯抓取失败：{str(exc)[:120]}"}
     records = payload.get("news", []) if isinstance(payload, dict) else []
-    keywords = (
-        "棕榈", "豆油", "菜油", "大豆", "豆粕", "菜粕", "油脂", "原油",
-        "生物柴油", "印尼", "马来西亚", "MPOB", "期货",
-        "美联储", "关税", "干旱", "降雨",
-    )
     events: list[dict[str, Any]] = []
     for item in records:
         if not isinstance(item, dict):
             continue
         title = re.sub(r"\s+", " ", str(item.get("title") or "")).strip()
         detail = re.sub(r"\s+", " ", str(item.get("digest") or "")).strip()[:300]
-        if not title or not any(keyword.lower() in f"{title} {detail}".lower() for keyword in keywords):
+        if not title or not flash_relevant(f"{title} {detail}"):
             continue
         url = str(item.get("url_m") or item.get("url_w") or "").strip()
         observed = str(item.get("showtime") or item.get("ordertime") or now.isoformat(timespec="seconds"))
@@ -212,7 +224,16 @@ def build_watch(oil: dict[str, Any], exchange: dict[str, Any], previous_quotes: 
     scanned = contracts(oil, exchange)
     fresh_prices = price_events(scanned, previous_quotes, now)
     news, news_source = news_events(api_key, now)
-    merged: dict[str, dict[str, Any]] = {str(item.get("id")): item for item in previous_events if isinstance(item, dict) and item.get("id")}
+    merged: dict[str, dict[str, Any]] = {
+        str(item.get("id")): item
+        for item in previous_events
+        if isinstance(item, dict)
+        and item.get("id")
+        and (
+            item.get("source") != "东方财富7x24快讯"
+            or flash_relevant(f"{item.get('title', '')} {item.get('summary', '')}")
+        )
+    }
     for item in [*fresh_prices, *news]:
         merged[item["id"]] = item
     events = sorted(merged.values(), key=lambda item: str(item.get("observed_at") or ""), reverse=True)[:MAX_EVENTS]
