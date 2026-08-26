@@ -122,6 +122,7 @@ def source_payloads():
                 },
             },
         },
+        "market-watch": {},
     }
 
 
@@ -229,6 +230,25 @@ class MarketAssistantBriefTests(unittest.TestCase):
             context["source_snapshot"]["quant-model-signals"],
             "2026-07-30 23:28",
         )
+
+    def test_live_market_watch_quotes_replace_close_snapshot_for_sector_evidence(self):
+        payloads = source_payloads()
+        payloads["market-watch"] = {
+            "generated_at": "2026-07-30T23:35:00+08:00",
+            "quotes": [{
+                "symbol": "AU2610",
+                "product": "AU",
+                "name": "黄金",
+                "category": "贵金属",
+                "price": 790,
+                "change_pct": -1.5,
+            }],
+        }
+        context = BRIEF.build_context(payloads)
+        sector = next(item for item in context["evidence"] if item["id"] == "sector:贵金属")
+        self.assertEqual(sector["source"], "market-watch")
+        self.assertIn("-1.50%", sector["value"])
+        self.assertEqual(sector["observed_at"], "2026-07-30T23:35:00+08:00")
 
     def test_model_output_is_enriched_from_evidence_not_model_numbers(self):
         context = BRIEF.build_context(source_payloads())

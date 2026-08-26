@@ -2,6 +2,9 @@ import importlib.util
 import unittest
 from datetime import datetime
 from pathlib import Path
+from types import SimpleNamespace
+
+import pandas as pd
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -34,6 +37,33 @@ class ServerMarketWatchTests(unittest.TestCase):
         self.assertTrue(WATCH.concrete_contract("IF2609"))
         self.assertFalse(WATCH.concrete_contract("P0"))
         self.assertFalse(WATCH.concrete_contract("棕榈油"))
+
+    def test_quote_record_keeps_product_code_name_and_sector_for_public_snapshot(self):
+        frame = pd.DataFrame([
+            {
+                "symbol": "P2701",
+                "trade": 10020,
+                "preclose": 10000,
+                "volume": 120000,
+                "position": 150000,
+                "tradedate": "2026-08-26",
+            }
+        ])
+        updater = SimpleNamespace(
+            EXCHANGE_LABELS={"大连商品交易所": "DCE"},
+            ak=SimpleNamespace(futures_zh_realtime=object()),
+            akshare_call=lambda *args, **kwargs: frame,
+            as_number=lambda value: float(value),
+            percent_change=lambda price, previous: (float(price) / float(previous) - 1) * 100,
+            category_for=lambda name: "油脂油料" if name == "棕榈" else "待分类",
+        )
+        record = WATCH.quote_record(
+            updater,
+            {"symbol": "棕榈", "exchange": "大连商品交易所"},
+        )
+        self.assertEqual(record["product"], "P")
+        self.assertEqual(record["name"], "棕榈")
+        self.assertEqual(record["category"], "油脂油料")
 
 
 if __name__ == "__main__":

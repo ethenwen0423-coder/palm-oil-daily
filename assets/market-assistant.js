@@ -219,14 +219,21 @@
     }).join("") : "<article class='sector-view-card is-empty'><strong>暂无板块数据</strong><p>等待下一轮全市场行情刷新。</p></article>";
   }
 
-  function renderPulse(payload) {
+  function compactLots(value) {
+    const numeric = Number(value);
+    return Number.isFinite(numeric) && Math.abs(numeric) >= 10000 ? `${(numeric / 10000).toFixed(2)} 万手` : numberOrText(value);
+  }
+
+  function renderPulse(payload, watch) {
     const desiredProducts = ["P", "Y", "OI", "M", "RM"];
     const allContracts = array(payload.contracts);
-    const contracts = desiredProducts.map((product) => allContracts.find((item) => item.product === product && Number(item.contract_rank) === 1) || allContracts.find((item) => item.product === product)).filter(Boolean);
-    $("pulse-updated").textContent = `行情快照 ${fmtTime(payload.updated_at, true)}`;
+    const liveQuotes = array(watch && watch.quotes);
+    const contracts = desiredProducts.map((product) => liveQuotes.find((item) => item.product === product) || allContracts.find((item) => item.product === product && Number(item.contract_rank) === 1) || allContracts.find((item) => item.product === product)).filter(Boolean);
+    const live = liveQuotes.length > 0;
+    $("pulse-updated").textContent = `${live ? "盘中行情" : "行情快照"} ${fmtTime(live ? watch.generated_at : payload.updated_at, true)}`;
     $("market-pulse").innerHTML = contracts.length ? contracts.map((item) => {
       const change = item.change_pct != null ? item.change_pct : item.change;
-      return `<article class="pulse-card"><header><strong>${esc(first(item.name, item.symbol))}</strong><span>${esc(first(item.symbol, "--"))}</span></header><div class="pulse-price"><strong>${number(item.price)}</strong><b class="${direction(change)}">${pct(change)}</b></div><div class="pulse-meta"><span>成交 ${esc(numberOrText(item.volume))}</span><span>持仓 ${esc(numberOrText(item.open_interest))}</span></div></article>`;
+      return `<article class="pulse-card"><header><strong>${esc(first(item.name, item.symbol))}</strong><span>${esc(first(item.symbol, "--"))}</span></header><div class="pulse-price"><strong>${number(item.price)}</strong><b class="${direction(change)}">${pct(change)}</b></div><div class="pulse-meta"><span>成交 ${esc(compactLots(item.volume))}</span><span>持仓 ${esc(compactLots(item.open_interest))}</span></div></article>`;
     }).join("") : "<article class='pulse-card'>暂无可用行情</article>";
   }
 
@@ -543,7 +550,7 @@
     const data = Object.fromEntries(entries);
     renderBrief(data.brief || {}, data);
     renderSectorViews(data.brief || {}, data);
-    renderPulse(data.oil || {});
+    renderPulse(data.oil || {}, data.watch || {});
     renderOilDesk(data.oil || {});
     renderSupplyDesk(data.supply || {});
     renderContractDesk(data.exchange || {});

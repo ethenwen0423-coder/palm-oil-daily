@@ -55,11 +55,11 @@ def concrete_contract(value: object) -> bool:
 
 
 def quote_record(updater: Any, item: Any) -> dict[str, Any] | None:
-    product = str(item["symbol"])
+    product_name = str(item["symbol"])
     exchange = updater.EXCHANGE_LABELS[str(item["exchange"])]
     frame = updater.akshare_call(
         updater.ak.futures_zh_realtime,
-        symbol=product,
+        symbol=product_name,
         timeout=PER_CALL_TIMEOUT,
     )
     if frame is None or frame.empty:
@@ -76,9 +76,13 @@ def quote_record(updater: Any, item: Any) -> dict[str, Any] | None:
     price = updater.as_number(main.get("trade"))
     if price is None or price <= 0:
         return None
+    contract_symbol = str(main["symbol"]).upper()
+    variety_match = re.match(r"[A-Z]+", contract_symbol)
     return {
-        "symbol": str(main["symbol"]).upper(),
-        "product": product,
+        "symbol": contract_symbol,
+        "product": variety_match.group(0) if variety_match else product_name,
+        "name": product_name,
+        "category": updater.category_for(product_name),
         "exchange": exchange,
         "price": float(price),
         "change_pct": updater.percent_change(main.get("trade"), main.get("preclose")),
@@ -167,6 +171,13 @@ def main() -> int:
             payload["events_updated_at"] = previous_watch["events_updated_at"]
         payload["status"] = "ready" if len(records) == expected else "degraded"
         payload["coverage"].update({"expected_products": expected, "failed_products": len(errors)})
+        payload["quotes"] = [
+            {**record, "observed_at": now.isoformat(timespec="seconds")}
+            for record in sorted(
+                records,
+                key=lambda item: (str(item.get("category")), str(item.get("symbol"))),
+            )
+        ]
         payload["sources"][0]["detail"] = f"本轮核心品种 {len(records)}/{expected}；失败 {len(errors)}。"
         payload["sources"][0]["state"] = "ready" if not errors else "degraded"
         if errors:

@@ -34,6 +34,7 @@ SOURCE_FILES = {
     "forecast-metrics": DATA_DIR / "forecast" / "metrics" / "latest.json",
     "contracts": DATA_DIR / "contracts" / "current_contracts.json",
     "htfc-tianji": DATA_DIR / "htfc_tianji.json",
+    "market-watch": DATA_DIR / "market_watch.json",
 }
 MARKET_STATES = {"偏强", "震荡", "偏弱", "分化", "数据不足"}
 PRIORITIES = {"高", "中", "低"}
@@ -128,6 +129,7 @@ def build_context(payloads: dict[str, Any]) -> dict[str, Any]:
     forecast = payloads["forecast-metrics"] if isinstance(payloads["forecast-metrics"], dict) else {}
     contracts = payloads["contracts"] if isinstance(payloads["contracts"], dict) else {}
     htfc = payloads.get("htfc-tianji") if isinstance(payloads.get("htfc-tianji"), dict) else {}
+    market_watch = payloads.get("market-watch") if isinstance(payloads.get("market-watch"), dict) else {}
 
     evidence: list[dict[str, str]] = []
     latest_report = reports[0] if reports and isinstance(reports[0], dict) else {}
@@ -179,9 +181,11 @@ def build_context(payloads: dict[str, Any]) -> dict[str, Any]:
         )
 
     exchange_contracts = exchange.get("contracts") if isinstance(exchange.get("contracts"), list) else []
+    live_quotes = market_watch.get("quotes") if isinstance(market_watch.get("quotes"), list) else []
+    sector_contracts = live_quotes or exchange_contracts
     priced_exchange = [
         item
-        for item in exchange_contracts
+        for item in sector_contracts
         if isinstance(item, dict) and as_number(item.get("change_pct")) is not None
     ]
     priced_exchange.sort(key=lambda item: abs(as_number(item.get("change_pct")) or 0), reverse=True)
@@ -206,20 +210,20 @@ def build_context(payloads: dict[str, Any]) -> dict[str, Any]:
         evidence.append(
             evidence_record(
                 evidence_id,
-                "exchange-futures",
+                "market-watch" if live_quotes else "exchange-futures",
                 f"{sector}板块主力表现",
                 (
                     f"平均涨跌 {average:+.2f}%；"
-                    f"领涨 {clean_text(leader.get('product') or leader.get('symbol'), 30)} "
+                    f"领涨 {clean_text(leader.get('name') or leader.get('product') or leader.get('symbol'), 30)} "
                     f"{(as_number(leader.get('change_pct')) or 0):+.2f}%；"
-                    f"领跌 {clean_text(laggard.get('product') or laggard.get('symbol'), 30)} "
+                    f"领跌 {clean_text(laggard.get('name') or laggard.get('product') or laggard.get('symbol'), 30)} "
                     f"{(as_number(laggard.get('change_pct')) or 0):+.2f}%"
                 ),
-                observed_at=clean_text(exchange.get("updated_at"), 40),
+                observed_at=clean_text(market_watch.get("generated_at") or exchange.get("updated_at"), 40),
                 detail=(
                     f"覆盖 {len(members)} 个主力合约；"
                     + "、".join(
-                        f"{clean_text(item.get('product') or item.get('symbol'), 24)} "
+                        f"{clean_text(item.get('name') or item.get('product') or item.get('symbol'), 24)} "
                         f"{(as_number(item.get('change_pct')) or 0):+.2f}%"
                         for item in ranked[:4]
                     )
@@ -233,10 +237,10 @@ def build_context(payloads: dict[str, Any]) -> dict[str, Any]:
         evidence.append(
             evidence_record(
                 f"exchange:{identity}",
-                "exchange-futures",
-                clean_text(item.get("product") or item.get("symbol"), 60),
+                "market-watch" if live_quotes else "exchange-futures",
+                clean_text(item.get("name") or item.get("product") or item.get("symbol"), 60),
                 f"{price}；涨跌 {change}%",
-                observed_at=clean_text(exchange.get("updated_at"), 40),
+                observed_at=clean_text(market_watch.get("generated_at") or exchange.get("updated_at"), 40),
                 detail=clean_text((item.get("fundamental") or {}).get("summary"), 180),
             )
         )
@@ -450,6 +454,7 @@ def build_context(payloads: dict[str, Any]) -> dict[str, Any]:
         "forecast-metrics": clean_text(forecast.get("generated_at") or forecast.get("as_of"), 40),
         "contracts": clean_text(contracts.get("generated_at"), 40),
         "htfc-tianji": clean_text(htfc.get("generated_at"), 40),
+        "market-watch": clean_text(market_watch.get("generated_at"), 40),
     }
     return {
         "session": clean_text(oil.get("update_session") or exchange.get("update_session") or "manual", 30),
