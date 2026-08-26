@@ -10,7 +10,9 @@ STATE_ROOT="${PALM_OIL_SERVER_STATE_ROOT:-/srv/palm-oil-daily/state}"
 COMPOSE_FILE="${PALM_OIL_COMPOSE_FILE:-$DEPLOY_ROOT/compose.yaml}"
 COMPOSE_OVERRIDE="${PALM_OIL_COMPOSE_OVERRIDE:-$DEPLOY_ROOT/compose.automation.yaml}"
 GIT_FETCH_TIMEOUT_SECONDS="${PALM_OIL_GIT_FETCH_TIMEOUT_SECONDS:-75}"
-PUBLIC_ACCESS_MODE="${PALM_OIL_PUBLIC_ACCESS_MODE:-private}"
+# This runner serves the public palm.vinsontesla.com site.  Private mode is an
+# explicit maintenance override; defaulting to it stops the web proxy.
+PUBLIC_ACCESS_MODE="${PALM_OIL_PUBLIC_ACCESS_MODE:-public}"
 
 case "$PUBLIC_ACCESS_MODE" in
   private|public) ;;
@@ -52,6 +54,15 @@ python3 server/sync_live_data.py \
   --mode upstream \
   --source data \
   --target "$LIVE_DATA_ROOT"
+
+# Reports are generated and published by the upstream runtime.  A server-side
+# research marker must not leave /api/reports behind data/reports.json, because
+# the homepage correctly prefers the API over its static fallback.
+python3 server/sync_live_data.py \
+  --mode research \
+  --source data \
+  --target "$LIVE_DATA_ROOT" \
+  --session upstream-report-publish
 
 api_changed=false
 for api_source in server/api.py server/contract_analysis.py
