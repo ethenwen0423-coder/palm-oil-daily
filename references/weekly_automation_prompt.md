@@ -31,7 +31,7 @@ python3 skills/data_quality_gate_skill/scripts/validate_data.py \
 
 实际成功、失败、替代来源和截止时间必须记录。核心数据使用 DCE、MPOB/MPOA/ITS、USDA、CME/ICE、东方财富、问财、期货公司研报等可复核来源；微信/产业文章只补充叙事，不把其中数字直接包装为已核实事实。Reuters/Wind 不可访问时只说明，不伪造链接。
 
-天玑增量必须读取 `raw/htfc_tianji_market_intelligence.json`：周报采集 7×24 快讯及风向罗盘排行/概览。仅使用接口明确返回、可匹配油脂品种且有有效时间戳的字段；指标和快讯只用于验证周内驱动、资金/趋势背景或风险反证，不能替代交易所结算、官方供需或既有策略，也不得由 Writer 推导新的交易指令。接口失败、权限不足或无匹配品种时必须披露，但不阻断其他通过门禁的数据源。
+天玑增量由服务端只读采集器在报告生成前写入 `raw/futures_market_data.weekly_compatible.json` 的 `institutional_evidence`，manifest 必须列出 `htfc_tianji_read_only`。周报使用其中的 7×24 快讯、智能 K 线、研报和风向罗盘返回；仅使用接口明确返回、可匹配油脂品种且有有效时间戳的字段。指标和快讯只用于验证周内驱动、资金/趋势背景或风险反证，不能替代交易所结算、官方供需或既有策略，也不得由 Writer 推导新的交易指令。接口失败、权限不足或无匹配品种时必须披露，但不阻断其他通过门禁的数据源。
 
 ## Writing Skill：三阶段
 

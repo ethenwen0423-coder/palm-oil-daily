@@ -154,7 +154,6 @@ def build_commands(report_date: str, kind: str, output_dir: Path) -> list[tuple[
     mx_data = skill_path("mx-data")
     report_search = skill_path("report-search")
     hithink = skill_path("hithink-market-query")
-    tianji_runner = ROOT / "scripts" / "fetch_htfc_tianji.py"
 
     futures_data = raw / "futures_market_data.json"
     futures_report_data = (
@@ -271,19 +270,6 @@ def build_commands(report_date: str, kind: str, output_dir: Path) -> list[tuple[
                 str(raw / "report_search_research.json"),
             ],
         ),
-        (
-            "htfc_tianji_market_intelligence",
-            [
-                sys.executable,
-                str(tianji_runner),
-                "--date",
-                report_date,
-                "--kind",
-                kind,
-                "--output",
-                str(raw / "htfc_tianji_market_intelligence.json"),
-            ],
-        ),
         ]
     )
     return commands
@@ -321,10 +307,6 @@ def main() -> int:
         "mx-data",
         "report-search",
         "hithink-market-query",
-        "htfc-tianji-router",
-        "htfc-news-flash",
-        "htfc-trend-compass",
-        "htfc-pre-market-strategy",
     ]:
         path = skill_path(name)
         skill_status[name] = {
@@ -336,8 +318,6 @@ def main() -> int:
     env_status = {
         "MX_APIKEY": bool(env.get("MX_APIKEY")),
         "IWENCAI_API_KEY": bool(env.get("IWENCAI_API_KEY")),
-        "HTFC_BASE_URL": bool(env.get("HTFC_BASE_URL")),
-        "HTFC_API_KEY": bool(env.get("HTFC_API_KEY")),
     }
 
     results = []
