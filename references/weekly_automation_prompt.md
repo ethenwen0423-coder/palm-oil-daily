@@ -2,6 +2,13 @@
 
 每周日 21:15 生成并发布周报。生产目录为 `/Users/ethen/Sites/palm-oil-daily`，文件为 `reports/YYYY-MM-DD-weekend.md`。一级标题使用“MM月DD日周报”，不超过 15 个字。不得改变数据源、预测模型、交易策略参数、调度或发布频率。
 
+生产服务器由 `server/run_research_agent.py` 复用与静态站一致的受管控链路，
+并在 `source_runs/$REPORT_DATE-weekend/skill_chain.json` 留下 market data、
+data quality、freshness、writer、headline 和 report quality 各阶段证据。
+周报不得只消费压缩行情快照：必须读取跨站新闻/研报事件、华泰天玑增量、
+上一期报告与上一期 source snapshot，完成逐条验证后再生成静态 Markdown、
+`data/reports.json`、`data/reports.js`、下载文件与报告索引。
+
 下一交易日若因中国期货市场节假日不是周一，明确写“下一交易日待交易所日历确认/顺延”。
 
 ## 固定调度顺序

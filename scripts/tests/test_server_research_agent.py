@@ -101,6 +101,63 @@ class ServerResearchAgentTests(unittest.TestCase):
         self.assertIn("内部元数据，不得写成市场驱动", prompt)
         self.assertIn("必须逐字写：本报告由AI基于公开信息", prompt)
         self.assertIn("分别列出 P、Y、OI 三行", prompt)
+        self.assertIn("news_and_research_evidence.today_new_drivers", prompt)
+        self.assertIn("两个主驱动合计不得少于350个中文可见字符", prompt)
+
+    def test_prewrite_gate_requires_market_news_and_freshness_skills(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            runtime = Path(temporary)
+            run_root = runtime / "source_runs" / "2026-08-07-daily"
+            run_root.mkdir(parents=True)
+            (run_root / "manifest.json").write_text(
+                json.dumps(
+                    {
+                        "results": [
+                            {"name": "futures_oil_fetch_market_data", "status": "ok"},
+                            {"name": "news_and_research_skill_sources", "status": "ok"},
+                            {"name": "oil_report_freshness", "status": "ok"},
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+            completed = subprocess.CompletedProcess(
+                args=[],
+                returncode=0,
+                stdout=json.dumps({"status": "ok", "can_publish": True}),
+                stderr="",
+            )
+            with mock.patch.object(MODULE.subprocess, "run", return_value=completed):
+                payload = MODULE.run_prewrite_data_gate(runtime, run_root, 30)
+            self.assertTrue(payload["can_publish"])
+            self.assertTrue((run_root / "data_quality.json").is_file())
+
+    def test_prewrite_gate_blocks_empty_research_evidence(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            runtime = Path(temporary)
+            run_root = runtime / "source_runs" / "2026-08-07-daily"
+            run_root.mkdir(parents=True)
+            (run_root / "manifest.json").write_text(
+                json.dumps(
+                    {
+                        "results": [
+                            {"name": "futures_oil_fetch_market_data", "status": "ok"},
+                            {"name": "news_and_research_skill_sources", "status": "failed"},
+                            {"name": "oil_report_freshness", "status": "failed"},
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+            completed = subprocess.CompletedProcess(
+                args=[],
+                returncode=0,
+                stdout=json.dumps({"status": "ok", "can_publish": True}),
+                stderr="",
+            )
+            with mock.patch.object(MODULE.subprocess, "run", return_value=completed):
+                with self.assertRaisesRegex(MODULE.ResearchAgentError, "no publishable Level 1"):
+                    MODULE.run_prewrite_data_gate(runtime, run_root, 30)
 
     def test_weekend_prompt_requires_history_tables_and_relative_value(self) -> None:
         prompt = MODULE.build_prompt(

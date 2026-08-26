@@ -25,6 +25,19 @@ market_data_skill
 
 当前实现映射：
 
+生产服务器必须由 `server/run_research_agent.py` 执行同一顺序，并在
+`source_runs/$REPORT_DATE-daily/skill_chain.json` 逐阶段记录状态与审计产物。
+服务器采集器只是 `market_data_skill` 的生产适配器，不得用一份压缩行情快照
+跳过新闻/研报、freshness、预测反馈、标题和高级编辑审计。正式写作前必须已有：
+
+- `manifest.json` 与 `raw/futures_market_data.json`
+- `data_quality.json`（`can_publish=true`）
+- `news_and_research_evidence` 中至少一条 24 小时内 Level 1 证据
+- `data/forecast/feedback/latest.json`
+
+正文门禁通过后才允许冻结 `data/forecast/daily/$REPORT_DATE.json`、重建静态报告
+索引并同步生产 live-data。任何阶段缺失或失败都不得发布简版替代品。
+
 ```bash
 cd /Users/ethen/Sites/palm-oil-daily
 git pull --ff-only

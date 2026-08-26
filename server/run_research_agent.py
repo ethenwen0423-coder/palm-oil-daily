@@ -218,7 +218,7 @@ def build_prompt(
             "AI观点风险提示",
         ]
     )
-    budget = "1000-1700" if kind == "daily" else "1600-2400"
+    budget = "1000-1400" if kind == "daily" else "1600-2000"
     title = datetime.fromisoformat(report_date).strftime("%m月%d日") + (
         "晨报" if kind == "daily" else "周报"
     )
@@ -237,6 +237,9 @@ def build_prompt(
         """
 日报研究要求：
 - 两个主驱动至少一个必须来自基本面事实（供给、需求、库存、出口、产量、基差或价差）；技术面只能说明触发与确认，不能替代基本面解释。
+- 必须读取 news_and_research_evidence.today_new_drivers；至少使用一条与油脂直接相关的 Level 1 快讯或研报作为交叉验证，并写清事件时间、来源、市场已经交易了什么、尚未定价什么。资讯约占30%，你的机制、品种传导、预期差和反证分析约占70%。
+- “信息来源与核验说明”必须逐项列出 news_and_research_evidence.source_status 中的来源名称与真实状态；失败、不可用或降级不得省略。
+- “今日观点”不能只有口号；Headline 后至少用一段解释为什么、P/Y/OI如何分化、什么证据会改变判断。两个主驱动合计不得少于350个中文可见字符。
 - “缺少数据”“暂无新增驱动”“来源失败”是证据边界，不是基本面驱动；不得用数据缺口支撑方向判断。
 - `## 【今日交易信号】`必须使用 Markdown 表格并分别列出 P、Y、OI 三行，逐品种写触发、确认、失效、行动/仓位与有效期。
 - score、driver/fundamental/technical 分数、数据条数、采集状态均是内部元数据，不得写成市场驱动或正文结论。
@@ -246,6 +249,8 @@ def build_prompt(
         else """
 周报研究要求：
 - 必须读取 research_history.previous_report，先复述上一期日期及核心判断，再用本期事实说明“兑现/部分兑现/未兑现”；若历史为空，明确写“本周起建立连续验证基线”，不得假造上期观点。
+- 必须读取 news_and_research_evidence.today_new_drivers 与 continuing_background，区分本周新增信息和延续背景；至少引用一条可核验研报或事件，并把资讯事实与自己的传导、预期差及反证分析分开。
+- “信息来源与核验说明”必须逐项列出 news_and_research_evidence.source_status 中的来源名称与真实状态；失败、不可用或降级不得省略。
 - 核心数据变化必须优先使用 research_history.market_comparison 与 official_supply_demand.latest_metrics；不得把单日涨跌冒充周度变化，也不得从 score 推导变化。
 - `## 【核心数据变化】`、`## 【下周主线与事件】`、`## 【交易计划】`必须使用 Markdown 表格。交易计划必须分别列出 P、Y、OI 三行，并写触发、确认、失效、仓位/行动和有效期。
 - 正文必须同时解释豆棕价差与菜豆油价差各自说明什么；两个主驱动至少一个必须来自供给、需求、库存、出口、产量、基差或价差等基本面事实。
@@ -527,6 +532,79 @@ def run_deploy(
     return completed.returncode == 0, output[-5000:]
 
 
+def run_prewrite_data_gate(runtime_root: Path, run_root: Path, timeout: int) -> dict[str, Any]:
+    """Execute the original data-quality stage before any report prose is written."""
+    manifest_path = run_root / "manifest.json"
+    command = [
+        sys.executable,
+        "skills/data_quality_gate_skill/scripts/validate_data.py",
+        "--manifest",
+        str(manifest_path),
+        "--strict",
+    ]
+    try:
+        completed = subprocess.run(
+            command,
+            cwd=runtime_root,
+            text=True,
+            capture_output=True,
+            timeout=timeout,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise ResearchAgentError(f"pre-write data quality gate did not complete: {exc}") from exc
+    try:
+        payload = json.loads(completed.stdout)
+    except json.JSONDecodeError as exc:
+        raise ResearchAgentError("pre-write data quality gate returned invalid JSON") from exc
+    manifest = load_json(manifest_path)
+    required_research = {
+        item.get("name"): item.get("status")
+        for item in manifest.get("results", [])
+        if isinstance(item, dict)
+        and item.get("name") in {"news_and_research_skill_sources", "oil_report_freshness"}
+    }
+    if completed.returncode != 0 or payload.get("can_publish") is not True:
+        raise ResearchAgentError(f"pre-write data quality gate blocked publication: {payload}")
+    if required_research != {
+        "news_and_research_skill_sources": "ok",
+        "oil_report_freshness": "ok",
+    }:
+        raise ResearchAgentError(
+            "news/research or freshness skill stage has no publishable Level 1 evidence"
+        )
+    atomic_write_json(run_root / "data_quality.json", payload)
+    return payload
+
+
+def record_skill_stage(
+    run_root: Path,
+    stage: str,
+    status: str,
+    artifact: str,
+) -> None:
+    path = run_root / "skill_chain.json"
+    payload: dict[str, Any] = {"schema_version": "report-skill-chain-v1", "stages": []}
+    if path.is_file():
+        loaded = load_json(path)
+        if isinstance(loaded, dict):
+            payload = loaded
+    stages = payload.setdefault("stages", [])
+    if not isinstance(stages, list):
+        stages = []
+        payload["stages"] = stages
+    stages[:] = [item for item in stages if not isinstance(item, dict) or item.get("stage") != stage]
+    stages.append(
+        {
+            "stage": stage,
+            "status": status,
+            "artifact": artifact,
+            "completed_at": datetime.now(SHANGHAI).isoformat(timespec="seconds"),
+        }
+    )
+    atomic_write_json(path, payload)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--site-root", type=Path, default=Path(os.environ.get("PALM_OIL_SITE_ROOT", DEFAULT_SITE_ROOT)))
@@ -620,6 +698,10 @@ def main() -> int:
             kind,
             now,
         )
+        run_root = Path(built["run_root"])
+        record_skill_stage(run_root, "market_data_skill", "ok", "manifest.json")
+        run_prewrite_data_gate(runtime_root, run_root, min(args.timeout, 300))
+        record_skill_stage(run_root, "data_quality_gate_skill", "ok", "data_quality.json")
         source_snapshot = load_json(Path(built["snapshot"]))
         feedback = None
         if kind == "daily":
@@ -642,6 +724,18 @@ def main() -> int:
             if not isinstance(feedback_value, dict):
                 raise ResearchAgentError("daily forecast feedback must be a JSON object")
             feedback = feedback_value
+            record_skill_stage(
+                run_root,
+                "forecast_generation_feedback",
+                "ok",
+                "../../data/forecast/feedback/latest.json",
+            )
+        record_skill_stage(
+            run_root,
+            "oil_report_freshness",
+            "ok",
+            "raw/futures_market_data.json#news_and_research_evidence",
+        )
 
         if args.acceptance_only:
             prompt = build_prompt(
@@ -682,7 +776,6 @@ def main() -> int:
             return 0
 
         report_path = runtime_root / "reports" / f"{identity}.md"
-        run_root = Path(built["run_root"])
         outline_path = run_root / "report_outline.json"
         quality_path = run_root / "report_quality.json"
         schema = site_root / "references" / "server_report_output.schema.json"
@@ -722,6 +815,7 @@ def main() -> int:
             markdown = normalize_report_punctuation(markdown)
             atomic_write_text(report_path, markdown)
             atomic_write_json(outline_path, outline)
+            record_skill_stage(run_root, "report_writer_skill", "ok", report_path.name)
             success, last_gate = run_deploy(
                 runtime_root,
                 environment,
@@ -741,10 +835,19 @@ def main() -> int:
         quality = load_json(quality_path)
         if not isinstance(quality, dict) or quality.get("can_publish") is not True:
             raise ResearchAgentError("report quality gate did not produce can_publish=true")
+        record_skill_stage(run_root, "headline_skill", "ok", report_path.name)
+        record_skill_stage(run_root, "report_quality_gate", "ok", "report_quality.json")
         if not report_is_ready(runtime_root / "data" / "reports.json", identity):
             raise ResearchAgentError("internal reports dataset does not contain the new report")
         if kind == "daily" and not (runtime_root / "data" / "forecast" / "daily" / f"{report_date}.json").is_file():
             raise ResearchAgentError("daily report did not freeze its prediction record")
+        if kind == "daily":
+            record_skill_stage(
+                run_root,
+                "forecast_tracking_skill",
+                "ok",
+                f"../../data/forecast/daily/{report_date}.json",
+            )
         if kind == "daily":
             previous_snapshot = (
                 runtime_root

@@ -298,8 +298,14 @@ class DeployReportTest(unittest.TestCase):
             "scripts/update_oil_futures_data.py --report-date 2026-07-14 --generated-at 2026-07-14T08:20:30+08:00 --cutoff-at 2026-07-14T08:20:00+08:00",
             calls,
         )
-        self.assertIn("git add -- reports data downloads miniprogram/data :(exclude)data/forecast/daily/*.json", calls)
-        self.assertIn(":(exclude)data/review/runtime_snapshots/**", calls)
+        self.assertIn(
+            "git add -- reports downloads miniprogram/data data/contracts data/oil_futures.js data/oil_futures.json data/reports.js data/reports.json data/version.js",
+            calls,
+        )
+        self.assertIn(
+            "git diff --cached --name-only -- data/forecast/daily data/review/runtime_snapshots",
+            calls,
+        )
         self.assertIn(
             "skills/report_writer_skill/scripts/audit_report.py --report reports/2026-07-14.md --outline source_runs/2026-07-14-daily/report_outline.json --kind daily --source-json source_runs/2026-07-14-daily/raw/futures_market_data.json",
             calls,

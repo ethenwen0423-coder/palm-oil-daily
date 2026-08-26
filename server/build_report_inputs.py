@@ -85,6 +85,7 @@ def validate_freshness(
             "supply_demand": timedelta(hours=36),
             "contracts": timedelta(hours=72),
             "htfc_tianji": timedelta(hours=2),
+            "market_watch": timedelta(hours=2),
         },
         "weekend": {
             "oil_futures": timedelta(days=4),
@@ -93,6 +94,7 @@ def validate_freshness(
             "supply_demand": timedelta(hours=36),
             "contracts": timedelta(days=7),
             "htfc_tianji": timedelta(hours=24),
+            "market_watch": timedelta(hours=24),
         },
     }[kind]
     observed: dict[str, str] = {}
@@ -155,6 +157,53 @@ def htfc_report_evidence(payload: dict[str, Any]) -> dict[str, Any]:
         },
         "oil_news": [item for item in news_items if isinstance(item, dict)][:10],
         "smart_kline": kline_evidence,
+    }
+
+
+def market_watch_evidence(payload: dict[str, Any], now: datetime) -> dict[str, Any]:
+    """Apply oil_report_freshness rules to the server event/research feed."""
+    fresh: list[dict[str, Any]] = []
+    background: list[dict[str, Any]] = []
+    for item in payload.get("events", []):
+        if not isinstance(item, dict) or item.get("kind") != "event":
+            continue
+        try:
+            observed = parse_dataset_timestamp(item.get("observed_at"), "market_watch.event")
+        except ReportInputError:
+            continue
+        age = now - observed
+        bounded = {
+            key: item.get(key)
+            for key in (
+                "id", "title", "summary", "interpretation", "impact", "scope",
+                "source", "url", "observed_at", "evidence_ids",
+            )
+        }
+        bounded["freshness_level"] = "Level 1" if age <= timedelta(hours=24) else "Level 3"
+        bounded["mainline_eligible"] = age <= timedelta(hours=24)
+        if age <= timedelta(hours=24):
+            fresh.append(bounded)
+        elif age <= timedelta(days=7):
+            background.append(bounded)
+    sources = [
+        {
+            "name": item.get("name"),
+            "state": item.get("state"),
+            "detail": item.get("detail"),
+        }
+        for item in payload.get("sources", [])
+        if isinstance(item, dict) and item.get("name") != "全量期货行情"
+    ]
+    ready_states = {"ready", "degraded"}
+    return {
+        "skill": "oil_report_freshness",
+        "as_of": payload.get("events_updated_at") or payload.get("generated_at"),
+        "today_new_drivers": fresh[:20],
+        "continuing_background": background[:10],
+        "source_status": sources,
+        "ready_source_count": sum(item.get("state") in ready_states for item in sources),
+        "fresh_event_count": len(fresh),
+        "mainline_policy": "Only Level 1 events may support today's mainline; older events are background only.",
     }
 def rank_one_contracts(
     payload: dict[str, Any],
@@ -380,6 +429,8 @@ def build_snapshot(
     quant = load_object(data_root / "quant_model_signals.json")
     contracts = load_object(data_root / "contracts" / "current_contracts.json")
     htfc = load_optional_object(data_root / "htfc_tianji.json")
+    market_watch = load_optional_object(data_root / "market_watch.json")
+    watch_evidence = market_watch_evidence(market_watch, now)
     selected = rank_one_contracts(oil, report_date=report_date)
 
     external: dict[str, Any] = {}
@@ -442,6 +493,17 @@ def build_snapshot(
             },
         },
         "institutional_evidence": htfc_report_evidence(htfc),
+        "news_and_research_evidence": watch_evidence,
+        "skill_chain": [
+            "market_data_skill",
+            "data_quality_gate_skill",
+            "forecast_generation_feedback",
+            "oil_report_freshness",
+            "report_writer_skill",
+            "headline_skill",
+            "report_quality_gate",
+            "forecast_tracking_skill",
+        ],
         "server_evidence": {
             "oil_futures_updated_at": oil.get("updated_at"),
             "exchange_futures_updated_at": exchange.get("updated_at"),
@@ -475,6 +537,8 @@ def build_manifest(
     quant = load_object(data_root / "quant_model_signals.json")
     contracts = load_object(data_root / "contracts" / "current_contracts.json")
     htfc = load_optional_object(data_root / "htfc_tianji.json")
+    market_watch = load_optional_object(data_root / "market_watch.json")
+    watch_evidence = market_watch_evidence(market_watch, now)
     freshness_inputs = {
             "oil_futures": (oil, ("updated_at",)),
             "exchange_futures": (exchange, ("updated_at",)),
@@ -484,6 +548,11 @@ def build_manifest(
         }
     if htfc.get("generated_at"):
         freshness_inputs["htfc_tianji"] = (htfc, ("generated_at",))
+    if market_watch.get("events_updated_at") or market_watch.get("generated_at"):
+        freshness_inputs["market_watch"] = (
+            market_watch,
+            ("events_updated_at", "generated_at"),
+        )
     freshness = validate_freshness(
         freshness_inputs,
         kind=kind,
@@ -500,10 +569,16 @@ def build_manifest(
         "date": report_date,
         "kind": kind,
         "generated_at": now.isoformat(timespec="seconds"),
-        "source_mode": "server_live_data",
+        "source_mode": "governed_skill_chain",
         "skills": {
-            "server-market-collector": {"installed": True},
-            "server-supply-demand": {"installed": True},
+            "market_data_skill": {"installed": True, "adapter": "server-market-collector"},
+            "data_quality_gate_skill": {"installed": True},
+            "forecast_generation_feedback": {"installed": True},
+            "oil_report_freshness": {"installed": True},
+            "report_writer_skill": {"installed": True},
+            "headline_skill": {"installed": True},
+            "report_quality_gate": {"installed": True},
+            "forecast_tracking_skill": {"installed": True},
             "htfc-tianji-router": {"installed": True, "mode": "read_only"},
         },
         "environment": {"server_owned": True},
@@ -533,6 +608,30 @@ def build_manifest(
                 "returncode": 0,
                 "source": "server live-data/htfc_tianji.json",
                 "observed_at": htfc.get("generated_at"),
+            },
+            {
+                "name": "news_and_research_skill_sources",
+                "status": "ok"
+                if watch_evidence["ready_source_count"] > 0
+                and watch_evidence["fresh_event_count"] > 0
+                else "failed",
+                "returncode": 0
+                if watch_evidence["ready_source_count"] > 0
+                and watch_evidence["fresh_event_count"] > 0
+                else 2,
+                "source": "server live-data/market_watch.json",
+                "observed_at": market_watch.get("events_updated_at"),
+            },
+            {
+                "name": "oil_report_freshness",
+                "status": "ok"
+                if watch_evidence["fresh_event_count"] > 0
+                else "failed",
+                "returncode": 0
+                if watch_evidence["fresh_event_count"] > 0
+                else 2,
+                "source": "news_and_research_evidence.today_new_drivers",
+                "observed_at": market_watch.get("events_updated_at"),
             },
         ],
     }

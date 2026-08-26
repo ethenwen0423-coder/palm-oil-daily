@@ -39,7 +39,7 @@ WEEKEND_SECTIONS = (
     "消息来源链接",
     "AI观点风险提示",
 )
-BODY_LIMITS = {"daily": (1000, 1700), "weekend": (1600, 2400)}
+BODY_LIMITS = {"daily": (1000, 1400), "weekend": (1600, 2000)}
 QUALITY_RELEASE_SCORE = 92
 AI_DISCLAIMER = (
     "本报告由AI基于公开信息、已调用数据源和既定研究框架生成，仅代表生成时点的研究判断，"
@@ -598,6 +598,9 @@ def audit_report(
                 hard_failures.append(f"预测 feedback 不可用：{exc}")
 
     driver_text = _section(text, "核心驱动与预期差") if kind == "daily" else _section(text, "本周验证与预期差")
+    if kind == "daily" and len(re.sub(r"\s+", "", driver_text)) < 350:
+        hard_failures.append("核心驱动与预期差分析不足350字，未达到完整版研究深度")
+        components["causal_chain_expectation_gap"] = 0
     driver_names = " ".join(
         str((outline.get(field) or {}).get("name") or "")
         for field in ("primary_driver", "secondary_driver")
@@ -664,6 +667,39 @@ def audit_report(
     if not any(marker in _section(text, "风险提示") for marker in ("失效", "若", "一旦", "推翻")):
         errors.append("风险提示未写成可检验的失效条件")
         components["risk_invalidation"] -= 5
+
+    research_evidence = source.get("news_and_research_evidence")
+    if isinstance(research_evidence, dict):
+        fresh_events = [
+            item
+            for item in research_evidence.get("today_new_drivers", [])
+            if isinstance(item, dict) and item.get("mainline_eligible") is True
+        ]
+        if not fresh_events:
+            hard_failures.append("当期没有通过 freshness 治理的 Level 1 快讯或研报证据")
+            components["freshness_source_state"] = 0
+        else:
+            evidence_used = any(
+                str(item.get("source") or "") in text
+                or str(item.get("title") or "") in text
+                for item in fresh_events
+            )
+            if not evidence_used:
+                hard_failures.append("正文未使用任何已通过 freshness 治理的快讯或研报证据")
+                components["freshness_source_state"] = 0
+        source_status = [
+            item for item in research_evidence.get("source_status", []) if isinstance(item, dict)
+        ]
+        unavailable = [
+            str(item.get("name"))
+            for item in source_status
+            if item.get("name") and item.get("state") not in {"ready", "degraded"}
+        ]
+        source_section = _section(text, "信息来源与核验说明")
+        undisclosed = [name for name in unavailable if name not in source_section]
+        if undisclosed:
+            hard_failures.append(f"来源失败或不可用状态未披露：{', '.join(undisclosed)}")
+            components["freshness_source_state"] = 0
 
     if AI_DISCLAIMER not in _section(text, "AI观点风险提示"):
         hard_failures.append("AI观点风险提示未使用完整固定声明")

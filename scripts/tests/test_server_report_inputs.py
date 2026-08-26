@@ -145,6 +145,32 @@ class ServerReportInputsTest(unittest.TestCase):
                 }
             ],
         )
+        write_json(
+            root,
+            "market_watch.json",
+            {
+                "generated_at": "2026-08-08T09:20:00+08:00",
+                "events_updated_at": "2026-08-08T09:20:00+08:00",
+                "sources": [
+                    {"name": "跨站新闻搜索", "state": "ready", "detail": "测试源可用"},
+                    {"name": "华泰天玑·研报", "state": "ready", "detail": "测试研报可用"},
+                ],
+                "events": [
+                    {
+                        "id": "event-1",
+                        "kind": "event",
+                        "title": "马来西亚棕榈油出口预期调整",
+                        "summary": "出口变化影响短期供需预期。",
+                        "interpretation": "需要结合盘面确认。",
+                        "impact": "中性",
+                        "scope": "P · Y · OI",
+                        "source": "华泰天玑·研报",
+                        "url": "https://example.test/report",
+                        "observed_at": "2026-08-08T08:30:00+08:00",
+                    }
+                ],
+            },
+        )
 
     def test_builds_manifest_and_numeric_snapshot_from_live_data(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -171,8 +197,11 @@ class ServerReportInputsTest(unittest.TestCase):
                 "otc_structure_library",
                 "quant_model_rules",
             ])
-            self.assertEqual(manifest["source_mode"], "server_live_data")
+            self.assertEqual(manifest["source_mode"], "governed_skill_chain")
             self.assertEqual(manifest["results"][0]["name"], "futures_oil_fetch_market_data")
+            self.assertEqual(snapshot["news_and_research_evidence"]["fresh_event_count"], 1)
+            self.assertEqual(manifest["results"][-1]["name"], "oil_report_freshness")
+            self.assertEqual(manifest["results"][-1]["status"], "ok")
             self.assertTrue((runtime / "source_runs/2026-08-08-weekend/raw/futures_market_data.weekly_compatible.json").is_file())
 
     def test_missing_rank_one_contract_fails_closed(self) -> None:
