@@ -45,6 +45,7 @@ for required in \
   "$SITE_ROOT/.git" \
   "$SITE_ROOT/server/enable_ai_automation.sh" \
   "$SITE_ROOT/server/run_market_watch.py" \
+  "$SITE_ROOT/server/run_event_watch.py" \
   "$SITE_ROOT/server/run_supply_demand.py" \
   "$SITE_ROOT/server/run_ai_brief.py" \
   "$SITE_ROOT/server/run_research_agent.py" \
@@ -94,7 +95,8 @@ print(json.dumps(
         "status": "planned",
         "mode": "dry-run",
         **dict(zip(keys, sys.argv[1:])),
-        "market_timer": "every 10 minutes with retry",
+        "market_timer": "every 5 minutes during exchange sessions",
+        "event_timer": "every 5 minutes around the clock",
         "supply_timer": "daily official-source check",
         "ai_timer": "installed disabled until backend acceptance",
         "research_timer": "installed disabled until backend acceptance",
@@ -257,6 +259,16 @@ write_timer \
   "*-*-* *:0/5:00" \
   "20s"
 write_service \
+  "$temporary_root/palm-oil-event-watch.service" \
+  "Refresh cross-source oil market news and research" \
+  "run_event_watch.py"
+write_timer \
+  "$temporary_root/palm-oil-event-watch.timer" \
+  "Search cross-source oil market news and research every five minutes" \
+  "palm-oil-event-watch.service" \
+  "*-*-* *:2/5:00" \
+  "15s"
+write_service \
   "$temporary_root/palm-oil-research-agent.service" \
   "Generate governed palm oil research reports on the server" \
   "run_research_agent.py"
@@ -300,6 +312,8 @@ write_timer \
 systemd-analyze verify \
   "$temporary_root/palm-oil-market-collector.service" \
   "$temporary_root/palm-oil-market-collector.timer" \
+  "$temporary_root/palm-oil-event-watch.service" \
+  "$temporary_root/palm-oil-event-watch.timer" \
   "$temporary_root/palm-oil-supply-demand.service" \
   "$temporary_root/palm-oil-supply-demand.timer" \
   "$temporary_root/palm-oil-ai-brief.service" \
@@ -313,6 +327,8 @@ install -m 0644 "$temporary_root/compose.automation.yaml" "$COMPOSE_OVERRIDE"
 for unit in \
   palm-oil-market-collector.service \
   palm-oil-market-collector.timer \
+  palm-oil-event-watch.service \
+  palm-oil-event-watch.timer \
   palm-oil-supply-demand.service \
   palm-oil-supply-demand.timer \
   palm-oil-ai-brief.service \
@@ -334,14 +350,17 @@ else
   docker compose -f "$COMPOSE_FILE" -f "$COMPOSE_OVERRIDE" up -d api web
 fi
 systemctl enable --now palm-oil-market-collector.timer
+systemctl enable --now palm-oil-event-watch.timer
 systemctl enable --now palm-oil-supply-demand.timer
 systemctl enable --now palm-oil-prediction-review.timer
 systemctl start palm-oil-market-collector.service
+systemctl start palm-oil-event-watch.service
 systemctl start palm-oil-supply-demand.service
 systemctl start palm-oil-prediction-review.service
 
 systemctl --no-pager --full status palm-oil-market-collector.service || true
 systemctl --no-pager list-timers palm-oil-market-collector.timer
+systemctl --no-pager list-timers palm-oil-event-watch.timer
 systemctl --no-pager list-timers palm-oil-supply-demand.timer
 systemctl --no-pager list-timers palm-oil-prediction-review.timer
 docker compose -f "$COMPOSE_FILE" -f "$COMPOSE_OVERRIDE" ps

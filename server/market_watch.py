@@ -220,10 +220,15 @@ def atomic_write(path: Path, payload: dict[str, Any]) -> None:
     os.replace(temporary, path)
 
 
-def build_watch(oil: dict[str, Any], exchange: dict[str, Any], previous_quotes: dict[str, Any], previous_events: list[dict[str, Any]], now: datetime, api_key: str | None) -> tuple[dict[str, Any], dict[str, Any]]:
+def build_watch(oil: dict[str, Any], exchange: dict[str, Any], previous_quotes: dict[str, Any], previous_events: list[dict[str, Any]], now: datetime, api_key: str | None = None) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Build the quote snapshot without performing any network news search.
+
+    ``api_key`` remains accepted for callers from older deployments, but event
+    collection now runs in the independent five-minute event service.  This is
+    deliberate: slow or forbidden research sources must never delay quotes.
+    """
     scanned = contracts(oil, exchange)
     fresh_prices = price_events(scanned, previous_quotes, now)
-    news, news_source = news_events(api_key, now)
     merged: dict[str, dict[str, Any]] = {
         str(item.get("id")): item
         for item in previous_events
@@ -234,13 +239,10 @@ def build_watch(oil: dict[str, Any], exchange: dict[str, Any], previous_quotes: 
             or flash_relevant(f"{item.get('title', '')} {item.get('summary', '')}")
         )
     }
-    for item in [*fresh_prices, *news]:
+    for item in fresh_prices:
         merged[item["id"]] = item
     events = sorted(merged.values(), key=lambda item: str(item.get("observed_at") or ""), reverse=True)[:MAX_EVENTS]
-    sources = [
-        {"name": "全量期货行情", "state": "ready" if scanned else "error", "detail": f"本轮覆盖 {len(scanned)} 个有价格的合约。"},
-        news_source,
-    ]
+    sources = [{"name": "全量期货行情", "state": "ready" if scanned else "error", "detail": f"本轮覆盖 {len(scanned)} 个有价格的合约。"}]
     payload = {
         "schema_version": 1,
         "status": "ready" if scanned else "degraded",

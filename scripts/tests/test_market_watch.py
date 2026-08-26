@@ -20,14 +20,12 @@ class MarketWatchTests(unittest.TestCase):
         self.exchange = {"contracts": [{"symbol": "P2701", "product": "棕榈油", "price": 8000, "change_pct": 0.8}]}
 
     def test_first_snapshot_has_coverage_but_no_invented_price_event(self):
-        unavailable = {"name": "test", "state": "unavailable", "detail": "test"}
-        with patch.object(WATCH, "news_events", return_value=([], unavailable)):
-            payload, quotes = WATCH.build_watch(self.oil, self.exchange, {}, [], self.now, None)
+        payload, quotes = WATCH.build_watch(self.oil, self.exchange, {}, [], self.now, None)
         self.assertEqual(payload["status"], "ready")
         self.assertEqual(payload["coverage"]["priced_contracts"], 2)
         self.assertEqual(payload["events"], [])
         self.assertIn("P2701", quotes)
-        self.assertEqual(payload["sources"][1]["state"], "unavailable")
+        self.assertEqual(len(payload["sources"]), 1)
 
     def test_price_move_is_source_backed_and_has_impact_interpretation(self):
         previous = {"P2701": {"price": 7900}, "FCPO": {"price": 4200}}
@@ -63,6 +61,11 @@ class MarketWatchTests(unittest.TestCase):
         self.assertFalse(WATCH.flash_relevant("家具出口遭遇美国关税调查"))
         self.assertTrue(WATCH.flash_relevant("布伦特原油期货跌幅扩大至3%"))
         self.assertTrue(WATCH.flash_relevant("大豆产区降雨改善单产预期"))
+
+    def test_quote_builder_never_calls_news_network(self):
+        with patch.object(WATCH, "news_events", side_effect=AssertionError("news called")):
+            payload, _ = WATCH.build_watch(self.oil, self.exchange, {}, [], self.now, "secret")
+        self.assertEqual(payload["coverage"]["priced_contracts"], 2)
 
 
 if __name__ == "__main__":

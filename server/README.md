@@ -73,10 +73,13 @@ sudo bash server/install_automation.sh --apply
 
 The installer creates a pinned Python virtual environment, bootstraps the
 live-data directory, replaces only the API container's `/site/data` mount,
-installs hardened market, official-data, report, prediction-review and AI
+installs hardened market, event, official-data, report, prediction-review and AI
 systemd units. During China futures trading windows, market data scans the full
-configured futures universe every five minutes and checks 东方财富妙想资讯 when
-`MX_APIKEY` is configured. It publishes only traceable price/event evidence to
+configured futures universe every five minutes. A separate event unit runs every
+five minutes around the clock and searches 东方财富公开快讯、东方财富妙想、Google
+News、Bing News、华泰天玑油脂快讯与天玑研报。Each source reports ready,
+degraded, forbidden or unavailable independently; a slow or unauthorized news
+source cannot delay quotes. It publishes only traceable price/event evidence to
 `/api/assistant/watch`; the official-source check
 retries hourly until its daily success marker exists, report generation every
 twenty minutes, and prediction review every fifteen minutes. The AI and report
@@ -142,14 +145,16 @@ python3 server/run_research_agent.py --dry-run
 python3 server/run_prediction_review.py --dry-run
 ```
 
-Production calls the collector from a systemd timer every five minutes. Each
+Production calls the quote collector and independent event collector from
+staggered systemd timers every five minutes. Each
 five-minute window has its own idempotency marker, while the latest session
 marker remains available for acceptance checks. A failed window writes no
 marker, so the next timer interval retries it. Repeated morning updates refresh
 quotes, technicals and dynamic model output while carrying the first verified
 morning fundamental snapshot. The event feed records source-backed market
-events and deterministic five-minute price moves; it never writes health checks
-as intelligence. AI generation runs two minutes after the market schedule and
+events, research links and deterministic five-minute price moves; it never
+writes health checks as intelligence or converts permission failures into zero
+results. AI generation runs two minutes after the market schedule and
 uses the same collection lock. Its first server-owned publish is
 forced through the real structured-output backend before the AI ownership marker
 is written. It must not be enabled until the ChatGPT-authenticated Codex CLI

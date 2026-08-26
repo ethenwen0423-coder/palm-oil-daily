@@ -35,6 +35,8 @@ class ServerAutomationInstallerTests(unittest.TestCase):
         self.assertIn("systemd-analyze verify", script)
         self.assertIn("systemctl enable --now palm-oil-market-collector.timer", script)
         self.assertIn('"run_market_watch.py"', script)
+        self.assertIn('"run_event_watch.py"', script)
+        self.assertIn("systemctl enable --now palm-oil-event-watch.timer", script)
         self.assertIn("systemctl enable --now palm-oil-supply-demand.timer", script)
         self.assertIn("systemctl start palm-oil-supply-demand.service", script)
         self.assertIn("systemctl enable --now palm-oil-prediction-review.timer", script)
@@ -81,11 +83,12 @@ class ServerAutomationInstallerTests(unittest.TestCase):
             installer,
         )
         self.assertIn('"*-*-* *:0/5:00"', installer)
+        self.assertIn('"*-*-* *:2/5:00"', installer)
         self.assertIn('"*-*-* *:02/10:00"', installer)
         self.assertIn('"*-*-* *:07/20:00"', installer)
         self.assertIn('"*-*-* *:10/15:00"', installer)
         self.assertIn('"*-*-* 09..23:17:00 Asia/Shanghai"', installer)
-        self.assertIn('PUBLIC_ACCESS_MODE="${PALM_OIL_PUBLIC_ACCESS_MODE:-private}"', updater)
+        self.assertIn('PUBLIC_ACCESS_MODE="${PALM_OIL_PUBLIC_ACCESS_MODE:-public}"', updater)
         self.assertIn('compose exec -T api python3 -c', updater)
         self.assertIn('compose stop web || true', updater)
 

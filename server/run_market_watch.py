@@ -158,6 +158,13 @@ def main() -> int:
             now,
             os.environ.get("MX_APIKEY") or private_value(STATE_ROOT / "private.env", "MX_APIKEY"),
         )
+        event_sources = [
+            item for item in previous_watch.get("sources", [])
+            if isinstance(item, dict) and item.get("name") != "全量期货行情"
+        ]
+        payload["sources"].extend(event_sources)
+        if previous_watch.get("events_updated_at"):
+            payload["events_updated_at"] = previous_watch["events_updated_at"]
         payload["status"] = "ready" if len(records) == expected else "degraded"
         payload["coverage"].update({"expected_products": expected, "failed_products": len(errors)})
         payload["sources"][0]["detail"] = f"本轮核心品种 {len(records)}/{expected}；失败 {len(errors)}。"

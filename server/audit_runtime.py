@@ -266,6 +266,7 @@ def systemd_status() -> dict[str, Any]:
         ][:50]
     required = (
         "palm-oil-market-collector.timer",
+        "palm-oil-event-watch.timer",
         "palm-oil-supply-demand.timer",
         "palm-oil-ai-brief.timer",
         "palm-oil-research-agent.timer",
