@@ -183,6 +183,7 @@ def build_context(payloads: dict[str, Any]) -> dict[str, Any]:
     exchange_contracts = exchange.get("contracts") if isinstance(exchange.get("contracts"), list) else []
     live_quotes = market_watch.get("quotes") if isinstance(market_watch.get("quotes"), list) else []
     sector_contracts = live_quotes or exchange_contracts
+    sector_observed_at = market_watch.get("generated_at") if live_quotes else exchange.get("updated_at")
     priced_exchange = [
         item
         for item in sector_contracts
@@ -219,7 +220,7 @@ def build_context(payloads: dict[str, Any]) -> dict[str, Any]:
                     f"领跌 {clean_text(laggard.get('name') or laggard.get('product') or laggard.get('symbol'), 30)} "
                     f"{(as_number(laggard.get('change_pct')) or 0):+.2f}%"
                 ),
-                observed_at=clean_text(market_watch.get("generated_at") or exchange.get("updated_at"), 40),
+                observed_at=clean_text(sector_observed_at, 40),
                 detail=(
                     f"覆盖 {len(members)} 个主力合约；"
                     + "、".join(
@@ -240,7 +241,7 @@ def build_context(payloads: dict[str, Any]) -> dict[str, Any]:
                 "market-watch" if live_quotes else "exchange-futures",
                 clean_text(item.get("name") or item.get("product") or item.get("symbol"), 60),
                 f"{price}；涨跌 {change}%",
-                observed_at=clean_text(market_watch.get("generated_at") or exchange.get("updated_at"), 40),
+                observed_at=clean_text(sector_observed_at, 40),
                 detail=clean_text((item.get("fundamental") or {}).get("summary"), 180),
             )
         )
@@ -454,7 +455,7 @@ def build_context(payloads: dict[str, Any]) -> dict[str, Any]:
         "forecast-metrics": clean_text(forecast.get("generated_at") or forecast.get("as_of"), 40),
         "contracts": clean_text(contracts.get("generated_at"), 40),
         "htfc-tianji": clean_text(htfc.get("generated_at"), 40),
-        "market-watch": clean_text(market_watch.get("generated_at"), 40),
+        "market-watch": clean_text(market_watch.get("generated_at"), 40) if live_quotes else "",
     }
     return {
         "session": clean_text(oil.get("update_session") or exchange.get("update_session") or "manual", 30),

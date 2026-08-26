@@ -230,6 +230,9 @@ class MarketAssistantBriefTests(unittest.TestCase):
             context["source_snapshot"]["quant-model-signals"],
             "2026-07-30 23:28",
         )
+        self.assertEqual(context["source_snapshot"]["market-watch"], "")
+        sector = next(item for item in context["evidence"] if item["id"] == "sector:贵金属")
+        self.assertEqual(sector["observed_at"], "2026-07-30 23:28")
 
     def test_live_market_watch_quotes_replace_close_snapshot_for_sector_evidence(self):
         payloads = source_payloads()
