@@ -6535,3 +6535,76 @@ body.redirect-page a {
   color: var(--ink);
   text-decoration: none;
 }
+
+/* Report detail cards are generated at runtime, so keep their complete surface
+   system in the final cascade as well. */
+body.detail-page .report-view,
+body.detail-page .report-content,
+body.detail-page .research-card,
+body.detail-page .research-card-heading,
+body.detail-page .research-card-body {
+  border-color: var(--line) !important;
+  background: #0e1b2d !important;
+  color: var(--ink) !important;
+}
+
+body.detail-page .research-card {
+  box-shadow: var(--shadow) !important;
+}
+
+body.detail-page .research-card-heading {
+  border-bottom: 1px solid rgba(216, 222, 233, 0.12) !important;
+}
+
+body.detail-page .research-card-heading h2,
+body.detail-page .research-card-body h3,
+body.detail-page .research-card-body p,
+body.detail-page .research-card-body li,
+body.detail-page .report-content h1,
+body.detail-page .report-content h2,
+body.detail-page .report-content h3 {
+  color: var(--ink) !important;
+}
+
+body.detail-page .research-card-heading span,
+body.detail-page .research-card-heading span::before {
+  color: var(--muted) !important;
+}
+
+body.detail-page .research-conclusion {
+  border-left-color: #d8dee9 !important;
+  background: #13243a !important;
+  color: var(--ink) !important;
+}
+
+body.detail-page .research-table-wrap,
+body.detail-page .research-card-body table,
+body.detail-page .research-card-body th,
+body.detail-page .research-card-body td,
+body.detail-page .report-content table,
+body.detail-page .report-content th,
+body.detail-page .report-content td {
+  border-color: var(--line) !important;
+  background: #13243a !important;
+  color: var(--ink) !important;
+}
+
+body.detail-page .research-card-body th,
+body.detail-page .report-content th {
+  background: #192d47 !important;
+}
+
+body.detail-page .research-card-body a,
+body.detail-page .download-link {
+  color: #d8dee9 !important;
+}
+
+body.detail-page .research-card-body li::before {
+  background: #d8dee9 !important;
+}
+
+body.detail-page .site-footer {
+  border-color: var(--line) !important;
+  background: #07111f !important;
+  color: var(--muted) !important;
+}
