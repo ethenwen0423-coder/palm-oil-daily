@@ -511,7 +511,7 @@
     bindFilters(events);
     const checkedAt = new Date().toISOString();
     $("refresh-note").textContent = `页面刷新 ${fmtTime(checkedAt, false)} · 不把系统检查写入时间线`;
-    const scanAt = data.watch && data.watch.generated_at;
+    const scanAt = data.watch && (data.watch.events_updated_at || data.watch.generated_at);
     $("timeline-refresh-state").textContent = scanAt ? `5分钟全量扫描 · 最近 ${fmtTime(scanAt, false)} · 仅显示可追溯证据` : "等待首轮5分钟市场扫描";
   }
 

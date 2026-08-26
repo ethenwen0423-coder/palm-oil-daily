@@ -51,6 +51,7 @@ class MarketAssistantStaticTests(unittest.TestCase):
         self.assertNotIn('category: "监控心跳"', script)
         self.assertNotIn("array(data.brief.actions).forEach", script)
         self.assertIn('watch: ["/api/assistant/watch", "data/market_watch.json"]', script)
+        self.assertIn("data.watch.events_updated_at || data.watch.generated_at", script)
         self.assertIn('data-filter="event"', html)
         self.assertNotIn('data-filter="agent"', html)
 
