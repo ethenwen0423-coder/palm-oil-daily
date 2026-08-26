@@ -34,6 +34,7 @@ class ServerAutomationInstallerTests(unittest.TestCase):
         self.assertIn('"$VENV_ROOT/bin/python" -m pip --version', script)
         self.assertIn("systemd-analyze verify", script)
         self.assertIn("systemctl enable --now palm-oil-market-collector.timer", script)
+        self.assertIn('"run_market_watch.py"', script)
         self.assertIn("systemctl enable --now palm-oil-supply-demand.timer", script)
         self.assertIn("systemctl start palm-oil-supply-demand.service", script)
         self.assertIn("systemctl enable --now palm-oil-prediction-review.timer", script)

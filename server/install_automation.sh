@@ -44,7 +44,7 @@ docker compose version >/dev/null
 for required in \
   "$SITE_ROOT/.git" \
   "$SITE_ROOT/server/enable_ai_automation.sh" \
-  "$SITE_ROOT/server/run_market_collector.py" \
+  "$SITE_ROOT/server/run_market_watch.py" \
   "$SITE_ROOT/server/run_supply_demand.py" \
   "$SITE_ROOT/server/run_ai_brief.py" \
   "$SITE_ROOT/server/run_research_agent.py" \
@@ -249,7 +249,7 @@ EOF
 write_service \
   "$temporary_root/palm-oil-market-collector.service" \
   "Refresh palm oil market datasets into the live API mount" \
-  "run_market_collector.py"
+  "run_market_watch.py"
 write_timer \
   "$temporary_root/palm-oil-market-collector.timer" \
   "Scan full palm oil market and events every five minutes" \
