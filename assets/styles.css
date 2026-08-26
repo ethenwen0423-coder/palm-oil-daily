@@ -6310,3 +6310,194 @@ body.home-page,
     margin-bottom: 64px;
   }
 }
+
+/* Final cascade layer: keep every production route on the navy system. */
+:root {
+  color-scheme: dark;
+  --bg: #07111f;
+  --panel: #0e1b2d;
+  --ink: #f0f3f8;
+  --muted: #a7b2c3;
+  --line: #2a3a51;
+  --accent: #d8dee9;
+  --accent-dark: #ffffff;
+  --gold: #d8dee9;
+  --deep: #07111f;
+  --deep-2: #10213a;
+  --danger: #ef8b84;
+  --shadow: 0 18px 42px rgba(0, 0, 0, 0.26);
+}
+
+html,
+body,
+body.home-page,
+body.detail-page,
+body.section-page,
+body.otc-page,
+body.otc-library-page,
+body.quant-page,
+body.redirect-page {
+  background: radial-gradient(circle at 84% -12%, rgba(103, 134, 181, 0.2), transparent 36%), #07111f !important;
+  color: var(--ink);
+}
+
+body.home-page .hero,
+body.home-page .newspaper-layout,
+body .masthead,
+body .section-page-header,
+body .quant-detail-hero,
+body .otc-hero,
+body .library-hero {
+  background:
+    radial-gradient(circle at 86% 8%, rgba(151, 174, 211, 0.2), transparent 32%),
+    linear-gradient(145deg, #07111f 0%, #162b47 58%, #081321 100%) !important;
+  color: var(--ink);
+}
+
+body .home-anchor-nav,
+body .section-page-nav,
+body .quant-header {
+  border-color: rgba(216, 222, 233, 0.16) !important;
+  background: rgba(7, 17, 31, 0.9) !important;
+}
+
+body .market-brief,
+body .sources-section,
+body .newspaper-section,
+body .report-view,
+body .archive,
+body .source-card,
+body .brief-report-item,
+body .research-entry-card,
+body .section-page-intro,
+body .section-page-main,
+body .otc-form,
+body .otc-result,
+body .otc-library-entry,
+body .library-toolbar,
+body .library-content,
+body .library-boundary,
+body .library-card,
+body .quant-detail-facts,
+body .quant-detail-aside,
+body .quant-rule-card,
+body .quant-detail-risk {
+  border-color: var(--line) !important;
+  background: #0e1b2d !important;
+  background-image: none !important;
+  box-shadow: var(--shadow);
+  color: var(--ink);
+}
+
+body .report-content th,
+body .archive-item,
+body select,
+body input,
+body textarea,
+body .otc-field select,
+body .otc-field input,
+body .library-filters input,
+body .quant-detail-model-picker select,
+body .quant-detail-tags span,
+body .otc-result-empty,
+body .quant-model-field-note,
+body .quant-metric-card,
+body .quant-signal-card {
+  border-color: var(--line) !important;
+  background: #13243a !important;
+  color: var(--ink) !important;
+}
+
+body .report-link,
+body .archive-item,
+body .back-link,
+body .quant-detail-section-heading h2,
+body .quant-rule-card h3,
+body .quant-detail-facts strong,
+body .otc-intro h1,
+body .library-hero h1,
+body .section-page-intro h1 {
+  color: var(--ink) !important;
+}
+
+body .report-link small,
+body .archive-item span,
+body .quant-detail-note,
+body .quant-rule-card > p,
+body .quant-rule-card li,
+body .quant-detail-facts span,
+body .section-page-intro p,
+body .otc-intro p,
+body .library-hero p,
+body .site-footer,
+body .quant-footer {
+  color: var(--muted) !important;
+}
+
+body .section-heading,
+body .report-toolbar,
+body .report-link,
+body .quant-detail-facts,
+body .quant-detail-facts > div,
+body .quant-rule-card,
+body .report-content th,
+body .report-content td,
+body .section-page-nav,
+body .library-toolbar,
+body .otc-library-entry {
+  border-color: var(--line) !important;
+}
+
+body .hero-button-primary,
+body .otc-submit,
+body .quant-detail-use,
+body .otc-library-entry > a {
+  border-color: #d8dee9 !important;
+  background: #d8dee9 !important;
+  color: #07111f !important;
+}
+
+body .hero-button-secondary,
+body .hero-button-option,
+body .download-link,
+body .quant-back,
+body .section-page-nav a,
+body .home-anchor-nav a {
+  border-color: rgba(216, 222, 233, 0.34) !important;
+  background: rgba(216, 222, 233, 0.06) !important;
+  color: var(--ink) !important;
+}
+
+body .quant-detail-risk {
+  border-left-color: #d8dee9 !important;
+}
+
+body .quant-detail-risk span,
+body .otc-eyebrow,
+body .quant-eyebrow,
+body .section-heading span,
+body .section-label,
+body .label {
+  color: #d8dee9 !important;
+}
+
+body.redirect-page {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  margin: 0;
+  padding: 24px;
+}
+
+body.redirect-page p {
+  margin: 0;
+}
+
+body.redirect-page a {
+  display: inline-flex;
+  padding: 12px 16px;
+  border: 1px solid rgba(216, 222, 233, 0.34);
+  background: #0e1b2d;
+  color: var(--ink);
+  text-decoration: none;
+}
