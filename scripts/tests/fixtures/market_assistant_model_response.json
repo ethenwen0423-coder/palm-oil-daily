@@ -19,6 +19,56 @@
       ]
     }
   ],
+  "sector_views": [
+    {
+      "sector": "油脂油料",
+      "state": "分化",
+      "summary": "油脂油料内部强弱不一，等待外盘与资金形成同向确认。",
+      "evidence_ids": ["sector:油脂油料"]
+    },
+    {
+      "sector": "黑色建材",
+      "state": "分化",
+      "summary": "黑色链内部表现分化，单一品种异动尚不足以确认趋势。",
+      "evidence_ids": ["sector:黑色建材"]
+    },
+    {
+      "sector": "能源化工",
+      "state": "分化",
+      "summary": "能源化工强弱分散，成本与需求线索仍需继续核验。",
+      "evidence_ids": ["sector:能源化工"]
+    },
+    {
+      "sector": "有色新能源",
+      "state": "分化",
+      "summary": "新能源材料波动突出，有色金属尚未形成一致共振。",
+      "evidence_ids": ["sector:有色新能源"]
+    },
+    {
+      "sector": "贵金属",
+      "state": "偏弱",
+      "summary": "贵金属整体承压，需观察避险驱动能否重新增强。",
+      "evidence_ids": ["sector:贵金属"]
+    },
+    {
+      "sector": "金融期货",
+      "state": "偏弱",
+      "summary": "金融期货表现偏弱，股指与利率方向仍需分别判断。",
+      "evidence_ids": ["sector:金融期货"]
+    },
+    {
+      "sector": "农产品",
+      "state": "震荡",
+      "summary": "农产品缺少统一方向，品种供需差异仍是主要矛盾。",
+      "evidence_ids": ["sector:农产品"]
+    },
+    {
+      "sector": "航运浆纸",
+      "state": "偏强",
+      "summary": "航运浆纸局部偏强，但板块样本较少需要降低置信度。",
+      "evidence_ids": ["sector:航运浆纸"]
+    }
+  ],
   "actions": [
     {
       "status": "monitoring",

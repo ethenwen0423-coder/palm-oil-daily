@@ -48,6 +48,7 @@ def source_payloads():
                 {
                     "symbol": "au",
                     "product": "黄金",
+                    "category": "贵金属",
                     "price": 798.2,
                     "change_pct": 1.2,
                     "fundamental": {"summary": "贵金属波动扩大。"},
@@ -144,6 +145,14 @@ def model_payload():
                 "evidence_ids": ["oil:P2609", "exchange:au"],
             }
         ],
+        "sector_views": [
+            {
+                "sector": "贵金属",
+                "state": "偏强",
+                "summary": "黄金领涨但仍需观察板块内部共振。",
+                "evidence_ids": ["sector:贵金属"],
+            }
+        ],
         "actions": [
             {
                 "status": "monitoring",
@@ -209,11 +218,12 @@ class MarketAssistantBriefTests(unittest.TestCase):
         ids = {item["id"] for item in context["evidence"]}
         self.assertIn("oil:P2609", ids)
         self.assertIn("exchange:au", ids)
+        self.assertIn("sector:贵金属", ids)
         self.assertIn("quant:bollinger-rsi-ma6-v1:P2609", ids)
         self.assertIn("supply:official-check", ids)
         self.assertIn("htfc-news:KX1", ids)
         self.assertIn("htfc-kline:P", ids)
-        self.assertLessEqual(len(context["evidence"]), 24)
+        self.assertLessEqual(len(context["evidence"]), 40)
         self.assertEqual(context["fixed_logic"], ["otc_structure_library", "quant_model_rules"])
         self.assertEqual(
             context["source_snapshot"]["quant-model-signals"],
@@ -227,6 +237,11 @@ class MarketAssistantBriefTests(unittest.TestCase):
         self.assertEqual(result["update_session"], "night_close")
         self.assertEqual(result["key_moves"][0]["value"], "8120；涨跌 +0.60%")
         self.assertEqual(result["key_moves"][0]["source"], "oil-futures")
+        self.assertEqual(result["sector_views"][0]["sector"], "贵金属")
+        self.assertEqual(
+            result["sector_views"][0]["evidence"][0]["id"],
+            "sector:贵金属",
+        )
 
     def test_unknown_evidence_is_rejected(self):
         context = BRIEF.build_context(source_payloads())

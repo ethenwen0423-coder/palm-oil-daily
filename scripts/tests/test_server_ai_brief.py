@@ -29,6 +29,7 @@ def valid_brief() -> dict[str, object]:
         "source_snapshot": {"quant-model-signals": "2026-07-31 00:25"},
         "fixed_logic": ["otc_structure_library", "quant_model_rules"],
         "key_moves": [{"source": "quant-model-signals"}],
+        "sector_views": [{"sector": "油脂油料"}],
     }
 
 
@@ -97,6 +98,11 @@ class ServerAiBriefTests(unittest.TestCase):
             script.index('command.append("--force")'),
             script.index("sync_module.sync_ai("),
         )
+
+    def test_operator_can_force_regeneration_after_contract_change(self):
+        script = SCRIPT.read_text(encoding="utf-8")
+        self.assertIn('parser.add_argument("--force", action="store_true")', script)
+        self.assertIn("if args.force or not", script)
 
 
 if __name__ == "__main__":

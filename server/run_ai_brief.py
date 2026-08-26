@@ -51,7 +51,11 @@ def validate_brief(path: Path) -> dict[str, Any]:
         raise AiBriefRunnerError("AI brief output must be a JSON object")
     if payload.get("schema_version") != 1 or payload.get("status") != "ready":
         raise AiBriefRunnerError("AI brief output failed schema/status validation")
-    if not payload.get("source_fingerprint") or not payload.get("key_moves"):
+    if (
+        not payload.get("source_fingerprint")
+        or not payload.get("key_moves")
+        or not payload.get("sector_views")
+    ):
         raise AiBriefRunnerError("AI brief output is missing grounding evidence")
     if payload.get("fixed_logic") != [
         "otc_structure_library",
@@ -91,6 +95,7 @@ def main() -> int:
     )
     parser.add_argument("--mock-response", type=Path)
     parser.add_argument("--timeout", type=int, default=300)
+    parser.add_argument("--force", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 
@@ -164,7 +169,7 @@ def main() -> int:
                 "--timeout",
                 str(args.timeout),
             ]
-            if not (live_data_root / sync_module.AI_READY_MARKER).exists():
+            if args.force or not (live_data_root / sync_module.AI_READY_MARKER).exists():
                 command.append("--force")
             if args.mock_response:
                 command.extend(["--mock-response", str(args.mock_response.resolve())])

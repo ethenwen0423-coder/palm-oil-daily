@@ -55,6 +55,16 @@ NEXT_CHECKS = {
     "持续监控",
 }
 CONFIDENCE_LEVELS = {"高", "中", "低"}
+SECTOR_GROUPS = {
+    "油脂油料": {"油脂油料"},
+    "黑色建材": {"黑色建材", "黑色金属"},
+    "能源化工": {"能化材料", "能源化工"},
+    "有色新能源": {"有色金属", "新能源材料"},
+    "贵金属": {"贵金属"},
+    "金融期货": {"利率期货", "股指期货"},
+    "农产品": {"谷物饲料", "软商品"},
+    "航运浆纸": {"造纸航运"},
+}
 
 
 class BriefError(RuntimeError):
@@ -175,6 +185,47 @@ def build_context(payloads: dict[str, Any]) -> dict[str, Any]:
         if isinstance(item, dict) and as_number(item.get("change_pct")) is not None
     ]
     priced_exchange.sort(key=lambda item: abs(as_number(item.get("change_pct")) or 0), reverse=True)
+    sector_evidence_ids: dict[str, str] = {}
+    for sector, categories in SECTOR_GROUPS.items():
+        members = [
+            item for item in priced_exchange
+            if clean_text(item.get("category"), 40) in categories
+        ]
+        if not members:
+            continue
+        ranked = sorted(
+            members,
+            key=lambda item: as_number(item.get("change_pct")) or 0,
+            reverse=True,
+        )
+        leader = ranked[0]
+        laggard = ranked[-1]
+        average = sum(as_number(item.get("change_pct")) or 0 for item in members) / len(members)
+        evidence_id = f"sector:{sector}"
+        sector_evidence_ids[sector] = evidence_id
+        evidence.append(
+            evidence_record(
+                evidence_id,
+                "exchange-futures",
+                f"{sector}板块主力表现",
+                (
+                    f"平均涨跌 {average:+.2f}%；"
+                    f"领涨 {clean_text(leader.get('product') or leader.get('symbol'), 30)} "
+                    f"{(as_number(leader.get('change_pct')) or 0):+.2f}%；"
+                    f"领跌 {clean_text(laggard.get('product') or laggard.get('symbol'), 30)} "
+                    f"{(as_number(laggard.get('change_pct')) or 0):+.2f}%"
+                ),
+                observed_at=clean_text(exchange.get("updated_at"), 40),
+                detail=(
+                    f"覆盖 {len(members)} 个主力合约；"
+                    + "、".join(
+                        f"{clean_text(item.get('product') or item.get('symbol'), 24)} "
+                        f"{(as_number(item.get('change_pct')) or 0):+.2f}%"
+                        for item in ranked[:4]
+                    )
+                ),
+            )
+        )
     for index, item in enumerate(priced_exchange[:8]):
         identity = clean_text(item.get("symbol") or item.get("contract") or item.get("product") or index, 50)
         price = clean_text(item.get("price") or "需进一步核验", 40)
@@ -404,6 +455,7 @@ def build_context(payloads: dict[str, Any]) -> dict[str, Any]:
         "session": clean_text(oil.get("update_session") or exchange.get("update_session") or "manual", 30),
         "source_snapshot": source_snapshot,
         "evidence": evidence,
+        "sector_evidence_ids": sector_evidence_ids,
         "fixed_logic": ["otc_structure_library", "quant_model_rules"],
     }
 
@@ -439,7 +491,9 @@ def build_prompt(context: dict[str, Any]) -> str:
 5. 结论先行，中文简洁；actions 表示 AI 已完成、正在监控或被数据阻断的工作。
 6. 休市时技术判断必须引用最近完成交易日的 technical 证据；只要 fundamental 或 supply 证据有最近成功值，就不得描述为数据为空。供需与基本面检查独立于开休市持续运行。
 7. 有技术与基本面证据时，watchlist 至少分别包含一项技术面和一项基本面关注事项。
-8. 不要输出 Markdown，只输出 JSON 对象。
+8. sector_views 必须逐一覆盖 CONTEXT_JSON.sector_evidence_ids 中的全部板块，每个板块只能出现一次，并引用对应的 sector 证据；不得把棕榈油结论套用到其他板块。
+9. 每个板块先判断板块内部强弱、领涨领跌与分化，再给出简洁研判；缺少板块基本面时应明确这是行情结构判断。
+10. 不要输出 Markdown，只输出 JSON 对象。
 
 允许的证据编号：
 {json.dumps(evidence_ids, ensure_ascii=False)}
@@ -487,6 +541,7 @@ def validate_and_enrich(model_payload: dict[str, Any], context: dict[str, Any]) 
         "summary",
         "key_moves",
         "watchlist",
+        "sector_views",
         "actions",
         "risks",
         "confidence",
@@ -549,6 +604,47 @@ def validate_and_enrich(model_payload: dict[str, Any], context: dict[str, Any]) 
             }
         )
 
+    sector_views = []
+    expected_sectors = context.get("sector_evidence_ids") or {}
+    model_sector_views = require_list(
+        model_payload["sector_views"],
+        "sector_views",
+        len(expected_sectors),
+        max(8, len(expected_sectors)),
+    )
+    seen_sectors: set[str] = set()
+    for index, item in enumerate(model_sector_views):
+        expected = {"sector", "state", "summary", "evidence_ids"}
+        if not isinstance(item, dict) or set(item) != expected:
+            raise BriefError(f"AI 简报 sector_views[{index}] 结构不合法")
+        sector = require_text(item["sector"], f"sector_views[{index}].sector")
+        if sector not in expected_sectors or sector in seen_sectors:
+            raise BriefError(f"AI 简报 sector_views[{index}] 板块不合法或重复：{sector}")
+        state = require_text(item["state"], f"sector_views[{index}].state")
+        if state not in MARKET_STATES:
+            raise BriefError(f"AI 简报 sector_views[{index}].state 不合法")
+        evidence_ids = require_list(
+            item["evidence_ids"], f"sector_views[{index}].evidence_ids", 1, 3
+        )
+        normalized_ids = [str(evidence_id) for evidence_id in evidence_ids]
+        if expected_sectors[sector] not in normalized_ids:
+            raise BriefError(f"AI 简报 {sector} 未引用对应板块证据")
+        if any(evidence_id not in evidence_by_id for evidence_id in normalized_ids):
+            raise BriefError(f"AI 简报 {sector} 引用未知证据")
+        seen_sectors.add(sector)
+        sector_views.append(
+            {
+                "sector": sector,
+                "state": state,
+                "summary": require_text(item["summary"], f"sector_views[{index}].summary"),
+                "evidence_ids": normalized_ids,
+                "evidence": [evidence_by_id[evidence_id] for evidence_id in normalized_ids],
+            }
+        )
+    if seen_sectors != set(expected_sectors):
+        missing = "、".join(sorted(set(expected_sectors) - seen_sectors))
+        raise BriefError(f"AI 简报缺少板块研判：{missing}")
+
     actions = []
     for index, item in enumerate(require_list(model_payload["actions"], "actions")):
         expected = {"status", "task", "result", "next_check"}
@@ -586,6 +682,7 @@ def validate_and_enrich(model_payload: dict[str, Any], context: dict[str, Any]) 
         "summary": require_text(model_payload["summary"], "summary"),
         "key_moves": key_moves,
         "watchlist": watchlist,
+        "sector_views": sector_views,
         "actions": actions,
         "risks": risks,
         "confidence": confidence,

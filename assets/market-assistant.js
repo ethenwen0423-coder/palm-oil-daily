@@ -177,6 +177,48 @@
     $("trigger-list").innerHTML = watch.length ? watch.map((item) => `<li><strong>${esc(first(item.item, "关注项"))}</strong><span>${esc(first(item.trigger, "等待下一次自动检查"))}</span></li>`).join("") : "<li><strong>暂无等待触发</strong><span>系统仍会持续检查</span></li>";
   }
 
+  const sectorGroups = {
+    "油脂油料": ["油脂油料"],
+    "黑色建材": ["黑色建材", "黑色金属"],
+    "能源化工": ["能化材料", "能源化工"],
+    "有色新能源": ["有色金属", "新能源材料"],
+    "贵金属": ["贵金属"],
+    "金融期货": ["利率期货", "股指期货"],
+    "农产品": ["谷物饲料", "软商品"],
+    "航运浆纸": ["造纸航运"]
+  };
+
+  function sectorFallback(exchange) {
+    const contracts = array(exchange && exchange.contracts).filter((item) => Number.isFinite(Number(item.change_pct)));
+    return Object.entries(sectorGroups).map(([sector, categories]) => {
+      const members = contracts.filter((item) => categories.includes(item.category));
+      if (!members.length) return null;
+      const ranked = members.slice().sort((a, b) => Number(b.change_pct) - Number(a.change_pct));
+      const average = members.reduce((total, item) => total + Number(item.change_pct), 0) / members.length;
+      const state = average > .5 ? "偏强" : average < -.5 ? "偏弱" : "分化";
+      return {
+        sector,
+        state,
+        summary: "AI 板块简报待生成；当前先展示可追溯的主力合约强弱结构。",
+        evidence: [{ value: `平均涨跌 ${average >= 0 ? "+" : ""}${average.toFixed(2)}%；领涨 ${first(ranked[0].product, ranked[0].symbol)}；领跌 ${first(ranked.at(-1).product, ranked.at(-1).symbol)}` }]
+      };
+    }).filter(Boolean);
+  }
+
+  function renderSectorViews(payload, data) {
+    const generated = array(payload.sector_views);
+    const views = generated.length ? generated : sectorFallback(data.exchange || {});
+    $("sector-intelligence-updated").textContent = generated.length
+      ? `AI 生成 ${fmtTime(payload.generated_at || payload.updated_at, true)}`
+      : `行情结构 ${fmtTime((data.exchange || {}).updated_at, true)}`;
+    $("sector-view-grid").innerHTML = views.length ? views.map((item) => {
+      const evidence = array(item.evidence)[0] || {};
+      const state = first(item.state, "数据不足");
+      const stateClass = state === "偏强" ? "is-strong" : state === "偏弱" ? "is-weak" : state === "分化" ? "is-split" : "is-neutral";
+      return `<article class="sector-view-card ${stateClass}"><header><strong>${esc(first(item.sector, "未分类板块"))}</strong><span>${esc(state)}</span></header><p>${esc(first(item.summary, "等待板块研判。"))}</p><footer>${esc(first(evidence.value, "等待可追溯行情证据"))}</footer></article>`;
+    }).join("") : "<article class='sector-view-card is-empty'><strong>暂无板块数据</strong><p>等待下一轮全市场行情刷新。</p></article>";
+  }
+
   function renderPulse(payload) {
     const desiredProducts = ["P", "Y", "OI", "M", "RM"];
     const allContracts = array(payload.contracts);
@@ -500,6 +542,7 @@
     }));
     const data = Object.fromEntries(entries);
     renderBrief(data.brief || {}, data);
+    renderSectorViews(data.brief || {}, data);
     renderPulse(data.oil || {});
     renderOilDesk(data.oil || {});
     renderSupplyDesk(data.supply || {});

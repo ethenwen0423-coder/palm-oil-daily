@@ -10,6 +10,7 @@ class MarketAssistantStaticTests(unittest.TestCase):
         html = (ROOT / "assistant.html").read_text(encoding="utf-8")
         self.assertIn("24h 盯盘助手", html)
         self.assertIn('id="decision-title"', html)
+        self.assertIn('id="sector-view-grid"', html)
         self.assertIn('id="priority-list"', html)
         self.assertIn('id="market-pulse"', html)
         self.assertIn('id="oil-desk-grid"', html)
@@ -36,6 +37,8 @@ class MarketAssistantStaticTests(unittest.TestCase):
         self.assertIn('status: ["/api/status"]', script)
         self.assertIn("setInterval(load, 60000)", script)
         self.assertIn("payload.automation", script)
+        self.assertIn("renderSectorViews(data.brief || {}, data)", script)
+        self.assertIn("const sectorGroups", script)
 
     def test_assistant_preserves_fixed_logic_boundary(self):
         html = (ROOT / "assistant.html").read_text(encoding="utf-8")

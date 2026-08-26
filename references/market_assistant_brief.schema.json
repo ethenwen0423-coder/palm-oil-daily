@@ -9,6 +9,7 @@
     "summary",
     "key_moves",
     "watchlist",
+    "sector_views",
     "actions",
     "risks",
     "confidence"
@@ -89,6 +90,42 @@
             "type": "array",
             "minItems": 1,
             "maxItems": 4,
+            "items": {
+              "type": "string",
+              "minLength": 3,
+              "maxLength": 80
+            }
+          }
+        }
+      }
+    },
+    "sector_views": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["sector", "state", "summary", "evidence_ids"],
+        "properties": {
+          "sector": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 20
+          },
+          "state": {
+            "type": "string",
+            "enum": ["偏强", "震荡", "偏弱", "分化", "数据不足"]
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 4,
+            "maxLength": 100
+          },
+          "evidence_ids": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 3,
             "items": {
               "type": "string",
               "minLength": 3,
