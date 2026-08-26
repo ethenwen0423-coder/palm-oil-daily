@@ -28,7 +28,7 @@ market_data_skill
 ```bash
 cd /Users/ethen/Sites/palm-oil-daily
 git pull --ff-only
-python3 scripts/run_financial_skills.py --date "$REPORT_DATE" --kind daily --timeout 90
+python3 scripts/run_financial_skills.py --date "$REPORT_DATE" --kind daily --timeout 180
 python3 skills/data_quality_gate_skill/scripts/validate_data.py \
   --manifest "source_runs/$REPORT_DATE-daily/manifest.json" --strict
 python3 skills/forecast_tracking_skill/scripts/build_generation_feedback.py \

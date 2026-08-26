@@ -27,6 +27,7 @@ while IFS= read -r report_path; do
 done < <(
   {
     git diff --name-only -- 'reports/*.md'
+    git diff --cached --name-only -- 'reports/*.md'
     git ls-files --others --exclude-standard -- 'reports/*.md'
   } | sort -u
 )
@@ -177,9 +178,13 @@ PY
   exit 0
 fi
 
-git add -- reports data downloads miniprogram/data \
-  ':(exclude)data/forecast/daily/*.json' \
-  ':(exclude)data/review/runtime_snapshots/**'
+# Stage only website and mini-program artifacts.  Do not add the whole data
+# directory: report publication also creates ignored runtime snapshots, and an
+# explicit directory add exits non-zero before the exclusion pathspec applies.
+git add -- reports downloads miniprogram/data \
+  data/contracts \
+  data/oil_futures.js data/oil_futures.json \
+  data/reports.js data/reports.json data/version.js
 if git diff --cached --name-only -- data/forecast/daily data/review/runtime_snapshots | grep -q .; then
   echo "refusing to publish Git-ignored forecast or runtime snapshot artifacts" >&2
   exit 2

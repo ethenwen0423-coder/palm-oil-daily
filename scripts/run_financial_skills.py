@@ -279,7 +279,12 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Run palm-oil report financial skill sources.")
     parser.add_argument("--date", required=True, help="Report date, YYYY-MM-DD")
     parser.add_argument("--kind", choices=["daily", "weekend"], required=True)
-    parser.add_argument("--timeout", type=int, default=90)
+    parser.add_argument(
+        "--timeout",
+        type=int,
+        default=180,
+        help="Per-source timeout in seconds; 180s accommodates slow official market responses.",
+    )
     parser.add_argument(
         "--strict",
         action="store_true",
