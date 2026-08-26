@@ -50,6 +50,8 @@ python3 skills/forecast_tracking_skill/scripts/build_generation_feedback.py \
 
 金融 skill 的实际成功、失败、替代来源必须写入来源说明。核心数据以交易所、官方机构、结构化行情和可复核研报交叉验证；微信/产业文章只补充叙事，不作为未经复核的行情或库存事实。
 
+天玑增量必须读取 `raw/htfc_tianji_market_intelligence.json`：日报采集 7×24 快讯、风向罗盘排行/概览与盘前策略。仅在接口返回明确对应油脂品种、时间戳可用且与其他行情不冲突时，作为补充证据；不得把天玑指标或盘前观点自行扩展成交易建议。接口不可用或无匹配品种时，在来源说明披露，不阻断其他已通过门禁的数据源。
+
 ## Writing Skill：三阶段
 
 写作前完整读取：
