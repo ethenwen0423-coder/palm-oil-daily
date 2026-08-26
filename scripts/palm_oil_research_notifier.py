@@ -727,7 +727,7 @@ def send_failure_alert(base: Path, report_date: str, edition: str, reason: str) 
     compact = re.sub(r"\s+", " ", reason).strip()[:280]
     send_message(
         recipient,
-        f"【棕榈油研究·{EDITION_LABEL[edition]}·{report_date}】报告暂不可用：{compact}",
+        f"【油脂研究·{EDITION_LABEL[edition]}·{report_date}】报告暂不可用：{compact}",
     )
     marker.touch(mode=0o600)
 
@@ -764,7 +764,7 @@ def main() -> int:
                 return 0
             if args.send_test:
                 result = deliver(
-                    prepare_messages("测试信息：棕榈油研究报告 Messages 通道已连通。", report_date, edition),
+                    prepare_messages("测试信息：油脂研究报告 Messages 通道已连通。", report_date, edition),
                     f"test-{report_date}",
                     edition,
                     base,

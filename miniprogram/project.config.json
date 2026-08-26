@@ -1,7 +1,7 @@
 {
   "appid": "touristappid",
   "projectname": "vinson-palm-oil-mini-program",
-  "description": "Vinson Research 棕榈油研究小程序",
+  "description": "Vinson Research 油脂板块研究小程序",
   "compileType": "miniprogram",
   "miniprogramRoot": "./",
   "setting": {

@@ -49,6 +49,6 @@ Page({
 
   onShareAppMessage() {
     const report = this.data.report || {};
-    return { title: report.displayHeadline || report.displayTitle || "棕榈油研究报告", path: `/pages/report-detail/report-detail?id=${encodeURIComponent(report.date || "")}` };
+    return { title: report.displayHeadline || report.displayTitle || "油脂研究报告", path: `/pages/report-detail/report-detail?id=${encodeURIComponent(report.date || "")}` };
   },
 });

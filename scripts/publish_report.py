@@ -23,7 +23,7 @@ def extract_title(content: str, date: str) -> str:
     for line in content.splitlines():
         if line.startswith("# "):
             return line[2:].strip()
-    return f"{date} 棕榈油行情日报"
+    return f"{date} 油脂行情日报"
 
 
 def extract_summary(content: str) -> str:
@@ -31,7 +31,7 @@ def extract_summary(content: str) -> str:
         line = line.strip()
         if line.startswith("- "):
             return line[2:].strip()
-    return "棕榈油行情日报"
+    return "油脂行情日报"
 
 
 def extract_headline(content: str, fallback: str) -> str:
@@ -52,7 +52,7 @@ def extract_headline(content: str, fallback: str) -> str:
                 if len(cells) >= 2 and cells[1] and "---" not in cells[1]:
                     return cells[1]
     summary = extract_summary(content)
-    return summary if summary != "棕榈油行情日报" else fallback
+    return summary if summary != "油脂行情日报" else fallback
 
 
 def main() -> None:

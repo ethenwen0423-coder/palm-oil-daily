@@ -1,7 +1,7 @@
 <view class="hero">
   <view class="brand-kicker">VINSON RESEARCH</view>
-  <view class="brand-title">Palm Oil Intelligence</view>
-  <view class="brand-subtitle">专业棕榈油市场研究</view>
+  <view class="brand-title">Oils Intelligence</view>
+  <view class="brand-subtitle">专业油脂板块研究</view>
 
   <view wx:if="{{latest}}" class="view-card">
     <view class="view-label"><text>今日观点</text><text>★★★★☆</text></view>
