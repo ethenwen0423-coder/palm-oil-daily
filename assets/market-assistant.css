@@ -32,8 +32,26 @@ button { color: inherit; }
 .header-actions { margin-left: auto; display: flex; align-items: center; gap: 15px; }
 .home-return { display: inline-flex; align-items: center; gap: 6px; padding: 7px 10px; border: 1px solid var(--line-strong); border-radius: 7px; color: #cbd8cf; font-size: 10px; white-space: nowrap; }
 .home-return:hover, .home-return:focus-visible { outline: none; border-color: var(--green); color: var(--text); }
-.live-state { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 11px; }
+.live-state { position: relative; display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 11px; }
 .live-state time { margin-left: 8px; color: var(--text); font: 500 12px/1 ui-monospace, SFMono-Regular, Menlo, monospace; }
+.data-chain-trigger { display: inline-flex; align-items: center; gap: 8px; padding: 6px 7px; border: 1px solid transparent; border-radius: 5px; background: transparent; cursor: pointer; font-weight: 700; }
+.data-chain-trigger::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; box-shadow: 0 0 12px currentColor; }
+.data-chain-trigger:hover, .data-chain-trigger:focus-visible, .data-chain-trigger[aria-expanded="true"] { outline: none; border-color: currentColor; background: rgba(255,255,255,.035); }
+.data-chain-popover { position: absolute; z-index: 30; top: calc(100% + 13px); right: 0; width: min(420px, calc(100vw - 32px)); padding: 15px; border: 1px solid var(--line-strong); border-radius: 8px; background: #091a14; box-shadow: 0 18px 48px rgba(0,0,0,.42); color: var(--text); }
+.data-chain-popover[hidden] { display: none; }
+.data-chain-popover header { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+.data-chain-popover header span { color: var(--green); font-size: 8px; font-weight: 800; letter-spacing: .15em; }
+.data-chain-popover header strong { display: block; margin-top: 4px; font-size: 13px; }
+.data-chain-popover header button { width: 28px; height: 28px; border: 1px solid var(--line); border-radius: 5px; background: transparent; color: var(--muted); cursor: pointer; }
+.data-chain-popover header button:hover, .data-chain-popover header button:focus-visible { outline: none; border-color: var(--green); color: var(--text); }
+#data-chain-details-list { display: grid; gap: 8px; margin-top: 12px; }
+.data-chain-issue { padding: 10px 11px; border: 1px solid var(--line); border-radius: 6px; background: rgba(4,14,11,.58); }
+.data-chain-issue > div { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.data-chain-issue strong { font-size: 11px; }.data-chain-issue b { font-size: 9px; }
+.data-chain-issue code { display: block; overflow: hidden; margin-top: 5px; color: var(--muted); font: 500 8px/1.4 ui-monospace, monospace; text-overflow: ellipsis; white-space: nowrap; }
+.data-chain-issue p, .data-chain-ok { margin: 7px 0 0; color: #bdcbc2; font-size: 9px; line-height: 1.5; }
+.data-chain-ok { margin: 0; padding: 10px 11px; border: 1px solid rgba(120,199,148,.25); border-radius: 6px; color: var(--green); }
+.data-chain-popover > small { display: block; margin-top: 11px; padding-top: 10px; border-top: 1px solid var(--line); color: var(--muted); font-size: 8px; }
 .is-ready { color: var(--green); }.is-degraded { color: var(--gold); }.is-error { color: var(--red); }.is-loading { color: var(--blue); }
 
 .monitor-mode { display: grid; grid-template-columns: minmax(230px, .65fr) minmax(0, 1.45fr) auto; align-items: center; gap: 20px; margin-top: 20px; padding: 13px 17px; border: 1px solid var(--line); border-radius: 10px; background: linear-gradient(90deg, rgba(120,199,148,.08), rgba(213,173,103,.04)); }
@@ -357,15 +375,6 @@ footer { border-top: 1px solid var(--line); } footer > div { display: flex; just
   border-radius: 5px;
   color: var(--green);
   font-weight: 760;
-}
-
-.assistant-page .live-state::before {
-  content: "";
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--green);
-  box-shadow: 0 0 14px rgba(112, 209, 154, .72);
 }
 
 .assistant-page main.shell {

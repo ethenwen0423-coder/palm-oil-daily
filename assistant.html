@@ -8,7 +8,7 @@
     <meta name="description" content="自动归集证据、监控走势并生成可追溯的油脂市场判断。" />
     <meta name="theme-color" content="#07130f" />
     <link rel="icon" href="data:," />
-    <link rel="stylesheet" href="assets/market-assistant.css?v=20260826-7" />
+    <link rel="stylesheet" href="assets/market-assistant.css?v=20260826-8" />
   </head>
   <body class="assistant-page">
     <header class="command-header">
@@ -29,7 +29,15 @@
         </nav>
         <div class="header-actions">
           <a class="home-return" href="/" aria-label="返回网站首页"><span aria-hidden="true">←</span> 返回首页</a>
-          <div class="live-state"><span id="overall-state" class="is-loading">连接数据链</span><time id="live-clock">--:--:--</time></div>
+          <div class="live-state">
+            <button id="overall-state" class="data-chain-trigger is-loading" type="button" aria-expanded="false" aria-controls="data-chain-details">连接数据链</button>
+            <time id="live-clock">--:--:--</time>
+            <section id="data-chain-details" class="data-chain-popover" aria-labelledby="data-chain-details-title" hidden>
+              <header><div><span>DATA CHAIN</span><strong id="data-chain-details-title">数据链状态</strong></div><button id="data-chain-details-close" type="button" aria-label="关闭数据链详情">×</button></header>
+              <div id="data-chain-details-list"><p>正在读取数据链状态…</p></div>
+              <small id="data-chain-details-note">系统将按既定频率继续检查。</small>
+            </section>
+          </div>
         </div>
       </div>
     </header>
@@ -158,6 +166,6 @@
     <script src="data/reports.js?v=20260822-8"></script>
     <script src="data/oil_futures.js?v=20260822-8"></script>
     <script src="data/exchange_futures.js?v=20260822-8"></script>
-    <script src="assets/market-assistant.js?v=20260826-5"></script>
+    <script src="assets/market-assistant.js?v=20260826-6"></script>
   </body>
 </html>

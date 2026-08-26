@@ -491,15 +491,29 @@
 
   function renderStatus(payload) {
     const state = first(payload.status, "degraded");
-    const klass = state === "ready" ? "is-ready" : state === "error" ? "is-error" : "is-degraded";
+    const klass = state === "ready" || state === "ok" ? "is-ready" : state === "error" ? "is-error" : "is-degraded";
     $("overall-state").className = klass;
-    $("overall-state").textContent = state === "ready" ? "数据链正常" : state === "degraded" ? "部分数据延迟" : "数据链异常";
+    $("overall-state").classList.add("data-chain-trigger");
+    $("overall-state").textContent = state === "ready" || state === "ok" ? "数据链正常" : state === "degraded" ? "部分数据延迟" : "数据链异常";
     $("system-label").textContent = $("overall-state").textContent;
     $("system-label").className = klass;
     const datasets = Object.values(payload.datasets || {});
     const counts = { ready: 0, stale: 0, invalid: 0 };
     datasets.forEach((item) => { const key = item.state === "ready" ? "ready" : item.state === "invalid" || item.state === "missing" ? "invalid" : "stale"; counts[key] += 1; });
     $("health-summary").innerHTML = `<div class="health-stat"><strong class="is-ready">${counts.ready}</strong><span>正常</span></div><div class="health-stat"><strong class="is-degraded">${counts.stale}</strong><span>延迟</span></div><div class="health-stat"><strong class="is-error">${counts.invalid}</strong><span>缺失</span></div>`;
+    const abnormalDatasets = datasets.filter((item) => item.state !== "ready");
+    $("data-chain-details-title").textContent = abnormalDatasets.length ? `${abnormalDatasets.length} 条数据链需要关注` : "全部数据链正常";
+    $("data-chain-details-list").innerHTML = abnormalDatasets.length ? abnormalDatasets.map((item) => {
+      const itemClass = item.state === "invalid" || item.state === "missing" ? "is-error" : "is-degraded";
+      const stateLabel = item.state === "stale" ? "延迟" : item.state === "missing" ? "缺失" : item.state === "invalid" ? "异常" : first(item.state, "待查");
+      const detail = item.state === "stale"
+        ? `最近有效数据 ${fmtTime(item.observed_at || item.updated_at, true)}，已超过刷新时限。`
+        : item.state === "missing" ? "尚未发现可发布的数据文件。"
+          : item.state === "invalid" ? "数据内容未通过格式校验。" : "该数据链需要进一步检查。";
+      return `<article class="data-chain-issue"><div><strong>${esc(first(item.label, item.route))}</strong><b class="${itemClass}">${esc(stateLabel)}</b></div><code>${esc(first(item.route, "数据路径待核验"))}</code><p>${esc(detail)}</p></article>`;
+    }).join("") : "<p class='data-chain-ok'>当前所有数据链均在允许的新鲜度范围内。</p>";
+    $("data-chain-details-note").textContent = `状态检查 ${fmtTime(payload.served_at, true)} · 系统将继续自动复查`;
+    $("overall-state").title = abnormalDatasets.length ? `点击查看 ${abnormalDatasets.length} 条异常数据链` : "点击查看数据链状态";
     const datasetOrder = ["/api/assistant/brief", "/api/reports", "/api/supply-demand", "/api/oil-futures", "/api/exchange-futures", "/api/forecast/metrics/latest"];
     const orderedDatasets = datasetOrder.map((route) => payload.datasets && payload.datasets[route]).filter(Boolean);
     $("dataset-status-list").innerHTML = orderedDatasets.length ? orderedDatasets.map((item) => {
@@ -515,6 +529,24 @@
       const checked = typeof item === "string" ? "" : fmtTime(item.last_success_at, true);
       return `<div class="status-row"><span><strong>${esc(label)}</strong><small>${esc(checked)}</small></span><b class="${itemClass}">${esc(itemState === "ready" ? "已运行" : first(itemState, "待检查"))}</b></div>`;
     }).join("") : "<p class='empty-state'>暂无任务状态</p>";
+  }
+
+  function bindDataChainDetails() {
+    const trigger = $("overall-state");
+    const panel = $("data-chain-details");
+    const close = $("data-chain-details-close");
+    const setOpen = (open) => {
+      panel.hidden = !open;
+      trigger.setAttribute("aria-expanded", String(open));
+    };
+    trigger.onclick = () => setOpen(panel.hidden);
+    close.onclick = () => { setOpen(false); trigger.focus(); };
+    document.addEventListener("click", (event) => {
+      if (!panel.hidden && !panel.contains(event.target) && event.target !== trigger) setOpen(false);
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && !panel.hidden) { setOpen(false); trigger.focus(); }
+    });
   }
 
   function renderMonitorMode(data) {
@@ -611,6 +643,7 @@
 
   function clock() { $("live-clock").textContent = new Intl.DateTimeFormat("zh-CN", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).format(new Date()); }
   bindSectionNavigation();
+  bindDataChainDetails();
   clock(); setInterval(clock, 1000);
   load(); setInterval(load, 60000);
 })();

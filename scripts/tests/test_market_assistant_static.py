@@ -18,6 +18,7 @@ class MarketAssistantStaticTests(unittest.TestCase):
         self.assertIn('id="assistant-contract-result"', html)
         self.assertIn('id="intelligence-timeline"', html)
         self.assertIn('id="dataset-status-list"', html)
+        self.assertIn('id="data-chain-details"', html)
         self.assertTrue((ROOT / "assets" / "market-assistant.css").is_file())
         self.assertTrue((ROOT / "assets" / "market-assistant.js").is_file())
 
@@ -47,6 +48,15 @@ class MarketAssistantStaticTests(unittest.TestCase):
         self.assertIn('live ? "盘中行情" : "行情快照"', script)
         self.assertIn("const publicText", script)
         self.assertIn("institutional-feed", script)
+
+    def test_data_chain_status_expands_specific_abnormal_datasets(self):
+        html = (ROOT / "assistant.html").read_text(encoding="utf-8")
+        script = (ROOT / "assets" / "market-assistant.js").read_text(encoding="utf-8")
+        self.assertIn('aria-controls="data-chain-details"', html)
+        self.assertIn("const abnormalDatasets = datasets.filter", script)
+        self.assertIn("item.label, item.route", script)
+        self.assertIn("bindDataChainDetails()", script)
+        self.assertIn('event.key === "Escape"', script)
 
     def test_assistant_preserves_fixed_logic_boundary(self):
         html = (ROOT / "assistant.html").read_text(encoding="utf-8")
