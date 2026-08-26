@@ -91,6 +91,36 @@ def source_payloads():
             "generated_at": "2026-07-30 23:20",
             "products": {"P": [], "Y": [], "OI": []},
         },
+        "htfc-tianji": {
+            "generated_at": "2026-07-30T23:30:00+08:00",
+            "modules": {
+                "news_flash": {
+                    "status": "ok",
+                    "response": {"data": [{
+                        "id": "KX1",
+                        "date": "2026-07-30",
+                        "time": "23:20",
+                        "tagName": "油脂油料",
+                        "tag2": "产业监测",
+                        "content": "港口库存出现变化。",
+                    }]},
+                },
+                "smart_kline": {
+                    "status": "ok",
+                    "products": {
+                        "P": {
+                            "status": "ok",
+                            "label": {"name": "棕榈油"},
+                            "response": {"code": 1, "data": {
+                                "kLineAiReportDate": "2026-07-30",
+                                "kLineAiContent": "短期偏强但仍需成交确认。",
+                                "marketData": {"closePrice": ["8120"]},
+                            }},
+                        }
+                    },
+                },
+            },
+        },
     }
 
 
@@ -181,6 +211,8 @@ class MarketAssistantBriefTests(unittest.TestCase):
         self.assertIn("exchange:au", ids)
         self.assertIn("quant:bollinger-rsi-ma6-v1:P2609", ids)
         self.assertIn("supply:official-check", ids)
+        self.assertIn("htfc-news:KX1", ids)
+        self.assertIn("htfc-kline:P", ids)
         self.assertLessEqual(len(context["evidence"]), 24)
         self.assertEqual(context["fixed_logic"], ["otc_structure_library", "quant_model_rules"])
         self.assertEqual(

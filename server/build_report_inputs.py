@@ -43,6 +43,12 @@ def load_object(path: Path) -> dict[str, Any]:
     return payload
 
 
+def load_optional_object(path: Path) -> dict[str, Any]:
+    if not path.is_file():
+        return {}
+    return load_object(path)
+
+
 def load_list(path: Path) -> list[dict[str, Any]]:
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
@@ -78,6 +84,7 @@ def validate_freshness(
             "quant_model_signals": timedelta(hours=18),
             "supply_demand": timedelta(hours=36),
             "contracts": timedelta(hours=72),
+            "htfc_tianji": timedelta(hours=2),
         },
         "weekend": {
             "oil_futures": timedelta(days=4),
@@ -85,6 +92,7 @@ def validate_freshness(
             "quant_model_signals": timedelta(days=4),
             "supply_demand": timedelta(hours=36),
             "contracts": timedelta(days=7),
+            "htfc_tianji": timedelta(hours=24),
         },
     }[kind]
     observed: dict[str, str] = {}
@@ -111,6 +119,43 @@ def as_number(value: Any) -> float | None:
         return None
 
 
+def htfc_report_evidence(payload: dict[str, Any]) -> dict[str, Any]:
+    """Return a bounded institutional-evidence view without rewriting source claims."""
+    modules = payload.get("modules") if isinstance(payload.get("modules"), dict) else {}
+    news = modules.get("news_flash") if isinstance(modules.get("news_flash"), dict) else {}
+    news_response = news.get("response") if isinstance(news.get("response"), dict) else {}
+    news_items = news_response.get("data") if isinstance(news_response.get("data"), list) else []
+    kline = modules.get("smart_kline") if isinstance(modules.get("smart_kline"), dict) else {}
+    products = kline.get("products") if isinstance(kline.get("products"), dict) else {}
+    kline_evidence: dict[str, Any] = {}
+    for symbol, product in products.items():
+        if not isinstance(product, dict) or product.get("status") != "ok":
+            continue
+        response = product.get("response") if isinstance(product.get("response"), dict) else {}
+        data = response.get("data") if isinstance(response.get("data"), dict) else {}
+        market = data.get("marketData") if isinstance(data.get("marketData"), dict) else {}
+        closes = market.get("closePrice") if isinstance(market.get("closePrice"), list) else []
+        label = product.get("label") if isinstance(product.get("label"), dict) else {}
+        kline_evidence[str(symbol)] = {
+            "name": label.get("name"),
+            "report_date": data.get("kLineAiReportDate"),
+            "latest_close": closes[-1] if closes else None,
+            "ai_interpretation": data.get("kLineAiContent"),
+            "upstream_response_code": response.get("code"),
+        }
+    return {
+        "source": "HTFC Tianji",
+        "source_role": "institutional_news_and_research_not_official_statistics",
+        "status": payload.get("status"),
+        "fetched_at": payload.get("generated_at"),
+        "module_status": {
+            name: value.get("status")
+            for name, value in modules.items()
+            if isinstance(value, dict)
+        },
+        "oil_news": [item for item in news_items if isinstance(item, dict)][:10],
+        "smart_kline": kline_evidence,
+    }
 def rank_one_contracts(
     payload: dict[str, Any],
     *,
@@ -334,6 +379,7 @@ def build_snapshot(
     exchange = load_object(data_root / "exchange_futures.json")
     quant = load_object(data_root / "quant_model_signals.json")
     contracts = load_object(data_root / "contracts" / "current_contracts.json")
+    htfc = load_optional_object(data_root / "htfc_tianji.json")
     selected = rank_one_contracts(oil, report_date=report_date)
 
     external: dict[str, Any] = {}
@@ -395,6 +441,7 @@ def build_snapshot(
                 "summary": f"core contracts={len(exchange.get('contracts') or [])}",
             },
         },
+        "institutional_evidence": htfc_report_evidence(htfc),
         "server_evidence": {
             "oil_futures_updated_at": oil.get("updated_at"),
             "exchange_futures_updated_at": exchange.get("updated_at"),
@@ -402,6 +449,7 @@ def build_snapshot(
             "quant_market_updated_at": quant.get("market_updated_at"),
             "supply_checked_at": supply.get("checked_at") or supply.get("generated_at"),
             "contracts_generated_at": contracts.get("generated_at"),
+            "htfc_generated_at": htfc.get("generated_at"),
             "fixed_logic": ["otc_structure_library", "quant_model_rules"],
             "market_references": oil.get("market_references") or [],
         },
@@ -426,14 +474,18 @@ def build_manifest(
     exchange = load_object(data_root / "exchange_futures.json")
     quant = load_object(data_root / "quant_model_signals.json")
     contracts = load_object(data_root / "contracts" / "current_contracts.json")
-    freshness = validate_freshness(
-        {
+    htfc = load_optional_object(data_root / "htfc_tianji.json")
+    freshness_inputs = {
             "oil_futures": (oil, ("updated_at",)),
             "exchange_futures": (exchange, ("updated_at",)),
             "quant_model_signals": (quant, ("market_updated_at", "generated_at")),
             "supply_demand": (supply, ("checked_at", "generated_at")),
             "contracts": (contracts, ("generated_at",)),
-        },
+        }
+    if htfc.get("generated_at"):
+        freshness_inputs["htfc_tianji"] = (htfc, ("generated_at",))
+    freshness = validate_freshness(
+        freshness_inputs,
         kind=kind,
         now=now,
     )
@@ -452,6 +504,7 @@ def build_manifest(
         "skills": {
             "server-market-collector": {"installed": True},
             "server-supply-demand": {"installed": True},
+            "htfc-tianji-router": {"installed": True, "mode": "read_only"},
         },
         "environment": {"server_owned": True},
         "freshness": freshness,
@@ -473,6 +526,13 @@ def build_manifest(
                 "returncode": 0 if supply.get("checked_at") else 2,
                 "source": "server live-data/supply-demand.json",
                 "observed_at": supply.get("checked_at"),
+            },
+            {
+                "name": "htfc_tianji_read_only",
+                "status": "ok" if htfc.get("available_modules") else "partial",
+                "returncode": 0,
+                "source": "server live-data/htfc_tianji.json",
+                "observed_at": htfc.get("generated_at"),
             },
         ],
     }

@@ -36,6 +36,7 @@ ROUTES = {
     "/api/review/latest": "review/latest_review.json",
     "/api/assistant/brief": "market_assistant_brief.json",
     "/api/assistant/watch": "market_watch.json",
+    "/api/htfc/tianji": "htfc_tianji.json",
 }
 
 DATASET_RULES = {
@@ -104,6 +105,11 @@ DATASET_RULES = {
         "stale_after_seconds": 60 * 12,
         "timestamp_fields": ("generated_at",),
     },
+    "/api/htfc/tianji": {
+        "label": "华泰天玑",
+        "stale_after_seconds": 60 * 60,
+        "timestamp_fields": ("generated_at",),
+    },
 }
 
 AUTOMATION_MARKERS = {
@@ -143,6 +149,11 @@ AUTOMATION_MARKERS = {
             "/api/forecast/feedback/latest",
             "/api/review/latest",
         ),
+    },
+    "htfc": {
+        "label": "华泰天玑只读采集",
+        "path": ".server-htfc-ready.json",
+        "routes": ("/api/htfc/tianji",),
     },
 }
 UPSTREAM_ROUTES = {

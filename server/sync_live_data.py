@@ -19,6 +19,7 @@ AI_READY_MARKER = ".server-ai-ready.json"
 SUPPLY_READY_MARKER = ".server-supply-ready.json"
 RESEARCH_READY_MARKER = ".server-research-ready.json"
 REVIEW_READY_MARKER = ".server-review-ready.json"
+HTFC_READY_MARKER = ".server-htfc-ready.json"
 # Backwards-compatible name for callers that only know about market ownership.
 READY_MARKER = MARKET_READY_MARKER
 REPORT_PATHS = ("reports.json",)
@@ -32,6 +33,7 @@ REVIEW_PATHS = (
 # Backwards-compatible aggregate used by older callers and tests.
 UPSTREAM_PATHS = REPORT_PATHS + REVIEW_PATHS
 SUPPLY_PATHS = ("supply-demand.json",)
+HTFC_PATHS = ("htfc_tianji.json",)
 MARKET_PATHS = (
     "oil_futures.js",
     "oil_futures.json",
@@ -60,6 +62,7 @@ JSON_PATHS = {
     "contracts/current_contracts.json",
     "market_watch.json",
     "market_assistant_brief.json",
+    "htfc_tianji.json",
 }
 
 
@@ -170,6 +173,7 @@ def sync_upstream(source_root: Path, target_root: Path) -> dict[str, object]:
     market_owned = (target_root / MARKET_READY_MARKER).exists()
     ai_owned = (target_root / AI_READY_MARKER).exists()
     supply_owned = (target_root / SUPPLY_READY_MARKER).exists()
+    htfc_owned = (target_root / HTFC_READY_MARKER).exists()
     research_owned = (target_root / RESEARCH_READY_MARKER).exists()
     review_owned = (target_root / REVIEW_READY_MARKER).exists()
     groups: list[tuple[str, tuple[str, ...]]] = []
@@ -195,6 +199,11 @@ def sync_upstream(source_root: Path, target_root: Path) -> dict[str, object]:
     for name, paths in groups:
         copied_groups[name] = synchronized[offset : offset + len(paths)]
         offset += len(paths)
+    copied_groups["htfc"] = (
+        synchronize_paths(source_root, target_root, HTFC_PATHS, required=False)
+        if not htfc_owned
+        else []
+    )
     return {
         "status": "ok",
         "mode": "upstream",
@@ -202,11 +211,13 @@ def sync_upstream(source_root: Path, target_root: Path) -> dict[str, object]:
         "reports_copied": copied_groups.get("reports", []),
         "review_copied": copied_groups.get("review", []),
         "supply_copied": copied_groups.get("supply", []),
+        "htfc_copied": copied_groups.get("htfc", []),
         "bootstrapped": copied_groups.get("market", []),
         "ai_copied": copied_groups.get("ai", []),
         "server_research_owned": research_owned,
         "server_review_owned": review_owned,
         "server_supply_owned": supply_owned,
+        "server_htfc_owned": htfc_owned,
         "server_market_owned": market_owned,
         "server_ai_owned": ai_owned,
     }
@@ -347,11 +358,33 @@ def sync_supply(
     }
 
 
+def sync_htfc(
+    source_root: Path,
+    target_root: Path,
+    *,
+    session: str,
+) -> dict[str, object]:
+    copied = synchronize_paths(source_root, target_root, HTFC_PATHS, required=True)
+    write_marker(
+        target_root,
+        HTFC_READY_MARKER,
+        session=session,
+        owner="server-htfc-tianji",
+    )
+    return {
+        "status": "ok",
+        "mode": "htfc",
+        "session": session,
+        "copied": copied,
+        "server_htfc_owned": True,
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--mode",
-        choices=("upstream", "market", "ai", "supply", "research", "review"),
+        choices=("upstream", "market", "ai", "supply", "research", "review", "htfc"),
         required=True,
     )
     parser.add_argument("--source", type=Path, required=True)
@@ -377,6 +410,12 @@ def main() -> int:
             )
         elif args.mode == "research":
             payload = sync_research(
+                source_root,
+                target_root,
+                session=args.session,
+            )
+        elif args.mode == "htfc":
+            payload = sync_htfc(
                 source_root,
                 target_root,
                 session=args.session,

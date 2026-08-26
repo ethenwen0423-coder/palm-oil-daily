@@ -33,6 +33,7 @@ SOURCE_FILES = {
     "supply-demand": DATA_DIR / "supply-demand.json",
     "forecast-metrics": DATA_DIR / "forecast" / "metrics" / "latest.json",
     "contracts": DATA_DIR / "contracts" / "current_contracts.json",
+    "htfc-tianji": DATA_DIR / "htfc_tianji.json",
 }
 MARKET_STATES = {"偏强", "震荡", "偏弱", "分化", "数据不足"}
 PRIORITIES = {"高", "中", "低"}
@@ -116,6 +117,7 @@ def build_context(payloads: dict[str, Any]) -> dict[str, Any]:
     supply = payloads["supply-demand"] if isinstance(payloads["supply-demand"], dict) else {}
     forecast = payloads["forecast-metrics"] if isinstance(payloads["forecast-metrics"], dict) else {}
     contracts = payloads["contracts"] if isinstance(payloads["contracts"], dict) else {}
+    htfc = payloads.get("htfc-tianji") if isinstance(payloads.get("htfc-tianji"), dict) else {}
 
     evidence: list[dict[str, str]] = []
     latest_report = reports[0] if reports and isinstance(reports[0], dict) else {}
@@ -294,6 +296,46 @@ def build_context(payloads: dict[str, Any]) -> dict[str, Any]:
             detail="MPOB、GAPKI、USDA 的公开检查状态；无更新不等于数据缺失。",
         )
     )
+
+    htfc_modules = htfc.get("modules") if isinstance(htfc.get("modules"), dict) else {}
+    news_module = htfc_modules.get("news_flash") if isinstance(htfc_modules.get("news_flash"), dict) else {}
+    news_response = news_module.get("response") if isinstance(news_module.get("response"), dict) else {}
+    news_items = news_response.get("data") if isinstance(news_response.get("data"), list) else []
+    for item in [row for row in news_items if isinstance(row, dict)][:3]:
+        identity = clean_text(item.get("id") or item.get("newsId"), 50)
+        if not identity:
+            continue
+        evidence.append(
+            evidence_record(
+                f"htfc-news:{identity}",
+                "htfc-tianji",
+                clean_text(item.get("title") or item.get("tag2") or item.get("tagName") or "天玑快讯", 80),
+                clean_text(item.get("content") or "需进一步核验", 160),
+                observed_at=clean_text(f"{item.get('date', '')} {item.get('time', '')}", 40),
+                detail="华泰天玑油脂油料快讯；属于资讯证据，不替代官方供需数据。",
+            )
+        )
+
+    kline_module = htfc_modules.get("smart_kline") if isinstance(htfc_modules.get("smart_kline"), dict) else {}
+    kline_products = kline_module.get("products") if isinstance(kline_module.get("products"), dict) else {}
+    for symbol, product in list(kline_products.items())[:3]:
+        if not isinstance(product, dict) or product.get("status") != "ok":
+            continue
+        response = product.get("response") if isinstance(product.get("response"), dict) else {}
+        data = response.get("data") if isinstance(response.get("data"), dict) else {}
+        market = data.get("marketData") if isinstance(data.get("marketData"), dict) else {}
+        closes = market.get("closePrice") if isinstance(market.get("closePrice"), list) else []
+        label = product.get("label") if isinstance(product.get("label"), dict) else {}
+        evidence.append(
+            evidence_record(
+                f"htfc-kline:{clean_text(symbol, 20)}",
+                "htfc-tianji",
+                f"{clean_text(label.get('name') or symbol, 40)}智能K线",
+                f"最近收盘 {clean_text(closes[-1] if closes else '需进一步核验', 30)}",
+                observed_at=clean_text(data.get("kLineAiReportDate") or htfc.get("generated_at"), 40),
+                detail=clean_text(data.get("kLineAiContent"), 220),
+            )
+        )
     countries = supply.get("countries") if isinstance(supply.get("countries"), dict) else {}
     for country_key, country in countries.items():
         if not isinstance(country, dict):
@@ -356,6 +398,7 @@ def build_context(payloads: dict[str, Any]) -> dict[str, Any]:
         "supply-demand": clean_text(supply.get("checked_at") or supply.get("generated_at"), 40),
         "forecast-metrics": clean_text(forecast.get("generated_at") or forecast.get("as_of"), 40),
         "contracts": clean_text(contracts.get("generated_at"), 40),
+        "htfc-tianji": clean_text(htfc.get("generated_at"), 40),
     }
     return {
         "session": clean_text(oil.get("update_session") or exchange.get("update_session") or "manual", 30),

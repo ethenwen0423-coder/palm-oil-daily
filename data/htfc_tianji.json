@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-08-26T00:00:00+08:00",
+  "timezone": "Asia/Shanghai",
+  "source": "HTFC Tianji",
+  "mode": "read_only",
+  "status": "unavailable",
+  "available_modules": 0,
+  "modules": {},
+  "error": "awaiting first server refresh"
+}

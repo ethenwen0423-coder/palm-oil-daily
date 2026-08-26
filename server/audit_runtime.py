@@ -271,6 +271,7 @@ def systemd_status() -> dict[str, Any]:
         "palm-oil-ai-brief.timer",
         "palm-oil-research-agent.timer",
         "palm-oil-prediction-review.timer",
+        "palm-oil-htfc-tianji.timer",
     )
     states: dict[str, dict[str, bool]] = {}
     if available:

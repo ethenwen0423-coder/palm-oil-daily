@@ -308,6 +308,16 @@ write_timer \
   "palm-oil-ai-brief.service" \
   "*-*-* *:02/10:00" \
   "30s"
+write_service \
+  "$temporary_root/palm-oil-htfc-tianji.service" \
+  "Refresh read-only HTFC Tianji evidence" \
+  "run_htfc_tianji.py"
+write_timer \
+  "$temporary_root/palm-oil-htfc-tianji.timer" \
+  "Refresh HTFC Tianji evidence every fifteen minutes" \
+  "palm-oil-htfc-tianji.service" \
+  "*-*-* *:04/15:00" \
+  "30s"
 
 systemd-analyze verify \
   "$temporary_root/palm-oil-market-collector.service" \
@@ -321,7 +331,9 @@ systemd-analyze verify \
   "$temporary_root/palm-oil-research-agent.service" \
   "$temporary_root/palm-oil-research-agent.timer" \
   "$temporary_root/palm-oil-prediction-review.service" \
-  "$temporary_root/palm-oil-prediction-review.timer"
+  "$temporary_root/palm-oil-prediction-review.timer" \
+  "$temporary_root/palm-oil-htfc-tianji.service" \
+  "$temporary_root/palm-oil-htfc-tianji.timer"
 
 install -m 0644 "$temporary_root/compose.automation.yaml" "$COMPOSE_OVERRIDE"
 for unit in \
@@ -336,7 +348,9 @@ for unit in \
   palm-oil-research-agent.service \
   palm-oil-research-agent.timer \
   palm-oil-prediction-review.service \
-  palm-oil-prediction-review.timer
+  palm-oil-prediction-review.timer \
+  palm-oil-htfc-tianji.service \
+  palm-oil-htfc-tianji.timer
 do
   install -m 0644 "$temporary_root/$unit" "$UNIT_ROOT/$unit"
 done
@@ -353,9 +367,11 @@ systemctl enable --now palm-oil-market-collector.timer
 systemctl enable --now palm-oil-event-watch.timer
 systemctl enable --now palm-oil-supply-demand.timer
 systemctl enable --now palm-oil-prediction-review.timer
+systemctl enable --now palm-oil-htfc-tianji.timer
 systemctl start palm-oil-market-collector.service
 systemctl start palm-oil-event-watch.service
 systemctl start palm-oil-supply-demand.service
+systemctl start palm-oil-htfc-tianji.service
 systemctl start palm-oil-prediction-review.service
 
 systemctl --no-pager --full status palm-oil-market-collector.service || true
