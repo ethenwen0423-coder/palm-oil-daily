@@ -5520,12 +5520,6 @@ body.home-page {
   --deep-2: #10213a;
   --danger: #ef8b84;
   --shadow: 0 18px 42px rgba(0, 0, 0, 0.26);
-  --signal: #c8d0dd;
-  --signal-strong: #eef1f6;
-  --warm: #d8dee9;
-  --home-line: rgba(216, 222, 233, 0.16);
-  --home-muted: rgba(225, 230, 238, 0.68);
-  --home-panel: rgba(14, 27, 45, 0.82);
 }
 
 html,
@@ -6332,12 +6326,6 @@ body.home-page,
   --deep-2: #10213a;
   --danger: #ef8b84;
   --shadow: 0 18px 42px rgba(0, 0, 0, 0.26);
-  --signal: #c8d0dd;
-  --signal-strong: #eef1f6;
-  --warm: #d8dee9;
-  --home-line: rgba(216, 222, 233, 0.16);
-  --home-muted: rgba(225, 230, 238, 0.68);
-  --home-panel: rgba(14, 27, 45, 0.82);
 }
 
 html,
@@ -6371,28 +6359,6 @@ body .section-page-nav,
 body .quant-header {
   border-color: rgba(216, 222, 233, 0.16) !important;
   background: rgba(7, 17, 31, 0.9) !important;
-}
-
-body.home-page .hero-aside,
-body.home-page .hero-meta-card,
-body.home-page .hero-side-card {
-  border-color: rgba(216, 222, 233, 0.2) !important;
-  background: rgba(14, 27, 45, 0.9) !important;
-  color: var(--ink) !important;
-}
-
-body.home-page .hero-brand p,
-body.home-page .hero-view-label,
-body.home-page .hero-aside-label,
-body.home-page .market-brief-header p,
-body.home-page .research-entries-heading > span,
-body.home-page .section-heading span {
-  color: #d8dee9 !important;
-}
-
-body.home-page .hero-view li::before,
-body.home-page .home-anchor-nav::before {
-  background: #d8dee9 !important;
 }
 
 body .market-brief,
