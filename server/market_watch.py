@@ -18,6 +18,7 @@ from zoneinfo import ZoneInfo
 
 SHANGHAI = ZoneInfo("Asia/Shanghai")
 MX_SEARCH_URL = "https://mkapi2.dfcfs.com/finskillshub/api/claw/news-search"
+EASTMONEY_FLASH_URL = "https://newsinfo.eastmoney.com/kuaixun/v2/api/list?column=102&p=1&limit=100"
 NEWS_QUERY = "棕榈油 豆油 菜油 油脂油料 FCPO MPOB GAPKI USDA 原油 生物柴油 出口 库存"
 MAX_EVENTS = 60
 
@@ -120,15 +121,59 @@ def event_time(item: dict[str, Any], fallback: datetime) -> str:
     return fallback.isoformat(timespec="seconds")
 
 
+def eastmoney_flash_events(now: datetime, timeout: int = 10) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    request = urllib.request.Request(
+        EASTMONEY_FLASH_URL,
+        headers={"User-Agent": "Mozilla/5.0", "Accept": "application/json"},
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+    except (urllib.error.URLError, urllib.error.HTTPError, json.JSONDecodeError, OSError) as exc:
+        return [], {"name": "东方财富7x24快讯", "state": "error", "detail": f"公开快讯抓取失败：{str(exc)[:120]}"}
+    records = payload.get("news", []) if isinstance(payload, dict) else []
+    keywords = (
+        "棕榈", "豆油", "菜油", "大豆", "豆粕", "菜粕", "油脂", "原油",
+        "生物柴油", "印尼", "马来西亚", "MPOB", "期货",
+        "美联储", "关税", "干旱", "降雨",
+    )
+    events: list[dict[str, Any]] = []
+    for item in records:
+        if not isinstance(item, dict):
+            continue
+        title = re.sub(r"\s+", " ", str(item.get("title") or "")).strip()
+        detail = re.sub(r"\s+", " ", str(item.get("digest") or "")).strip()[:300]
+        if not title or not any(keyword.lower() in f"{title} {detail}".lower() for keyword in keywords):
+            continue
+        url = str(item.get("url_m") or item.get("url_w") or "").strip()
+        observed = str(item.get("showtime") or item.get("ordertime") or now.isoformat(timespec="seconds"))
+        impact, interpretation = impact_for(f"{title} {detail}")
+        events.append({
+            "id": event_id("eastmoney-flash", str(item.get("id") or title), observed),
+            "kind": "event",
+            "category": "市场事件检索",
+            "title": title[:120],
+            "summary": detail or "东方财富7x24快讯标题，详情需打开原始链接核验。",
+            "interpretation": interpretation,
+            "impact": impact,
+            "scope": "P · Y · OI",
+            "source": "东方财富7x24快讯",
+            "url": url,
+            "observed_at": observed,
+            "evidence_ids": [f"eastmoney-flash:{item.get('id') or event_id('flash', title)}"],
+        })
+    return events[:20], {"name": "东方财富7x24快讯", "state": "ready", "detail": f"公开快讯扫描 {len(records)} 条，纳入 {len(events[:20])} 条油脂相关事件。"}
+
+
 def news_events(api_key: str | None, now: datetime, timeout: int = 20) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     if not api_key:
-        return [], {"name": "东方财富妙想资讯", "state": "unavailable", "detail": "MX_APIKEY 未配置，未将无来源内容写入时间线。"}
+        return eastmoney_flash_events(now, timeout=min(timeout, 10))
     request = urllib.request.Request(MX_SEARCH_URL, data=json.dumps({"query": NEWS_QUERY}, ensure_ascii=False).encode("utf-8"), method="POST", headers={"Content-Type": "application/json", "apikey": api_key})
     try:
         with urllib.request.urlopen(request, timeout=timeout) as response:
             records = extract_records(json.loads(response.read().decode("utf-8")))
-    except (urllib.error.URLError, urllib.error.HTTPError, json.JSONDecodeError, OSError) as exc:
-        return [], {"name": "东方财富妙想资讯", "state": "error", "detail": f"资讯检索失败：{str(exc)[:120]}"}
+    except (urllib.error.URLError, urllib.error.HTTPError, json.JSONDecodeError, OSError):
+        return eastmoney_flash_events(now, timeout=min(timeout, 10))
     events: list[dict[str, Any]] = []
     for item in records[:20]:
         title = re.sub(r"\s+", " ", str(item.get("title") or item.get("name") or "")).strip()

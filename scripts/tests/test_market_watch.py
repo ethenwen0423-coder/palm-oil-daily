@@ -1,7 +1,9 @@
 import importlib.util
+import json
 import unittest
 from datetime import datetime
 from pathlib import Path
+from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -18,7 +20,9 @@ class MarketWatchTests(unittest.TestCase):
         self.exchange = {"contracts": [{"symbol": "P2701", "product": "棕榈油", "price": 8000, "change_pct": 0.8}]}
 
     def test_first_snapshot_has_coverage_but_no_invented_price_event(self):
-        payload, quotes = WATCH.build_watch(self.oil, self.exchange, {}, [], self.now, None)
+        unavailable = {"name": "test", "state": "unavailable", "detail": "test"}
+        with patch.object(WATCH, "news_events", return_value=([], unavailable)):
+            payload, quotes = WATCH.build_watch(self.oil, self.exchange, {}, [], self.now, None)
         self.assertEqual(payload["status"], "ready")
         self.assertEqual(payload["coverage"]["priced_contracts"], 2)
         self.assertEqual(payload["events"], [])
@@ -38,6 +42,22 @@ class MarketWatchTests(unittest.TestCase):
         impact, interpretation = WATCH.impact_for("印尼 B50 生物柴油政策")
         self.assertEqual(impact, "高")
         self.assertIn("政策", interpretation)
+
+    def test_public_flash_fallback_keeps_only_relevant_source_backed_events(self):
+        response = type("Response", (), {
+            "__enter__": lambda self: self,
+            "__exit__": lambda self, *args: None,
+            "read": lambda self: json.dumps({"news": [
+                {"id": "1", "title": "印尼上调生物柴油掺混比例", "digest": "棕榈油需求预期变化", "showtime": "2026-08-24 10:04:00", "url_m": "https://wap.eastmoney.com/a/1.html"},
+                {"id": "2", "title": "某公司发布半年报", "digest": "普通公告", "showtime": "2026-08-24 10:03:00"},
+            ]}, ensure_ascii=False).encode("utf-8"),
+        })()
+        with patch.object(WATCH.urllib.request, "urlopen", return_value=response):
+            events, source = WATCH.news_events(None, self.now)
+        self.assertEqual(source["state"], "ready")
+        self.assertEqual(len(events), 1)
+        self.assertEqual(events[0]["source"], "东方财富7x24快讯")
+        self.assertEqual(events[0]["url"], "https://wap.eastmoney.com/a/1.html")
 
 
 if __name__ == "__main__":
