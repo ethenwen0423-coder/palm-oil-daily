@@ -24,8 +24,15 @@ class ContractAnalysisFrontendTests(unittest.TestCase):
 
     def test_asset_version_was_bumped(self):
         html = (ROOT / "assistant.html").read_text(encoding="utf-8")
-        self.assertIn("market-assistant.css?v=20260826-6", html)
+        self.assertIn("market-assistant.css?v=20260826-7", html)
         self.assertIn("market-assistant.js?v=20260826-5", html)
+
+    def test_timeline_uses_full_width_with_readable_desktop_type(self):
+        style = (ROOT / "assets" / "market-assistant.css").read_text(encoding="utf-8")
+        self.assertIn(".assistant-page .workspace {\n  grid-template-columns: minmax(0, 1fr);", style)
+        self.assertIn(".assistant-page .right-rail { grid-template-columns: repeat(3, minmax(0, 1fr));", style)
+        self.assertIn(".assistant-page .timeline-content h3 { font-size: 15px; }", style)
+        self.assertIn(".assistant-page .timeline-content p { margin-top: 6px; font-size: 11px;", style)
 
     def test_assistant_navigation_has_one_scroll_tracked_current_section(self):
         script = (ROOT / "assets" / "market-assistant.js").read_text(encoding="utf-8")
