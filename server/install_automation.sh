@@ -44,6 +44,7 @@ docker compose version >/dev/null
 for required in \
   "$SITE_ROOT/.git" \
   "$SITE_ROOT/server/enable_ai_automation.sh" \
+  "$SITE_ROOT/server/run_market_collector.py" \
   "$SITE_ROOT/server/run_market_watch.py" \
   "$SITE_ROOT/server/run_event_watch.py" \
   "$SITE_ROOT/server/run_supply_demand.py" \
@@ -96,6 +97,7 @@ print(json.dumps(
         "mode": "dry-run",
         **dict(zip(keys, sys.argv[1:])),
         "market_timer": "every 5 minutes during exchange sessions",
+        "market_refresh_timer": "session snapshots with two retry attempts",
         "event_timer": "every 5 minutes around the clock",
         "supply_timer": "daily official-source check",
         "ai_timer": "installed disabled until backend acceptance",
@@ -259,6 +261,41 @@ write_timer \
   "*-*-* *:0/5:00" \
   "20s"
 write_service \
+  "$temporary_root/palm-oil-market-refresh.service" \
+  "Refresh complete palm oil datasets at governed session boundaries" \
+  "run_market_collector.py --once-per-session"
+cat >"$temporary_root/palm-oil-market-refresh.timer" <<EOF
+[Unit]
+Description=Refresh complete palm oil datasets with bounded retries
+
+[Timer]
+OnCalendar=Mon..Fri *-*-* 06:30:00 Asia/Shanghai
+OnCalendar=Mon..Fri *-*-* 06:40:00 Asia/Shanghai
+OnCalendar=Mon..Fri *-*-* 06:50:00 Asia/Shanghai
+OnCalendar=Mon..Fri *-*-* 11:35:00 Asia/Shanghai
+OnCalendar=Mon..Fri *-*-* 11:45:00 Asia/Shanghai
+OnCalendar=Mon..Fri *-*-* 11:55:00 Asia/Shanghai
+OnCalendar=Mon..Fri *-*-* 15:05:00 Asia/Shanghai
+OnCalendar=Mon..Fri *-*-* 15:15:00 Asia/Shanghai
+OnCalendar=Mon..Fri *-*-* 15:25:00 Asia/Shanghai
+OnCalendar=Mon..Fri *-*-* 21:20:00 Asia/Shanghai
+OnCalendar=Mon..Fri *-*-* 21:30:00 Asia/Shanghai
+OnCalendar=Mon..Fri *-*-* 21:40:00 Asia/Shanghai
+OnCalendar=Mon..Fri *-*-* 23:10:00 Asia/Shanghai
+OnCalendar=Mon..Fri *-*-* 23:20:00 Asia/Shanghai
+OnCalendar=Mon..Fri *-*-* 23:30:00 Asia/Shanghai
+OnCalendar=Tue..Fri *-*-* 02:40:00 Asia/Shanghai
+OnCalendar=Tue..Fri *-*-* 02:50:00 Asia/Shanghai
+OnCalendar=Tue..Fri *-*-* 03:00:00 Asia/Shanghai
+AccuracySec=30s
+RandomizedDelaySec=20s
+Persistent=true
+Unit=palm-oil-market-refresh.service
+
+[Install]
+WantedBy=timers.target
+EOF
+write_service \
   "$temporary_root/palm-oil-event-watch.service" \
   "Refresh cross-source oil market news and research" \
   "run_event_watch.py"
@@ -322,6 +359,8 @@ write_timer \
 systemd-analyze verify \
   "$temporary_root/palm-oil-market-collector.service" \
   "$temporary_root/palm-oil-market-collector.timer" \
+  "$temporary_root/palm-oil-market-refresh.service" \
+  "$temporary_root/palm-oil-market-refresh.timer" \
   "$temporary_root/palm-oil-event-watch.service" \
   "$temporary_root/palm-oil-event-watch.timer" \
   "$temporary_root/palm-oil-supply-demand.service" \
@@ -339,6 +378,8 @@ install -m 0644 "$temporary_root/compose.automation.yaml" "$COMPOSE_OVERRIDE"
 for unit in \
   palm-oil-market-collector.service \
   palm-oil-market-collector.timer \
+  palm-oil-market-refresh.service \
+  palm-oil-market-refresh.timer \
   palm-oil-event-watch.service \
   palm-oil-event-watch.timer \
   palm-oil-supply-demand.service \
@@ -364,10 +405,12 @@ else
   docker compose -f "$COMPOSE_FILE" -f "$COMPOSE_OVERRIDE" up -d api web
 fi
 systemctl enable --now palm-oil-market-collector.timer
+systemctl enable --now palm-oil-market-refresh.timer
 systemctl enable --now palm-oil-event-watch.timer
 systemctl enable --now palm-oil-supply-demand.timer
 systemctl enable --now palm-oil-prediction-review.timer
 systemctl start palm-oil-market-collector.service
+systemctl start palm-oil-market-refresh.service
 systemctl start palm-oil-event-watch.service
 systemctl start palm-oil-supply-demand.service
 systemctl start palm-oil-prediction-review.service
@@ -388,6 +431,7 @@ fi
 
 systemctl --no-pager --full status palm-oil-market-collector.service || true
 systemctl --no-pager list-timers palm-oil-market-collector.timer
+systemctl --no-pager list-timers palm-oil-market-refresh.timer
 systemctl --no-pager list-timers palm-oil-event-watch.timer
 systemctl --no-pager list-timers palm-oil-supply-demand.timer
 systemctl --no-pager list-timers palm-oil-prediction-review.timer

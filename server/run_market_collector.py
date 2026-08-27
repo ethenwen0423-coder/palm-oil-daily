@@ -284,6 +284,11 @@ def main() -> int:
         type=int,
         default=int(os.environ.get("PALM_OIL_MARKET_INTERVAL_MINUTES", "5")),
     )
+    parser.add_argument(
+        "--once-per-session",
+        action="store_true",
+        help="skip a retry after this trading-date session has published successfully",
+    )
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 
@@ -344,6 +349,19 @@ def main() -> int:
     }
     if args.dry_run:
         print(json.dumps({**plan, "dry_run": True}, ensure_ascii=False, sort_keys=True))
+        return 0
+    if args.once_per_session and state_marker.exists():
+        print(
+            json.dumps(
+                {
+                    "status": "noop",
+                    "reason": "session_already_published",
+                    "session": session,
+                    "fundamental_date": fundamental_date,
+                },
+                ensure_ascii=False,
+            )
+        )
         return 0
     if slot_marker.exists():
         print(

@@ -145,8 +145,11 @@ python3 server/run_research_agent.py --dry-run
 python3 server/run_prediction_review.py --dry-run
 ```
 
-Production calls the quote collector and independent event collector from
-staggered systemd timers every five minutes. Each
+Production calls the bounded quote collector and independent event collector
+from staggered systemd timers every five minutes. A separate complete-market
+refresh runs at the morning, midday, close, night-open, night-close and
+overnight boundaries, with two retry attempts that become no-ops after the
+session publishes successfully. Each
 five-minute window has its own idempotency marker, while the latest session
 marker remains available for acceptance checks. A failed window writes no
 marker, so the next timer interval retries it. Repeated morning updates refresh
