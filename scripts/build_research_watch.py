@@ -22,7 +22,6 @@ CROSS_KEYS = {"SC", "MACRO"}
 
 def public_text(value: Any) -> str:
     text = str(value or "")
-    text = text.replace("华泰期货", "研报服务").replace("华泰", "研报服务").replace("天玑", "研报服务")
     text = re.sub(r"<[^>]+>", " ", html.unescape(text))
     return re.sub(r"\s+", " ", text).strip()
 
@@ -63,15 +62,12 @@ def normalize_item(row: dict[str, Any], sector: str, product: str) -> dict[str, 
         "id": str(row.get("id") or f"{product}:{published}:{title}"),
         "title": title,
         "summary": summary or "机构公开晨报已更新，请结合原文与市场数据核验。",
-        "organization": public_text(row.get("author") or "研报服务"),
+        "organization": public_text(row.get("author") or "机构研究"),
         "published_at": published,
         "sector": sector,
         "topics": topics[:4],
-        "recommendation_score": 85 if sector == "油脂油料" else 75,
-        "recommendation_reason": "当日发布；与油脂直接相关" if sector == "油脂油料" else "当日或近期发布；属于油脂定价的跨板块驱动",
-        "source": "研报服务（机构接口）",
+        "source": "机构研报 skill",
         "source_channel": "institution-report-skill",
-        "source_priority": 2,
     }
 
 
@@ -101,13 +97,65 @@ def normalize_public_search_item(row: dict[str, Any]) -> dict[str, Any]:
         "published_at": published,
         "sector": sector,
         "topics": [str(topic) for topic in topics[:4]],
-        "recommendation_score": 80 if sector == "油脂油料" else 70,
-        "recommendation_reason": "公开研报搜索命中；与油脂直接相关" if sector == "油脂油料" else "公开研报搜索命中；属于跨板块驱动",
         "source": "同花顺问财财经资讯搜索（研究报告）",
         "source_channel": "report-search",
-        "source_priority": 1,
         "url": str(row.get("url") or ""),
     }
+
+
+def score_quality(item: dict[str, Any], report_date: date) -> tuple[int, list[str]]:
+    published = published_date({"publish_date": item.get("published_at")})
+    days = (report_date - published).days if published else 30
+    score = 35
+    factors: list[str] = []
+    if days == 0:
+        score += 25
+        factors.append("当日发布")
+    elif days <= 2:
+        score += 20
+        factors.append("近3日发布")
+    elif days <= 7:
+        score += 14
+        factors.append("近7日发布")
+    elif days <= 14:
+        score += 8
+        factors.append("近14日发布")
+    else:
+        score += 3
+        factors.append("近30日发布")
+    title = str(item.get("title") or "")
+    summary = str(item.get("summary") or "")
+    combined = f"{title} {summary}"
+    sector_terms = (
+        ("棕榈油", "豆油", "菜油", "油脂", "油料", "大豆", "豆粕", "菜粕")
+        if item.get("sector") == "油脂油料"
+        else ("原油", "宏观", "汇率", "利率", "航运", "生物柴油", "政策")
+    )
+    if any(term in combined for term in sector_terms):
+        score += 10
+        factors.append("主题相关")
+    if any(term in title for term in ("日报", "周报", "月报", "深度", "策略", "展望")):
+        score += 5
+        factors.append("报告类型明确")
+    if len(summary) >= 180:
+        score += 12
+        factors.append("摘要信息充分")
+    elif len(summary) >= 80:
+        score += 7
+        factors.append("摘要信息较完整")
+    elif len(summary) >= 30:
+        score += 3
+        factors.append("包含有效摘要")
+    if len(re.findall(r"\d+(?:\.\d+)?", summary)) >= 3:
+        score += 7
+        factors.append("包含量化证据")
+    if any(term in summary for term in ("风险", "库存", "供需", "产量", "出口", "进口", "基差", "政策")):
+        score += 4
+        factors.append("包含驱动或风险")
+    if item.get("organization") and item.get("topics"):
+        score += 2
+        factors.append("来源字段完整")
+    return min(score, 100), factors
 
 
 def select(payload: dict[str, Any], report_date: date, public_paths: list[Path] | None = None) -> tuple[list[dict[str, Any]], int, dict[str, int], dict[str, int]]:
@@ -134,17 +182,21 @@ def select(payload: dict[str, Any], report_date: date, public_paths: list[Path] 
         if published is None or (report_date - published).days < 0 or (report_date - published).days > 30:
             continue
         candidates.append(item)
-    candidates.sort(key=lambda item: (item["source_priority"], item["published_at"]), reverse=True)
+    for item in candidates:
+        score, factors = score_quality(item, report_date)
+        item["recommendation_score"] = score
+        item["recommendation_reason"] = "；".join(factors)
+        item["ai_notice"] = "AI质量评分不代表来源方官方立场，且不构成投资建议。"
+    candidates.sort(key=lambda item: (item["recommendation_score"], item["published_at"], item["title"]), reverse=True)
     seen: set[str] = set()
     for item in candidates:
         key = dedupe_key(item)
         if not key or key in seen:
             continue
         seen.add(key)
-        item.pop("source_priority", None)
         (oil if item["sector"] == "油脂油料" else cross).append(item)
-    oil.sort(key=lambda item: item["published_at"], reverse=True)
-    cross.sort(key=lambda item: item["published_at"], reverse=True)
+    oil.sort(key=lambda item: (item["recommendation_score"], item["published_at"]), reverse=True)
+    cross.sort(key=lambda item: (item["recommendation_score"], item["published_at"]), reverse=True)
     selected = oil[:7] + cross[:3]
     selected_counts: dict[str, int] = {}
     for item in selected:
@@ -155,7 +207,7 @@ def select(payload: dict[str, Any], report_date: date, public_paths: list[Path] 
 def build(source: Path, existing: Path | None, now: datetime, public_paths: list[Path] | None = None) -> dict[str, Any]:
     today = now.astimezone(SHANGHAI).date()
     previous = load_object(existing) if existing and existing.is_file() else {}
-    if previous.get("schema_version") == 2 and previous.get("status") == "ready" and previous.get("report_date") == today.isoformat():
+    if previous.get("schema_version") == 3 and previous.get("status") == "ready" and previous.get("report_date") == today.isoformat():
         return previous
     payload = load_object(source)
     items, candidate_count, candidate_source_counts, source_counts = select(payload, today, public_paths)
@@ -163,7 +215,7 @@ def build(source: Path, existing: Path | None, now: datetime, public_paths: list
         oil_count = sum(item["sector"] == "油脂油料" for item in items)
         cross_count = sum(item["sector"] == "跨板块" for item in items)
         return {
-            "schema_version": 2,
+            "schema_version": 3,
             "status": "ready",
             "report_date": today.isoformat(),
             "generated_at": now.astimezone(SHANGHAI).isoformat(timespec="seconds"),
@@ -173,14 +225,14 @@ def build(source: Path, existing: Path | None, now: datetime, public_paths: list
             "deduplicated_count": len(items),
             "allocation": {"油脂油料": oil_count, "跨板块": cross_count, "target": "70% / 30%"},
             "source_counts": source_counts,
-            "source_policy": "研报服务机构接口优先；同花顺问财公开研报搜索补充；跨源标题去重",
+            "source_policy": "机构研报 skill 与问财公开研报搜索来源平权；仅按质量评分择优；跨源标题去重",
             "items": items,
-            "notice": "推荐用于研究筛选，不构成投资建议。",
+            "notice": "AI质量评分与筛选不代表任何来源方官方立场，且不构成投资建议。",
         }
     if previous:
         return previous
     return {
-        "schema_version": 2,
+        "schema_version": 3,
         "status": "pending",
         "report_date": None,
         "generated_at": now.astimezone(SHANGHAI).isoformat(timespec="seconds"),

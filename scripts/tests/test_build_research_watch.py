@@ -40,10 +40,10 @@ class ResearchWatchTests(unittest.TestCase):
         self.assertEqual(payload["status"], "ready")
         self.assertEqual(payload["allocation"], {"油脂油料": 7, "跨板块": 3, "target": "70% / 30%"})
         self.assertEqual(len(payload["items"]), 10)
-        self.assertEqual(payload["schema_version"], 2)
+        self.assertEqual(payload["schema_version"], 3)
         self.assertNotIn("<", json.dumps(payload, ensure_ascii=False))
 
-    def test_merges_public_search_deduplicates_and_redacts_brand(self):
+    def test_merges_public_search_and_preserves_source_content(self):
         now = datetime(2026, 8, 27, 8, 35, tzinfo=SHANGHAI)
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -65,12 +65,31 @@ class ResearchWatchTests(unittest.TestCase):
             }]}), encoding="utf-8")
             result = MODULE.build(source, None, now, [public])
         serialized = json.dumps(result, ensure_ascii=False)
-        self.assertNotIn("华泰", serialized)
-        self.assertNotIn("天玑", serialized)
+        self.assertIn("华泰期货油脂日报", serialized)
         self.assertIn("institution-report-skill", result["source_counts"])
         self.assertIn("report-search", result["source_counts"])
         self.assertEqual(result["candidate_source_counts"]["report-search"], 1)
-        self.assertEqual(result["source_policy"], "研报服务机构接口优先；同花顺问财公开研报搜索补充；跨源标题去重")
+        self.assertEqual(result["source_policy"], "机构研报 skill 与问财公开研报搜索来源平权；仅按质量评分择优；跨源标题去重")
+
+    def test_quality_score_not_source_decides_selection_order(self):
+        report_date = datetime(2026, 8, 27, 8, 35, tzinfo=SHANGHAI).date()
+        institution = MODULE.normalize_item(
+            report("institution", "油脂日报", "棕榈油", "2026-08-20 08:00:00"),
+            "油脂油料",
+            "P",
+        )
+        public = MODULE.normalize_public_search_item({
+            "uid": "public",
+            "title": "棕榈油供需深度报告",
+            "summary": "库存、产量、出口和基差数据显示供需变化，风险来自政策。价格从9800变为10000，库存变化12%。",
+            "publish_date": "2026-08-27 07:30:00",
+            "extra": {"organization": "公开机构", "cat_names": ["农产品"]},
+        })
+        institution_score, _ = MODULE.score_quality(institution, report_date)
+        public_score, _ = MODULE.score_quality(public, report_date)
+        self.assertGreater(public_score, institution_score)
+        self.assertNotIn("source_priority", institution)
+        self.assertNotIn("source_priority", public)
 
     def test_preserves_first_ready_snapshot_for_the_day(self):
         now = datetime(2026, 8, 27, 9, 5, tzinfo=SHANGHAI)
@@ -79,7 +98,7 @@ class ResearchWatchTests(unittest.TestCase):
             source = root / "source.json"
             source.write_text(json.dumps(source_payload(), ensure_ascii=False), encoding="utf-8")
             existing = root / "existing.json"
-            existing.write_text(json.dumps({"schema_version": 2, "status": "ready", "report_date": "2026-08-27", "items": [{"id": "frozen"}]}), encoding="utf-8")
+            existing.write_text(json.dumps({"schema_version": 3, "status": "ready", "report_date": "2026-08-27", "items": [{"id": "frozen"}]}), encoding="utf-8")
             payload = MODULE.build(source, existing, now)
         self.assertEqual(payload["items"], [{"id": "frozen"}])
 

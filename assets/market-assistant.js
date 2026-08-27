@@ -351,7 +351,7 @@
       array(data.researchWatch.items).forEach((item) => events.push({
         type: "report", category: first(item.sector, "公开研报"), title: first(item.title, "公开研报"),
         summary: first(item.summary, "机构公开晨报已更新"),
-        detail: `推荐依据：${first(item.recommendation_reason, "与市场研究相关")}。推荐分用于筛选，不构成投资建议。`,
+        detail: `推荐依据：${first(item.recommendation_reason, "与市场研究相关")}。${first(item.ai_notice, "AI质量评分不代表来源方官方立场，且不构成投资建议。")}`,
         evidence: [first(item.organization, "机构研究"), `推荐分 ${first(item.recommendation_score, "--")}`, ...array(item.topics)],
         source: first(item.source, "公开研报搜索"), time: item.published_at || data.researchWatch.generated_at,
         scope: array(item.topics).join(" · ") || first(item.sector, "跨板块"), impact: "中", nextCheck: "下一交易日晨间", url: item.url

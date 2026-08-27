@@ -1,10 +1,10 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "status": "pending",
   "report_date": null,
   "generated_at": "2026-08-27T00:00:00+08:00",
   "refresh_policy": "独立机构研报采集兜底；每日首次发现当日研报后冻结",
-  "source_policy": "研报服务机构接口优先；同花顺问财公开研报搜索补充；跨源标题去重",
+  "source_policy": "机构研报 skill 与问财公开研报搜索来源平权；仅按质量评分择优；跨源标题去重",
   "items": [],
   "notice": "等待当日公开晨报发布。"
 }
