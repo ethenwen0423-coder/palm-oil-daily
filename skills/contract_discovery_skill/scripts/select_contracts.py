@@ -7,7 +7,7 @@ import argparse
 import json
 import re
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -96,6 +96,38 @@ def normalized_symbol(value: Any) -> str:
     return str(value or "").upper().strip()
 
 
+def normalize_exchange_data_time(
+    tradedate: str,
+    ticktime: str,
+    now: datetime,
+) -> tuple[str, str | None]:
+    """Convert a trading-day night-session label into wall-clock time.
+
+    DCE can label the previous evening's night session with the following
+    trading date.  At 06:xx this produces a syntactically future timestamp such
+    as ``today 23:00`` even though the quote was already observed.  Only the
+    well-defined night-session case is rolled back; other future timestamps are
+    preserved so downstream quality gates still fail closed.
+    """
+
+    raw = " ".join(part for part in (tradedate, ticktime) if part)
+    if not raw:
+        return now.strftime("%Y-%m-%d %H:%M:%S"), None
+    if not tradedate or not ticktime:
+        return raw, None
+    try:
+        labelled = datetime.fromisoformat(f"{tradedate} {ticktime}")
+    except ValueError:
+        return raw, None
+    if labelled > now and labelled.hour >= 20 and now.hour < 20:
+        observed = labelled - timedelta(days=1)
+        return (
+            observed.strftime("%Y-%m-%d %H:%M:%S"),
+            f"交易日夜盘标签 {raw} 已换算为实际墙钟时间",
+        )
+    return labelled.strftime("%Y-%m-%d %H:%M:%S"), None
+
+
 def row_to_contract(row: Any, product: str, spec: dict[str, Any], now: datetime) -> tuple[dict[str, Any] | None, str | None]:
     symbol = normalized_symbol(row.get("symbol"))
     if not re.fullmatch(rf"{re.escape(product)}\d{{4}}", symbol):
@@ -122,9 +154,11 @@ def row_to_contract(row: Any, product: str, spec: dict[str, Any], now: datetime)
 
     tradedate = str(row.get("tradedate") or "").strip()
     ticktime = str(row.get("ticktime") or "").strip()
-    data_time = " ".join(part for part in [tradedate, ticktime] if part) or now.strftime("%Y-%m-%d %H:%M:%S")
+    data_time, time_warning = normalize_exchange_data_time(tradedate, ticktime, now)
+    if time_warning:
+        warnings.append(time_warning)
 
-    return {
+    contract = {
         "symbol": symbol,
         "product": product,
         "product_name": str(spec.get("name") or product),
@@ -137,7 +171,12 @@ def row_to_contract(row: Any, product: str, spec: dict[str, Any], now: datetime)
         "source": SOURCE,
         "warnings": warnings,
         "_month": month,
-    }, None
+    }
+    if tradedate:
+        contract["trading_date"] = tradedate
+    if ticktime:
+        contract["exchange_tick_time"] = ticktime
+    return contract, None
 
 
 def discover_product(ak: Any, product: str, spec: dict[str, Any], now: datetime) -> tuple[list[dict[str, Any]], list[str]]:
@@ -218,6 +257,7 @@ def discover(now: datetime | None = None) -> dict[str, Any]:
             "source": SOURCE,
             "products": {key: [] for key in products_config},
             "warnings": [str(exc)],
+            "selector_skill": "contract_selector_skill",
         }
 
     products: dict[str, list[dict[str, Any]]] = {}
@@ -234,6 +274,7 @@ def discover(now: datetime | None = None) -> dict[str, Any]:
         "source": SOURCE,
         "products": products,
         "warnings": warnings,
+        "selector_skill": "contract_selector_skill",
     }
 
 
