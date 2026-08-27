@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import html
 import json
 import os
 import re
@@ -21,7 +22,9 @@ CROSS_KEYS = {"SC", "MACRO"}
 
 def public_text(value: Any) -> str:
     text = str(value or "")
-    return text.replace("华泰期货", "研报服务").replace("华泰", "研报服务").replace("天玑", "研报服务")
+    text = text.replace("华泰期货", "研报服务").replace("华泰", "研报服务").replace("天玑", "研报服务")
+    text = re.sub(r"<[^>]+>", " ", html.unescape(text))
+    return re.sub(r"\s+", " ", text).strip()
 
 
 def dedupe_key(item: dict[str, Any]) -> str:
@@ -152,7 +155,7 @@ def select(payload: dict[str, Any], report_date: date, public_paths: list[Path] 
 def build(source: Path, existing: Path | None, now: datetime, public_paths: list[Path] | None = None) -> dict[str, Any]:
     today = now.astimezone(SHANGHAI).date()
     previous = load_object(existing) if existing and existing.is_file() else {}
-    if previous.get("status") == "ready" and previous.get("report_date") == today.isoformat():
+    if previous.get("schema_version") == 2 and previous.get("status") == "ready" and previous.get("report_date") == today.isoformat():
         return previous
     payload = load_object(source)
     items, candidate_count, candidate_source_counts, source_counts = select(payload, today, public_paths)
@@ -160,7 +163,7 @@ def build(source: Path, existing: Path | None, now: datetime, public_paths: list
         oil_count = sum(item["sector"] == "油脂油料" for item in items)
         cross_count = sum(item["sector"] == "跨板块" for item in items)
         return {
-            "schema_version": 1,
+            "schema_version": 2,
             "status": "ready",
             "report_date": today.isoformat(),
             "generated_at": now.astimezone(SHANGHAI).isoformat(timespec="seconds"),
@@ -177,7 +180,7 @@ def build(source: Path, existing: Path | None, now: datetime, public_paths: list
     if previous:
         return previous
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "status": "pending",
         "report_date": None,
         "generated_at": now.astimezone(SHANGHAI).isoformat(timespec="seconds"),

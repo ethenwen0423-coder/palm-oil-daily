@@ -18,7 +18,7 @@ SHANGHAI = ZoneInfo("Asia/Shanghai")
 
 
 def report(report_id: str, title: str, subclass: str, published: str = "2026-08-27 08:24:21"):
-    return {"id": report_id, "title": title, "subclassCodeName": subclass, "publishDateTime": published, "aiContent": "公开摘要"}
+    return {"id": report_id, "title": title, "subclassCodeName": subclass, "publishDateTime": published, "aiContent": "<b>公开摘要</b><br>正文"}
 
 
 def source_payload():
@@ -40,6 +40,8 @@ class ResearchWatchTests(unittest.TestCase):
         self.assertEqual(payload["status"], "ready")
         self.assertEqual(payload["allocation"], {"油脂油料": 7, "跨板块": 3, "target": "70% / 30%"})
         self.assertEqual(len(payload["items"]), 10)
+        self.assertEqual(payload["schema_version"], 2)
+        self.assertNotIn("<", json.dumps(payload, ensure_ascii=False))
 
     def test_merges_public_search_deduplicates_and_redacts_brand(self):
         now = datetime(2026, 8, 27, 8, 35, tzinfo=SHANGHAI)
@@ -77,7 +79,7 @@ class ResearchWatchTests(unittest.TestCase):
             source = root / "source.json"
             source.write_text(json.dumps(source_payload(), ensure_ascii=False), encoding="utf-8")
             existing = root / "existing.json"
-            existing.write_text(json.dumps({"status": "ready", "report_date": "2026-08-27", "items": [{"id": "frozen"}]}), encoding="utf-8")
+            existing.write_text(json.dumps({"schema_version": 2, "status": "ready", "report_date": "2026-08-27", "items": [{"id": "frozen"}]}), encoding="utf-8")
             payload = MODULE.build(source, existing, now)
         self.assertEqual(payload["items"], [{"id": "frozen"}])
 
