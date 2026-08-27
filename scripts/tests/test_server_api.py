@@ -34,6 +34,7 @@ class ServerApiStatusTests(unittest.TestCase):
         self.assertEqual(API.ROUTES["/api/reports"], "reports.json")
         self.assertEqual(API.ROUTES["/api/assistant/brief"], "market_assistant_brief.json")
         self.assertEqual(API.ROUTES["/api/assistant/watch"], "market_watch.json")
+        self.assertEqual(API.ROUTES["/api/assistant/research-watch"], "research_watch.json")
         self.assertEqual(
             API.ROUTES["/api/forecast/feedback/latest"],
             "forecast/feedback/latest.json",
@@ -49,6 +50,7 @@ class ServerApiStatusTests(unittest.TestCase):
             "data/quant_model_signals.json",
             "data/supply-demand.json",
             "data/market_assistant_brief.json",
+            "data/research_watch.json",
             "data/forecast/metrics/20d.json",
             "data/forecast/metrics/60d.json",
             "data/forecast/feedback/latest.json",

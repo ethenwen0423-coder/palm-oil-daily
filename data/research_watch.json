@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "status": "pending",
+  "report_date": null,
+  "generated_at": "2026-08-27T00:00:00+08:00",
+  "refresh_policy": "独立机构研报采集兜底；每日首次发现当日研报后冻结",
+  "items": [],
+  "notice": "等待当日公开晨报发布。"
+}

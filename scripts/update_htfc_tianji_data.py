@@ -18,6 +18,7 @@ from zoneinfo import ZoneInfo
 
 SHANGHAI = ZoneInfo("Asia/Shanghai")
 OIL_PRODUCTS = (("P", "棕榈油"), ("Y", "豆油"), ("OI", "菜油"))
+REPORT_PRODUCTS = (("P", "p"), ("Y", "y"), ("OI", "oi"), ("SC", "sc"), ("MACRO", "hg"))
 
 
 class TianjiError(RuntimeError):
@@ -157,31 +158,21 @@ def collect_smart_kline(client: TianjiClient) -> dict[str, Any]:
     return {"status": "ok", "products": products}
 
 
-def _report_item_value(item: dict[str, Any]) -> Any:
-    for key in ("item_value", "itemValue", "value"):
-        if item.get(key) not in (None, ""):
-            return item[key]
-    return None
-
-
 def collect_reports(client: TianjiClient) -> dict[str, Any]:
     categories = client.request("GET", "/bus/report/ptypes_v2")
-    rows = list(_walk_dicts(_business_data(categories)))
     products: dict[str, Any] = {}
-    for symbol, name in OIL_PRODUCTS:
-        aliases = {name, "菜籽油" if symbol == "OI" else name}
-        matches = [item for item in rows if str(item.get("name") or item.get("label") or "") in aliases]
-        usable = [item for item in matches if _report_item_value(item) is not None]
-        if len(usable) != 1:
-            products[symbol] = {"status": "mapping_required", "name": name, "candidates": matches}
-            continue
-        selected = usable[0]
+    for symbol, subclass_code in REPORT_PRODUCTS:
         response = client.request(
             "GET",
             "/bus/report/specificList",
-            params={"curPage": 1, "pageSize": 10, "item_value": _report_item_value(selected)},
+            params={
+                "curPage": 1,
+                "pageSize": 10,
+                "item_value": "10074",
+                "subclass_code": subclass_code,
+            },
         )
-        products[symbol] = {"status": "ok", "category": selected, "response": response}
+        products[symbol] = {"status": "ok", "subclass_code": subclass_code, "response": response}
     return {"status": "ok", "categories": categories, "products": products}
 
 

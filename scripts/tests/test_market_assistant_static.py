@@ -30,6 +30,7 @@ class MarketAssistantStaticTests(unittest.TestCase):
             ("/api/exchange-futures", "data/exchange_futures.json"),
             ("/api/supply-demand", "data/supply-demand.json"),
             ("/api/assistant/brief", "data/market_assistant_brief.json"),
+            ("/api/assistant/research-watch", "data/research_watch.json"),
         )
         for api, fallback in expected:
             with self.subTest(api=api):

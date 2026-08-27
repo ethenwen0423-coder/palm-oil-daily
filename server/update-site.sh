@@ -46,7 +46,8 @@ for payload in \
   data/forecast/feedback/latest.json \
   data/review/latest_review.json \
   data/market_assistant_brief.json \
-  data/htfc_tianji.json
+  data/htfc_tianji.json \
+  data/research_watch.json
 do
   python3 -m json.tool "$payload" >/dev/null
 done

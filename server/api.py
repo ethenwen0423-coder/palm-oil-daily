@@ -38,6 +38,7 @@ ROUTES = {
     "/api/assistant/brief": "market_assistant_brief.json",
     "/api/assistant/watch": "market_watch.json",
     "/api/htfc/tianji": "htfc_tianji.json",
+    "/api/assistant/research-watch": "research_watch.json",
 }
 
 DATASET_RULES = {
@@ -101,6 +102,11 @@ DATASET_RULES = {
         "stale_after_seconds": 60 * 60 * 6,
         "timestamp_fields": ("generated_at",),
     },
+    "/api/assistant/research-watch": {
+        "label": "公开研报推荐",
+        "stale_after_seconds": 60 * 60 * 36,
+        "timestamp_fields": ("generated_at",),
+    },
     "/api/assistant/watch": {
         "label": "5分钟市场扫描",
         "stale_after_seconds": 60 * 12,
@@ -154,7 +160,7 @@ AUTOMATION_MARKERS = {
     "htfc": {
         "label": "机构资讯只读采集",
         "path": ".server-htfc-ready.json",
-        "routes": ("/api/htfc/tianji",),
+        "routes": ("/api/htfc/tianji", "/api/assistant/research-watch"),
     },
 }
 UPSTREAM_ROUTES = {

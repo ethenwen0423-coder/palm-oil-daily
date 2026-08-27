@@ -33,7 +33,7 @@ REVIEW_PATHS = (
 # Backwards-compatible aggregate used by older callers and tests.
 UPSTREAM_PATHS = REPORT_PATHS + REVIEW_PATHS
 SUPPLY_PATHS = ("supply-demand.json",)
-HTFC_PATHS = ("htfc_tianji.json",)
+HTFC_PATHS = ("htfc_tianji.json", "research_watch.json")
 MARKET_PATHS = (
     "oil_futures.js",
     "oil_futures.json",
@@ -63,6 +63,7 @@ JSON_PATHS = {
     "market_watch.json",
     "market_assistant_brief.json",
     "htfc_tianji.json",
+    "research_watch.json",
 }
 
 

@@ -62,6 +62,27 @@ def main() -> int:
             payload = json.loads(output.read_text(encoding="utf-8"))
             if not payload.get("available_modules"):
                 raise RuntimeError("no authorized Tianji module returned usable data")
+            research_output = output_root / "research_watch.json"
+            research_result = subprocess.run(
+                [
+                    sys.executable,
+                    str(site_root / "scripts" / "build_research_watch.py"),
+                    "--input",
+                    str(output),
+                    "--existing",
+                    str(live_data_root / "research_watch.json"),
+                    "--output",
+                    str(research_output),
+                ],
+                cwd=site_root,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                timeout=30,
+                check=False,
+            )
+            if research_result.returncode != 0 or not research_output.is_file():
+                raise RuntimeError("research watch builder did not produce a dataset")
             copied = sync.sync_htfc(output_root, live_data_root, session="scheduled")
         print(json.dumps({
             "status": payload.get("status"),

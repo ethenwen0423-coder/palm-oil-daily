@@ -29,6 +29,23 @@ class FakeResponse:
 
 
 class TianjiCollectorTests(unittest.TestCase):
+    def test_reports_query_explicit_product_subclasses(self):
+        calls = []
+
+        def opener(request, *, timeout):
+            calls.append(request.full_url)
+            if request.full_url.endswith("/bus/report/ptypes_v2"):
+                return FakeResponse({"errorCode": 0, "data": []})
+            return FakeResponse({"errorCode": 0, "data": {"resultList": []}})
+
+        result = MODULE.collect_reports(MODULE.TianjiClient("https://example.test", "key", opener=opener))
+        self.assertEqual(result["status"], "ok")
+        report_calls = [url for url in calls if "/bus/report/specificList" in url]
+        self.assertEqual(len(report_calls), 5)
+        for subclass_code in ("p", "y", "oi", "sc", "hg"):
+            self.assertTrue(any(f"subclass_code={subclass_code}" in url for url in report_calls))
+        self.assertTrue(all("item_value=10074" in url for url in report_calls))
+
     def test_news_resolves_tag_before_filter_and_never_persists_key(self):
         calls = []
 
