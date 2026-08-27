@@ -62,6 +62,34 @@ def main() -> int:
             payload = json.loads(output.read_text(encoding="utf-8"))
             if not payload.get("available_modules"):
                 raise RuntimeError("no authorized Tianji module returned usable data")
+            public_search_inputs = []
+            if os.environ.get("IWENCAI_API_KEY", "").strip():
+                for name, query in (
+                    ("oil", "棕榈油 豆油 菜油 油脂油料 研报"),
+                    ("cross", "原油 宏观 农产品 研报"),
+                ):
+                    public_output = output_root / f"public_research_{name}.json"
+                    public_result = subprocess.run(
+                        [
+                            sys.executable,
+                            str(site_root / "scripts" / "update_public_research_search.py"),
+                            "--query",
+                            query,
+                            "--output",
+                            str(public_output),
+                            "--timeout",
+                            str(args.timeout),
+                        ],
+                        cwd=site_root,
+                        env={**os.environ, "PYTHONUNBUFFERED": "1"},
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.STDOUT,
+                        text=True,
+                        timeout=max(args.timeout * 2, 90),
+                        check=False,
+                    )
+                    if public_result.returncode == 0 and public_output.is_file():
+                        public_search_inputs.extend(["--public-search", str(public_output)])
             research_output = output_root / "research_watch.json"
             research_result = subprocess.run(
                 [
@@ -73,6 +101,7 @@ def main() -> int:
                     str(live_data_root / "research_watch.json"),
                     "--output",
                     str(research_output),
+                    *public_search_inputs,
                 ],
                 cwd=site_root,
                 stdout=subprocess.PIPE,

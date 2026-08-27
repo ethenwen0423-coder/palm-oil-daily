@@ -41,6 +41,35 @@ class ResearchWatchTests(unittest.TestCase):
         self.assertEqual(payload["allocation"], {"油脂油料": 7, "跨板块": 3, "target": "70% / 30%"})
         self.assertEqual(len(payload["items"]), 10)
 
+    def test_merges_public_search_deduplicates_and_redacts_brand(self):
+        now = datetime(2026, 8, 27, 8, 35, tzinfo=SHANGHAI)
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "source.json"
+            payload = source_payload()
+            payload["modules"]["research_reports"]["products"]["P"]["response"]["data"]["resultList"][0]["title"] = "华泰期货油脂日报"
+            payload["modules"]["research_reports"]["products"]["P"]["response"]["data"]["resultList"] = payload["modules"]["research_reports"]["products"]["P"]["response"]["data"]["resultList"][:3]
+            payload["modules"]["research_reports"]["products"]["Y"]["response"]["data"]["resultList"] = payload["modules"]["research_reports"]["products"]["Y"]["response"]["data"]["resultList"][:3]
+            payload["modules"]["research_reports"]["products"]["OI"]["response"]["data"]["resultList"] = []
+            source.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+            public = root / "public.json"
+            public.write_text(json.dumps({"data": [{
+                "uid": "public-1",
+                "title": "公开棕榈油深度研报",
+                "summary": "棕榈油供需跟踪",
+                "publish_date": "2026-08-27 07:30:00",
+                "extra": {"organization": "公开机构", "cat_names": ["农产品"]},
+                "url": "https://example.test/report",
+            }]}), encoding="utf-8")
+            result = MODULE.build(source, None, now, [public])
+        serialized = json.dumps(result, ensure_ascii=False)
+        self.assertNotIn("华泰", serialized)
+        self.assertNotIn("天玑", serialized)
+        self.assertIn("institution-report-skill", result["source_counts"])
+        self.assertIn("report-search", result["source_counts"])
+        self.assertEqual(result["candidate_source_counts"]["report-search"], 1)
+        self.assertEqual(result["source_policy"], "研报服务机构接口优先；同花顺问财公开研报搜索补充；跨源标题去重")
+
     def test_preserves_first_ready_snapshot_for_the_day(self):
         now = datetime(2026, 8, 27, 9, 5, tzinfo=SHANGHAI)
         with tempfile.TemporaryDirectory() as temporary:
