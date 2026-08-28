@@ -2,11 +2,13 @@
 
 This overlay decides which simultaneous model signals the CNY 1,000,000 virtual fund can afford. It does not change the Bollinger-RSI signal rules.
 
-## Candidate evidence
+## Candidate ranking
 
-Re-estimate ranking evidence on a scheduled research cadence, not every day. Use real PYYMM contracts, T-1 liquidity selection, next-open execution, actual multipliers, the same fee assumptions, and walk-forward or held-out periods. Include 1-, 3-, and 5-year coverage where available, but mark incomplete windows `需进一步核验`.
+Every supported liquid variety is eligible to become a candidate. Palm oil has no default priority and missing historical research must not silently turn the fund into a palm-oil-only portfolio. The completed-close Bollinger-RSI signal is the admission condition; exact contract data, liquidity, margin, fee, and portfolio capacity remain hard requirements.
 
-Build `score` from held-out evidence only. A suitable monotonic score rewards positive multi-window CAGR and Sharpe, and penalizes maximum drawdown, turnover, instability across windows, sparse trades, stale data, and high cross-variety correlation. Store the components alongside the snapshot. Never select solely by the highest fitted CAGR, win rate, or most recent year.
+When simultaneous signals compete for capital, rank them deterministically with dimensionless current evidence: own-contract MA20 breakout distance in ATR units, MA6 trend distance in ATR units, direction-aligned RSI, and T-1 notional liquidity. Store every component and the policy version alongside the snapshot. The score is an order-priority score, not a predicted return or AI confidence. Apply sector and variety caps after ranking so capital may be distributed across unrelated sectors.
+
+Historical walk-forward evidence may be supplied as a configured score overlay when it uses real PYYMM contracts, T-1 liquidity selection, next-open execution, actual multipliers, and the same costs. Never use continuous, weighted, synthetic, or adjusted series to admit, rank, execute, or value a live fund order.
 
 ## Default constraints
 

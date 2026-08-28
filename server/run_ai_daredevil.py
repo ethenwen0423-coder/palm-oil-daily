@@ -30,6 +30,7 @@ from zoneinfo import ZoneInfo
 
 SHANGHAI = ZoneInfo("Asia/Shanghai")
 MODEL_VERSION = "palm-oil-v2-real-contract-indicators-carry5-main-contract"
+ALLOCATION_POLICY_VERSION = "cross-sector-signal-strength-v1"
 INITIAL_CAPITAL = 1_000_000.0
 FUND_FILE = "ai_daredevil.json"
 READY_MARKER = ".server-ai-daredevil-ready.json"
@@ -61,6 +62,24 @@ PRODUCTS = {
     "OI": {"name": "菜油", "sector": "油脂油料", "multiplier": 10.0},
     "M": {"name": "豆粕", "sector": "油脂油料", "multiplier": 10.0},
     "RM": {"name": "菜粕", "sector": "油脂油料", "multiplier": 10.0},
+    "C": {"name": "玉米", "sector": "谷物", "multiplier": 10.0},
+    "CF": {"name": "棉花", "sector": "软商品", "multiplier": 5.0},
+    "SR": {"name": "白糖", "sector": "软商品", "multiplier": 10.0},
+    "UR": {"name": "尿素", "sector": "化工", "multiplier": 20.0},
+    "LH": {"name": "生猪", "sector": "农产品", "multiplier": 16.0},
+    "J": {"name": "焦炭", "sector": "黑色", "multiplier": 100.0},
+    "I": {"name": "铁矿石", "sector": "黑色", "multiplier": 100.0},
+    "PS": {"name": "多晶硅", "sector": "新能源", "multiplier": 3.0},
+    "SI": {"name": "工业硅", "sector": "新能源", "multiplier": 5.0},
+    "LC": {"name": "碳酸锂", "sector": "新能源", "multiplier": 1.0},
+    "CU": {"name": "沪铜", "sector": "有色金属", "multiplier": 5.0},
+    "AL": {"name": "沪铝", "sector": "有色金属", "multiplier": 5.0},
+    "ZN": {"name": "沪锌", "sector": "有色金属", "multiplier": 5.0},
+    "NI": {"name": "沪镍", "sector": "有色金属", "multiplier": 1.0},
+    "AU": {"name": "黄金", "sector": "贵金属", "multiplier": 1000.0},
+    "SC": {"name": "原油", "sector": "能源", "multiplier": 1000.0},
+    "RU": {"name": "橡胶", "sector": "化工", "multiplier": 10.0},
+    "SP": {"name": "纸浆", "sector": "轻工", "multiplier": 10.0},
 }
 
 # ak.futures_zh_realtime accepts the display names returned by
@@ -71,6 +90,11 @@ PRODUCT_REALTIME_SYMBOL = {
     "EG": "乙二醇", "L": "塑料", "JM": "焦煤", "EB": "苯乙烯", "HC": "热轧卷板",
     "BU": "沥青", "SH": "烧碱", "P": "棕榈", "Y": "豆油", "OI": "菜油",
     "M": "豆粕", "RM": "菜粕",
+    "C": "玉米", "CF": "棉花", "SR": "白糖", "UR": "尿素",
+    "LH": "生猪", "J": "焦炭", "I": "铁矿石", "PS": "多晶硅",
+    "SI": "工业硅", "LC": "碳酸锂", "CU": "沪铜", "AL": "沪铝",
+    "ZN": "沪锌", "NI": "沪镍", "AU": "黄金", "SC": "原油",
+    "RU": "橡胶", "SP": "纸浆",
 }
 
 
@@ -359,24 +383,32 @@ def current_contracts(data_root: Path) -> dict[str, list[str]]:
         if variety in PRODUCTS:
             output.setdefault(variety, []).append(contract)
     output = {variety: sorted(set(values)) for variety, values in output.items()}
-    missing = [variety for variety in PRODUCTS if variety not in output]
-    if missing:
-        try:
-            import akshare as ak
-            for variety in missing:
-                try:
-                    frame = ak.futures_zh_realtime(symbol=PRODUCT_REALTIME_SYMBOL[variety])
-                    values = []
-                    for row in frame.to_dict(orient="records") if frame is not None else []:
-                        contract = normalized_contract(find_field(row, ("symbol", "合约", "合约代码", "代码", "期货代码")))
-                        if contract and contract.startswith(variety) and not contract.endswith("0"):
-                            values.append(contract)
-                    if values:
-                        output[variety] = sorted(set(values))
-                except Exception:
-                    continue
-        except ImportError:
-            pass
+    # Always augment the published main-contract snapshot with the most liquid
+    # currently listed delivery months. This lets the model reconstruct the
+    # T-1 volume-selected main schedule without ever requesting a continuous
+    # symbol. Four contracts bounds the close-scan runtime and avoids dormant
+    # far-month prints becoming false rollover candidates.
+    try:
+        import akshare as ak
+        for variety in PRODUCTS:
+            try:
+                frame = ak.futures_zh_realtime(symbol=PRODUCT_REALTIME_SYMBOL[variety])
+                ranked = []
+                for row in frame.to_dict(orient="records") if frame is not None else []:
+                    contract = normalized_contract(find_field(row, ("symbol", "合约", "合约代码", "代码", "期货代码")))
+                    if not contract or not contract.startswith(variety) or contract.endswith("0"):
+                        continue
+                    volume = numeric(find_field(row, ("volume", "成交量"))) or 0.0
+                    open_interest = numeric(find_field(row, ("position", "hold", "open_interest", "持仓量"))) or 0.0
+                    if volume > 0 or open_interest > 0:
+                        ranked.append((volume, open_interest, contract))
+                liquid = [contract for _volume, _hold, contract in sorted(ranked, reverse=True)[:4]]
+                if liquid:
+                    output[variety] = sorted(set(output.get(variety, []) + liquid))
+            except Exception:
+                continue
+    except ImportError:
+        pass
     return output
 
 
@@ -416,17 +448,33 @@ def next_trade_date(after: date) -> date:
         raise RuntimeErrorSafe(f"next exchange trading day unavailable: {type(exc).__name__}") from exc
 
 
-def allocation_score(variety: str) -> float | None:
+def allocation_score(variety: str, direction: int, indicator_row: Any, selection_row: Any) -> tuple[float, dict[str, float], str]:
     configured = os.environ.get("AI_DAREDEVIL_ALLOCATION_SCORES_JSON", "").strip()
     if configured:
         try:
             value = numeric(json.loads(configured).get(variety))
-            return value
+            if value is not None:
+                return value, {"configured_score": value}, "配置的组合评分"
         except json.JSONDecodeError:
-            return None
-    # P is the only deployment-pinned baseline with the repaired 1/3/5-year
-    # real-contract audit. This is an ordinal eligibility score, not a return.
-    return 1.0 if variety == "P" else None
+            pass
+    atr = max(float(indicator_row.atr), 1e-12)
+    close = float(indicator_row.close)
+    breakout_atr = min(abs(close - float(indicator_row.ma20)) / atr, 2.0) / 2.0
+    trend_atr = min(abs(close - float(indicator_row.ma6)) / atr, 3.0) / 3.0
+    rsi = numeric(getattr(indicator_row, "rsi", None))
+    rsi_alignment = max(0.0, min(1.0, direction * ((rsi if rsi is not None else 50.0) - 50.0) / 50.0))
+    turnover = max(
+        float(selection_row.volume) * float(selection_row.close) * PRODUCTS[variety]["multiplier"], 1.0
+    )
+    liquidity = max(0.0, min(1.0, (math.log10(turnover) - 6.0) / 5.0))
+    components = {
+        "breakout_atr": round(breakout_atr, 6),
+        "trend_atr": round(trend_atr, 6),
+        "rsi_alignment": round(rsi_alignment, 6),
+        "liquidity": round(liquidity, 6),
+    }
+    score = 0.40 * breakout_atr + 0.25 * trend_atr + 0.20 * rsi_alignment + 0.15 * liquidity
+    return round(score, 6), components, "跨板块实时信号强度与流动性排序"
 
 
 def margin_rate(variety: str) -> float:
@@ -454,7 +502,9 @@ def scan_signals(site_root: Path, data_root: Path, state: dict[str, Any], model,
     } if isinstance(previous_audit, dict) else {}
     audit = {
         "generated_at": (generated_at or now_shanghai()).isoformat(timespec="seconds"),
+        "allocation_policy_version": ALLOCATION_POLICY_VERSION,
         "universe_count": len(PRODUCTS), "discovered_count": len(contracts_by_variety),
+        "sector_count": len({row["sector"] for row in PRODUCTS.values()}),
         "evaluated_count": 0, "candidate_count": 0, "order_count": 0,
         "blocked_candidate_count": 0,
         "missing_varieties": [variety for variety in PRODUCTS if variety not in contracts_by_variety],
@@ -487,7 +537,7 @@ def scan_signals(site_root: Path, data_root: Path, state: dict[str, Any], model,
         # recent window is sufficient for MA20/MA6/RSI14/ATR14 and avoids
         # treating dormant far-month prints from the distant past as a current
         # main-contract rollover.
-        raw = raw.loc[raw.date.ge(raw.date.max() - pd.Timedelta(days=260))].copy()
+        raw = raw.loc[raw.date.ge(raw.date.max() - pd.Timedelta(days=120))].copy()
         try:
             active = model.build_lagged_main_schedule(raw)
             prepared = model.prepare_contract_local_main(active, raw)
@@ -512,16 +562,14 @@ def scan_signals(site_root: Path, data_root: Path, state: dict[str, Any], model,
         signal_date = last.date.date()
         signal_dates.append(signal_date)
         audit["evaluated_count"] += 1
-        if strategy.setdefault("last_close", {}).get(variety) == signal_date.isoformat():
+        previous_policy = previous_audit.get("allocation_policy_version") if isinstance(previous_audit, dict) else None
+        if strategy.setdefault("last_close", {}).get(variety) == signal_date.isoformat() and previous_policy == ALLOCATION_POLICY_VERSION:
             previous = previous_candidates.get(variety)
             if previous and previous.get("signal_date") == signal_date.isoformat():
                 audit["candidate_count"] += 1
                 audit["signal_candidates"].append(previous)
                 if previous.get("eligible"):
                     audit["order_count"] += 1
-                else:
-                    audit["blocked_candidate_count"] += 1
-                    skipped.append({"variety": variety, "contract": previous.get("contract"), "reason": "缺少审计后的样本外配置评分"})
             continue
         position = state.get("positions", {}).get(variety)
         action = reason = None
@@ -571,19 +619,17 @@ def scan_signals(site_root: Path, data_root: Path, state: dict[str, Any], model,
                 strategy["blocked"][variety] = 0
                 blocked = 0
             if direction and direction != blocked:
-                score = allocation_score(variety)
+                score, score_components, score_basis = allocation_score(variety, direction, last, raw_last)
                 audit["candidate_count"] += 1
                 audit["signal_candidates"].append({
                     "variety": variety, "name": PRODUCTS[variety]["name"], "contract": contract,
                     "action": "ENTER_LONG" if direction == 1 else "ENTER_SHORT",
-                    "signal_date": signal_date.isoformat(), "eligible": score is not None,
+                    "signal_date": signal_date.isoformat(), "eligible": True,
+                    "sector": PRODUCTS[variety]["sector"], "score": score,
+                    "score_components": score_components, "score_basis": score_basis,
                 })
-                if score is None:
-                    audit["blocked_candidate_count"] += 1
-                    skipped.append({"variety": variety, "contract": contract, "reason": "缺少审计后的样本外配置评分"})
-                else:
-                    action = "ENTER_LONG" if direction == 1 else "ENTER_SHORT"
-                    reason = carry_reason or "真实交割月自身日线收盘穿越MA20"
+                action = "ENTER_LONG" if direction == 1 else "ENTER_SHORT"
+                reason = carry_reason or "真实交割月自身日线收盘穿越MA20"
         if action:
             order_contract = position["contract"] if position and action.startswith("EXIT") else contract
             item = {
@@ -595,10 +641,11 @@ def scan_signals(site_root: Path, data_root: Path, state: dict[str, Any], model,
                 "reason": reason, "selection_volume_t_minus_1": float(raw_last.volume),
                 "selection_open_interest_t_minus_1": numeric(raw_last.get("hold")),
             }
-            score = allocation_score(variety)
-            if action.startswith("ENTER") and score is not None:
+            if action.startswith("ENTER"):
+                score, score_components, score_basis = allocation_score(variety, 1 if action.endswith("LONG") else -1, last, raw_last)
                 item["score"] = score
-                item["score_basis"] = "生产基线准入序位，不代表预测收益率"
+                item["score_components"] = score_components
+                item["score_basis"] = score_basis + "；仅用于订单优先级，不代表预测收益率"
             signals.append(item)
             audit["order_count"] += 1
         strategy["last_close"][variety] = signal_date.isoformat()
@@ -612,7 +659,7 @@ def scan_signals(site_root: Path, data_root: Path, state: dict[str, Any], model,
         "as_of": max(signal_dates).isoformat(), "completed_bar": True,
         "model_version": MODEL_VERSION,
         "source": "AKShare futures_zh_daily_sina actual PYYMM; T-1 volume selection",
-        "indicator_history_calendar_days": 260,
+        "indicator_history_calendar_days": 120,
         "signals": signals,
     }, skipped, audit
 
@@ -746,8 +793,10 @@ def public_snapshot(state_dir: Path, state: dict[str, Any], sources: list[dict[s
             {"label": "整点刷新", "time": "每小时", "purpose": "更新持仓价格、权益、来源状态和净值"},
         ],
         "sources": sources,
-        "governance": {"virtual_only": True, "scanned_universe": list(PRODUCTS), "eligible_default": ["P"],
-                       "other_varieties": "需配置经审计的样本外 allocation score 后才可新开仓",
+        "governance": {"virtual_only": True, "scanned_universe": list(PRODUCTS),
+                       "eligible_default": list(PRODUCTS),
+                       "allocation_policy_version": ALLOCATION_POLICY_VERSION,
+                       "allocation_policy": "全策略池平等候选，按真实主力合约信号强度与流动性排序；组合受品种和板块上限约束",
                        "margin_note": "默认20%为保守组合预留率，不代表交易所或经纪商实时保证金率"},
         "ai_notice": "本页面由 AI 基于所列真实合约行情、模型信号和虚拟基金账本生成，不代表任何来源方官方立场，不构成投资建议；虚拟成交不等于真实成交，请自行核验。",
     }

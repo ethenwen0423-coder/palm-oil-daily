@@ -328,7 +328,7 @@ def command_plan(args: argparse.Namespace) -> dict[str, Any]:
                         decisions.append({"signal": signal, "status": "skipped", "reason": "maximum concurrent varieties reached"})
                         continue
                     if "score" not in signal:
-                        decisions.append({"signal": signal, "status": "skipped", "reason": "missing audited walk-forward score"})
+                        decisions.append({"signal": signal, "status": "skipped", "reason": "missing cross-sector allocation score"})
                         continue
                 else:
                     if not position or int(position["side"]) != side:

@@ -25,7 +25,7 @@ Read [references/signal-schema.md](references/signal-schema.md) when preparing a
 
 1. Load and verify the ledger. Report any unresolved pending order before creating another order for the same variety.
 2. Refresh actual PYYMM daily bars and contract metadata. Report the source, latest completed market date, failed varieties, stale data, multiplier, margin ratio, and fee assumption. Exclude invalid or incomplete inputs; never invent a price, multiplier, margin, fee, volume, open interest, or contract.
-3. Run the authoritative model separately for each eligible variety through the same completed date. Use the model's stateful output, not a fresh crossover alone. For new entries, compute the walk-forward allocation score described in the allocation policy; do not rank by in-sample CAGR alone.
+3. Run the authoritative model separately for every supported liquid variety through the same completed date. No variety, including palm oil, has default priority or exclusive eligibility. Use the model's stateful output, not a fresh crossover alone. For simultaneous new entries, compute the cross-sector allocation score described in the allocation policy.
 4. Write a snapshot matching the schema and run `plan`. Process model exits and required rolls before pyramids, then new entries. A plan is a pending virtual order for the next open, not a completed trade.
 5. After the intended next open is observable, obtain the actual PYYMM open/fill price and run `fill`. If the intended open has passed without a trustworthy price, leave the order unresolved or cancel it with the reason; never backfill with a close, settlement, estimate, or continuous-contract price.
 6. Mark every open position from actual held-contract close/settlement using `mark`, then run `report --format markdown`. Preserve the resulting daily snapshot.
@@ -45,7 +45,7 @@ Use `roll` only after both old- and new-contract execution prices are observable
 
 ## Portfolio boundary
 
-The objective is to improve long-run risk-adjusted compound return, not to promise or mechanically maximize a fitted CAGR. Portfolio sizing is a separate overlay and must not be described as an improvement to the model signal. Preserve the defaults unless the user explicitly approves a separately backtested policy change: gross notional cap 2.0x equity, margin-use cap 60%, per-variety notional cap 25%, per-sector cap 40%, at most eight varieties, and at least one contract per accepted order.
+The objective is to seek the highest long-run risk-adjusted compound return across sectors, not to promise a return or mechanically maximize a fitted CAGR. Palm oil is only one candidate and must never be the hard-coded default allocation. Portfolio sizing is a separate overlay and must not be described as an improvement to the model signal. Preserve the defaults unless the user explicitly approves a separately backtested policy change: gross notional cap 2.0x equity, margin-use cap 60%, per-variety notional cap 25%, per-sector cap 40%, at most eight varieties, and at least one contract per accepted order.
 
 Never create a fill that breaches the caps. If even one contract does not fit, output `因资金/风控未执行`. Never increase leverage merely because the latest backtest has a high annualized return.
 

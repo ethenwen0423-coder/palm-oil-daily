@@ -128,7 +128,8 @@
     const blocked = Number(scan.blocked_candidate_count || 0);
     const issueText = complete ? "所有策略品种均取得真实合约并完成指标计算" :
       `${universe - evaluated} 个品种未完成指标计算${missing.length ? `；未发现合约：${missing.join("、")}` : ""}`;
-    el("scan-detail").textContent = `${issueText}；原始信号 ${candidates} 个，其中 ${blocked} 个因准入或数据约束未转为订单。扫描时间 ${formatTime(scan.generated_at)}。`;
+    const sectors = Number(scan.sector_count || 0);
+    el("scan-detail").textContent = `${issueText}${sectors ? `，覆盖 ${sectors} 个板块` : ""}；原始信号 ${candidates} 个，其中 ${blocked} 个因组合容量或数据约束未转为订单。扫描时间 ${formatTime(scan.generated_at)}。`;
   }
 
   function renderActivity(containerId, emptyId, items, kind) {

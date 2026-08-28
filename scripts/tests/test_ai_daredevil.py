@@ -5,6 +5,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest import mock
 
 import pandas as pd
@@ -21,7 +22,7 @@ class AiDaredevilTests(unittest.TestCase):
     def test_static_page_exposes_required_fund_sections_and_risk_notice(self):
         html = (ROOT / "ai-daredevil.html").read_text(encoding="utf-8")
         script = (ROOT / "assets" / "ai-daredevil.js").read_text(encoding="utf-8")
-        for label in ("AI敢死队", "当前持仓", "今日动作", "下一步指令", "未执行信号", "净值曲线", "策略池全量收盘扫描"):
+        for label in ("AI敢死队", "当前持仓", "今日动作", "下一步指令", "未执行信号", "净值曲线", "跨板块策略池全量扫描"):
             self.assertIn(label, html)
         self.assertIn("不构成投资建议", html)
         self.assertIn('const API = "/api/ai-daredevil"', script)
@@ -57,11 +58,23 @@ class AiDaredevilTests(unittest.TestCase):
         self.assertEqual(RUNTIME.PRODUCT_REALTIME_SYMBOL["TA"], "PTA")
         self.assertEqual(set(RUNTIME.PRODUCT_REALTIME_SYMBOL), set(RUNTIME.PRODUCTS))
 
+    def test_cross_sector_universe_and_non_p_signal_score(self):
+        self.assertGreaterEqual(len(RUNTIME.PRODUCTS), 40)
+        self.assertGreaterEqual(len({row["sector"] for row in RUNTIME.PRODUCTS.values()}), 8)
+        score, components, basis = RUNTIME.allocation_score(
+            "TA", 1,
+            SimpleNamespace(atr=80, close=5100, ma20=5000, ma6=5040, rsi=62),
+            SimpleNamespace(volume=900_000, close=5100),
+        )
+        self.assertGreater(score, 0)
+        self.assertIn("liquidity", components)
+        self.assertIn("跨板块", basis)
+
     def test_daily_fetch_has_a_hard_timeout_boundary(self):
         source = (ROOT / "server" / "run_ai_daredevil.py").read_text(encoding="utf-8")
         self.assertIn("urlopen(request, timeout=15)", source)
         self.assertIn("ThreadPoolExecutor", source)
-        self.assertIn("pd.Timedelta(days=260)", source)
+        self.assertIn("pd.Timedelta(days=120)", source)
 
     def test_installer_has_exact_session_open_and_hourly_schedule(self):
         installer = (ROOT / "server" / "install_automation.sh").read_text(encoding="utf-8")
