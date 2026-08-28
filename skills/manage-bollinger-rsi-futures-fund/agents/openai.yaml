@@ -1,0 +1,4 @@
+interface:
+  display_name: "布林RSI期货基金管理"
+  short_description: "真实主力合约信号、权益复利、持仓交易和每日收益账本"
+  default_prompt: "使用 $manage-bollinger-rsi-futures-fund 扫描真实主力合约信号并更新今日虚拟基金持仓、交易与收益报告。"

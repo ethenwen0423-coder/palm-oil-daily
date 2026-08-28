@@ -20,6 +20,7 @@ SUPPLY_READY_MARKER = ".server-supply-ready.json"
 RESEARCH_READY_MARKER = ".server-research-ready.json"
 REVIEW_READY_MARKER = ".server-review-ready.json"
 HTFC_READY_MARKER = ".server-htfc-ready.json"
+DAREDEVIL_READY_MARKER = ".server-ai-daredevil-ready.json"
 # Backwards-compatible name for callers that only know about market ownership.
 READY_MARKER = MARKET_READY_MARKER
 REPORT_PATHS = ("reports.json",)
@@ -48,6 +49,7 @@ MARKET_BOOTSTRAP_PATHS = tuple(path for path in MARKET_PATHS if path != "market_
 AI_PATHS = (
     "market_assistant_brief.json",
 )
+DAREDEVIL_PATHS = ("ai_daredevil.json",)
 JSON_PATHS = {
     "reports.json",
     "supply-demand.json",
@@ -64,6 +66,7 @@ JSON_PATHS = {
     "market_assistant_brief.json",
     "htfc_tianji.json",
     "research_watch.json",
+    "ai_daredevil.json",
 }
 
 
@@ -177,6 +180,7 @@ def sync_upstream(source_root: Path, target_root: Path) -> dict[str, object]:
     htfc_owned = (target_root / HTFC_READY_MARKER).exists()
     research_owned = (target_root / RESEARCH_READY_MARKER).exists()
     review_owned = (target_root / REVIEW_READY_MARKER).exists()
+    daredevil_owned = (target_root / DAREDEVIL_READY_MARKER).exists()
     groups: list[tuple[str, tuple[str, ...]]] = []
     if not research_owned:
         groups.append(("reports", REPORT_PATHS))
@@ -205,6 +209,11 @@ def sync_upstream(source_root: Path, target_root: Path) -> dict[str, object]:
         if not htfc_owned
         else []
     )
+    copied_groups["daredevil"] = (
+        synchronize_paths(source_root, target_root, DAREDEVIL_PATHS, required=False)
+        if not daredevil_owned
+        else []
+    )
     return {
         "status": "ok",
         "mode": "upstream",
@@ -215,12 +224,14 @@ def sync_upstream(source_root: Path, target_root: Path) -> dict[str, object]:
         "htfc_copied": copied_groups.get("htfc", []),
         "bootstrapped": copied_groups.get("market", []),
         "ai_copied": copied_groups.get("ai", []),
+        "daredevil_copied": copied_groups.get("daredevil", []),
         "server_research_owned": research_owned,
         "server_review_owned": review_owned,
         "server_supply_owned": supply_owned,
         "server_htfc_owned": htfc_owned,
         "server_market_owned": market_owned,
         "server_ai_owned": ai_owned,
+        "server_daredevil_owned": daredevil_owned,
     }
 
 

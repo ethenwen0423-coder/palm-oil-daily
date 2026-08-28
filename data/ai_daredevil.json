@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "status": "ready",
+  "status_label": "账本已初始化 · 当前空仓",
+  "generated_at": "2026-08-28T19:00:55+08:00",
+  "market_date": null,
+  "refresh_reason": "基金初始化",
+  "price_source": "尚无持仓，无需盯市",
+  "next_refresh": null,
+  "model": {
+    "name": "布林RSI模型",
+    "version": "palm-oil-v2-real-contract-indicators-carry5-main-contract",
+    "capital_policy": "权益复利",
+    "execution": "完整日线确认，下一交易日开盘执行"
+  },
+  "summary": {
+    "initial_capital": 1000000.0,
+    "equity": 1000000.0,
+    "net_value": 1.0,
+    "cash": 1000000.0,
+    "available_cash": 1000000.0,
+    "used_margin": 0.0,
+    "margin_usage": 0.0,
+    "gross_exposure_multiple": 0.0,
+    "daily_pnl": 0.0,
+    "realized_pnl": 0.0,
+    "unrealized_pnl": 0.0,
+    "total_fees": 0.0,
+    "cumulative_return": 0.0,
+    "annualized_return": null,
+    "sharpe": null,
+    "max_drawdown": 0.0
+  },
+  "equity_curve": [
+    {"date": "2026-08-28", "equity": 1000000.0, "net_value": 1.0, "daily_return": 0.0}
+  ],
+  "positions": [],
+  "today_trades": [],
+  "pending_orders": [],
+  "skipped_signals": [],
+  "refresh_schedule": [
+    {"label": "日盘开盘", "time": "09:00", "purpose": "获取真实开盘价并处理待执行订单"},
+    {"label": "午盘开盘", "time": "13:30", "purpose": "补核成交与持仓盯市"},
+    {"label": "夜盘开盘", "time": "21:00", "purpose": "获取夜盘开盘价并处理可交易品种"},
+    {"label": "整点刷新", "time": "每小时", "purpose": "更新持仓价格、权益、来源状态和净值"}
+  ],
+  "sources": [
+    {"priority": "主来源", "name": "AKShare 真实交割月行情", "state": "ready", "state_label": "待首次行情刷新", "note": "优先使用 futures_zh_realtime / futures_zh_daily_sina 的真实 PYYMM 数据"},
+    {"priority": "回退 1", "name": "同花顺问财行情 Skill", "state": "fallback", "state_label": "凭据存在时启用", "note": "AKShare 节点缺失时查询明确合约的开盘价或最新价"},
+    {"priority": "回退 2", "name": "华泰智能 K 线 Skill", "state": "fallback", "state_label": "凭据存在时启用", "note": "按标签树确认品种后读取接口原始 K 线，不改写价格"}
+  ]
+}

@@ -28,6 +28,10 @@ jobs:
             --max-time 20 "$SITE_URL/api/status" > status.json
           curl --fail --silent --show-error --retry 3 --retry-all-errors \
             --max-time 20 "$SITE_URL/assistant" > assistant.html
+          curl --fail --silent --show-error --retry 3 --retry-all-errors \
+            --max-time 20 "$SITE_URL/ai-daredevil" > ai-daredevil.html
+          curl --fail --silent --show-error --retry 3 --retry-all-errors \
+            --max-time 20 "$SITE_URL/api/ai-daredevil" > ai-daredevil.json
           test "$(curl --silent --output /dev/null --write-out '%{http_code}' \
             --max-time 20 "$SITE_URL/assistant.html")" = "308"
           test "$(curl --silent --output /dev/null --write-out '%{redirect_url}' \
@@ -48,6 +52,7 @@ jobs:
               "/api/contracts/current",
               "/api/forecast/metrics/latest",
               "/api/assistant/brief",
+              "/api/ai-daredevil",
           }
           status = json.loads(Path("status.json").read_text(encoding="utf-8"))
           datasets = status.get("datasets", {})
@@ -66,5 +71,12 @@ jobs:
           for marker in ("24h 盯盘助手", "assets/market-assistant.js"):
               if marker not in assistant:
                   raise SystemExit(f"assistant page missing marker: {marker}")
+          daredevil = Path("ai-daredevil.html").read_text(encoding="utf-8")
+          fund = json.loads(Path("ai-daredevil.json").read_text(encoding="utf-8"))
+          for marker in ("AI敢死队", "assets/ai-daredevil.js", "不构成投资建议"):
+              if marker not in daredevil:
+                  raise SystemExit(f"AI Daredevil page missing marker: {marker}")
+          if fund.get("model", {}).get("version") != "palm-oil-v2-real-contract-indicators-carry5-main-contract":
+              raise SystemExit("AI Daredevil model version mismatch")
           print(f"public smoke check passed: status={status.get('status')}, datasets={len(datasets)}")
           PY

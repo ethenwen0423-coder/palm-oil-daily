@@ -355,6 +355,26 @@ write_timer \
   "palm-oil-htfc-tianji.service" \
   "*-*-* *:0/5:00" \
   "30s"
+write_service \
+  "$temporary_root/palm-oil-ai-daredevil.service" \
+  "Refresh the persistent AI Daredevil virtual futures fund" \
+  "run_ai_daredevil.py"
+cat >"$temporary_root/palm-oil-ai-daredevil.timer" <<EOF
+[Unit]
+Description=Refresh AI Daredevil at session opens and every hour
+
+[Timer]
+OnCalendar=Mon..Fri *-*-* *:00:00 Asia/Shanghai
+OnCalendar=Mon..Fri *-*-* 13:30:00 Asia/Shanghai
+OnCalendar=Mon..Fri *-*-* 15:25:00 Asia/Shanghai
+AccuracySec=10s
+RandomizedDelaySec=0
+Persistent=true
+Unit=palm-oil-ai-daredevil.service
+
+[Install]
+WantedBy=timers.target
+EOF
 
 systemd-analyze verify \
   "$temporary_root/palm-oil-market-collector.service" \
@@ -372,7 +392,9 @@ systemd-analyze verify \
   "$temporary_root/palm-oil-prediction-review.service" \
   "$temporary_root/palm-oil-prediction-review.timer" \
   "$temporary_root/palm-oil-htfc-tianji.service" \
-  "$temporary_root/palm-oil-htfc-tianji.timer"
+  "$temporary_root/palm-oil-htfc-tianji.timer" \
+  "$temporary_root/palm-oil-ai-daredevil.service" \
+  "$temporary_root/palm-oil-ai-daredevil.timer"
 
 install -m 0644 "$temporary_root/compose.automation.yaml" "$COMPOSE_OVERRIDE"
 for unit in \
@@ -391,7 +413,9 @@ for unit in \
   palm-oil-prediction-review.service \
   palm-oil-prediction-review.timer \
   palm-oil-htfc-tianji.service \
-  palm-oil-htfc-tianji.timer
+  palm-oil-htfc-tianji.timer \
+  palm-oil-ai-daredevil.service \
+  palm-oil-ai-daredevil.timer
 do
   install -m 0644 "$temporary_root/$unit" "$UNIT_ROOT/$unit"
 done
@@ -409,11 +433,13 @@ systemctl enable --now palm-oil-market-refresh.timer
 systemctl enable --now palm-oil-event-watch.timer
 systemctl enable --now palm-oil-supply-demand.timer
 systemctl enable --now palm-oil-prediction-review.timer
+systemctl enable --now palm-oil-ai-daredevil.timer
 systemctl start palm-oil-market-collector.service
 systemctl start palm-oil-market-refresh.service
 systemctl start palm-oil-event-watch.service
 systemctl start palm-oil-supply-demand.service
 systemctl start palm-oil-prediction-review.service
+systemctl start palm-oil-ai-daredevil.service
 
 htfc_key_present=false
 htfc_base_present=false
@@ -435,6 +461,7 @@ systemctl --no-pager list-timers palm-oil-market-refresh.timer
 systemctl --no-pager list-timers palm-oil-event-watch.timer
 systemctl --no-pager list-timers palm-oil-supply-demand.timer
 systemctl --no-pager list-timers palm-oil-prediction-review.timer
+systemctl --no-pager list-timers palm-oil-ai-daredevil.timer
 docker compose -f "$COMPOSE_FILE" -f "$COMPOSE_OVERRIDE" ps
 set +e
 python3 "$SITE_ROOT/server/audit_runtime.py" --access-mode "$PUBLIC_ACCESS_MODE"

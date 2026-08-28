@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <base href="/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AI敢死队 | 布林RSI虚拟基金</title>
+    <meta name="description" content="基于真实交割月主力合约与布林RSI模型的100万元虚拟基金动态看板。" />
+    <meta name="theme-color" content="#071712" />
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="assets/styles.css" />
+    <link rel="stylesheet" href="assets/ai-daredevil.css" />
+  </head>
+  <body class="daredevil-page">
+    <header class="daredevil-topbar">
+      <a class="daredevil-brand" href="/" aria-label="返回油脂市场研究首页">
+        <span>Vinson Research</span>
+        <strong>AI敢死队</strong>
+      </a>
+      <nav aria-label="页面导航">
+        <a href="/">研究首页</a>
+        <a href="/assistant">24h 盯盘</a>
+        <a href="/reports">报告归档</a>
+      </nav>
+    </header>
+
+    <main class="daredevil-shell">
+      <section class="fund-command" aria-labelledby="fund-title">
+        <div class="fund-command-copy">
+          <div class="eyebrow-row">
+            <span class="live-chip"><i></i> 虚拟基金运行中</span>
+            <span id="data-state" class="data-state">等待基金账本</span>
+          </div>
+          <p class="section-kicker">Bollinger RSI · Real Contract Fund</p>
+          <h1 id="fund-title">AI敢死队</h1>
+          <p class="fund-lead">100万元起始权益，只执行真实交割月主力合约的已确认模型信号。收盘确认，下一开盘成交；页面不连接券商，不代表真实账户。</p>
+          <p class="inline-ai-notice">AI 生成说明：页面结论由 AI 基于下方列明的真实合约行情、模型信号和虚拟账本生成，不代表任何来源方官方立场，不构成投资建议，请自行核验。</p>
+        </div>
+        <aside class="refresh-card" aria-label="行情刷新状态">
+          <span>最近刷新</span>
+          <strong id="updated-at">--</strong>
+          <p id="refresh-session">等待首次运行</p>
+          <div class="refresh-source"><b id="primary-source">--</b><span id="source-state">来源待核验</span></div>
+        </aside>
+      </section>
+
+      <section class="metric-grid" aria-label="基金核心指标">
+        <article class="metric-card metric-primary"><span>当前权益</span><strong id="equity">¥--</strong><small id="net-value">净值 --</small></article>
+        <article class="metric-card"><span>累计收益</span><strong id="cumulative-return">--</strong><small id="annualized-return">年化：样本不足</small></article>
+        <article class="metric-card"><span>今日盈亏</span><strong id="daily-pnl">¥--</strong><small id="realized-pnl">已实现 ¥--</small></article>
+        <article class="metric-card"><span>最大回撤</span><strong id="max-drawdown">--</strong><small id="sharpe">夏普：样本不足</small></article>
+        <article class="metric-card"><span>保证金占用</span><strong id="margin-use">--</strong><small id="used-margin">¥--</small></article>
+        <article class="metric-card"><span>可用资金</span><strong id="available-cash">¥--</strong><small id="gross-exposure">总敞口 --</small></article>
+      </section>
+
+      <section class="dashboard-grid">
+        <article class="panel equity-panel">
+          <header class="panel-heading">
+            <div><span>Fund Performance</span><h2>净值曲线</h2></div>
+            <div class="chart-legend"><i></i> AI敢死队净值</div>
+          </header>
+          <div class="chart-wrap">
+            <svg id="equity-chart" viewBox="0 0 920 320" role="img" aria-labelledby="equity-chart-title equity-chart-desc">
+              <title id="equity-chart-title">AI敢死队历史净值曲线</title>
+              <desc id="equity-chart-desc">纵轴为基金净值，横轴为记账日期。</desc>
+            </svg>
+            <div id="chart-empty" class="chart-empty">首个收盘盯市后开始记录净值曲线</div>
+          </div>
+        </article>
+
+        <aside class="panel discipline-panel">
+          <header class="panel-heading"><div><span>Execution Discipline</span><h2>执行纪律</h2></div></header>
+          <ol class="discipline-list">
+            <li><b>01</b><div><strong>真实交割月</strong><span>拒绝 P0、连续、加权和合成价格</span></div></li>
+            <li><b>02</b><div><strong>收盘确认</strong><span>日线信号不被盘中波动改写</span></div></li>
+            <li><b>03</b><div><strong>下一开盘</strong><span>只有取得可核验开盘价才记录虚拟成交</span></div></li>
+            <li><b>04</b><div><strong>权益复利</strong><span>新交易按当前权益定仓；默认20%为保守保证金预留，并非实时交易所率</span></div></li>
+          </ol>
+        </aside>
+      </section>
+
+      <section class="panel positions-panel">
+        <header class="panel-heading">
+          <div><span>Open Positions</span><h2>当前持仓</h2></div>
+          <span id="position-count" class="panel-count">0 个品种</span>
+        </header>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>品种 / 合约</th><th>方向</th><th>手数 / 层数</th><th>持仓均价</th><th>最新价</th><th>名义金额</th><th>浮动盈亏</th><th>组合权重</th><th>行情来源</th></tr></thead>
+            <tbody id="positions-body"></tbody>
+          </table>
+        </div>
+        <div id="positions-empty" class="panel-empty"><strong>当前空仓</strong><span>没有满足模型、执行窗口和组合约束的已成交仓位。</span></div>
+      </section>
+
+      <section class="activity-grid">
+        <article class="panel">
+          <header class="panel-heading"><div><span>Orders & Fills</span><h2>今日动作</h2></div><span id="trade-count" class="panel-count">0 条</span></header>
+          <div id="trades-list" class="activity-list"></div>
+          <div id="trades-empty" class="panel-empty compact"><strong>今日无已落账交易</strong><span>待执行信号不会提前计入持仓。</span></div>
+        </article>
+        <article class="panel">
+          <header class="panel-heading"><div><span>Signal Queue</span><h2>下一步指令</h2></div><span id="pending-count" class="panel-count">0 条</span></header>
+          <div id="pending-list" class="activity-list"></div>
+          <div id="pending-empty" class="panel-empty compact"><strong>暂无待执行订单</strong><span>继续等待完整日线确认。</span></div>
+        </article>
+        <article class="panel">
+          <header class="panel-heading"><div><span>Skipped Signals</span><h2>未执行信号</h2></div><span id="skipped-count" class="panel-count">0 条</span></header>
+          <div id="skipped-list" class="activity-list"></div>
+          <div id="skipped-empty" class="panel-empty compact"><strong>暂无未执行信号</strong><span>数据、评分和风控均未触发拒绝记录。</span></div>
+        </article>
+      </section>
+
+      <section class="panel source-panel">
+        <header class="panel-heading"><div><span>Refresh & Evidence</span><h2>刷新计划与行情回退</h2></div><span id="next-refresh" class="panel-count">计算中</span></header>
+        <div class="refresh-timeline" id="refresh-timeline"></div>
+        <div class="source-grid" id="source-grid"></div>
+      </section>
+
+      <section class="risk-notice" aria-label="AI与投资风险提示">
+        <strong>AI 风险提示</strong>
+        <p>本页面由 AI 基于所列真实合约行情、布林RSI模型信号和虚拟基金账本生成，不代表 AKShare、同花顺问财、华泰期货或任何来源方的官方立场，也不构成投资建议。虚拟成交不等于真实成交，历史收益不保证未来表现，请自行核验。</p>
+      </section>
+    </main>
+
+    <script src="assets/ai-daredevil.js"></script>
+  </body>
+</html>

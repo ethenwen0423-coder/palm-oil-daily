@@ -89,6 +89,13 @@ valid candidates are available, the last valid snapshot is retained. The AI and 
 timers are installed but deliberately left disabled until a real unattended
 backend generation and a structured report-draft acceptance both pass.
 
+`palm-oil-ai-daredevil.timer` is enabled independently because it is a
+deterministic virtual-fund ledger rather than a generative report job. It runs
+on every weekday hour, at 13:30, and at 15:25 for the completed-day signal
+scan; 09:00 and 21:00 are covered by the exact hourly boundary. Its durable
+state lives under `/srv/palm-oil-daily/state/ai-daredevil`, while only the
+read-only `ai_daredevil.json` snapshot is published to the API data mount.
+
 服务器 AI 使用官方 Codex CLI，并通过 ChatGPT 登录消耗 Codex 套餐额度；不会把
 OpenAI API Key 作为后备，也不会消耗独立 API credits。先安装 CLI，再把认证写入
 systemd 服务专用的 `CODEX_HOME`：

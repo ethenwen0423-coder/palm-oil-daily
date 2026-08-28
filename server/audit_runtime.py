@@ -34,6 +34,7 @@ REQUIRED_REPOSITORY_PATHS = (
     "server/freeze_prepared_forecast.py",
     "server/run_market_collector.py",
     "server/run_supply_demand.py",
+    "server/run_ai_daredevil.py",
     "server/sync_live_data.py",
     "scripts/deploy_oil_futures_tab.sh",
     "scripts/deploy_report.sh",
@@ -42,6 +43,8 @@ REQUIRED_REPOSITORY_PATHS = (
     "scripts/update_exchange_futures_data.py",
     "scripts/update_quant_model_data.py",
     "skills/data_quality_gate_skill/scripts/validate_data.py",
+    "skills/manage-bollinger-rsi-futures-fund/SKILL.md",
+    "skills/manage-bollinger-rsi-futures-fund/scripts/fund_ledger.py",
 )
 AUTOMATION_UNIT_PATTERN = re.compile(r"(palm|oil|market)", re.IGNORECASE)
 
@@ -272,6 +275,7 @@ def systemd_status() -> dict[str, Any]:
         "palm-oil-research-agent.timer",
         "palm-oil-prediction-review.timer",
         "palm-oil-htfc-tianji.timer",
+        "palm-oil-ai-daredevil.timer",
     )
     states: dict[str, dict[str, bool]] = {}
     if available:
