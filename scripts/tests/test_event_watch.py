@@ -109,11 +109,27 @@ class EventWatchTests(unittest.TestCase):
             events, source = EVENTS.weather_events(WATCH, self.now)
         self.assertEqual(source["state"], "ready")
         self.assertEqual(len(events), len(EVENTS.WEATHER_REGIONS))
-        self.assertTrue(all(item["category"] == "产区天气直报" for item in events))
+        self.assertTrue(all(item["category"] == "天气产量研判" for item in events))
         self.assertTrue(all(item["direct_source_available"] for item in events))
         self.assertTrue(all("不构成投资建议" in item["ai_notice"] for item in events))
-        self.assertIn("累计降雨 7.0 mm", events[0]["summary"])
-        self.assertEqual(events[0]["impact"], "高")
+        self.assertTrue(all("production_chain" in item["weather_analysis"] for item in events))
+        self.assertTrue(all("market_chain" in item["weather_analysis"] for item in events))
+        by_title = {item["title"]: item for item in events}
+        iowa = next(item for title, item in by_title.items() if "爱荷华" in title)
+        brazil = next(item for title, item in by_title.items() if "马托格罗索" in title)
+        self.assertEqual(iowa["impact"], "高")
+        self.assertIn("单产", iowa["summary"])
+        self.assertEqual(brazil["impact"], "低")
+        self.assertIn("暂不等于大豆减产", brazil["title"])
+        self.assertIn("没有直接受损对象", brazil["summary"])
+
+    def test_canola_harvest_rain_maps_to_supply_timing_not_generic_crop_stress(self):
+        region = next(item for item in EVENTS.WEATHER_REGIONS if item["profile"] == "canola")
+        analysis = EVENTS.weather_analysis(region, self.now, 52.5, 26.9, 0, 5)
+        self.assertEqual(analysis["impact"], "高")
+        self.assertIn("收获期多雨", analysis["title"])
+        self.assertIn("上市节奏", analysis["market_chain"])
+        self.assertIn("不等同生物学单产下降", analysis["market_chain"])
 
     def test_event_merge_keeps_price_events_and_replaces_old_news(self):
         prior = {

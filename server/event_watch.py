@@ -23,13 +23,19 @@ HTFC_REPORT_LIST_PATH = "/bus/report/specificList"
 WEB_QUERY = "(棕榈油 OR 豆油 OR 菜油 OR 大豆 OR 油脂油料 OR MPOB OR GAPKI OR 生物柴油 OR 产区天气 OR 降雨 OR 干旱) (研报 OR 报告 OR 快讯 OR 期货 OR 预报)"
 OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast"
 WEATHER_REGIONS = (
-    {"name": "马来西亚柔佛", "lat": 1.4927, "lon": 103.7414, "scope": "P · FCPO", "crop": "棕榈油"},
-    {"name": "印尼廖内", "lat": 0.5071, "lon": 101.4478, "scope": "P · FCPO", "crop": "棕榈油"},
-    {"name": "美国爱荷华", "lat": 41.8780, "lon": -93.0977, "scope": "Y · M", "crop": "大豆"},
-    {"name": "巴西马托格罗索", "lat": -12.6819, "lon": -56.9211, "scope": "Y · M", "crop": "大豆"},
-    {"name": "加拿大萨斯喀彻温", "lat": 52.9399, "lon": -106.4509, "scope": "OI · RM", "crop": "油菜籽"},
+    {"name": "马来西亚柔佛", "lat": 1.4927, "lon": 103.7414, "scope": "P · FCPO", "crop": "棕榈油", "profile": "palm"},
+    {"name": "印尼廖内", "lat": 0.5071, "lon": 101.4478, "scope": "P · FCPO", "crop": "棕榈油", "profile": "palm"},
+    {"name": "美国爱荷华", "lat": 41.8780, "lon": -93.0977, "scope": "Y · M", "crop": "大豆", "profile": "us_soy"},
+    {"name": "巴西马托格罗索", "lat": -12.6819, "lon": -56.9211, "scope": "Y · M", "crop": "大豆", "profile": "brazil_soy"},
+    {"name": "加拿大萨斯喀彻温", "lat": 52.9399, "lon": -106.4509, "scope": "OI · RM", "crop": "油菜籽", "profile": "canola"},
 )
 WEATHER_AI_NOTICE = "AI 基于所列直接天气数据生成影响研判，不代表 Open-Meteo 或其他来源方的官方立场，不构成投资建议；请自行核验。"
+WEATHER_MECHANISM_SOURCES = {
+    "palm": {"name": "MPOB Journal of Oil Palm Research：降雨与棕榈油产量滞后", "url": "https://jopr.mpob.gov.my/the-effects-of-season-rainfall-and-cycle-of-oil-palm-yield-in-malaysia/"},
+    "us_soy": {"name": "Iowa State University：大豆生长与R5-R6鼓粒阶段", "url": "https://crops.extension.iastate.edu/files/article/SoybeanGrowthandDevelopment_0.pdf"},
+    "brazil_soy": {"name": "Embrapa：巴西大豆播种窗口与干旱风险", "url": "https://www.embrapa.br/en/busca-de-noticias/-/noticia/1472780/integracao-de-tecnologias-reduz-riscos-de-perda-com-estiagem"},
+    "canola": {"name": "Canola Council of Canada：收获期天气、产量与品质", "url": "https://www.canolacouncil.org/canola-encyclopedia/harvest-management/"},
+}
 
 
 def compact(value: Any, limit: int = 300) -> str:
@@ -71,14 +77,97 @@ def source_error(name: str, exc: BaseException) -> dict[str, Any]:
     return {"name": name, "state": state, "detail": f"抓取失败：{type(exc).__name__} {str(exc)[:100]}"}
 
 
-def weather_interpretation(region: dict[str, Any], rain_total: float, hot_days: int, wet_days: int) -> tuple[str, str]:
-    if rain_total < 10:
-        return "高", f"未来七日累计降雨偏少，{region['crop']}产区水分压力值得重点跟踪。"
-    if rain_total > 180 or wet_days >= 6:
-        return "高", f"未来七日降雨集中，需跟踪{region['crop']}收割、运输与病害风险。"
-    if hot_days >= 4:
-        return "中", f"高温日较多，需结合后续降雨核验{region['crop']}生长压力。"
-    return "低", f"七日温雨暂未触发极端阈值，继续跟踪{region['crop']}产区预报变化。"
+def weather_analysis(region: dict[str, Any], now: datetime, rain_total: float, max_temp: float, hot_days: int, wet_days: int) -> dict[str, Any]:
+    profile = region["profile"]
+    source = WEATHER_MECHANISM_SOURCES[profile]
+    if profile == "palm":
+        stage = "常年采收；短期看采收运输，生物学产量看数月滞后"
+        if rain_total > 140 or wet_days >= 6:
+            impact, signal = "高", "短期供应偏紧风险"
+            title = f"{region['name']}降雨密集：鲜果采收与到厂量或受扰"
+            production = "频繁强降雨 → 田间采收和道路运输受阻 → 鲜果串到厂量可能下降 → 当期CPO产出节奏放慢。"
+            market = "若主要产区同步出现并被产量数据确认，P与FCPO供应风险溢价偏多；单一地点一周预报不能直接等同全国减产。"
+        elif rain_total < 10 and max_temp >= 35:
+            impact, signal = "中", "远期减产观察"
+            title = f"{region['name']}偏干偏热：短期利于采收，远期关注坐果"
+            production = "短期干燥 → 田间作业更顺畅；若高温少雨持续数月 → 水分胁迫、授粉与坐果受压 → 约9至12个月后单产可能下修。"
+            market = "近月供应未必收紧，远月P与FCPO才可能逐步计入减产预期；本周数据仅构成观察信号。"
+        else:
+            impact, signal = "低", "供应影响中性"
+            title = f"{region['name']}温雨适中：短期供应影响有限"
+            production = "本周未见持续干热或洪涝 → 采收运输大体正常 → 暂无证据下调当期鲜果串和CPO产量。"
+            market = "对P与FCPO方向影响中性；需连续数周至数月异常天气，才能形成可靠的产量传导。"
+        boundary = "油棕为多年生作物，一周天气主要影响采收节奏；真正的生物学减产通常存在数月滞后。"
+    elif profile == "us_soy":
+        stage = "8月通常处于结荚—鼓粒期（R5-R6），粒重和单产对热旱更敏感"
+        if now.month in (8, 9) and rain_total < 10 and (hot_days >= 3 or max_temp >= 38):
+            impact, signal = "高", "美豆单产下修风险"
+            title = f"{region['name']}鼓粒期高温少雨：单产风险上升"
+            production = "鼓粒期少雨叠加高温 → 蒸散增强、籽粒灌浆受限 → 粒重与单产预期可能下修。"
+            market = "若干热覆盖美国中西部并被作物评级确认，CBOT大豆与豆油风险溢价偏多，Y与M通常跟随外盘传导。"
+            boundary = "单点预报不能代表整个美豆带；必须同时核验土壤墒情、覆盖范围和USDA作物优良率。"
+        elif rain_total < 15:
+            impact, signal = "中", "单产压力观察"
+            title = f"{region['name']}降雨偏少：鼓粒条件需继续核验"
+            production = "鼓粒期水分补给偏少 → 粒重形成存在压力 → 单产预期可能边际下修。"
+            market = "对CBOT大豆、豆油及Y/M偏多，但需更广区域和连续预报确认。"
+            boundary = "一周少雨不是已确认减产，土壤前期储水可缓冲短期降水不足。"
+        else:
+            impact, signal = "低", "单产影响中性"
+            title = f"{region['name']}温雨未见极端：美豆单产暂维持观察"
+            production = "温雨未触发明显热旱阈值 → 鼓粒条件暂未恶化 → 暂无新增单产下修证据。"
+            market = "对CBOT大豆、豆油及Y/M影响中性。"
+            boundary = "仍需结合整个美豆带天气、土壤墒情和作物评级。"
+    elif profile == "brazil_soy":
+        stage = "8月多为播种前干季；大豆尚未大面积出苗"
+        if now.month in (7, 8):
+            impact, signal = "低", "当前产量影响中性"
+            title = f"{region['name']}播种前干季少雨：暂不等于大豆减产"
+            production = "作物尚未大面积播种 → 本周少雨没有直接受损对象 → 当前大豆产量不因这份预报下调。"
+            market = "对CBOT大豆、豆油及Y/M当前影响中性；若9月下旬后雨季启动仍延迟，才会经播种推迟和二季作物窗口收窄形成偏多传导。"
+            boundary = "必须按物候阶段解释；播种前的季节性干燥不能套用鼓粒期干旱逻辑。"
+        elif rain_total < 15 and now.month in (9, 10, 11):
+            impact, signal = "中", "播种延迟风险"
+            title = f"{region['name']}播种窗口降雨不足：进度延迟风险上升"
+            production = "土壤墒情不足 → 播种或出苗推迟 → 生育期和后续二季作物窗口被压缩 → 产量风险上升。"
+            market = "若CONAB播种进度同步落后，CBOT大豆、豆油及Y/M风险溢价偏多。"
+            boundary = "需核验雨季是否持续延迟以及官方播种进度，不能由单周预报直接确认减产。"
+        else:
+            impact, signal = "低", "播种条件中性"
+            title = f"{region['name']}播种条件暂未恶化"
+            production = "降雨尚未触发明显播种或出苗风险 → 当前产量预期暂不调整。"
+            market = "对CBOT大豆、豆油及Y/M影响中性。"
+            boundary = "继续核验区域雨季启动和官方播种进度。"
+    else:
+        stage = "8月通常处于成熟—割晒—收获期"
+        if rain_total >= 40 or wet_days >= 3:
+            impact, signal = ("高", "收获与品质风险") if rain_total >= 80 or wet_days >= 5 else ("中", "上市节奏放慢风险")
+            title = f"{region['name']}收获期多雨：上市节奏与品质风险上升"
+            production = "降雨增加 → 割晒、田间干燥和脱粒推迟 → 籽粒回潮及品质不确定性上升 → 可交付供应节奏放慢。"
+            market = "若降雨范围扩大且收获进度落后，菜籽及OI/RM风险溢价偏多；这更多是收获损失和上市节奏风险，不等同生物学单产下降。"
+            boundary = "需核验实际收获进度、霜冻和品质数据；油菜籽雨后也可能较快恢复收割。"
+        elif max_temp >= 30 and rain_total < 10:
+            impact, signal = "中", "收获损失观察"
+            title = f"{region['name']}收获期偏热偏干：关注落粒损失"
+            production = "高温干燥 → 成熟和田间干燥加快 → 有利收获推进，但过快干燥可能增加荚果开裂与落粒损失。"
+            market = "供应节奏可能加快但损耗风险上升，对OI/RM方向暂偏中性。"
+            boundary = "实际影响取决于成熟度、割晒方式和田间管理。"
+        else:
+            impact, signal = "低", "收获影响中性"
+            title = f"{region['name']}收获天气平稳：供应节奏暂未受扰"
+            production = "温雨未触发收获延迟或快速干燥风险 → 田间作业节奏暂不受明显影响。"
+            market = "对菜籽及OI/RM影响中性。"
+            boundary = "继续核验收获进度、霜冻和品质数据。"
+    return {
+        "stage": stage,
+        "signal": signal,
+        "title": title,
+        "production_chain": production,
+        "market_chain": market,
+        "boundary": boundary,
+        "impact": impact,
+        "mechanism_source": source,
+    }
 
 
 def weather_events(watch: Any, now: datetime, timeout: int = 12) -> tuple[list[dict[str, Any]], dict[str, Any]]:
@@ -107,26 +196,36 @@ def weather_events(watch: Any, now: datetime, timeout: int = 12) -> tuple[list[d
             hot_days = sum(value >= 35 for value in high)
             wet_days = sum(value >= 10 for value in rain)
             peak_probability = round(max(probability), 0) if probability else 0
-            impact, interpretation = weather_interpretation(region, rain_total, hot_days, wet_days)
+            analysis = weather_analysis(region, now, rain_total, max(high), hot_days, wet_days)
             forecast_date = str(daily["time"][0])
-            summary = f"未来7日累计降雨 {rain_total:.1f} mm；最高降雨概率 {peak_probability:.0f}%；最高温 {max(high):.1f}°C。"
+            direct_facts = f"未来7日累计降雨 {rain_total:.1f} mm；最高降雨概率 {peak_probability:.0f}%；最高温 {max(high):.1f}°C；≥35°C共 {hot_days} 天。"
+            summary = f"结论：{analysis['signal']}。因果链：{analysis['production_chain']}"
             events.append({
                 "id": watch.event_id("weather", region["name"], forecast_date),
                 "kind": "event",
-                "category": "产区天气直报",
-                "title": f"{region['name']}未来七日天气",
+                "category": "天气产量研判",
+                "title": analysis["title"],
                 "summary": summary,
-                "detail_summary": f"Open-Meteo 七日逐日预报汇总：{summary}",
+                "detail_summary": f"天气事实：{direct_facts} 物候位置：{analysis['stage']}。",
                 "summary_generated": True,
                 "ai_notice": WEATHER_AI_NOTICE,
-                "interpretation": interpretation,
-                "impact": impact,
+                "interpretation": f"产量链：{analysis['production_chain']} 行情链：{analysis['market_chain']} 判断边界：{analysis['boundary']}",
+                "weather_analysis": {
+                    "direct_facts": direct_facts,
+                    "stage": analysis["stage"],
+                    "production_chain": analysis["production_chain"],
+                    "market_chain": analysis["market_chain"],
+                    "boundary": analysis["boundary"],
+                    "mechanism_source": analysis["mechanism_source"],
+                },
+                "impact": analysis["impact"],
                 "scope": region["scope"],
                 "source": "Open-Meteo 直接预报数据",
                 "url": url,
                 "direct_source_available": True,
                 "observed_at": now.isoformat(timespec="seconds"),
                 "evidence_ids": [f"weather:{region['name']}:{forecast_date}"],
+                "evidence": [direct_facts, f"物候：{analysis['stage']}", f"机制依据：{analysis['mechanism_source']['name']}"],
             })
         except (urllib.error.URLError, urllib.error.HTTPError, json.JSONDecodeError, OSError, ValueError, TypeError) as exc:
             failures.append(f"{region['name']} {type(exc).__name__}")

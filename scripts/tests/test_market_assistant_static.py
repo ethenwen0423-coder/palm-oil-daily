@@ -90,8 +90,12 @@ class MarketAssistantStaticTests(unittest.TestCase):
         self.assertIn("function eventTimelineType(item)", script)
         self.assertIn('weather: "天气"', script)
         self.assertIn('class="timeline-ai-notice"', script)
-        self.assertIn("market-assistant.js?v=20260828-research-reading-v1", html)
-        self.assertIn("market-assistant.css?v=20260828-research-reading-v1", html)
+        self.assertIn("market-assistant.js?v=20260828-weather-analysis-v1", html)
+        self.assertIn("market-assistant.css?v=20260828-weather-analysis-v1", html)
+        self.assertIn("function weatherDetailHtml", script)
+        self.assertIn("产量因果链", script)
+        self.assertIn("行情传导", script)
+        self.assertIn("判断边界", script)
 
     def test_research_reports_show_original_links_and_untruncated_source_summary_notice(self):
         script = (ROOT / "assets" / "market-assistant.js").read_text(encoding="utf-8")

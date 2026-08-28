@@ -316,7 +316,8 @@
   }
 
   function eventEvidence(item) {
-    return array(item && (item.evidence_ids || item.evidence_id));
+    const readable = array(item && item.evidence);
+    return readable.length ? readable : array(item && (item.evidence_ids || item.evidence_id));
   }
 
   function completeTimelineSummary(title, value) {
@@ -411,6 +412,12 @@
     return `<section class="research-reading-detail"><div class="research-section-grid">${researchSectionHtml("核心观点", sections.core, "来源摘要未提供可独立提取的核心观点。")}${researchSectionHtml("策略建议", sections.strategy, "来源摘要未单列策略建议。")}${researchSectionHtml("风险提示", sections.risk, "来源摘要未单列风险，需进一步核验。")}</div><small class="timeline-ai-notice">${esc(item.readingNotice)}</small></section><section class="research-recommendation"><span>推荐与来源</span><p>${esc(item.detail)}</p><div class="research-evidence">${array(item.evidence).filter(Boolean).map((entry) => `<b>${esc(entry)}</b>`).join("")}</div>${sourceControl}</section>${fullSummary}`;
   }
 
+  function weatherDetailHtml(item) {
+    const analysis = item.weatherAnalysis || {};
+    const mechanism = analysis.mechanism_source || {};
+    return `<section class="timeline-detail-summary weather-facts"><span>直接天气事实</span><p>${esc(first(analysis.direct_facts, item.detailSummary))}</p><p><b>当前物候</b> ${esc(first(analysis.stage, "物候阶段待核验"))}</p>${item.url ? `<a href="${esc(item.url)}" target="_blank" rel="noopener noreferrer">查看直接预报</a>` : ""}</section><section><span>产量因果链</span><p>${esc(first(analysis.production_chain, item.detail))}</p></section><section><span>行情传导</span><p>${esc(first(analysis.market_chain, "尚无足够证据判断行情方向。"))}</p></section><section><span>判断边界</span><p>${esc(first(analysis.boundary, "单一地点和单周预报不能直接确认减产。"))}</p>${mechanism.url ? `<a href="${esc(mechanism.url)}" target="_blank" rel="noopener noreferrer">${esc(first(mechanism.name, "查看农业机制依据"))}</a>` : ""}<small class="timeline-ai-notice">${esc(item.aiNotice)}</small></section>`;
+  }
+
   function buildTimeline(data) {
     const events = [];
     array(data.watch && data.watch.events).forEach((item) => events.push({
@@ -421,7 +428,7 @@
       detail: first(item.interpretation, "暂无影响研判"), aiNotice: item.kind === "event" ? first(item.ai_notice, "AI 基于来源返回内容整理，非来源方原话，不代表来源方官方立场，不构成投资建议；请自行核验。") : "",
       evidence: eventEvidence(item), source: first(item.source, "市场扫描"), time: eventTime(item),
       scope: first(item.scope, "相关合约"), impact: first(item.impact, "低"), nextCheck: "下一轮5分钟扫描",
-      url: item.url, directSourceAvailable: Boolean(item.url)
+      url: item.url, directSourceAvailable: Boolean(item.url), weatherAnalysis: item.weather_analysis
     }));
     array(data.brief.key_moves).forEach((item) => events.push({
       type: "move", category: "市场异动", title: first(item.label, "行情证据"), summary: first(item.value, "数值待核验"),
@@ -482,7 +489,7 @@
             <span class="timeline-toggle" aria-hidden="true">展开</span>
           </button>
           <div id="${detailId}" class="timeline-detail">
-            ${item.isPublicResearch ? researchDetailHtml(item) : `${item.detailSummary ? `<section class="timeline-detail-summary"><span>事件详情</span><p>${esc(item.detailSummary)}</p><small class="timeline-ai-notice">${esc(item.aiNotice)}</small></section>` : ""}<section><span>影响研判</span><p>${esc(item.detail)}</p>${item.aiNotice ? `<small class="timeline-ai-notice">${esc(item.aiNotice)}</small>` : ""}</section><section><span>关键证据</span>${evidence.length ? `<ul>${evidence.map((entry) => `<li>${esc(entry)}</li>`).join("")}</ul>` : "<p>本轮没有新增可核验证据。</p>"}</section><section><span>下一步检查</span><p>${esc(first(item.nextCheck, "等待下一轮自动检查"))}</p>${item.url ? `<a href="${esc(item.url)}" target="_blank" rel="noopener noreferrer">${item.type === "report" ? "查看原始研报" : "查看直接来源"}</a>` : ["weather", "policy", "industry", "macro"].includes(item.type) ? '<small class="timeline-source-note">未提供可直接打开的原文链接；本页仅展示已获取内容的整理摘要。</small>' : ""}</section>`}
+            ${item.isPublicResearch ? researchDetailHtml(item) : item.type === "weather" && item.weatherAnalysis ? weatherDetailHtml(item) : `${item.detailSummary ? `<section class="timeline-detail-summary"><span>事件详情</span><p>${esc(item.detailSummary)}</p><small class="timeline-ai-notice">${esc(item.aiNotice)}</small></section>` : ""}<section><span>影响研判</span><p>${esc(item.detail)}</p>${item.aiNotice ? `<small class="timeline-ai-notice">${esc(item.aiNotice)}</small>` : ""}</section><section><span>关键证据</span>${evidence.length ? `<ul>${evidence.map((entry) => `<li>${esc(entry)}</li>`).join("")}</ul>` : "<p>本轮没有新增可核验证据。</p>"}</section><section><span>下一步检查</span><p>${esc(first(item.nextCheck, "等待下一轮自动检查"))}</p>${item.url ? `<a href="${esc(item.url)}" target="_blank" rel="noopener noreferrer">${item.type === "report" ? "查看原始研报" : "查看直接来源"}</a>` : ["weather", "policy", "industry", "macro"].includes(item.type) ? '<small class="timeline-source-note">未提供可直接打开的原文链接；本页仅展示已获取内容的整理摘要。</small>' : ""}</section>`}
           </div>
         </div>
       </article>`;
