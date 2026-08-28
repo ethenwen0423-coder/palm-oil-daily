@@ -7,6 +7,7 @@ planned next-open virtual orders and mark existing real PYYMM positions.
 from __future__ import annotations
 
 import argparse
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import fcntl
 import importlib.util
 import json
@@ -14,7 +15,6 @@ import math
 import os
 import re
 import secrets
-import signal
 import statistics
 import sys
 import tempfile
@@ -381,20 +381,22 @@ def current_contracts(data_root: Path) -> dict[str, list[str]]:
 
 
 def fetch_daily(contract: str):
-    import akshare as ak
     import pandas as pd
-    previous_handler = signal.getsignal(signal.SIGALRM)
-    def deadline_handler(_signum, _frame):
-        raise TimeoutError(f"{contract}: daily bars exceeded 15 seconds")
-    signal.signal(signal.SIGALRM, deadline_handler)
-    signal.setitimer(signal.ITIMER_REAL, 15)
-    try:
-        frame = ak.futures_zh_daily_sina(symbol=contract)
-    finally:
-        signal.setitimer(signal.ITIMER_REAL, 0)
-        signal.signal(signal.SIGALRM, previous_handler)
+    url = (
+        "https://stock2.finance.sina.com.cn/futures/api/jsonp.php/var%20_contract_history="
+        "/InnerFuturesNewService.getDailyKLine?"
+        + urllib.parse.urlencode({"symbol": contract, "type": "2021_04_12"})
+    )
+    request = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    with urllib.request.urlopen(request, timeout=15) as response:
+        text = response.read().decode("utf-8")
+    start, end = text.find("=("), text.rfind(");")
+    if start < 0 or end <= start:
+        raise RuntimeErrorSafe(f"{contract}: invalid daily response")
+    frame = pd.DataFrame(json.loads(text[start + 2:end]))
     if frame is None or frame.empty:
         raise RuntimeErrorSafe(f"{contract}: empty daily bars")
+    frame.columns = ["date", "open", "high", "low", "close", "volume", "hold", "settle"]
     frame = frame.copy()
     frame["date"] = pd.to_datetime(frame["date"])
     for column in ("open", "high", "low", "close", "volume", "hold"):
@@ -464,11 +466,14 @@ def scan_signals(site_root: Path, data_root: Path, state: dict[str, Any], model,
             skipped.append({"variety": variety, "reason": "未发现可核验的真实交割月合约"})
             continue
         frames = {}
-        for contract in contracts:
-            try:
-                frames[contract] = fetch_daily(contract)
-            except Exception as exc:
-                skipped.append({"variety": variety, "contract": contract, "reason": f"日线缺失：{type(exc).__name__}"})
+        with ThreadPoolExecutor(max_workers=min(6, len(contracts))) as pool:
+            futures = {pool.submit(fetch_daily, contract): contract for contract in contracts}
+            for future in as_completed(futures):
+                contract = futures[future]
+                try:
+                    frames[contract] = future.result()
+                except Exception as exc:
+                    skipped.append({"variety": variety, "contract": contract, "reason": f"日线缺失：{type(exc).__name__}"})
         if not frames:
             continue
         raw_parts = []
