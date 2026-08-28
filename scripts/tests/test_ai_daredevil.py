@@ -57,6 +57,11 @@ class AiDaredevilTests(unittest.TestCase):
         self.assertEqual(RUNTIME.PRODUCT_REALTIME_SYMBOL["TA"], "PTA")
         self.assertEqual(set(RUNTIME.PRODUCT_REALTIME_SYMBOL), set(RUNTIME.PRODUCTS))
 
+    def test_daily_fetch_has_a_hard_timeout_boundary(self):
+        source = (ROOT / "server" / "run_ai_daredevil.py").read_text(encoding="utf-8")
+        self.assertIn("signal.setitimer(signal.ITIMER_REAL, 15)", source)
+        self.assertIn("daily bars exceeded 15 seconds", source)
+
     def test_installer_has_exact_session_open_and_hourly_schedule(self):
         installer = (ROOT / "server" / "install_automation.sh").read_text(encoding="utf-8")
         self.assertIn("palm-oil-ai-daredevil.timer", installer)

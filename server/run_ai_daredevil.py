@@ -14,6 +14,7 @@ import math
 import os
 import re
 import secrets
+import signal
 import statistics
 import sys
 import tempfile
@@ -382,7 +383,16 @@ def current_contracts(data_root: Path) -> dict[str, list[str]]:
 def fetch_daily(contract: str):
     import akshare as ak
     import pandas as pd
-    frame = ak.futures_zh_daily_sina(symbol=contract)
+    previous_handler = signal.getsignal(signal.SIGALRM)
+    def deadline_handler(_signum, _frame):
+        raise TimeoutError(f"{contract}: daily bars exceeded 15 seconds")
+    signal.signal(signal.SIGALRM, deadline_handler)
+    signal.setitimer(signal.ITIMER_REAL, 15)
+    try:
+        frame = ak.futures_zh_daily_sina(symbol=contract)
+    finally:
+        signal.setitimer(signal.ITIMER_REAL, 0)
+        signal.signal(signal.SIGALRM, previous_handler)
     if frame is None or frame.empty:
         raise RuntimeErrorSafe(f"{contract}: empty daily bars")
     frame = frame.copy()
