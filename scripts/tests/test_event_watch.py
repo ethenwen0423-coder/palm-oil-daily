@@ -97,6 +97,24 @@ class EventWatchTests(unittest.TestCase):
         self.assertTrue(all(item["source"].startswith("跨站新闻·") for item in events))
         self.assertTrue(all(item["url"] == "https://example.test/a" for item in events))
 
+    def test_weather_events_publish_direct_forecast_with_ai_notice(self):
+        payload = {"daily": {
+            "time": ["2026-08-26"] * 7,
+            "precipitation_sum": [1, 2, 0, 1, 0, 2, 1],
+            "precipitation_probability_max": [20, 30, 10, 20, 10, 40, 20],
+            "temperature_2m_max": [34, 36, 37, 36, 35, 34, 33],
+            "temperature_2m_min": [24, 24, 25, 25, 24, 24, 23],
+        }}
+        with patch.object(EVENTS, "request_json", return_value=payload):
+            events, source = EVENTS.weather_events(WATCH, self.now)
+        self.assertEqual(source["state"], "ready")
+        self.assertEqual(len(events), len(EVENTS.WEATHER_REGIONS))
+        self.assertTrue(all(item["category"] == "产区天气直报" for item in events))
+        self.assertTrue(all(item["direct_source_available"] for item in events))
+        self.assertTrue(all("不构成投资建议" in item["ai_notice"] for item in events))
+        self.assertIn("累计降雨 7.0 mm", events[0]["summary"])
+        self.assertEqual(events[0]["impact"], "高")
+
     def test_event_merge_keeps_price_events_and_replaces_old_news(self):
         prior = {
             "generated_at": "2026-08-26T10:05:00+08:00",

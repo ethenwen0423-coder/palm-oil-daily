@@ -20,7 +20,16 @@ BING_NEWS_URL = "https://www.bing.com/news/search"
 HTFC_FLASH_PATH = "/bus/info/filter"
 HTFC_REPORT_TYPES_PATH = "/bus/report/ptypes_v2"
 HTFC_REPORT_LIST_PATH = "/bus/report/specificList"
-WEB_QUERY = "(棕榈油 OR 豆油 OR 菜油 OR 大豆 OR 油脂油料 OR MPOB OR GAPKI OR 生物柴油) (研报 OR 报告 OR 快讯 OR 期货)"
+WEB_QUERY = "(棕榈油 OR 豆油 OR 菜油 OR 大豆 OR 油脂油料 OR MPOB OR GAPKI OR 生物柴油 OR 产区天气 OR 降雨 OR 干旱) (研报 OR 报告 OR 快讯 OR 期货 OR 预报)"
+OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast"
+WEATHER_REGIONS = (
+    {"name": "马来西亚柔佛", "lat": 1.4927, "lon": 103.7414, "scope": "P · FCPO", "crop": "棕榈油"},
+    {"name": "印尼廖内", "lat": 0.5071, "lon": 101.4478, "scope": "P · FCPO", "crop": "棕榈油"},
+    {"name": "美国爱荷华", "lat": 41.8780, "lon": -93.0977, "scope": "Y · M", "crop": "大豆"},
+    {"name": "巴西马托格罗索", "lat": -12.6819, "lon": -56.9211, "scope": "Y · M", "crop": "大豆"},
+    {"name": "加拿大萨斯喀彻温", "lat": 52.9399, "lon": -106.4509, "scope": "OI · RM", "crop": "油菜籽"},
+)
+WEATHER_AI_NOTICE = "AI 基于所列直接天气数据生成影响研判，不代表 Open-Meteo 或其他来源方的官方立场，不构成投资建议；请自行核验。"
 
 
 def compact(value: Any, limit: int = 300) -> str:
@@ -60,6 +69,72 @@ def request_json(url: str, timeout: int, *, headers: dict[str, str] | None = Non
 def source_error(name: str, exc: BaseException) -> dict[str, Any]:
     state = "forbidden" if isinstance(exc, urllib.error.HTTPError) and exc.code in (401, 403) else "error"
     return {"name": name, "state": state, "detail": f"抓取失败：{type(exc).__name__} {str(exc)[:100]}"}
+
+
+def weather_interpretation(region: dict[str, Any], rain_total: float, hot_days: int, wet_days: int) -> tuple[str, str]:
+    if rain_total < 10:
+        return "高", f"未来七日累计降雨偏少，{region['crop']}产区水分压力值得重点跟踪。"
+    if rain_total > 180 or wet_days >= 6:
+        return "高", f"未来七日降雨集中，需跟踪{region['crop']}收割、运输与病害风险。"
+    if hot_days >= 4:
+        return "中", f"高温日较多，需结合后续降雨核验{region['crop']}生长压力。"
+    return "低", f"七日温雨暂未触发极端阈值，继续跟踪{region['crop']}产区预报变化。"
+
+
+def weather_events(watch: Any, now: datetime, timeout: int = 12) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    events: list[dict[str, Any]] = []
+    failures: list[str] = []
+    for region in WEATHER_REGIONS:
+        params = {
+            "latitude": region["lat"],
+            "longitude": region["lon"],
+            "daily": "precipitation_sum,precipitation_probability_max,temperature_2m_max,temperature_2m_min",
+            "forecast_days": 7,
+            "timezone": "auto",
+        }
+        url = OPEN_METEO_URL + "?" + urllib.parse.urlencode(params)
+        try:
+            payload = request_json(url, timeout)
+            daily = payload.get("daily") if isinstance(payload, dict) else None
+            if not isinstance(daily, dict) or not daily.get("time"):
+                raise ValueError("missing daily forecast")
+            rain = [float(value or 0) for value in daily.get("precipitation_sum", [])]
+            high = [float(value) for value in daily.get("temperature_2m_max", []) if value is not None]
+            probability = [float(value or 0) for value in daily.get("precipitation_probability_max", [])]
+            if not rain or not high:
+                raise ValueError("incomplete weather metrics")
+            rain_total = round(sum(rain), 1)
+            hot_days = sum(value >= 35 for value in high)
+            wet_days = sum(value >= 10 for value in rain)
+            peak_probability = round(max(probability), 0) if probability else 0
+            impact, interpretation = weather_interpretation(region, rain_total, hot_days, wet_days)
+            forecast_date = str(daily["time"][0])
+            summary = f"未来7日累计降雨 {rain_total:.1f} mm；最高降雨概率 {peak_probability:.0f}%；最高温 {max(high):.1f}°C。"
+            events.append({
+                "id": watch.event_id("weather", region["name"], forecast_date),
+                "kind": "event",
+                "category": "产区天气直报",
+                "title": f"{region['name']}未来七日天气",
+                "summary": summary,
+                "detail_summary": f"Open-Meteo 七日逐日预报汇总：{summary}",
+                "summary_generated": True,
+                "ai_notice": WEATHER_AI_NOTICE,
+                "interpretation": interpretation,
+                "impact": impact,
+                "scope": region["scope"],
+                "source": "Open-Meteo 直接预报数据",
+                "url": url,
+                "direct_source_available": True,
+                "observed_at": now.isoformat(timespec="seconds"),
+                "evidence_ids": [f"weather:{region['name']}:{forecast_date}"],
+            })
+        except (urllib.error.URLError, urllib.error.HTTPError, json.JSONDecodeError, OSError, ValueError, TypeError) as exc:
+            failures.append(f"{region['name']} {type(exc).__name__}")
+    state = "ready" if not failures else ("degraded" if events else "error")
+    detail = f"覆盖 {len(events)}/{len(WEATHER_REGIONS)} 个油脂油料核心产区"
+    if failures:
+        detail += "；失败：" + "、".join(failures)
+    return events, {"name": "全球农产品产区天气", "state": state, "detail": detail}
 
 
 def normalize_event(watch: Any, *, prefix: str, source: str, title: Any, summary: Any, observed_at: Any, url: Any = "", source_id: Any = "") -> dict[str, Any] | None:
@@ -233,6 +308,7 @@ def collect_all(watch: Any, now: datetime, *, mx_api_key: str | None, htfc_base_
         lambda: rss_events(watch, now),
         lambda: htfc_flash_events(watch, htfc_base_url, htfc_api_key, now),
         lambda: htfc_report_events(watch, htfc_base_url, htfc_api_key, now),
+        lambda: weather_events(watch, now),
     )
     events: list[dict[str, Any]] = []
     sources: list[dict[str, Any]] = []

@@ -20,7 +20,7 @@ from zoneinfo import ZoneInfo
 SHANGHAI = ZoneInfo("Asia/Shanghai")
 MX_SEARCH_URL = "https://mkapi2.dfcfs.com/finskillshub/api/claw/news-search"
 EASTMONEY_FLASH_URL = "https://newsinfo.eastmoney.com/kuaixun/v2/api/list?column=102&p=1&limit=100"
-NEWS_QUERY = "棕榈油 豆油 菜油 油脂油料 FCPO MPOB GAPKI USDA 原油 生物柴油 出口 库存"
+NEWS_QUERY = "棕榈油 豆油 菜油 油脂油料 FCPO MPOB GAPKI USDA 原油 生物柴油 出口 库存 产区天气 降雨 干旱"
 MAX_EVENTS = 60
 MAX_MARKET_EVENTS = 12
 MAX_MARKET_EVENTS_PER_SCAN = 2

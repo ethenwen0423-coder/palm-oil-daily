@@ -340,10 +340,18 @@
     return largest >= 3 ? "高" : largest >= 1 ? "中" : "低";
   }
 
+  function eventTimelineType(item) {
+    const text = `${first(item.category, "")} ${first(item.title, "")} ${first(item.summary, "")}`.toLowerCase();
+    if (/天气|气象|降雨|降水|干旱|洪水|高温|低温|霜冻|厄尔尼诺|拉尼娜|weather|rain|drought|flood|temperature/.test(text)) return "weather";
+    if (/政策|关税|禁令|法案|补贴|配额|监管|制裁|生物柴油|b\d{2,3}/.test(text)) return "policy";
+    if (/美联储|利率|汇率|美元|通胀|就业|央行|宏观|地缘|战争/.test(text)) return "macro";
+    return "industry";
+  }
+
   function buildTimeline(data) {
     const events = [];
     array(data.watch && data.watch.events).forEach((item) => events.push({
-      type: item.kind === "event" ? "event" : "move",
+      type: item.kind === "event" ? eventTimelineType(item) : "move",
       category: first(item.category, "市场扫描"), title: first(item.title, "市场事件"),
       summary: item.kind === "event" ? completeTimelineSummary(item.title, item.summary) : first(item.summary, "来源内容待核验"),
       detailSummary: item.kind === "event" ? first(item.detail_summary, completeTimelineSummary(item.title, item.summary)) : "",
@@ -390,7 +398,7 @@
 
   function renderTimeline(events, filter = "all") {
     const visible = filter === "all" ? events : events.filter((item) => item.type === filter);
-    const labels = { move: "行情", event: "事件", report: "研究", supply: "供需" };
+    const labels = { move: "行情", weather: "天气", policy: "政策", industry: "产业", macro: "宏观", report: "研究", supply: "供需" };
     document.querySelectorAll("[data-filter]").forEach((button) => {
       const type = button.dataset.filter;
       const count = type === "all" ? events.length : events.filter((item) => item.type === type).length;
@@ -409,13 +417,13 @@
           </button>
           <div id="${detailId}" class="timeline-detail">
             ${item.detailSummary ? `<section class="timeline-detail-summary"><span>事件详情</span><p>${esc(item.detailSummary)}</p><small class="timeline-ai-notice">${esc(item.aiNotice)}</small></section>` : ""}
-            <section><span>影响研判</span><p>${esc(item.detail)}</p></section>
+            <section><span>影响研判</span><p>${esc(item.detail)}</p>${item.aiNotice ? `<small class="timeline-ai-notice">${esc(item.aiNotice)}</small>` : ""}</section>
             <section><span>关键证据</span>${evidence.length ? `<ul>${evidence.map((entry) => `<li>${esc(entry)}</li>`).join("")}</ul>` : "<p>本轮没有新增可核验证据。</p>"}</section>
-            <section><span>下一步检查</span><p>${esc(first(item.nextCheck, "等待下一轮自动检查"))}</p>${item.url ? `<a href="${esc(item.url)}" target="_blank" rel="noopener noreferrer">查看原始研报</a>` : item.isPublicResearch && item.sourceSummaryAvailable ? '<small class="timeline-source-note">来源未提供可直接打开的原始研报链接；以上摘要按来源接口返回内容完整展示，未按字数截断。</small>' : item.isPublicResearch ? '<small class="timeline-source-note">来源未提供可直接打开的原始研报链接或可核验摘要，本站不补写内容性结论。</small>' : item.type === "event" ? '<small class="timeline-source-note">未提供可直接打开的原文链接；本页仅展示已获取内容的整理摘要。</small>' : ""}</section>
+            <section><span>下一步检查</span><p>${esc(first(item.nextCheck, "等待下一轮自动检查"))}</p>${item.url ? `<a href="${esc(item.url)}" target="_blank" rel="noopener noreferrer">${item.type === "report" ? "查看原始研报" : "查看直接来源"}</a>` : item.isPublicResearch && item.sourceSummaryAvailable ? '<small class="timeline-source-note">来源未提供可直接打开的原始研报链接；以上摘要按来源接口返回内容完整展示，未按字数截断。</small>' : item.isPublicResearch ? '<small class="timeline-source-note">来源未提供可直接打开的原始研报链接或可核验摘要，本站不补写内容性结论。</small>' : ["weather", "policy", "industry", "macro"].includes(item.type) ? '<small class="timeline-source-note">未提供可直接打开的原文链接；本页仅展示已获取内容的整理摘要。</small>' : ""}</section>
           </div>
         </div>
       </article>`;
-    }).join("") : "<p class='empty-state'>当前没有新增可发布的市场、研究或供需证据。</p>";
+    }).join("") : "<p class='empty-state'>当前分类没有新增可发布的行情、天气、政策、产业、宏观、研究或供需证据。</p>";
     document.querySelectorAll(".timeline-content button").forEach((button) => button.addEventListener("click", () => {
       const detail = document.getElementById(button.getAttribute("aria-controls"));
       const open = button.getAttribute("aria-expanded") === "true";

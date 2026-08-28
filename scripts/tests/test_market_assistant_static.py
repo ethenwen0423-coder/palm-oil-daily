@@ -74,13 +74,22 @@ class MarketAssistantStaticTests(unittest.TestCase):
         self.assertNotIn("array(data.brief.actions).forEach", script)
         self.assertIn('watch: ["/api/assistant/watch", "data/market_watch.json"]', script)
         self.assertIn("data.watch.events_updated_at || data.watch.generated_at", script)
-        self.assertIn('data-filter="event"', html)
+        self.assertNotIn('data-filter="event"', html)
         self.assertNotIn('data-filter="agent"', html)
         self.assertIn("completeTimelineSummary", script)
         self.assertIn("item.detail_summary", script)
         self.assertIn('class="timeline-detail-summary"', script)
         self.assertIn("未提供可直接打开的原文链接", script)
         self.assertIn("item.aiNotice", script)
+
+    def test_timeline_has_granular_filters_and_weather_classifier(self):
+        html = (ROOT / "assistant.html").read_text(encoding="utf-8")
+        script = (ROOT / "assets" / "market-assistant.js").read_text(encoding="utf-8")
+        for category in ("weather", "policy", "industry", "macro", "report", "supply"):
+            self.assertIn(f'data-filter="{category}"', html)
+        self.assertIn("function eventTimelineType(item)", script)
+        self.assertIn('weather: "天气"', script)
+        self.assertIn('class="timeline-ai-notice"', script)
 
     def test_research_reports_show_original_links_and_untruncated_source_summary_notice(self):
         script = (ROOT / "assets" / "market-assistant.js").read_text(encoding="utf-8")
