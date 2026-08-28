@@ -21,6 +21,7 @@ RESEARCH_READY_MARKER = ".server-research-ready.json"
 REVIEW_READY_MARKER = ".server-review-ready.json"
 HTFC_READY_MARKER = ".server-htfc-ready.json"
 DAREDEVIL_READY_MARKER = ".server-ai-daredevil-ready.json"
+PURE_AI_FUND_READY_MARKER = ".server-pure-ai-fund-ready.json"
 # Backwards-compatible name for callers that only know about market ownership.
 READY_MARKER = MARKET_READY_MARKER
 REPORT_PATHS = ("reports.json",)
@@ -50,6 +51,7 @@ AI_PATHS = (
     "market_assistant_brief.json",
 )
 DAREDEVIL_PATHS = ("ai_daredevil.json",)
+PURE_AI_FUND_PATHS = ("ai_daredevil_pure_ai.json",)
 JSON_PATHS = {
     "reports.json",
     "supply-demand.json",
@@ -67,6 +69,7 @@ JSON_PATHS = {
     "htfc_tianji.json",
     "research_watch.json",
     "ai_daredevil.json",
+    "ai_daredevil_pure_ai.json",
 }
 
 
@@ -181,6 +184,7 @@ def sync_upstream(source_root: Path, target_root: Path) -> dict[str, object]:
     research_owned = (target_root / RESEARCH_READY_MARKER).exists()
     review_owned = (target_root / REVIEW_READY_MARKER).exists()
     daredevil_owned = (target_root / DAREDEVIL_READY_MARKER).exists()
+    pure_ai_fund_owned = (target_root / PURE_AI_FUND_READY_MARKER).exists()
     groups: list[tuple[str, tuple[str, ...]]] = []
     if not research_owned:
         groups.append(("reports", REPORT_PATHS))
@@ -214,6 +218,11 @@ def sync_upstream(source_root: Path, target_root: Path) -> dict[str, object]:
         if not daredevil_owned
         else []
     )
+    copied_groups["pure_ai_fund"] = (
+        synchronize_paths(source_root, target_root, PURE_AI_FUND_PATHS, required=False)
+        if not pure_ai_fund_owned
+        else []
+    )
     return {
         "status": "ok",
         "mode": "upstream",
@@ -225,6 +234,7 @@ def sync_upstream(source_root: Path, target_root: Path) -> dict[str, object]:
         "bootstrapped": copied_groups.get("market", []),
         "ai_copied": copied_groups.get("ai", []),
         "daredevil_copied": copied_groups.get("daredevil", []),
+        "pure_ai_fund_copied": copied_groups.get("pure_ai_fund", []),
         "server_research_owned": research_owned,
         "server_review_owned": review_owned,
         "server_supply_owned": supply_owned,
@@ -232,6 +242,7 @@ def sync_upstream(source_root: Path, target_root: Path) -> dict[str, object]:
         "server_market_owned": market_owned,
         "server_ai_owned": ai_owned,
         "server_daredevil_owned": daredevil_owned,
+        "server_pure_ai_fund_owned": pure_ai_fund_owned,
     }
 
 

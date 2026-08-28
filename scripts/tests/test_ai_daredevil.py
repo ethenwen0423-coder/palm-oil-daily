@@ -22,10 +22,11 @@ class AiDaredevilTests(unittest.TestCase):
     def test_static_page_exposes_required_fund_sections_and_risk_notice(self):
         html = (ROOT / "ai-daredevil.html").read_text(encoding="utf-8")
         script = (ROOT / "assets" / "ai-daredevil.js").read_text(encoding="utf-8")
-        for label in ("AI敢死队", "当前持仓", "今日动作", "下一步指令", "未执行信号", "净值曲线", "跨板块策略池全量扫描"):
+        for label in ("AI敢死队", "布林带模型", "纯AI决策", "当前持仓", "开仓日期", "开仓原因", "今日动作", "下一步指令", "未执行信号", "净值曲线", "跨板块策略池全量扫描"):
             self.assertIn(label, html)
         self.assertIn("不构成投资建议", html)
-        self.assertIn('const API = "/api/ai-daredevil"', script)
+        self.assertIn('api: "/api/ai-daredevil"', script)
+        self.assertIn('api: "/api/ai-daredevil/pure-ai"', script)
         self.assertIn("60 * 1000", script)
 
     def test_runtime_initializes_persistent_virtual_fund_without_requesting_quotes(self):
@@ -83,6 +84,8 @@ class AiDaredevilTests(unittest.TestCase):
         self.assertIn("13:30:00 Asia/Shanghai", installer)
         self.assertIn("15:25:00 Asia/Shanghai", installer)
         self.assertIn("systemctl enable --now palm-oil-ai-daredevil.timer", installer)
+        runtime = (ROOT / "server" / "run_ai_daredevil.py").read_text(encoding="utf-8")
+        self.assertIn('"run_pure_ai_fund.py"', runtime)
 
     def test_close_scan_calls_authoritative_contract_local_model_and_uses_t_minus_1_main(self):
         ledger, model, _signal_model = RUNTIME.load_components(ROOT)

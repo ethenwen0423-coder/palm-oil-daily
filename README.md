@@ -42,7 +42,7 @@ AI 简报只分析已经发布的数据，并返回所引用的证据编号、�
 
 ### AI敢死队虚拟基金
 
-`ai-daredevil.html` 读取 `/api/ai-daredevil`，展示100万元起始权益的虚拟基金持仓、成交、待执行订单、未执行信号、收益指标和净值曲线。`skills/manage-bollinger-rsi-futures-fund/` 固定模型与账本口径，`server/run_ai_daredevil.py` 只用真实 PYYMM 合约，按 T-1 成交量选主力、收盘确认并在下一交易日开盘记录虚拟成交。行情优先 AKShare，缺失时依次尝试同花顺问财和华泰智能 K 线；回退结果不能确认同一精确合约时拒绝入账。
+`ai-daredevil.html` 可在“布林带模型”和“纯AI决策”两个独立100万元虚拟基金间切换，分别读取 `/api/ai-daredevil` 与 `/api/ai-daredevil/pure-ai`，展示净值、完整持仓信息、今日动作和下一步指令。布林带模式由 `server/run_ai_daredevil.py` 执行既定布林RSI规则；纯AI模式由 `server/run_pure_ai_fund.py` 汇总真实 PYYMM 自身日线技术指标、公开研报与基本面证据后调用已配置的结构化AI后端自主研判，并由外部风控控制合约、下一开盘执行和约10%回撤目标。回撤目标不构成保证。
 
 ### 自动生成与发布
 

@@ -16,6 +16,7 @@ import os
 import re
 import secrets
 import statistics
+import subprocess
 import sys
 import tempfile
 import urllib.error
@@ -781,7 +782,7 @@ def public_snapshot(state_dir: Path, state: dict[str, Any], sources: list[dict[s
         "refresh_reason": reason,
         "price_source": " / ".join(sorted({row.get("mark_source", "") for row in positions if row.get("mark_source")})) or "尚无持仓，无需盯市",
         "next_refresh": next_refresh(now),
-        "model": {"name": "布林RSI模型", "version": MODEL_VERSION, "capital_policy": "权益复利",
+        "model": {"name": "布林带模型", "version": MODEL_VERSION, "capital_policy": "独立100万元权益复利",
                   "execution": "完整日线确认，下一交易日开盘执行"},
         "summary": summary, "equity_curve": curve, "positions": positions,
         "today_trades": events, "pending_orders": pending, "skipped_signals": skipped,
@@ -908,9 +909,32 @@ def main() -> int:
             "schema_version": 1, "generated_at": now.isoformat(timespec="seconds"),
             "session": "close-scan" if should_scan else "hourly", "owner": "server-ai-daredevil",
         })
+    pure_ai_status = "disabled"
+    if os.environ.get("AI_DAREDEVIL_SKIP_PURE_AI", "").strip().lower() not in {"1", "true", "yes"}:
+        command = [
+            sys.executable, str(site_root / "server" / "run_pure_ai_fund.py"),
+            "--site-root", str(site_root), "--live-data-root", str(live_data_root),
+            "--state-root", str(args.state_root.resolve()),
+            "--timeout", os.environ.get("PURE_AI_FUND_TIMEOUT", "300"),
+        ]
+        if args.reason:
+            command.extend(["--reason", args.reason])
+        if args.close_scan:
+            command.append("--close-scan")
+        if args.now:
+            command.extend(["--now", args.now])
+        try:
+            completed = subprocess.run(
+                command, text=True, capture_output=True, check=False,
+                timeout=max(int(os.environ.get("PURE_AI_FUND_TIMEOUT", "300")) + 120, 180),
+            )
+            pure_ai_status = "ok" if completed.returncode == 0 else "error"
+        except (OSError, subprocess.TimeoutExpired, ValueError):
+            pure_ai_status = "error"
     print(json.dumps({"status": payload["status"], "generated_at": payload["generated_at"],
                       "positions": len(payload["positions"]), "pending": len(payload["pending_orders"]),
-                      "skipped": len(payload["skipped_signals"])}, ensure_ascii=False, sort_keys=True))
+                      "skipped": len(payload["skipped_signals"]), "pure_ai_status": pure_ai_status},
+                     ensure_ascii=False, sort_keys=True))
     return 0
 
 

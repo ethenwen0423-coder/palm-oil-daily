@@ -28,6 +28,10 @@ body.daredevil-page { margin: 0; background: radial-gradient(circle at 75% -10%,
 .live-chip i { width: 7px; height: 7px; background: var(--dd-green); border-radius: 50%; box-shadow: 0 0 14px var(--dd-green); }
 .data-state.is-stale, .data-state.is-degraded { color: var(--dd-amber); }
 .section-kicker { margin: 0 0 8px; color: var(--dd-green); font: 600 11px/1.4 monospace; letter-spacing: .14em; text-transform: uppercase; }
+.strategy-switcher { width: min(360px, 100%); margin: 0 0 20px; }
+.strategy-switcher label { display: block; margin-bottom: 8px; color: var(--dd-muted); font: 600 10px/1.2 monospace; letter-spacing: .12em; text-transform: uppercase; }
+.strategy-switcher select { width: 100%; min-height: 46px; padding: 0 42px 0 14px; border: 1px solid rgba(94, 224, 163, .42); border-radius: 0; color: var(--dd-text); background: linear-gradient(135deg, rgba(94, 224, 163, .12), var(--dd-panel)); font: 700 15px/1 sans-serif; cursor: pointer; color-scheme: dark; }
+.strategy-switcher select:focus-visible { outline: 2px solid var(--dd-lime); outline-offset: 3px; }
 .fund-command h1 { font-size: clamp(46px, 7vw, 96px); line-height: .95; letter-spacing: -.07em; margin: 0; }
 .fund-lead { max-width: 800px; margin: 24px 0 0; color: var(--dd-muted); font-size: 15px; line-height: 1.85; }
 .inline-ai-notice { max-width: 800px; margin: 10px 0 0; color: var(--dd-muted); font-size: 12px; line-height: 1.7; }
@@ -74,12 +78,13 @@ body.daredevil-page { margin: 0; background: radial-gradient(circle at 75% -10%,
 .discipline-list span { display: block; margin-top: 5px; color: var(--dd-muted); font-size: 11px; line-height: 1.5; }
 .positions-panel { margin-bottom: 18px; }
 .table-scroll { overflow-x: auto; }
-table { width: 100%; border-collapse: collapse; min-width: 1080px; }
+table { width: 100%; border-collapse: collapse; min-width: 1640px; }
 th { padding: 0 12px 12px; color: var(--dd-muted); font-size: 10px; text-align: right; font-weight: 500; border-bottom: 1px solid var(--dd-line); }
 th:first-child, td:first-child { text-align: left; padding-left: 0; }
 td { padding: 17px 12px; font: 500 12px/1.4 monospace; text-align: right; border-bottom: 1px solid var(--dd-line); }
 td strong, td span { display: block; }
 td span { color: var(--dd-muted); font: 400 10px/1.5 sans-serif; }
+.reason-cell, .instruction-cell { min-width: 220px; max-width: 300px; white-space: normal; text-align: left; font: 400 11px/1.65 sans-serif; color: var(--dd-muted); }
 .side-badge { display: inline-flex; padding: 5px 8px; border-radius: 3px; }
 .side-long { color: var(--dd-red); background: rgba(255, 119, 109, .1); }
 .side-short { color: var(--dd-green); background: rgba(94, 224, 163, .1); }

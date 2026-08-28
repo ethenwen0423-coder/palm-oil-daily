@@ -91,11 +91,17 @@ def state_path(state_dir: Path) -> Path:
     return state_dir / "state.json"
 
 
-def _new_state(initial_capital: float) -> dict[str, Any]:
+def _new_state(
+    initial_capital: float,
+    *,
+    model_version: str = MODEL_VERSION,
+    fund_name: str = "布林RSI期货虚拟基金",
+    policy: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     return {
         "schema_version": SCHEMA_VERSION,
-        "fund_name": "布林RSI期货虚拟基金",
-        "model_version": MODEL_VERSION,
+        "fund_name": fund_name,
+        "model_version": model_version,
         "created_at": _now(),
         "initial_capital": initial_capital,
         "cash": initial_capital,
@@ -111,7 +117,7 @@ def _new_state(initial_capital: float) -> dict[str, Any]:
         "positions": {},
         "pending_orders": [],
         "filled_order_ids": [],
-        "policy": DEFAULT_POLICY.copy(),
+        "policy": {**DEFAULT_POLICY, **(policy or {})},
     }
 
 
@@ -223,11 +229,18 @@ def command_init(args: argparse.Namespace) -> dict[str, Any]:
         if path.exists() and not args.if_missing:
             raise LedgerError(f"state already exists: {path}")
         if not path.exists():
-            state = _new_state(float(args.initial_capital))
+            model_version = str(getattr(args, "model_version", MODEL_VERSION))
+            fund_name = str(getattr(args, "fund_name", "布林RSI期货虚拟基金"))
+            state = _new_state(
+                float(args.initial_capital),
+                model_version=model_version,
+                fund_name=fund_name,
+                policy=getattr(args, "policy", None),
+            )
             _atomic_json(path, state)
             _append_jsonl(args.state_dir / "trade_ledger.jsonl", {
                 "event": "FUND_INITIALIZED", "timestamp": _now(),
-                "initial_capital": float(args.initial_capital), "model_version": MODEL_VERSION,
+                "initial_capital": float(args.initial_capital), "model_version": model_version,
             })
         else:
             state = _read_json(path)
@@ -247,7 +260,8 @@ def command_verify(args: argparse.Namespace) -> dict[str, Any]:
         errors: list[str] = []
         if state.get("schema_version") != SCHEMA_VERSION:
             errors.append("schema_version mismatch")
-        if state.get("model_version") != MODEL_VERSION:
+        expected_model = str(getattr(args, "model_version", MODEL_VERSION))
+        if state.get("model_version") != expected_model:
             errors.append("model_version mismatch")
         seen: set[str] = set()
         for variety, position in state.get("positions", {}).items():
@@ -271,8 +285,6 @@ def command_verify(args: argparse.Namespace) -> dict[str, Any]:
 
 def command_plan(args: argparse.Namespace) -> dict[str, Any]:
     snapshot = _read_json(args.signals)
-    if snapshot.get("model_version") != MODEL_VERSION:
-        raise LedgerError(f"model_version must be {MODEL_VERSION}")
     if snapshot.get("completed_bar") is not True:
         raise LedgerError("only completed daily bars may create orders")
     as_of = str(snapshot.get("as_of", ""))
@@ -282,6 +294,8 @@ def command_plan(args: argparse.Namespace) -> dict[str, Any]:
     with locked(args.state_dir):
         path = state_path(args.state_dir)
         state = _read_json(path)
+        if snapshot.get("model_version") != state.get("model_version"):
+            raise LedgerError(f"model_version must be {state.get('model_version')}")
         _revalue(state)
         decisions: list[dict[str, Any]] = []
         normalized: list[dict[str, Any]] = []

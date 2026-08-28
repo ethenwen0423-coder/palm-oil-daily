@@ -4,8 +4,8 @@
     <meta charset="utf-8" />
     <base href="/" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>AI敢死队 | 布林RSI虚拟基金</title>
-    <meta name="description" content="基于真实交割月主力合约与布林RSI模型的100万元虚拟基金动态看板。" />
+    <title>AI敢死队 | 双策略虚拟基金</title>
+    <meta name="description" content="在布林带模型与纯AI决策之间切换，分别查看独立虚拟基金的净值、持仓和下一步指令。" />
     <meta name="theme-color" content="#071712" />
     <link rel="icon" href="data:," />
     <link rel="stylesheet" href="assets/styles.css" />
@@ -31,10 +31,17 @@
             <span class="live-chip"><i></i> 虚拟基金运行中</span>
             <span id="data-state" class="data-state">等待基金账本</span>
           </div>
-          <p class="section-kicker">Bollinger RSI · Real Contract Fund</p>
+          <div class="strategy-switcher">
+            <label for="strategy-select">决策模式</label>
+            <select id="strategy-select" aria-label="选择AI敢死队决策模式">
+              <option value="bollinger">布林带模型</option>
+              <option value="pure-ai">纯AI决策</option>
+            </select>
+          </div>
+          <p id="strategy-kicker" class="section-kicker">Bollinger RSI · Real Contract Fund</p>
           <h1 id="fund-title">AI敢死队</h1>
-          <p class="fund-lead">100万元起始权益，跨板块选择收益机会，只执行真实交割月主力合约的已确认模型信号。收盘确认，下一开盘成交；页面不连接券商，不代表真实账户。</p>
-          <p class="inline-ai-notice">AI 生成说明：页面结论由 AI 基于下方列明的真实合约行情、模型信号和虚拟账本生成，不代表任何来源方官方立场，不构成投资建议，请自行核验。</p>
+          <p id="fund-lead" class="fund-lead">100万元起始权益，跨板块选择收益机会，只执行真实交割月主力合约的已确认模型信号。收盘确认，下一开盘成交；页面不连接券商，不代表真实账户。</p>
+          <p id="inline-ai-notice" class="inline-ai-notice">AI 生成说明：页面结论由 AI 基于下方列明的真实合约行情、模型信号和虚拟账本生成，不代表任何来源方官方立场，不构成投资建议，请自行核验。</p>
         </div>
         <aside class="refresh-card" aria-label="行情刷新状态">
           <span>最近刷新</span>
@@ -72,7 +79,7 @@
         <article class="panel equity-panel">
           <header class="panel-heading">
             <div><span>Fund Performance</span><h2>净值曲线</h2></div>
-            <div class="chart-legend"><i></i> AI敢死队净值</div>
+            <div class="chart-legend"><i></i> <span id="chart-legend-label">布林带模型净值</span></div>
           </header>
           <div class="chart-wrap">
             <svg id="equity-chart" viewBox="0 0 920 320" role="img" aria-labelledby="equity-chart-title equity-chart-desc">
@@ -86,10 +93,10 @@
         <aside class="panel discipline-panel">
           <header class="panel-heading"><div><span>Execution Discipline</span><h2>执行纪律</h2></div></header>
           <ol class="discipline-list">
-            <li><b>01</b><div><strong>真实交割月</strong><span>拒绝 P0、连续、加权和合成价格</span></div></li>
-            <li><b>02</b><div><strong>收盘确认</strong><span>日线信号不被盘中波动改写</span></div></li>
-            <li><b>03</b><div><strong>下一开盘</strong><span>只有取得可核验开盘价才记录虚拟成交</span></div></li>
-            <li><b>04</b><div><strong>跨板块复利</strong><span>所有品种平等候选，按当前权益、品种上限和板块上限配置资金</span></div></li>
+            <li><b>01</b><div><strong id="discipline-1-title">真实交割月</strong><span id="discipline-1-copy">拒绝 P0、连续、加权和合成价格</span></div></li>
+            <li><b>02</b><div><strong id="discipline-2-title">收盘确认</strong><span id="discipline-2-copy">日线信号不被盘中波动改写</span></div></li>
+            <li><b>03</b><div><strong id="discipline-3-title">下一开盘</strong><span id="discipline-3-copy">只有取得可核验开盘价才记录虚拟成交</span></div></li>
+            <li><b>04</b><div><strong id="discipline-4-title">跨板块复利</strong><span id="discipline-4-copy">所有品种平等候选，按当前权益、品种上限和板块上限配置资金</span></div></li>
           </ol>
         </aside>
       </section>
@@ -101,7 +108,7 @@
         </header>
         <div class="table-scroll">
           <table>
-            <thead><tr><th>品种 / 合约</th><th>方向</th><th>手数 / 层数</th><th>持仓均价</th><th>最新价</th><th>名义金额</th><th>浮动盈亏</th><th>组合权重</th><th>行情来源</th></tr></thead>
+            <thead><tr><th>品种 / 合约</th><th>开仓日期</th><th>开仓原因</th><th>方向</th><th>手数 / 层数</th><th>持仓均价</th><th>最新价</th><th>名义金额</th><th>浮动盈亏</th><th>组合权重</th><th>行情来源</th><th>下一步指令</th></tr></thead>
             <tbody id="positions-body"></tbody>
           </table>
         </div>
@@ -134,7 +141,7 @@
 
       <section class="risk-notice" aria-label="AI与投资风险提示">
         <strong>AI 风险提示</strong>
-        <p>本页面由 AI 基于所列真实合约行情、布林RSI模型信号和虚拟基金账本生成，不代表 AKShare、同花顺问财、华泰期货或任何来源方的官方立场，也不构成投资建议。虚拟成交不等于真实成交，历史收益不保证未来表现，请自行核验。</p>
+        <p id="risk-notice-copy">本页面由 AI 基于所列真实合约行情、布林RSI模型信号和虚拟基金账本生成，不代表 AKShare、同花顺问财、华泰期货或任何来源方的官方立场，也不构成投资建议。虚拟成交不等于真实成交，历史收益不保证未来表现，请自行核验。</p>
       </section>
     </main>
 

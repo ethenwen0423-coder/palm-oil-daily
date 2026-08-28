@@ -8,9 +8,9 @@
   "price_source": "尚无持仓，无需盯市",
   "next_refresh": null,
   "model": {
-    "name": "布林RSI模型",
+    "name": "布林带模型",
     "version": "palm-oil-v2-real-contract-indicators-carry5-main-contract",
-    "capital_policy": "权益复利",
+    "capital_policy": "独立100万元权益复利",
     "execution": "完整日线确认，下一交易日开盘执行"
   },
   "summary": {

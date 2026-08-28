@@ -49,6 +49,7 @@ class ServerAutomationInstallerTests(unittest.TestCase):
         self.assertIn("systemctl enable --now palm-oil-prediction-review.timer", script)
         self.assertIn("systemctl enable --now palm-oil-ai-daredevil.timer", script)
         self.assertIn('"run_ai_daredevil.py"', script)
+        self.assertIn("run_pure_ai_fund.py", script)
         self.assertNotIn("systemctl enable --now palm-oil-ai-brief.timer", script)
         self.assertNotIn("systemctl enable --now palm-oil-research-agent.timer", script)
         self.assertIn("AI and research service units installed", script)

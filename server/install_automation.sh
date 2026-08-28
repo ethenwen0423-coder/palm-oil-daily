@@ -49,6 +49,8 @@ for required in \
   "$SITE_ROOT/server/run_event_watch.py" \
   "$SITE_ROOT/server/run_supply_demand.py" \
   "$SITE_ROOT/server/run_ai_brief.py" \
+  "$SITE_ROOT/server/run_ai_daredevil.py" \
+  "$SITE_ROOT/server/run_pure_ai_fund.py" \
   "$SITE_ROOT/server/run_research_agent.py" \
   "$SITE_ROOT/server/run_prediction_review.py" \
   "$SITE_ROOT/server/build_report_inputs.py" \

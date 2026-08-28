@@ -1,0 +1,125 @@
+{
+  "ai_notice": "纯AI决策由AI基于页面列明的技术指标、基本面材料和虚拟账本生成，不代表任何来源方官方立场，不构成投资建议；请自行核验。",
+  "equity_curve": [
+    {
+      "daily_return": 0.0,
+      "date": "2026-08-28",
+      "equity": 1000000.0,
+      "net_value": 1.0
+    }
+  ],
+  "generated_at": "2026-08-28T19:00:00+08:00",
+  "governance": {
+    "model_can_trade": true,
+    "next_open_execution": true,
+    "policy": {
+      "max_gross_multiple": 1.0,
+      "max_margin_fraction": 0.3,
+      "max_positions": 6,
+      "max_sector_fraction": 0.25,
+      "max_variety_fraction": 0.12
+    },
+    "real_delivery_contracts_only": true,
+    "risk_controller_can_override": true,
+    "virtual_only": true
+  },
+  "latest_decisions": [],
+  "market_date": null,
+  "model": {
+    "capital_policy": "独立100万元权益复利",
+    "execution": "AI收盘研判，外部风控校验，下一交易日开盘执行",
+    "name": "纯AI决策",
+    "version": "pure-ai-multifactor-real-contract-v1"
+  },
+  "next_refresh": "2026-08-28T20:00:00+08:00",
+  "pending_orders": [],
+  "positions": [],
+  "price_source": "尚无持仓，无需盯市",
+  "refresh_reason": "每小时持仓盯市",
+  "refresh_schedule": [
+    {
+      "label": "日盘开盘",
+      "purpose": "核验开盘价并执行已确认AI订单",
+      "time": "09:00"
+    },
+    {
+      "label": "午盘开盘",
+      "purpose": "补核成交与持仓盯市",
+      "time": "13:30"
+    },
+    {
+      "label": "收盘研判",
+      "purpose": "汇总技术与基本面证据，由AI独立决定",
+      "time": "15:25"
+    },
+    {
+      "label": "整点盯市",
+      "purpose": "更新真实合约价格、权益和风控状态",
+      "time": "每小时"
+    }
+  ],
+  "risk_policy": {
+    "current_drawdown": 0.0,
+    "guaranteed": false,
+    "note": "目标约10%，8%暂停新增风险并退出持仓；隔夜跳空和流动性可能使实际回撤超过目标。",
+    "soft_drawdown": 0.08,
+    "target_drawdown": 0.1
+  },
+  "scan_audit": {},
+  "schema_version": 1,
+  "skipped_signals": [],
+  "sources": [
+    {
+      "name": "AKShare 真实交割月行情",
+      "note": "当前无持仓或待执行订单，本轮无需请求",
+      "priority": "主来源",
+      "state": "ready"
+    },
+    {
+      "name": "同花顺问财行情 Skill",
+      "note": "仅在 AKShare 精确合约行情缺失时启用",
+      "priority": "回退 1",
+      "state": "fallback"
+    },
+    {
+      "name": "华泰智能 K 线 Skill",
+      "note": "仅接受包含精确 PYYMM 合约的原始 K 线",
+      "priority": "回退 2",
+      "state": "fallback"
+    },
+    {
+      "name": "公开研报与交易所品种基本面摘要",
+      "note": "只把带来源和时间的已发布材料交给AI",
+      "priority": "决策证据",
+      "state": "failed"
+    },
+    {
+      "name": "unavailable",
+      "note": "结构化输出需通过合约、持仓、证据ID与风控校验",
+      "priority": "决策引擎",
+      "state": "failed"
+    }
+  ],
+  "status": "degraded",
+  "status_label": "纯AI本次研判需进一步核验",
+  "summary": {
+    "annualized_return": null,
+    "available_cash": 1000000.0,
+    "cash": 1000000.0,
+    "cumulative_return": 0.0,
+    "current_drawdown": 0.0,
+    "daily_pnl": 0,
+    "equity": 1000000.0,
+    "gross_exposure_multiple": 0.0,
+    "initial_capital": 1000000.0,
+    "margin_usage": 0.0,
+    "max_drawdown": 0.0,
+    "net_value": 1.0,
+    "realized_pnl": 0.0,
+    "sharpe": null,
+    "total_fees": 0.0,
+    "unrealized_pnl": 0.0,
+    "used_margin": 0.0
+  },
+  "today_trades": []
+}

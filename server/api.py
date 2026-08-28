@@ -40,6 +40,7 @@ ROUTES = {
     "/api/htfc/tianji": "htfc_tianji.json",
     "/api/assistant/research-watch": "research_watch.json",
     "/api/ai-daredevil": "ai_daredevil.json",
+    "/api/ai-daredevil/pure-ai": "ai_daredevil_pure_ai.json",
 }
 
 DATASET_RULES = {
@@ -123,6 +124,11 @@ DATASET_RULES = {
         "stale_after_seconds": 60 * 75,
         "timestamp_fields": ("generated_at", "market_date"),
     },
+    "/api/ai-daredevil/pure-ai": {
+        "label": "AI敢死队纯AI决策虚拟基金账本",
+        "stale_after_seconds": 60 * 75,
+        "timestamp_fields": ("generated_at", "market_date"),
+    },
 }
 
 AUTOMATION_MARKERS = {
@@ -172,6 +178,11 @@ AUTOMATION_MARKERS = {
         "label": "AI敢死队基金运行时",
         "path": ".server-ai-daredevil-ready.json",
         "routes": ("/api/ai-daredevil",),
+    },
+    "pure_ai_fund": {
+        "label": "纯AI决策基金运行时",
+        "path": ".server-pure-ai-fund-ready.json",
+        "routes": ("/api/ai-daredevil/pure-ai",),
     },
 }
 UPSTREAM_ROUTES = {
