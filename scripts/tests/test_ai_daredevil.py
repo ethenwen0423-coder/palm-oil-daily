@@ -52,6 +52,11 @@ class AiDaredevilTests(unittest.TestCase):
         self.assertIsNone(RUNTIME.quote_from_row(row, "P0", "test"))
         self.assertIsNone(RUNTIME.quote_from_row(row, "P2705", "test"))
 
+    def test_akshare_realtime_uses_display_symbols_instead_of_variety_codes(self):
+        self.assertEqual(RUNTIME.PRODUCT_REALTIME_SYMBOL["P"], "棕榈")
+        self.assertEqual(RUNTIME.PRODUCT_REALTIME_SYMBOL["TA"], "PTA")
+        self.assertEqual(set(RUNTIME.PRODUCT_REALTIME_SYMBOL), set(RUNTIME.PRODUCTS))
+
     def test_installer_has_exact_session_open_and_hourly_schedule(self):
         installer = (ROOT / "server" / "install_automation.sh").read_text(encoding="utf-8")
         self.assertIn("palm-oil-ai-daredevil.timer", installer)

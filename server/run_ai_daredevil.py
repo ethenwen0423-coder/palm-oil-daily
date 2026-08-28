@@ -62,6 +62,16 @@ PRODUCTS = {
     "RM": {"name": "菜粕", "sector": "油脂油料", "multiplier": 10.0},
 }
 
+# ak.futures_zh_realtime accepts the display names returned by
+# futures_symbol_mark(), not exchange variety codes such as P or TA.
+PRODUCT_REALTIME_SYMBOL = {
+    "FG": "玻璃", "MA": "郑醇", "TA": "PTA", "SA": "纯碱", "V": "PVC",
+    "RB": "螺纹钢", "FU": "燃油", "PP": "PP", "AG": "白银", "JD": "鸡蛋",
+    "EG": "乙二醇", "L": "塑料", "JM": "焦煤", "EB": "苯乙烯", "HC": "热轧卷板",
+    "BU": "沥青", "SH": "烧碱", "P": "棕榈", "Y": "豆油", "OI": "菜油",
+    "M": "豆粕", "RM": "菜粕",
+}
+
 
 class RuntimeErrorSafe(RuntimeError):
     pass
@@ -184,7 +194,7 @@ def akshare_quotes(contracts: list[str]) -> tuple[dict[str, dict[str, Any]], str
         by_variety.setdefault(variety, []).append(contract)
     for variety, expected in by_variety.items():
         try:
-            frame = ak.futures_zh_realtime(symbol=variety)
+            frame = ak.futures_zh_realtime(symbol=PRODUCT_REALTIME_SYMBOL[variety])
             for row in frame.to_dict(orient="records") if frame is not None else []:
                 for contract in expected:
                     quote = quote_from_row(row, contract, "AKShare 真实交割月行情")
@@ -354,7 +364,7 @@ def current_contracts(data_root: Path) -> dict[str, list[str]]:
             import akshare as ak
             for variety in missing:
                 try:
-                    frame = ak.futures_zh_realtime(symbol=variety)
+                    frame = ak.futures_zh_realtime(symbol=PRODUCT_REALTIME_SYMBOL[variety])
                     values = []
                     for row in frame.to_dict(orient="records") if frame is not None else []:
                         contract = normalized_contract(find_field(row, ("symbol", "合约", "合约代码", "代码", "期货代码")))
@@ -425,6 +435,11 @@ def scan_signals(site_root: Path, data_root: Path, state: dict[str, Any], model,
     signal_dates = []
     strategy_path = Path(state["_strategy_path"])
     strategy = read_json(strategy_path, {"last_close": {}, "positions": {}, "blocked": {}})
+    previous_audit = read_json(strategy_path.parent / SCAN_AUDIT_FILE, {})
+    previous_candidates = {
+        row.get("variety"): row for row in previous_audit.get("signal_candidates", [])
+        if isinstance(row, dict) and row.get("variety")
+    } if isinstance(previous_audit, dict) else {}
     audit = {
         "generated_at": (generated_at or now_shanghai()).isoformat(timespec="seconds"),
         "universe_count": len(PRODUCTS), "discovered_count": len(contracts_by_variety),
@@ -478,6 +493,15 @@ def scan_signals(site_root: Path, data_root: Path, state: dict[str, Any], model,
         signal_dates.append(signal_date)
         audit["evaluated_count"] += 1
         if strategy.setdefault("last_close", {}).get(variety) == signal_date.isoformat():
+            previous = previous_candidates.get(variety)
+            if previous and previous.get("signal_date") == signal_date.isoformat():
+                audit["candidate_count"] += 1
+                audit["signal_candidates"].append(previous)
+                if previous.get("eligible"):
+                    audit["order_count"] += 1
+                else:
+                    audit["blocked_candidate_count"] += 1
+                    skipped.append({"variety": variety, "contract": previous.get("contract"), "reason": "缺少审计后的样本外配置评分"})
             continue
         position = state.get("positions", {}).get(variety)
         action = reason = None
@@ -556,10 +580,10 @@ def scan_signals(site_root: Path, data_root: Path, state: dict[str, Any], model,
                 item["score"] = score
                 item["score_basis"] = "生产基线准入序位，不代表预测收益率"
             signals.append(item)
+            audit["order_count"] += 1
         strategy["last_close"][variety] = signal_date.isoformat()
     atomic_json(strategy_path, strategy)
     audit["as_of"] = max(signal_dates).isoformat() if signal_dates else None
-    audit["order_count"] = len(signals)
     audit["coverage_status"] = "complete" if audit["evaluated_count"] == audit["universe_count"] else "partial"
     audit["issues"] = skipped
     if not signal_dates:
