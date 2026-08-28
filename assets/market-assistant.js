@@ -63,6 +63,80 @@
     return Number.isFinite(parsed) ? parsed.toLocaleString("zh-CN") : first(value, "--");
   }
 
+  function supplyDisplayValue(value) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? `${number(parsed / 10000, 1)} 万吨` : "需进一步核验";
+  }
+
+  function supplyPeriodShift(period, delta) {
+    const matched = String(period || "").match(/^(\d{4})-(\d{2})$/);
+    if (!matched) return "";
+    const shifted = new Date(Date.UTC(Number(matched[1]), Number(matched[2]) - 1 + delta, 1));
+    return `${shifted.getUTCFullYear()}-${String(shifted.getUTCMonth() + 1).padStart(2, "0")}`;
+  }
+
+  function supplyComparison(series, latest, delta) {
+    if (!latest) return { text: "需进一步核验", className: "missing" };
+    const prior = array(series).find((item) => item.period === supplyPeriodShift(latest.period, delta));
+    const currentValue = Number(latest.value);
+    const priorValue = Number(prior && prior.value);
+    if (!Number.isFinite(currentValue) || !Number.isFinite(priorValue) || priorValue === 0) {
+      return { text: "需进一步核验", className: "missing" };
+    }
+    const change = ((currentValue / priorValue) - 1) * 100;
+    return { text: `${change > 0 ? "+" : ""}${change.toFixed(1)}%`, className: direction(change) };
+  }
+
+  function supplyAnnualComparison(series, field) {
+    const points = array(series);
+    const latest = points.at(-1);
+    const previous = points.at(-2);
+    const latestValue = Number(latest && latest[field]);
+    const previousValue = Number(previous && previous[field]);
+    if (!Number.isFinite(latestValue) || !Number.isFinite(previousValue) || previousValue === 0) return "需进一步核验";
+    const change = ((latestValue / previousValue) - 1) * 100;
+    return `${change > 0 ? "+" : ""}${change.toFixed(1)}%`;
+  }
+
+  function supplyDetailHtml(item) {
+    const payload = item.supplyData || {};
+    const countries = Object.values(payload.countries || {});
+    const countryRows = countries.flatMap((country) => Object.values(country.metrics || {}).map((metric) => {
+      const series = array(metric.series);
+      const latest = series.at(-1);
+      const month = String(latest && latest.period || "").slice(5);
+      const history = series.filter((point) => month && String(point.period).endsWith(`-${month}`)).slice(-5);
+      const mom = supplyComparison(series, latest, -1);
+      const yoy = supplyComparison(series, latest, -12);
+      return `<tr><th scope="row">${esc(first(country.name, "产地"))}<small>${esc(first(metric.label, "指标"))}</small></th><td>${esc(first(latest && latest.period, "待核验"))}</td><td>${esc(supplyDisplayValue(latest && latest.value))}</td><td><b class="is-${esc(mom.className)}">${esc(mom.text)}</b></td><td><b class="is-${esc(yoy.className)}">${esc(yoy.text)}</b></td><td>${history.length ? history.map((point) => `<span>${esc(point.period)} <b>${esc(supplyDisplayValue(point.value))}</b></span>`).join("") : "需进一步核验"}</td></tr>`;
+    })).join("");
+
+    const supplemental = payload.supplemental || {};
+    const balance = supplemental.global_balance || {};
+    const balanceRows = array(balance.series).slice(-5).reverse().map((point) => {
+      const sourceSeries = array(balance.series);
+      const sourceIndex = sourceSeries.findIndex((candidate) => candidate.market_year === point.market_year);
+      const previous = sourceIndex > 0 ? sourceSeries[sourceIndex - 1] : null;
+      const comparison = (field) => {
+        const currentValue = Number(point[field]);
+        const previousValue = Number(previous && previous[field]);
+        if (!Number.isFinite(currentValue) || !Number.isFinite(previousValue) || previousValue === 0) return "需进一步核验";
+        const change = ((currentValue / previousValue) - 1) * 100;
+        return `${change > 0 ? "+" : ""}${change.toFixed(1)}%`;
+      };
+      return `<tr><th scope="row">${esc(point.market_year)}</th><td>${esc(supplyDisplayValue(point.production))}<small>${esc(comparison("production"))}</small></td><td>${esc(supplyDisplayValue(point.domestic_consumption))}<small>${esc(comparison("domestic_consumption"))}</small></td><td>${esc(supplyDisplayValue(point.ending_stocks))}<small>${esc(comparison("ending_stocks"))}</small></td></tr>`;
+    }).join("");
+    const importRows = array(supplemental.import_demand && supplemental.import_demand.markets).map((market) => {
+      const series = array(market.series);
+      const latest = series.at(-1);
+      return latest ? `<tr><th scope="row">${esc(first(market.name, market.key))}</th><td>${esc(latest.market_year)}</td><td>${esc(supplyDisplayValue(latest.imports))}</td><td>${esc(supplyAnnualComparison(series, "imports"))}</td><td>${esc(supplyDisplayValue(latest.domestic_consumption))}</td><td>${esc(supplyDisplayValue(latest.ending_stocks))}</td></tr>` : "";
+    }).join("");
+    const officialLinks = countries.map((country) => country.source && country.source.url ? `<a href="${esc(country.source.url)}" target="_blank" rel="noopener noreferrer">${esc(first(country.source.name, country.name))} ↗</a>` : "").filter(Boolean).join("");
+    const usda = supplemental.source || {};
+
+    return `<section class="supply-timeline-detail"><span>产地月度变化</span><div class="supply-detail-scroll"><table><thead><tr><th>产地 / 指标</th><th>统计期</th><th>最新值</th><th>环比</th><th>同比</th><th>同月历史</th></tr></thead><tbody>${countryRows || '<tr><td colspan="6">暂无可核验的产地月度序列。</td></tr>'}</tbody></table></div></section><section class="supply-timeline-detail"><span>全球年度对比</span><p>${esc(first(balance.definition, "USDA PSD全球年度口径。"))}</p><div class="supply-detail-scroll"><table><thead><tr><th>市场年度</th><th>产量 / 同比</th><th>消费 / 同比</th><th>期末库存 / 同比</th></tr></thead><tbody>${balanceRows || '<tr><td colspan="4">暂无可核验的年度序列。</td></tr>'}</tbody></table></div></section><section class="supply-timeline-detail"><span>主要进口市场</span><div class="supply-detail-scroll"><table><thead><tr><th>市场</th><th>市场年度</th><th>进口量</th><th>同比</th><th>消费量</th><th>期末库存</th></tr></thead><tbody>${importRows || '<tr><td colspan="6">暂无可核验的进口需求序列。</td></tr>'}</tbody></table></div></section><section class="supply-timeline-detail supply-timeline-source"><span>来源与口径</span><p>${esc(first(payload.update_message, "官方来源状态待核验"))}</p><div class="supply-source-links">${officialLinks}${usda.url ? `<a href="${esc(usda.url)}" target="_blank" rel="noopener noreferrer">${esc(first(usda.name, "USDA PSD"))} ↗</a>` : ""}<a href="/supply-demand">查看完整24个月趋势与口径说明 →</a></div><small class="timeline-ai-notice">环比、同比及历史比较由页面按所列官方数据序列自动计算，非来源方原话或官方结论，不代表任何来源方官方立场，也不构成投资建议；请自行核验。</small></section>`;
+  }
+
   function pct(value) {
     const parsed = Number(String(value == null ? "" : value).replace("%", ""));
     if (!Number.isFinite(parsed)) return "--";
@@ -464,7 +538,7 @@
       const detail = countries.length ? countries.map((item) => `${first(item.name, "来源")}：${first(item.status_message, item.status || "已检查")}`).join("；") : `数据更新：${first(data.supply.generated_at, "待核验")}`;
       events.push({ type: "supply", category: "供需更新", title: "官方供需资料检查", summary, detail,
         evidence: countries.map((item) => first(item.name, "官方来源")), source: "MPOB · GAPKI · USDA",
-        time: data.supply.generated_at || data.supply.checked_at || data.supply.updated_at, scope: "P · Y · OI", impact: "中", nextCheck: "按官方发布周期复查" });
+        time: data.supply.generated_at || data.supply.checked_at || data.supply.updated_at, scope: "P · Y · OI", impact: "中", nextCheck: "按官方发布周期复查", supplyData: data.supply });
     }
     return events.sort((a, b) => (timestamp(eventTime(b)) || 0) - (timestamp(eventTime(a)) || 0));
   }
@@ -489,7 +563,7 @@
             <span class="timeline-toggle" aria-hidden="true">展开</span>
           </button>
           <div id="${detailId}" class="timeline-detail">
-            ${item.isPublicResearch ? researchDetailHtml(item) : item.type === "weather" && item.weatherAnalysis ? weatherDetailHtml(item) : `${item.detailSummary ? `<section class="timeline-detail-summary"><span>事件详情</span><p>${esc(item.detailSummary)}</p><small class="timeline-ai-notice">${esc(item.aiNotice)}</small></section>` : ""}<section><span>影响研判</span><p>${esc(item.detail)}</p>${item.aiNotice ? `<small class="timeline-ai-notice">${esc(item.aiNotice)}</small>` : ""}</section><section><span>关键证据</span>${evidence.length ? `<ul>${evidence.map((entry) => `<li>${esc(entry)}</li>`).join("")}</ul>` : "<p>本轮没有新增可核验证据。</p>"}</section><section><span>下一步检查</span><p>${esc(first(item.nextCheck, "等待下一轮自动检查"))}</p>${item.url ? `<a href="${esc(item.url)}" target="_blank" rel="noopener noreferrer">${item.type === "report" ? "查看原始研报" : "查看直接来源"}</a>` : ["weather", "policy", "industry", "macro"].includes(item.type) ? '<small class="timeline-source-note">未提供可直接打开的原文链接；本页仅展示已获取内容的整理摘要。</small>' : ""}</section>`}
+            ${item.isPublicResearch ? researchDetailHtml(item) : item.type === "weather" && item.weatherAnalysis ? weatherDetailHtml(item) : item.type === "supply" ? supplyDetailHtml(item) : `${item.detailSummary ? `<section class="timeline-detail-summary"><span>事件详情</span><p>${esc(item.detailSummary)}</p><small class="timeline-ai-notice">${esc(item.aiNotice)}</small></section>` : ""}<section><span>影响研判</span><p>${esc(item.detail)}</p>${item.aiNotice ? `<small class="timeline-ai-notice">${esc(item.aiNotice)}</small>` : ""}</section><section><span>关键证据</span>${evidence.length ? `<ul>${evidence.map((entry) => `<li>${esc(entry)}</li>`).join("")}</ul>` : "<p>本轮没有新增可核验证据。</p>"}</section><section><span>下一步检查</span><p>${esc(first(item.nextCheck, "等待下一轮自动检查"))}</p>${item.url ? `<a href="${esc(item.url)}" target="_blank" rel="noopener noreferrer">${item.type === "report" ? "查看原始研报" : "查看直接来源"}</a>` : ["weather", "policy", "industry", "macro"].includes(item.type) ? '<small class="timeline-source-note">未提供可直接打开的原文链接；本页仅展示已获取内容的整理摘要。</small>' : ""}</section>`}
           </div>
         </div>
       </article>`;

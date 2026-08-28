@@ -238,6 +238,21 @@ h1 { margin: 0; font: 600 clamp(30px, 3.3vw, 42px)/1.04 Georgia, "Songti SC", se
 .timeline-ai-notice, .timeline-source-note { display: block; margin-top: 8px; color: #70867a; font-size: 8px; line-height: 1.55; }
 .timeline-detail a { display: inline-block; margin-top: 8px; color: var(--green); font-size: 9px; text-decoration: none; }.timeline-detail a:hover { text-decoration: underline; }
 .timeline-detail .research-reading-detail, .timeline-detail .research-recommendation, .research-source-summary { grid-column: 1 / -1; }
+.timeline-detail .supply-timeline-detail { grid-column: 1 / -1; border-top: 1px solid var(--line); border-left: 0; }
+.timeline-detail .supply-timeline-detail:first-child { border-top: 0; }
+.supply-detail-scroll { overflow-x: auto; margin-top: 9px; border: 1px solid var(--line); border-radius: 5px; }
+.supply-detail-scroll table { width: 100%; min-width: 720px; border-collapse: collapse; font-size: 9px; }
+.supply-detail-scroll th, .supply-detail-scroll td { padding: 8px 9px; border-bottom: 1px solid var(--line); color: #aebfb5; text-align: right; white-space: nowrap; }
+.supply-detail-scroll tr:last-child th, .supply-detail-scroll tr:last-child td { border-bottom: 0; }
+.supply-detail-scroll thead th { background: rgba(213,173,103,.07); color: #86998d; font-size: 8px; font-weight: 700; letter-spacing: .04em; }
+.supply-detail-scroll th:first-child, .supply-detail-scroll td:first-child { position: sticky; left: 0; z-index: 1; background: #0a1b15; text-align: left; }
+.supply-detail-scroll tbody th { color: #d5dfd8; }
+.supply-detail-scroll tbody th small, .supply-detail-scroll td small, .supply-detail-scroll td span { display: block; margin-top: 3px; color: #71867a; font-size: 8px; font-weight: 500; }
+.supply-detail-scroll td span b { margin-left: 5px; color: #aebfb5; }
+.supply-detail-scroll .is-up { color: var(--red); }.supply-detail-scroll .is-down { color: var(--green); }.supply-detail-scroll .is-flat, .supply-detail-scroll .is-missing { color: var(--muted); }
+.supply-timeline-source p { color: #aebfb5; }
+.supply-source-links { display: flex; flex-wrap: wrap; gap: 7px 12px; margin-top: 7px; }
+.timeline-detail .supply-source-links a { margin-top: 0; }
 .research-section-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; margin-top: 8px; border: 1px solid var(--line); border-radius: 6px; }
 .research-section-grid article { min-width: 0; padding: 10px 12px; }.research-section-grid article + article { border-left: 1px solid var(--line); }
 .research-section-grid article > span { color: var(--gold); font-size: 8px; font-weight: 800; letter-spacing: .1em; }
