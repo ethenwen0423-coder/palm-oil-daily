@@ -483,6 +483,11 @@ def scan_signals(site_root: Path, data_root: Path, state: dict[str, Any], model,
             part["variety"] = variety
             raw_parts.append(part)
         raw = pd.concat(raw_parts, ignore_index=True).sort_values(["date", "contract"])
+        # This runtime makes only the latest completed-close decision. A bounded
+        # recent window is sufficient for MA20/MA6/RSI14/ATR14 and avoids
+        # treating dormant far-month prints from the distant past as a current
+        # main-contract rollover.
+        raw = raw.loc[raw.date.ge(raw.date.max() - pd.Timedelta(days=260))].copy()
         try:
             active = model.build_lagged_main_schedule(raw)
             prepared = model.prepare_contract_local_main(active, raw)
@@ -607,6 +612,7 @@ def scan_signals(site_root: Path, data_root: Path, state: dict[str, Any], model,
         "as_of": max(signal_dates).isoformat(), "completed_bar": True,
         "model_version": MODEL_VERSION,
         "source": "AKShare futures_zh_daily_sina actual PYYMM; T-1 volume selection",
+        "indicator_history_calendar_days": 260,
         "signals": signals,
     }, skipped, audit
 

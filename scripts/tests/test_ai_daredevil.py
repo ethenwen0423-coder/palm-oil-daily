@@ -61,6 +61,7 @@ class AiDaredevilTests(unittest.TestCase):
         source = (ROOT / "server" / "run_ai_daredevil.py").read_text(encoding="utf-8")
         self.assertIn("urlopen(request, timeout=15)", source)
         self.assertIn("ThreadPoolExecutor", source)
+        self.assertIn("pd.Timedelta(days=260)", source)
 
     def test_installer_has_exact_session_open_and_hourly_schedule(self):
         installer = (ROOT / "server" / "install_automation.sh").read_text(encoding="utf-8")
