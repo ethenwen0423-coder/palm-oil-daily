@@ -21,7 +21,7 @@ class AiDaredevilTests(unittest.TestCase):
     def test_static_page_exposes_required_fund_sections_and_risk_notice(self):
         html = (ROOT / "ai-daredevil.html").read_text(encoding="utf-8")
         script = (ROOT / "assets" / "ai-daredevil.js").read_text(encoding="utf-8")
-        for label in ("AI敢死队", "当前持仓", "今日动作", "下一步指令", "未执行信号", "净值曲线", "全品种收盘扫描"):
+        for label in ("AI敢死队", "当前持仓", "今日动作", "下一步指令", "未执行信号", "净值曲线", "策略池全量收盘扫描"):
             self.assertIn(label, html)
         self.assertIn("不构成投资建议", html)
         self.assertIn('const API = "/api/ai-daredevil"', script)
