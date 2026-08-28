@@ -110,7 +110,7 @@ DATASET_RULES = {
     "/api/assistant/watch": {
         "label": "5分钟市场扫描",
         "stale_after_seconds": 60 * 12,
-        "timestamp_fields": ("generated_at",),
+        "timestamp_fields": ("events_updated_at", "generated_at"),
     },
     "/api/htfc/tianji": {
         "label": "机构资讯数据",

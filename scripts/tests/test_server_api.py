@@ -41,6 +41,12 @@ class ServerApiStatusTests(unittest.TestCase):
         )
         self.assertEqual(API.ROUTES["/api/review/latest"], "review/latest_review.json")
 
+    def test_market_watch_freshness_uses_event_scan_during_closed_market(self):
+        self.assertEqual(
+            API.DATASET_RULES["/api/assistant/watch"]["timestamp_fields"],
+            ("events_updated_at", "generated_at"),
+        )
+
     def test_server_update_runner_validates_all_mutable_payloads(self):
         runner = (ROOT / "server" / "update-site.sh").read_text(encoding="utf-8")
         for path in (
