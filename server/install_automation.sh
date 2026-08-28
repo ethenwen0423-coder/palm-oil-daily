@@ -351,9 +351,9 @@ write_service \
   "run_htfc_tianji.py"
 write_timer \
   "$temporary_root/palm-oil-htfc-tianji.timer" \
-  "Refresh research sources once with the weekday morning report" \
+  "Scan institution and public research sources every five minutes" \
   "palm-oil-htfc-tianji.service" \
-  "Mon..Fri *-*-* 06:30:00 Asia/Shanghai" \
+  "*-*-* *:0/5:00" \
   "30s"
 
 systemd-analyze verify \

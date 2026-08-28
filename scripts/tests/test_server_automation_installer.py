@@ -42,7 +42,7 @@ class ServerAutomationInstallerTests(unittest.TestCase):
         self.assertIn('grep -Eq \'^(export[[:space:]]+)?HTFC_API_KEY=.+$\'', script)
         self.assertIn('grep -Eq \'^(export[[:space:]]+)?HTFC_BASE_URL=.+$\'', script)
         self.assertIn("systemctl disable --now palm-oil-htfc-tianji.timer", script)
-        self.assertIn("Refresh research sources once with the weekday morning report", script)
+        self.assertIn("Scan institution and public research sources every five minutes", script)
         self.assertNotIn('"*-*-* *:04/15:00"', script)
         self.assertIn("systemctl enable --now palm-oil-supply-demand.timer", script)
         self.assertIn("systemctl start palm-oil-supply-demand.service", script)

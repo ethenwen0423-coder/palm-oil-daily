@@ -82,7 +82,10 @@ degraded, forbidden or unavailable independently; a slow or unauthorized news
 source cannot delay quotes. It publishes only traceable price/event evidence to
 `/api/assistant/watch`; the official-source check
 retries hourly until its daily success marker exists, report generation every
-twenty minutes, and prediction review every fifteen minutes. The AI and report
+twenty minutes, prediction review every fifteen minutes, and the independent
+institution/public research recommendation feed every five minutes. A failure
+of either research source does not block the other source; when no current
+valid candidates are available, the last valid snapshot is retained. The AI and report
 timers are installed but deliberately left disabled until a real unattended
 backend generation and a structured report-draft acceptance both pass.
 

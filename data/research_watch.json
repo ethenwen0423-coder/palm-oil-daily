@@ -3,7 +3,7 @@
   "status": "ready",
   "report_date": "2026-08-27",
   "generated_at": "2026-08-27T22:31:46+08:00",
-  "refresh_policy": "独立机构研报采集兜底；每日首次发现当日研报后冻结",
+  "refresh_policy": "每5分钟独立扫描机构研报与公开研报；按质量重新择优",
   "candidate_count": 70,
   "candidate_source_counts": {
     "institution-report-skill": 50,

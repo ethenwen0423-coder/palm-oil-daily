@@ -91,7 +91,7 @@ class ResearchWatchTests(unittest.TestCase):
         self.assertNotIn("source_priority", institution)
         self.assertNotIn("source_priority", public)
 
-    def test_preserves_first_ready_snapshot_for_the_day(self):
+    def test_rescans_and_replaces_same_day_snapshot(self):
         now = datetime(2026, 8, 27, 9, 5, tzinfo=SHANGHAI)
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -100,7 +100,9 @@ class ResearchWatchTests(unittest.TestCase):
             existing = root / "existing.json"
             existing.write_text(json.dumps({"schema_version": 3, "status": "ready", "report_date": "2026-08-27", "items": [{"id": "frozen"}]}), encoding="utf-8")
             payload = MODULE.build(source, existing, now)
-        self.assertEqual(payload["items"], [{"id": "frozen"}])
+        self.assertNotEqual(payload["items"], [{"id": "frozen"}])
+        self.assertEqual(payload["report_date"], "2026-08-27")
+        self.assertEqual(payload["refresh_policy"], "每5分钟独立扫描机构研报与公开研报；按质量重新择优")
 
 
 if __name__ == "__main__":

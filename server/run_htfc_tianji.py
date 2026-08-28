@@ -7,6 +7,7 @@ import argparse
 import importlib.util
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -40,56 +41,79 @@ def main() -> int:
         with tempfile.TemporaryDirectory(prefix="server-htfc-tianji.") as temporary:
             output_root = Path(temporary)
             output = output_root / "htfc_tianji.json"
-            result = subprocess.run(
-                [
-                    sys.executable,
-                    str(site_root / "scripts" / "update_htfc_tianji_data.py"),
-                    "--output",
-                    str(output),
-                    "--timeout",
-                    str(args.timeout),
-                ],
-                cwd=site_root,
-                env={**os.environ, "PYTHONUNBUFFERED": "1"},
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True,
-                timeout=max(args.timeout * 8, 120),
-                check=False,
-            )
-            if result.returncode != 0 or not output.is_file():
-                raise RuntimeError("Tianji collector did not produce a dataset")
-            payload = json.loads(output.read_text(encoding="utf-8"))
-            if not payload.get("available_modules"):
-                raise RuntimeError("no authorized Tianji module returned usable data")
+            htfc_fresh = False
+            payload: dict[str, object] = {}
+            try:
+                result = subprocess.run(
+                    [
+                        sys.executable,
+                        str(site_root / "scripts" / "update_htfc_tianji_data.py"),
+                        "--output",
+                        str(output),
+                        "--timeout",
+                        str(args.timeout),
+                    ],
+                    cwd=site_root,
+                    env={**os.environ, "PYTHONUNBUFFERED": "1"},
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    text=True,
+                    timeout=max(args.timeout * 8, 120),
+                    check=False,
+                )
+                if result.returncode == 0 and output.is_file():
+                    payload = json.loads(output.read_text(encoding="utf-8"))
+                    htfc_fresh = bool(payload.get("available_modules"))
+            except (subprocess.TimeoutExpired, json.JSONDecodeError):
+                htfc_fresh = False
+            if not htfc_fresh:
+                existing_htfc = live_data_root / "htfc_tianji.json"
+                if existing_htfc.is_file():
+                    try:
+                        shutil.copy2(existing_htfc, output)
+                        payload = json.loads(output.read_text(encoding="utf-8"))
+                    except json.JSONDecodeError:
+                        payload = {}
+                if not payload:
+                    payload = {
+                        "schema_version": 1,
+                        "status": "unavailable",
+                        "available_modules": [],
+                    }
+                    output.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
             public_search_inputs = []
+            public_search_count = 0
             if os.environ.get("IWENCAI_API_KEY", "").strip():
                 for name, query in (
                     ("oil", "棕榈油 豆油 菜油 油脂油料 研报"),
                     ("cross", "原油 宏观 农产品 研报"),
                 ):
                     public_output = output_root / f"public_research_{name}.json"
-                    public_result = subprocess.run(
-                        [
-                            sys.executable,
-                            str(site_root / "scripts" / "update_public_research_search.py"),
-                            "--query",
-                            query,
-                            "--output",
-                            str(public_output),
-                            "--timeout",
-                            str(args.timeout),
-                        ],
-                        cwd=site_root,
-                        env={**os.environ, "PYTHONUNBUFFERED": "1"},
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.STDOUT,
-                        text=True,
-                        timeout=max(args.timeout * 2, 90),
-                        check=False,
-                    )
+                    try:
+                        public_result = subprocess.run(
+                            [
+                                sys.executable,
+                                str(site_root / "scripts" / "update_public_research_search.py"),
+                                "--query",
+                                query,
+                                "--output",
+                                str(public_output),
+                                "--timeout",
+                                str(args.timeout),
+                            ],
+                            cwd=site_root,
+                            env={**os.environ, "PYTHONUNBUFFERED": "1"},
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.STDOUT,
+                            text=True,
+                            timeout=max(args.timeout * 2, 90),
+                            check=False,
+                        )
+                    except subprocess.TimeoutExpired:
+                        continue
                     if public_result.returncode == 0 and public_output.is_file():
                         public_search_inputs.extend(["--public-search", str(public_output)])
+                        public_search_count += 1
             research_output = output_root / "research_watch.json"
             research_result = subprocess.run(
                 [
@@ -117,6 +141,8 @@ def main() -> int:
             "status": payload.get("status"),
             "generated_at": payload.get("generated_at"),
             "available_modules": payload.get("available_modules"),
+            "htfc_fresh": htfc_fresh,
+            "public_search_count": public_search_count,
             "copied": copied.get("copied", []),
         }, ensure_ascii=False, sort_keys=True))
         return 0

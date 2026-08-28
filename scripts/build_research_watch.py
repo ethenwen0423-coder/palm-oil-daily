@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build a once-daily, deduplicated public research recommendation feed."""
+"""Build a frequently rescanned, deduplicated research recommendation feed."""
 
 from __future__ import annotations
 
@@ -207,8 +207,6 @@ def select(payload: dict[str, Any], report_date: date, public_paths: list[Path] 
 def build(source: Path, existing: Path | None, now: datetime, public_paths: list[Path] | None = None) -> dict[str, Any]:
     today = now.astimezone(SHANGHAI).date()
     previous = load_object(existing) if existing and existing.is_file() else {}
-    if previous.get("schema_version") == 3 and previous.get("status") == "ready" and previous.get("report_date") == today.isoformat():
-        return previous
     payload = load_object(source)
     items, candidate_count, candidate_source_counts, source_counts = select(payload, today, public_paths)
     if any(str(item.get("published_at", "")).startswith(today.isoformat()) for item in items):
@@ -219,7 +217,7 @@ def build(source: Path, existing: Path | None, now: datetime, public_paths: list
             "status": "ready",
             "report_date": today.isoformat(),
             "generated_at": now.astimezone(SHANGHAI).isoformat(timespec="seconds"),
-            "refresh_policy": "独立机构研报采集兜底；每日首次发现当日研报后冻结",
+            "refresh_policy": "每5分钟独立扫描机构研报与公开研报；按质量重新择优",
             "candidate_count": candidate_count,
             "candidate_source_counts": candidate_source_counts,
             "deduplicated_count": len(items),
@@ -236,7 +234,7 @@ def build(source: Path, existing: Path | None, now: datetime, public_paths: list
         "status": "pending",
         "report_date": None,
         "generated_at": now.astimezone(SHANGHAI).isoformat(timespec="seconds"),
-        "refresh_policy": "独立机构研报采集兜底；每日首次发现当日研报后冻结",
+        "refresh_policy": "每5分钟独立扫描机构研报与公开研报；按质量重新择优",
         "items": [],
         "notice": "等待当日公开晨报发布。",
     }
