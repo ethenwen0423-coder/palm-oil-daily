@@ -38,6 +38,20 @@
   "today_trades": [],
   "pending_orders": [],
   "skipped_signals": [],
+  "scan_audit": {
+    "generated_at": null,
+    "as_of": null,
+    "coverage_status": "not_run",
+    "universe_count": 22,
+    "discovered_count": 0,
+    "evaluated_count": 0,
+    "candidate_count": 0,
+    "blocked_candidate_count": 0,
+    "order_count": 0,
+    "missing_varieties": [],
+    "signal_candidates": [],
+    "issues": []
+  },
   "refresh_schedule": [
     {"label": "日盘开盘", "time": "09:00", "purpose": "获取真实开盘价并处理待执行订单"},
     {"label": "午盘开盘", "time": "13:30", "purpose": "补核成交与持仓盯市"},

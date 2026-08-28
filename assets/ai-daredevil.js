@@ -106,6 +106,31 @@
     }).join("");
   }
 
+  function renderScanAudit(data) {
+    const scan = data.scan_audit || {};
+    const universe = Number(scan.universe_count || 0);
+    const discovered = Number(scan.discovered_count || 0);
+    const evaluated = Number(scan.evaluated_count || 0);
+    const candidates = Number(scan.candidate_count || 0);
+    const orders = Number(scan.order_count || 0);
+    el("scan-universe").textContent = universe ? `${universe} 个` : "--";
+    el("scan-discovered").textContent = universe ? `${discovered} / ${universe}` : "--";
+    el("scan-evaluated").textContent = universe ? `${evaluated} / ${universe}` : "--";
+    el("scan-candidates").textContent = scan.generated_at ? `${candidates} 个` : "--";
+    el("scan-orders").textContent = scan.generated_at ? `${orders} 条` : "--";
+    const complete = scan.coverage_status === "complete";
+    el("scan-status").textContent = scan.generated_at ? `${complete ? "完整" : "部分"} · ${scan.as_of || "日期待核验"}` : "尚未扫描";
+    if (!scan.generated_at) {
+      el("scan-detail").textContent = "等待完整日线扫描记录；未扫描不等于没有信号。";
+      return;
+    }
+    const missing = Array.isArray(scan.missing_varieties) ? scan.missing_varieties : [];
+    const blocked = Number(scan.blocked_candidate_count || 0);
+    const issueText = complete ? "所有策略品种均取得真实合约并完成指标计算" :
+      `${universe - evaluated} 个品种未完成指标计算${missing.length ? `；未发现合约：${missing.join("、")}` : ""}`;
+    el("scan-detail").textContent = `${issueText}；原始信号 ${candidates} 个，其中 ${blocked} 个因准入或数据约束未转为订单。扫描时间 ${formatTime(scan.generated_at)}。`;
+  }
+
   function renderActivity(containerId, emptyId, items, kind) {
     const list = Array.isArray(items) ? items : [];
     el(emptyId).hidden = list.length > 0;
@@ -131,7 +156,7 @@
     el("source-state").textContent = transport;
     el("data-state").textContent = data.status_label || "状态待核验";
     el("data-state").className = `data-state is-${data.status || "degraded"}`;
-    renderMetrics(data); renderChart(data.equity_curve); renderPositions(data);
+    renderMetrics(data); renderScanAudit(data); renderChart(data.equity_curve); renderPositions(data);
     const trades = data.today_trades || []; const pending = data.pending_orders || [];
     el("trade-count").textContent = `${trades.length} 条`; el("pending-count").textContent = `${pending.length} 条`;
     renderActivity("trades-list", "trades-empty", trades, "trade");

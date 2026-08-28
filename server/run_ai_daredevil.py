@@ -32,6 +32,7 @@ MODEL_VERSION = "palm-oil-v2-real-contract-indicators-carry5-main-contract"
 INITIAL_CAPITAL = 1_000_000.0
 FUND_FILE = "ai_daredevil.json"
 READY_MARKER = ".server-ai-daredevil-ready.json"
+SCAN_AUDIT_FILE = "latest_scan_audit.json"
 CONTRACT_RE = re.compile(r"^[A-Z]{1,3}[0-9]{3,4}$")
 
 # Multiplier is a contract specification. Margin is deliberately a conservative
@@ -337,6 +338,16 @@ def current_contracts(data_root: Path) -> dict[str, list[str]]:
                 values.append(contract)
         if values:
             output[variety] = values
+    exchange = read_json(data_root / "exchange_futures.json", {})
+    for row in exchange.get("contracts", []) if isinstance(exchange, dict) else []:
+        contract = normalized_contract(row.get("symbol"))
+        if not contract:
+            continue
+        variety_match = re.match(r"[A-Z]+", contract)
+        variety = variety_match.group(0) if variety_match else ""
+        if variety in PRODUCTS:
+            output.setdefault(variety, []).append(contract)
+    output = {variety: sorted(set(values)) for variety, values in output.items()}
     missing = [variety for variety in PRODUCTS if variety not in output]
     if missing:
         try:
@@ -406,7 +417,7 @@ def fee_rate(variety: str) -> float:
     return configured if configured is not None and configured >= 0 else 0.0004
 
 
-def scan_signals(site_root: Path, data_root: Path, state: dict[str, Any], model) -> tuple[dict[str, Any] | None, list[dict[str, Any]]]:
+def scan_signals(site_root: Path, data_root: Path, state: dict[str, Any], model, generated_at: datetime | None = None) -> tuple[dict[str, Any] | None, list[dict[str, Any]], dict[str, Any]]:
     import pandas as pd
     contracts_by_variety = current_contracts(data_root)
     signals = []
@@ -414,7 +425,19 @@ def scan_signals(site_root: Path, data_root: Path, state: dict[str, Any], model)
     signal_dates = []
     strategy_path = Path(state["_strategy_path"])
     strategy = read_json(strategy_path, {"last_close": {}, "positions": {}, "blocked": {}})
-    for variety, contracts in contracts_by_variety.items():
+    audit = {
+        "generated_at": (generated_at or now_shanghai()).isoformat(timespec="seconds"),
+        "universe_count": len(PRODUCTS), "discovered_count": len(contracts_by_variety),
+        "evaluated_count": 0, "candidate_count": 0, "order_count": 0,
+        "blocked_candidate_count": 0,
+        "missing_varieties": [variety for variety in PRODUCTS if variety not in contracts_by_variety],
+        "signal_candidates": [],
+    }
+    for variety in PRODUCTS:
+        contracts = contracts_by_variety.get(variety, [])
+        if not contracts:
+            skipped.append({"variety": variety, "reason": "未发现可核验的真实交割月合约"})
+            continue
         frames = {}
         for contract in contracts:
             try:
@@ -453,6 +476,7 @@ def scan_signals(site_root: Path, data_root: Path, state: dict[str, Any], model)
         signal_atr = float(last.atr)
         signal_date = last.date.date()
         signal_dates.append(signal_date)
+        audit["evaluated_count"] += 1
         if strategy.setdefault("last_close", {}).get(variety) == signal_date.isoformat():
             continue
         position = state.get("positions", {}).get(variety)
@@ -504,7 +528,14 @@ def scan_signals(site_root: Path, data_root: Path, state: dict[str, Any], model)
                 blocked = 0
             if direction and direction != blocked:
                 score = allocation_score(variety)
+                audit["candidate_count"] += 1
+                audit["signal_candidates"].append({
+                    "variety": variety, "name": PRODUCTS[variety]["name"], "contract": contract,
+                    "action": "ENTER_LONG" if direction == 1 else "ENTER_SHORT",
+                    "signal_date": signal_date.isoformat(), "eligible": score is not None,
+                })
                 if score is None:
+                    audit["blocked_candidate_count"] += 1
                     skipped.append({"variety": variety, "contract": contract, "reason": "缺少审计后的样本外配置评分"})
                 else:
                     action = "ENTER_LONG" if direction == 1 else "ENTER_SHORT"
@@ -527,14 +558,18 @@ def scan_signals(site_root: Path, data_root: Path, state: dict[str, Any], model)
             signals.append(item)
         strategy["last_close"][variety] = signal_date.isoformat()
     atomic_json(strategy_path, strategy)
+    audit["as_of"] = max(signal_dates).isoformat() if signal_dates else None
+    audit["order_count"] = len(signals)
+    audit["coverage_status"] = "complete" if audit["evaluated_count"] == audit["universe_count"] else "partial"
+    audit["issues"] = skipped
     if not signal_dates:
-        return None, skipped
+        return None, skipped, audit
     return {
         "as_of": max(signal_dates).isoformat(), "completed_bar": True,
         "model_version": MODEL_VERSION,
         "source": "AKShare futures_zh_daily_sina actual PYYMM; T-1 volume selection",
         "signals": signals,
-    }, skipped
+    }, skipped, audit
 
 
 def refresh_reason(now: datetime, requested: str | None) -> str:
@@ -613,7 +648,7 @@ def next_refresh(now: datetime) -> str:
 
 
 def public_snapshot(state_dir: Path, state: dict[str, Any], sources: list[dict[str, Any]], reason: str,
-                    skipped: list[dict[str, Any]], now: datetime) -> dict[str, Any]:
+                    skipped: list[dict[str, Any]], scan_audit: dict[str, Any], now: datetime) -> dict[str, Any]:
     curve = equity_curve(state_dir, state, now.date().isoformat())
     annual, sharpe = performance(curve)
     positions = []
@@ -658,6 +693,7 @@ def public_snapshot(state_dir: Path, state: dict[str, Any], sources: list[dict[s
                   "execution": "完整日线确认，下一交易日开盘执行"},
         "summary": summary, "equity_curve": curve, "positions": positions,
         "today_trades": events, "pending_orders": pending, "skipped_signals": skipped,
+        "scan_audit": scan_audit,
         "refresh_schedule": [
             {"label": "日盘开盘", "time": "09:00", "purpose": "获取真实开盘价并处理待执行订单"},
             {"label": "午盘开盘", "time": "13:30", "purpose": "补核成交与持仓盯市"},
@@ -696,10 +732,17 @@ def main() -> int:
         init_ledger(ledger, state_dir)
         state = ledger.command_status(SimpleNamespace(state_dir=state_dir))
         state["_strategy_path"] = str(state_dir / "strategy_state.json")
-        skipped = []
+        scan_audit_path = state_dir / SCAN_AUDIT_FILE
+        scan_audit = read_json(scan_audit_path, {})
+        skipped = list(scan_audit.get("issues", [])) if isinstance(scan_audit, dict) else []
         automatic_close_scan = now.weekday() < 5 and time(15, 20) <= now.time().replace(tzinfo=None) <= time(15, 50)
-        if args.close_scan or automatic_close_scan:
-            snapshot, skipped = scan_signals(site_root, live_data_root, state, model)
+        catch_up_window = now.weekday() < 5 and time(15, 20) <= now.time().replace(tzinfo=None) <= time(20, 55)
+        last_scan_day = str(scan_audit.get("generated_at", ""))[:10] if isinstance(scan_audit, dict) else ""
+        catch_up_scan = not args.now and catch_up_window and last_scan_day != now.date().isoformat()
+        should_scan = args.close_scan or automatic_close_scan or catch_up_scan
+        if should_scan:
+            snapshot, skipped, scan_audit = scan_signals(site_root, live_data_root, state, model, now)
+            atomic_json(scan_audit_path, scan_audit)
             if snapshot:
                 signal_path = state_dir / "latest_signals.json"
                 atomic_json(signal_path, snapshot)
@@ -765,11 +808,11 @@ def main() -> int:
             atomic_json(mark_path, marks)
             ledger.command_mark(SimpleNamespace(state_dir=state_dir, prices=mark_path))
         state = ledger.command_status(SimpleNamespace(state_dir=state_dir))
-        payload = public_snapshot(state_dir, state, sources, refresh_reason(now, args.reason), skipped, now)
+        payload = public_snapshot(state_dir, state, sources, refresh_reason(now, args.reason), skipped, scan_audit, now)
         atomic_json(live_data_root / FUND_FILE, payload)
         atomic_json(live_data_root / READY_MARKER, {
             "schema_version": 1, "generated_at": now.isoformat(timespec="seconds"),
-            "session": "close-scan" if (args.close_scan or automatic_close_scan) else "hourly", "owner": "server-ai-daredevil",
+            "session": "close-scan" if should_scan else "hourly", "owner": "server-ai-daredevil",
         })
     print(json.dumps({"status": payload["status"], "generated_at": payload["generated_at"],
                       "positions": len(payload["positions"]), "pending": len(payload["pending_orders"]),

@@ -21,7 +21,7 @@ class AiDaredevilTests(unittest.TestCase):
     def test_static_page_exposes_required_fund_sections_and_risk_notice(self):
         html = (ROOT / "ai-daredevil.html").read_text(encoding="utf-8")
         script = (ROOT / "assets" / "ai-daredevil.js").read_text(encoding="utf-8")
-        for label in ("AI敢死队", "当前持仓", "今日动作", "下一步指令", "未执行信号", "净值曲线"):
+        for label in ("AI敢死队", "当前持仓", "今日动作", "下一步指令", "未执行信号", "净值曲线", "全品种收盘扫描"):
             self.assertIn(label, html)
         self.assertIn("不构成投资建议", html)
         self.assertIn('const API = "/api/ai-daredevil"', script)
@@ -78,11 +78,16 @@ class AiDaredevilTests(unittest.TestCase):
                  mock.patch.object(RUNTIME, "fetch_daily", side_effect=lambda contract: frames[contract]), \
                  mock.patch.object(RUNTIME, "next_trade_date", return_value=dates[-1].date()), \
                  mock.patch.object(model, "prepare_contract_local_main", wraps=model.prepare_contract_local_main) as formal:
-                snapshot, skipped = RUNTIME.scan_signals(ROOT, ROOT / "data", state, model)
+                snapshot, skipped, audit = RUNTIME.scan_signals(ROOT, ROOT / "data", state, model)
             self.assertTrue(formal.called)
-            self.assertEqual(skipped, [])
+            self.assertEqual(len(skipped), len(RUNTIME.PRODUCTS) - 1)
             self.assertEqual(snapshot["signals"][0]["contract"], "P2705")
             self.assertEqual(snapshot["signals"][0]["action"], "ENTER_LONG")
+            self.assertEqual(audit["universe_count"], len(RUNTIME.PRODUCTS))
+            self.assertEqual(audit["evaluated_count"], 1)
+            self.assertEqual(len(audit["missing_varieties"]), len(RUNTIME.PRODUCTS) - 1)
+            self.assertEqual(audit["candidate_count"], 1)
+            self.assertEqual(audit["order_count"], 1)
 
 
 if __name__ == "__main__":

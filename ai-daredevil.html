@@ -53,6 +53,21 @@
         <article class="metric-card"><span>可用资金</span><strong id="available-cash">¥--</strong><small id="gross-exposure">总敞口 --</small></article>
       </section>
 
+      <section class="panel scan-audit-panel" aria-labelledby="scan-audit-title">
+        <header class="panel-heading">
+          <div><span>Completed-close Audit</span><h2 id="scan-audit-title">全品种收盘扫描</h2></div>
+          <span id="scan-status" class="panel-count">尚未扫描</span>
+        </header>
+        <div class="scan-audit-grid">
+          <div class="scan-stat"><span>策略品种池</span><strong id="scan-universe">--</strong></div>
+          <div class="scan-stat"><span>已发现真实合约</span><strong id="scan-discovered">--</strong></div>
+          <div class="scan-stat"><span>指标计算成功</span><strong id="scan-evaluated">--</strong></div>
+          <div class="scan-stat"><span>原始模型信号</span><strong id="scan-candidates">--</strong></div>
+          <div class="scan-stat"><span>生成待执行订单</span><strong id="scan-orders">--</strong></div>
+        </div>
+        <p id="scan-detail" class="scan-detail">等待完整日线扫描记录；未扫描不等于没有信号。</p>
+      </section>
+
       <section class="dashboard-grid">
         <article class="panel equity-panel">
           <header class="panel-heading">
