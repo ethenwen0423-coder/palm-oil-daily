@@ -80,7 +80,16 @@ class MarketAssistantStaticTests(unittest.TestCase):
         self.assertIn("item.detail_summary", script)
         self.assertIn('class="timeline-detail-summary"', script)
         self.assertIn("未提供可直接打开的原文链接", script)
-        self.assertIn("AI 整理摘要 · 需自行核验", script)
+        self.assertIn("item.aiNotice", script)
+
+    def test_research_reports_show_original_links_and_untruncated_source_summary_notice(self):
+        script = (ROOT / "assets" / "market-assistant.js").read_text(encoding="utf-8")
+        builder = (ROOT / "scripts" / "build_research_watch.py").read_text(encoding="utf-8")
+        self.assertIn("查看原始研报", script)
+        self.assertIn('target="_blank" rel="noopener noreferrer"', script)
+        self.assertIn("未按字数截断", script)
+        self.assertIn("item.summary_notice", script)
+        self.assertNotIn('.strip()[:240]', builder)
 
     def test_home_page_links_to_assistant(self):
         html = (ROOT / "index.html").read_text(encoding="utf-8")

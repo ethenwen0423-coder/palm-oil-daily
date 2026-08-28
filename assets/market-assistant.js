@@ -361,6 +361,7 @@
     if (report) events.push({
       type: "report", category: "研究报告", title: first(report.headline || report.title, "最新研究报告"),
       summary: first(report.summary || report.subtitle, "研究报告已发布"), detail: "完整论证、数据出处与风险说明保留在 AI 报告正文中。",
+      aiNotice: "该报告摘要由AI基于报告正文生成，不代表任何来源方官方立场，也不构成投资建议；请自行核验。",
       evidence: [first(report.id || report.slug, "最新报告")], source: first(report.source, "Vinson Research"), time: eventTime(report),
       scope: "油脂研究", impact: "中", nextCheck: "下一次研究任务"
     });
@@ -368,10 +369,12 @@
       array(data.researchWatch.items).forEach((item) => events.push({
         type: "report", category: first(item.sector, "公开研报"), title: first(item.title, "公开研报"),
         summary: first(item.summary, "机构公开晨报已更新"),
-        detail: `推荐依据：${first(item.recommendation_reason, "与市场研究相关")}。${first(item.ai_notice, "AI质量评分不代表来源方官方立场，且不构成投资建议。")}`,
+        detail: `推荐依据：${first(item.recommendation_reason, "与市场研究相关")}。${first(item.ai_notice, "推荐分、筛选和推荐依据由AI基于所列来源字段生成，不代表任何来源方官方立场，也不构成投资建议；请自行核验。")}`,
+        aiNotice: first(item.summary_notice, item.ai_notice),
         evidence: [first(item.organization, "机构研究"), `推荐分 ${first(item.recommendation_score, "--")}`, ...array(item.topics)],
         source: first(item.source, "公开研报搜索"), time: item.published_at || data.researchWatch.generated_at,
-        scope: array(item.topics).join(" · ") || first(item.sector, "跨板块"), impact: "中", nextCheck: "下一交易日晨间", url: item.url
+        scope: array(item.topics).join(" · ") || first(item.sector, "跨板块"), impact: "中", nextCheck: "下一轮5分钟研报扫描", url: item.url,
+        isPublicResearch: true, sourceSummaryAvailable: item.summary_type !== "missing_source_content"
       }));
     }
     if (data.supply && !data.supply._error && Object.keys(data.supply).length) {
@@ -400,7 +403,7 @@
         <time class="timeline-time" datetime="${esc(item.time)}"><strong>${esc(fmtTime(item.time, false))}</strong><small>${esc(relativeAge(item.time))}</small></time>
         <div class="timeline-content">
           <button type="button" aria-expanded="false" aria-controls="${detailId}">
-            <span class="timeline-copy"><span class="timeline-title-row"><b class="timeline-category">${esc(item.category || labels[item.type] || item.type)}</b><h3>${esc(item.title)}</h3></span><p>${esc(item.summary)}</p>${item.aiNotice ? '<small class="timeline-ai-label">AI 整理摘要 · 需自行核验</small>' : ""}</span>
+            <span class="timeline-copy"><span class="timeline-title-row"><b class="timeline-category">${esc(item.category || labels[item.type] || item.type)}</b><h3>${esc(item.title)}</h3></span><p>${esc(item.summary)}</p>${item.aiNotice ? `<small class="timeline-ai-label">${esc(item.aiNotice)}</small>` : ""}</span>
             <span class="timeline-context"><span><small>影响合约</small><b>${esc(first(item.scope, "待核验"))}</b></span><span><small>来源</small><b>${esc(item.source)}</b></span><span><small>影响级别</small><b class="impact-${esc(item.impact || "低")}">${esc(first(item.impact, "低"))}</b></span></span>
             <span class="timeline-toggle" aria-hidden="true">展开</span>
           </button>
@@ -408,7 +411,7 @@
             ${item.detailSummary ? `<section class="timeline-detail-summary"><span>事件详情</span><p>${esc(item.detailSummary)}</p><small class="timeline-ai-notice">${esc(item.aiNotice)}</small></section>` : ""}
             <section><span>影响研判</span><p>${esc(item.detail)}</p></section>
             <section><span>关键证据</span>${evidence.length ? `<ul>${evidence.map((entry) => `<li>${esc(entry)}</li>`).join("")}</ul>` : "<p>本轮没有新增可核验证据。</p>"}</section>
-            <section><span>下一步检查</span><p>${esc(first(item.nextCheck, "等待下一轮自动检查"))}</p>${item.url ? `<a href="${esc(item.url)}" target="_blank" rel="noopener noreferrer">查看来源原文</a>` : item.type === "event" ? '<small class="timeline-source-note">未提供可直接打开的原文链接；本页仅展示已获取内容的整理摘要。</small>' : ""}</section>
+            <section><span>下一步检查</span><p>${esc(first(item.nextCheck, "等待下一轮自动检查"))}</p>${item.url ? `<a href="${esc(item.url)}" target="_blank" rel="noopener noreferrer">查看原始研报</a>` : item.isPublicResearch && item.sourceSummaryAvailable ? '<small class="timeline-source-note">来源未提供可直接打开的原始研报链接；以上摘要按来源接口返回内容完整展示，未按字数截断。</small>' : item.isPublicResearch ? '<small class="timeline-source-note">来源未提供可直接打开的原始研报链接或可核验摘要，本站不补写内容性结论。</small>' : item.type === "event" ? '<small class="timeline-source-note">未提供可直接打开的原文链接；本页仅展示已获取内容的整理摘要。</small>' : ""}</section>
           </div>
         </div>
       </article>`;

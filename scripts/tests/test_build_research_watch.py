@@ -71,6 +71,51 @@ class ResearchWatchTests(unittest.TestCase):
         self.assertEqual(result["candidate_source_counts"]["report-search"], 1)
         self.assertEqual(result["source_policy"], "机构研报 skill 与问财公开研报搜索来源平权；仅按质量评分择优；跨源标题去重")
 
+    def test_preserves_complete_summary_and_direct_source_link(self):
+        long_summary = "第一项关键信息包含库存与产量变化。" * 20 + "最后一项风险信息必须完整保留。"
+        institution = MODULE.normalize_item({
+            "id": "institution-long",
+            "title": "完整标题不应被固定字数截断" * 20,
+            "subclassCodeName": "棕榈油",
+            "publishDateTime": "2026-08-27 08:00:00",
+            "aiContent": long_summary,
+            "link_url": "https://example.test/original-report.pdf",
+        }, "油脂油料", "P")
+        public = MODULE.normalize_public_search_item({
+            "uid": "public-long",
+            "title": "公开研报",
+            "summary": long_summary,
+            "publish_date": "2026-08-27 07:30:00",
+            "url": "https://example.test/public-report",
+        })
+        self.assertEqual(institution["summary"], long_summary)
+        self.assertTrue(institution["summary"].endswith("最后一项风险信息必须完整保留。"))
+        self.assertEqual(institution["url"], "https://example.test/original-report.pdf")
+        self.assertEqual(public["summary"], long_summary)
+        self.assertEqual(public["url"], "https://example.test/public-report")
+        self.assertIn("保持原文完整展示", institution["summary_notice"])
+
+    def test_missing_link_uses_full_source_summary_without_fabricating_url(self):
+        item = MODULE.normalize_item({
+            "id": "institution-no-link",
+            "title": "机构晨报",
+            "subclassCodeName": "宏观",
+            "publishDateTime": "2026-08-27 08:00:00",
+            "brief": "核心信息一。核心信息二。风险信息三。",
+        }, "跨板块", "MACRO")
+        self.assertEqual(item["summary"], "核心信息一。核心信息二。风险信息三。")
+        self.assertEqual(item["summary_type"], "source_summary")
+        self.assertNotIn("url", item)
+
+    def test_ai_generated_recommendation_warning_is_complete(self):
+        report_date = datetime(2026, 8, 27, 8, 35, tzinfo=SHANGHAI).date()
+        selected, *_ = MODULE.select(source_payload(), report_date)
+        self.assertTrue(selected)
+        self.assertIn("AI基于所列来源字段生成", selected[0]["ai_notice"])
+        self.assertIn("不代表任何来源方官方立场", selected[0]["ai_notice"])
+        self.assertIn("不构成投资建议", selected[0]["ai_notice"])
+        self.assertIn("请自行核验", selected[0]["ai_notice"])
+
     def test_quality_score_not_source_decides_selection_order(self):
         report_date = datetime(2026, 8, 27, 8, 35, tzinfo=SHANGHAI).date()
         institution = MODULE.normalize_item(

@@ -26,6 +26,25 @@ def public_text(value: Any) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
+def source_url(row: dict[str, Any]) -> str:
+    """Return only a directly usable source URL; never fabricate one from an id."""
+    keys = (
+        "link_url", "linkUrl", "url", "source_url", "sourceUrl",
+        "pdf_url", "pdfUrl", "attachment_url", "attachmentUrl",
+    )
+    containers: list[dict[str, Any]] = [row]
+    for name in ("attachment", "extra", "resource"):
+        value = row.get(name)
+        if isinstance(value, dict):
+            containers.append(value)
+    for container in containers:
+        for key in keys:
+            value = str(container.get(key) or "").strip()
+            if re.match(r"^https?://", value, re.IGNORECASE):
+                return value
+    return ""
+
+
 def dedupe_key(item: dict[str, Any]) -> str:
     return re.sub(r"[^0-9a-z\u4e00-\u9fff]", "", str(item.get("title", "")).lower())
 
@@ -54,14 +73,24 @@ def published_date(row: dict[str, Any]) -> date | None:
 
 
 def normalize_item(row: dict[str, Any], sector: str, product: str) -> dict[str, Any]:
-    title = public_text(row.get("title") or "公开研报").strip()[:120]
-    summary = public_text(row.get("aiContent") or row.get("brief") or "").strip()[:240]
+    title = public_text(row.get("title") or "公开研报").strip()
+    ai_summary = public_text(row.get("aiContent") or "").strip()
+    source_summary = public_text(row.get("brief") or "").strip()
+    summary = ai_summary or source_summary
     published = str(row.get("publishDateTime") or row.get("showDate") or "时间待核验")
     topics = [part.strip() for part in str(row.get("subclassCodeName") or product).split(",") if part.strip()]
-    return {
+    item = {
         "id": str(row.get("id") or f"{product}:{published}:{title}"),
         "title": title,
-        "summary": summary or "机构公开晨报已更新，请结合原文与市场数据核验。",
+        "summary": summary or "来源未提供可核验的摘要内容，暂不生成内容性结论。",
+        "summary_type": "source_ai_summary" if ai_summary else "source_summary" if source_summary else "missing_source_content",
+        "summary_notice": (
+            "该摘要为研报服务接口返回的AI内容，保持原文完整展示；不代表来源方官方立场，也不构成投资建议，请自行核验。"
+            if ai_summary else
+            "该摘要为研报服务接口返回的公开摘要，保持原文完整展示；请结合来源信息自行核验。"
+            if source_summary else
+            "AI基于来源字段生成信息缺失提示，不代表来源方官方立场，也不构成投资建议；请自行核验。"
+        ),
         "organization": public_text(row.get("author") or "机构研究"),
         "published_at": published,
         "sector": sector,
@@ -69,6 +98,10 @@ def normalize_item(row: dict[str, Any], sector: str, product: str) -> dict[str, 
         "source": "机构研报 skill",
         "source_channel": "institution-report-skill",
     }
+    url = source_url(row)
+    if url:
+        item["url"] = url
+    return item
 
 
 def public_search_rows(paths: list[Path]) -> list[dict[str, Any]]:
@@ -82,25 +115,35 @@ def public_search_rows(paths: list[Path]) -> list[dict[str, Any]]:
 
 
 def normalize_public_search_item(row: dict[str, Any]) -> dict[str, Any]:
-    title = public_text(row.get("title") or "公开研报").strip()[:120]
+    title = public_text(row.get("title") or "公开研报").strip()
     combined = f"{title} {row.get('summary') or ''}"
     oil_terms = ("棕榈油", "豆油", "菜油", "油脂", "油料", "大豆", "豆粕", "菜粕")
     sector = "油脂油料" if any(term in combined for term in oil_terms) else "跨板块"
     extra = row.get("extra") if isinstance(row.get("extra"), dict) else {}
     topics = extra.get("cat_names") if isinstance(extra.get("cat_names"), list) else []
     published = str(row.get("publish_date") or row.get("publish_time") or "时间待核验")
-    return {
+    summary = public_text(row.get("summary") or "").strip()
+    item = {
         "id": str(row.get("uid") or row.get("id") or f"public:{published}:{title}"),
         "title": title,
-        "summary": public_text(row.get("summary") or "公开研报搜索结果，请结合原文核验。").strip()[:240],
+        "summary": summary or "来源未提供可核验的摘要内容，请通过原始研报链接核验。",
+        "summary_type": "source_summary" if summary else "missing_source_content",
+        "summary_notice": (
+            "该摘要来自同花顺问财公开研报搜索结果，保持原文完整展示；请结合原始研报链接自行核验。"
+            if summary else
+            "AI基于来源字段生成信息缺失提示，不代表来源方官方立场，也不构成投资建议；请自行核验。"
+        ),
         "organization": public_text(extra.get("organization") or "公开研究机构"),
         "published_at": published,
         "sector": sector,
         "topics": [str(topic) for topic in topics[:4]],
         "source": "同花顺问财财经资讯搜索（研究报告）",
         "source_channel": "report-search",
-        "url": str(row.get("url") or ""),
     }
+    url = source_url(row)
+    if url:
+        item["url"] = url
+    return item
 
 
 def score_quality(item: dict[str, Any], report_date: date) -> tuple[int, list[str]]:
@@ -186,7 +229,7 @@ def select(payload: dict[str, Any], report_date: date, public_paths: list[Path] 
         score, factors = score_quality(item, report_date)
         item["recommendation_score"] = score
         item["recommendation_reason"] = "；".join(factors)
-        item["ai_notice"] = "AI质量评分不代表来源方官方立场，且不构成投资建议。"
+        item["ai_notice"] = "推荐分、筛选和推荐依据由AI基于所列来源字段生成，不代表任何来源方官方立场，也不构成投资建议；请自行核验。"
     candidates.sort(key=lambda item: (item["recommendation_score"], item["published_at"], item["title"]), reverse=True)
     seen: set[str] = set()
     for item in candidates:
@@ -225,7 +268,7 @@ def build(source: Path, existing: Path | None, now: datetime, public_paths: list
             "source_counts": source_counts,
             "source_policy": "机构研报 skill 与问财公开研报搜索来源平权；仅按质量评分择优；跨源标题去重",
             "items": items,
-            "notice": "AI质量评分与筛选不代表任何来源方官方立场，且不构成投资建议。",
+            "notice": "推荐分、筛选和推荐依据由AI基于所列来源字段生成，不代表任何来源方官方立场，也不构成投资建议；请自行核验。",
         }
     if previous:
         return previous
