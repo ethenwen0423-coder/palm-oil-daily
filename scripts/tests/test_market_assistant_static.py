@@ -76,6 +76,11 @@ class MarketAssistantStaticTests(unittest.TestCase):
         self.assertIn("data.watch.events_updated_at || data.watch.generated_at", script)
         self.assertIn('data-filter="event"', html)
         self.assertNotIn('data-filter="agent"', html)
+        self.assertIn("completeTimelineSummary", script)
+        self.assertIn("item.detail_summary", script)
+        self.assertIn('class="timeline-detail-summary"', script)
+        self.assertIn("未提供可直接打开的原文链接", script)
+        self.assertIn("AI 整理摘要 · 需自行核验", script)
 
     def test_home_page_links_to_assistant(self):
         html = (ROOT / "index.html").read_text(encoding="utf-8")

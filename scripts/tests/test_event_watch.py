@@ -54,6 +54,30 @@ class EventWatchTests(unittest.TestCase):
         self.assertIn("tags=tags150", request.call_args.args[0])
         self.assertEqual(request.call_args.kwargs["headers"], {"apikey": "key"})
 
+    def test_long_flash_uses_complete_preview_and_expanded_detail_without_hard_cutoff(self):
+        body = "【美国中西部天气更新】第一段说明降雨分散。" + "中部产区天气系统继续东移。" * 12 + "最后一段说明大豆影响仍需核验。"
+        event = EVENTS.normalize_event(
+            WATCH,
+            prefix="htfc-flash",
+            source="机构资讯·油脂油料快讯",
+            title="美国中西部天气更新",
+            summary=body,
+            observed_at=self.now.isoformat(),
+            source_id="KX-long",
+        )
+        self.assertIsNotNone(event)
+        self.assertTrue(event["summary"].endswith("。"))
+        self.assertLess(len(event["summary"]), len(body))
+        self.assertTrue(event["detail_summary"].endswith("。"))
+        self.assertGreater(len(event["detail_summary"]), len(event["summary"]))
+        self.assertFalse(event["direct_source_available"])
+        self.assertIn("不代表来源方官方立场", event["ai_notice"])
+
+    def test_sentence_digest_falls_back_to_complete_title_instead_of_partial_body(self):
+        preview, detail = WATCH.summarize_source_event("棕榈油出口变化", "这是一个没有句号且非常长的来源片段" * 30)
+        self.assertEqual(preview, "棕榈油出口变化。")
+        self.assertEqual(detail, preview)
+
     def test_htfc_report_permission_failure_is_not_reported_as_zero(self):
         from urllib.error import HTTPError
         error = HTTPError("https://x", 403, "Forbidden", {}, io.BytesIO(b""))

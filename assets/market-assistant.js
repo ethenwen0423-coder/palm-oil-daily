@@ -319,6 +319,21 @@
     return array(item && (item.evidence_ids || item.evidence_id));
   }
 
+  function completeTimelineSummary(title, value) {
+    const text = String(value || "").replace(/\s+/g, " ").trim();
+    const sentences = text.match(/[^。！？!?；;]+[。！？!?；;]/g) || [];
+    let result = "";
+    for (const sentence of sentences) {
+      if (result && result.length + sentence.length > 180) break;
+      if (!result && sentence.length > 180) continue;
+      result += sentence.trim();
+      if (result.length >= 90) break;
+    }
+    if (result) return result;
+    const cleanTitle = String(title || "来源内容待核验").replace(/^[【\[]|[】\]]$/g, "").trim();
+    return /[。！？!?；;]$/.test(cleanTitle) ? cleanTitle : `${cleanTitle}。`;
+  }
+
   function moveImpact(value) {
     const matched = String(value == null ? "" : value).match(/[-+]?\d+(?:\.\d+)?%/g) || [];
     const largest = matched.reduce((max, item) => Math.max(max, Math.abs(Number(item.replace("%", "")))), 0);
@@ -330,10 +345,12 @@
     array(data.watch && data.watch.events).forEach((item) => events.push({
       type: item.kind === "event" ? "event" : "move",
       category: first(item.category, "市场扫描"), title: first(item.title, "市场事件"),
-      summary: first(item.summary, "来源内容待核验"), detail: first(item.interpretation, "暂无影响研判"),
+      summary: item.kind === "event" ? completeTimelineSummary(item.title, item.summary) : first(item.summary, "来源内容待核验"),
+      detailSummary: item.kind === "event" ? first(item.detail_summary, completeTimelineSummary(item.title, item.summary)) : "",
+      detail: first(item.interpretation, "暂无影响研判"), aiNotice: item.kind === "event" ? first(item.ai_notice, "AI 基于来源返回内容整理，非来源方原话，不代表来源方官方立场，不构成投资建议；请自行核验。") : "",
       evidence: eventEvidence(item), source: first(item.source, "市场扫描"), time: eventTime(item),
       scope: first(item.scope, "相关合约"), impact: first(item.impact, "低"), nextCheck: "下一轮5分钟扫描",
-      url: item.url
+      url: item.url, directSourceAvailable: Boolean(item.url)
     }));
     array(data.brief.key_moves).forEach((item) => events.push({
       type: "move", category: "市场异动", title: first(item.label, "行情证据"), summary: first(item.value, "数值待核验"),
@@ -383,15 +400,15 @@
         <time class="timeline-time" datetime="${esc(item.time)}"><strong>${esc(fmtTime(item.time, false))}</strong><small>${esc(relativeAge(item.time))}</small></time>
         <div class="timeline-content">
           <button type="button" aria-expanded="false" aria-controls="${detailId}">
-            <span class="timeline-copy"><span class="timeline-title-row"><b class="timeline-category">${esc(item.category || labels[item.type] || item.type)}</b><h3>${esc(item.title)}</h3></span><p>${esc(item.summary)}</p></span>
+            <span class="timeline-copy"><span class="timeline-title-row"><b class="timeline-category">${esc(item.category || labels[item.type] || item.type)}</b><h3>${esc(item.title)}</h3></span><p>${esc(item.summary)}</p>${item.aiNotice ? '<small class="timeline-ai-label">AI 整理摘要 · 需自行核验</small>' : ""}</span>
             <span class="timeline-context"><span><small>影响合约</small><b>${esc(first(item.scope, "待核验"))}</b></span><span><small>来源</small><b>${esc(item.source)}</b></span><span><small>影响级别</small><b class="impact-${esc(item.impact || "低")}">${esc(first(item.impact, "低"))}</b></span></span>
             <span class="timeline-toggle" aria-hidden="true">展开</span>
           </button>
           <div id="${detailId}" class="timeline-detail">
-            <section><span>为什么重要</span><p>${esc(item.detail)}</p></section>
-            ${item.url ? `<section><a href="${esc(item.url)}" target="_blank" rel="noopener noreferrer">查看来源原文</a></section>` : ""}
+            ${item.detailSummary ? `<section class="timeline-detail-summary"><span>事件详情</span><p>${esc(item.detailSummary)}</p><small class="timeline-ai-notice">${esc(item.aiNotice)}</small></section>` : ""}
+            <section><span>影响研判</span><p>${esc(item.detail)}</p></section>
             <section><span>关键证据</span>${evidence.length ? `<ul>${evidence.map((entry) => `<li>${esc(entry)}</li>`).join("")}</ul>` : "<p>本轮没有新增可核验证据。</p>"}</section>
-            <section><span>下一步检查</span><p>${esc(first(item.nextCheck, "等待下一轮自动检查"))}</p></section>
+            <section><span>下一步检查</span><p>${esc(first(item.nextCheck, "等待下一轮自动检查"))}</p>${item.url ? `<a href="${esc(item.url)}" target="_blank" rel="noopener noreferrer">查看来源原文</a>` : item.type === "event" ? '<small class="timeline-source-note">未提供可直接打开的原文链接；本页仅展示已获取内容的整理摘要。</small>' : ""}</section>
           </div>
         </div>
       </article>`;

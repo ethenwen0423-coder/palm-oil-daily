@@ -63,23 +63,29 @@ def source_error(name: str, exc: BaseException) -> dict[str, Any]:
 
 
 def normalize_event(watch: Any, *, prefix: str, source: str, title: Any, summary: Any, observed_at: Any, url: Any = "", source_id: Any = "") -> dict[str, Any] | None:
-    clean_title = compact(title, 120)
-    clean_summary = compact(summary)
+    clean_title = watch.clean_source_text(title)
+    clean_summary = watch.clean_source_text(summary)
     if not clean_title or not watch.flash_relevant(f"{clean_title} {clean_summary}"):
         return None
     observed = normalize_time(observed_at, fallback=datetime.now().astimezone())
     impact, interpretation = watch.impact_for(f"{clean_title} {clean_summary}")
+    preview, detail_summary = watch.summarize_source_event(clean_title, clean_summary)
+    clean_url = compact(url, 500)
     return {
         "id": watch.event_id(prefix, source_id or clean_title, observed, url),
         "kind": "event",
         "category": "跨源事件研判",
         "title": clean_title,
-        "summary": clean_summary or "仅检索到标题，正文需打开原始链接核验。",
+        "summary": preview,
+        "detail_summary": detail_summary,
+        "summary_generated": True,
+        "ai_notice": watch.AI_EVENT_NOTICE,
         "interpretation": interpretation,
         "impact": impact,
         "scope": "P · Y · OI",
         "source": source,
-        "url": compact(url, 500),
+        "url": clean_url,
+        "direct_source_available": bool(clean_url),
         "observed_at": observed,
         "evidence_ids": [watch.event_id(f"{prefix}-evidence", source_id or clean_title, url)],
     }

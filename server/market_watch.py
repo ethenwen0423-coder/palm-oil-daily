@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import hashlib
+import html
 import json
 import os
 import re
@@ -29,6 +30,7 @@ CONFIRMED_MOVE_PCT = 1.00
 EXTREME_MOVE_PCT = 1.50
 MARKET_EVENT_COOLDOWN = timedelta(minutes=45)
 REARM_INCREMENT_PCT = 0.50
+AI_EVENT_NOTICE = "AI 基于来源返回内容整理，非来源方原话，不代表来源方官方立场，不构成投资建议；请自行核验。"
 
 
 def number(value: Any) -> float | None:
@@ -36,6 +38,54 @@ def number(value: Any) -> float | None:
         return float(str(value).replace(",", "").replace("%", "").strip())
     except (TypeError, ValueError):
         return None
+
+
+def clean_source_text(value: Any) -> str:
+    """Normalize source text without imposing a character cutoff."""
+    decoded = html.unescape(str(value or ""))
+    without_markup = re.sub(r"<[^>]+>", " ", decoded)
+    return re.sub(r"\s+", " ", without_markup).strip()
+
+
+def source_sentences(value: Any) -> list[str]:
+    text = clean_source_text(value)
+    if not text:
+        return []
+    return [part.strip() for part in re.split(r"(?<=[。！？!?；;])|(?<=\.)\s+", text) if part.strip()]
+
+
+def _title_sentence(title: str) -> str:
+    clean_title = clean_source_text(title).strip("【】[] ")
+    if not clean_title:
+        return "来源内容待核验。"
+    return clean_title if re.search(r"[。！？!?；;.]$", clean_title) else f"{clean_title}。"
+
+
+def _complete_digest(sentences: list[str], limit: int, *, max_sentences: int) -> str:
+    selected: list[str] = []
+    total = 0
+    for sentence in sentences:
+        if not re.search(r"[。！？!?；;.]$", sentence):
+            continue
+        if selected and (total + len(sentence) > limit or len(selected) >= max_sentences):
+            break
+        if not selected and len(sentence) > limit:
+            continue
+        selected.append(sentence)
+        total += len(sentence)
+    return "".join(selected)
+
+
+def summarize_source_event(title: Any, body: Any) -> tuple[str, str]:
+    """Build sentence-complete list and detail summaries from returned source text."""
+    clean_title = clean_source_text(title)
+    clean_body = clean_source_text(body)
+    if clean_title and clean_body:
+        clean_body = re.sub(rf"^(?:【|\[)?{re.escape(clean_title)}(?:】|\])?\s*", "", clean_body, count=1)
+    sentences = source_sentences(clean_body)
+    preview = _complete_digest(sentences, 180, max_sentences=2) or _title_sentence(clean_title)
+    detail = _complete_digest(sentences, 650, max_sentences=6) or preview
+    return preview, detail
 
 
 def load_json(path: Path) -> dict[str, Any]:
@@ -256,18 +306,22 @@ def eastmoney_flash_events(now: datetime, timeout: int = 10) -> tuple[list[dict[
         if not isinstance(item, dict):
             continue
         title = re.sub(r"\s+", " ", str(item.get("title") or "")).strip()
-        detail = re.sub(r"\s+", " ", str(item.get("digest") or "")).strip()[:300]
-        if not title or not flash_relevant(f"{title} {detail}"):
+        source_detail = clean_source_text(item.get("digest"))
+        if not title or not flash_relevant(f"{title} {source_detail}"):
             continue
         url = str(item.get("url_m") or item.get("url_w") or "").strip()
         observed = str(item.get("showtime") or item.get("ordertime") or now.isoformat(timespec="seconds"))
-        impact, interpretation = impact_for(f"{title} {detail}")
+        summary, detail_summary = summarize_source_event(title, source_detail)
+        impact, interpretation = impact_for(f"{title} {source_detail}")
         events.append({
             "id": event_id("eastmoney-flash", str(item.get("id") or title), observed),
             "kind": "event",
             "category": "市场事件检索",
-            "title": title[:120],
-            "summary": detail or "东方财富7x24快讯标题，详情需打开原始链接核验。",
+            "title": title,
+            "summary": summary,
+            "detail_summary": detail_summary,
+            "summary_generated": True,
+            "ai_notice": AI_EVENT_NOTICE,
             "interpretation": interpretation,
             "impact": impact,
             "scope": "P · Y · OI",
@@ -293,15 +347,19 @@ def news_events(api_key: str | None, now: datetime, timeout: int = 20) -> tuple[
         title = re.sub(r"\s+", " ", str(item.get("title") or item.get("name") or "")).strip()
         if not title:
             continue
-        detail = re.sub(r"\s+", " ", str(item.get("trunk") or item.get("summary") or "")).strip()[:300]
+        source_detail = clean_source_text(item.get("trunk") or item.get("summary"))
         url = str(item.get("url") or item.get("link") or "").strip()
-        impact, interpretation = impact_for(f"{title} {detail}")
+        summary, detail_summary = summarize_source_event(title, source_detail)
+        impact, interpretation = impact_for(f"{title} {source_detail}")
         events.append({
             "id": event_id("news", title, url, event_time(item, now)),
             "kind": "event",
             "category": "市场事件检索",
-            "title": title[:120],
-            "summary": detail or "资讯返回标题，正文需打开来源核验。",
+            "title": title,
+            "summary": summary,
+            "detail_summary": detail_summary,
+            "summary_generated": True,
+            "ai_notice": AI_EVENT_NOTICE,
             "interpretation": interpretation,
             "impact": impact,
             "scope": "P · Y · OI",

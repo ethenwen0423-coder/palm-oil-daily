@@ -218,6 +218,7 @@ h1 { margin: 0; font: 600 clamp(30px, 3.3vw, 42px)/1.04 Georgia, "Songti SC", se
 .timeline-item[data-type="move"] .timeline-category { background: rgba(221,116,107,.1); color: var(--red); }.timeline-item[data-type="report"] .timeline-category { background: rgba(119,168,219,.1); color: var(--blue); }.timeline-item[data-type="supply"] .timeline-category { background: rgba(213,173,103,.1); color: var(--gold); }
 .timeline-content h3 { overflow: hidden; margin: 0; font-size: 12px; line-height: 1.4; text-overflow: ellipsis; white-space: nowrap; }
 .timeline-content p { overflow-wrap: anywhere; margin: 4px 0 0; color: var(--muted); font-size: 9px; line-height: 1.45; }
+.timeline-ai-label { display: block; margin-top: 5px; color: #70867a; font-size: 8px; line-height: 1.4; }
 .timeline-context { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; min-width: 0; }
 .timeline-context > span { min-width: 0; }.timeline-context small, .timeline-context b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }.timeline-context small { color: #70867a; font-size: 7px; }.timeline-context b { margin-top: 4px; color: #b8c8be; font-size: 8px; font-weight: 600; }
 .timeline-context b[class^="impact-"] { display: inline-flex; align-items: center; width: max-content; min-width: 22px; padding: 3px 7px; border: 1px solid currentColor; border-radius: 999px; line-height: 1; }
@@ -227,6 +228,10 @@ h1 { margin: 0; font: 600 clamp(30px, 3.3vw, 42px)/1.04 Georgia, "Songti SC", se
 .timeline-detail { display: none; grid-template-columns: 1.2fr 1.5fr .8fr; gap: 0; margin: 0 12px 11px; border: 1px solid var(--line); border-radius: 7px; background: rgba(7,19,15,.56); color: #bac9bf; }
 .timeline-detail.is-open { display: grid; }
 .timeline-detail section { min-width: 0; padding: 10px 12px; }.timeline-detail section + section { border-left: 1px solid var(--line); }.timeline-detail section > span { color: var(--gold); font-size: 8px; font-weight: 800; letter-spacing: .1em; }.timeline-detail p { margin-top: 6px; }.timeline-detail ul { margin: 6px 0 0; padding-left: 14px; color: var(--muted); font-size: 8px; line-height: 1.55; }
+.timeline-detail .timeline-detail-summary { grid-column: 1 / -1; border-bottom: 1px solid var(--line); }
+.timeline-detail .timeline-detail-summary + section { border-left: 0; }
+.timeline-ai-notice, .timeline-source-note { display: block; margin-top: 8px; color: #70867a; font-size: 8px; line-height: 1.55; }
+.timeline-detail a { display: inline-block; margin-top: 8px; color: var(--green); font-size: 9px; text-decoration: none; }.timeline-detail a:hover { text-decoration: underline; }
 .right-rail { display: grid; align-content: start; gap: 12px; }
 .rail-card { padding: 16px 18px; }.rail-card .panel-heading h2 { font-size: 17px; }.rail-card .panel-heading a { color: var(--muted); font-size: 10px; }
 .trigger-list { margin: 14px 0 0; padding: 0; list-style: none; }
@@ -742,6 +747,7 @@ footer { border-top: 1px solid var(--line); } footer > div { display: flex; just
 .assistant-page .timeline-category { padding: 5px 7px; font-size: 10px; }
 .assistant-page .timeline-content h3 { font-size: 15px; }
 .assistant-page .timeline-content p { margin-top: 6px; font-size: 11px; line-height: 1.55; }
+.assistant-page .timeline-ai-label { font-size: 9px; }
 .assistant-page .timeline-context small { font-size: 9px; }
 .assistant-page .timeline-context b { margin-top: 5px; font-size: 11px; }
 .assistant-page .timeline-toggle { min-width: 42px; padding: 7px 4px; font-size: 10px; }
@@ -750,6 +756,8 @@ footer { border-top: 1px solid var(--line); } footer > div { display: flex; just
 .assistant-page .timeline-detail section > span { font-size: 10px; }
 .assistant-page .timeline-detail p,
 .assistant-page .timeline-detail ul { font-size: 10px; line-height: 1.65; }
+.assistant-page .timeline-ai-notice,
+.assistant-page .timeline-source-note { font-size: 9px; }
 
 .assistant-page .right-rail { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .assistant-page .rail-card { padding: 14px 16px; }
