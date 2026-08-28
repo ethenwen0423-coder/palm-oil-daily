@@ -348,6 +348,69 @@
     return "industry";
   }
 
+  function researchPoints(value) {
+    const text = String(value || "").replace(/\s+/g, " ").trim();
+    if (!text) return [];
+    const matcher = /(?:^|\s)(?:\d{1,2}[.、)]|[（(]\d{1,2}[）)])\s*/g;
+    const markers = [];
+    let match;
+    while ((match = matcher.exec(text)) !== null) markers.push({ start: match.index, end: matcher.lastIndex });
+    if (markers.length) return markers.map((marker, index) => text.slice(marker.end, markers[index + 1] ? markers[index + 1].start : text.length).trim()).filter(Boolean);
+    return (text.match(/.+?(?:[。！？；]|[!?;](?=\s|$)|$)/g) || [text]).map((part) => part.trim()).filter(Boolean);
+  }
+
+  function fallbackResearchReading(summary) {
+    const text = String(summary || "").replace(/\s+/g, " ").trim();
+    const sections = { core: [], strategy: [], risk: [] };
+    const matcher = /(核心观点|核心结论|主要观点|观点摘要|关键结论|结论|策略建议|投资建议|操作建议|交易建议|后市展望|风险提示|风险因素|主要风险)\s*[:：]?\s*/g;
+    const markers = [];
+    let match;
+    while ((match = matcher.exec(text)) !== null) {
+      const label = match[1];
+      const key = /风险/.test(label) ? "risk" : /建议|展望/.test(label) ? "strategy" : "core";
+      markers.push({ start: match.index, end: matcher.lastIndex, key });
+    }
+    if (markers.length) markers.forEach((marker, index) => {
+      sections[marker.key].push(...researchPoints(text.slice(marker.end, markers[index + 1] ? markers[index + 1].start : text.length)));
+    });
+    else sections.core = researchPoints(text);
+    const clause = (points) => researchPoints(points[0] || "")[0] || "";
+    const driverTerms = /库存|供需|产量|出口|进口|需求|价格|成本|政策|利率|汇率|地缘|PMI|天气/;
+    const driver = sections.core.slice(1).find((point) => driverTerms.test(point));
+    const riskCandidate = [...sections.risk, ...sections.core, ...sections.strategy].find((point) => /风险|警惕|不确定|冲突|下行/.test(point));
+    return {
+      quick_points: [
+        { label: "核心结论", text: clause(sections.core) || clause(sections.strategy) || "来源摘要未提供可独立提取的核心结论。" },
+        { label: "主要驱动", text: clause(driver ? [driver] : sections.core.slice(1)) || "来源摘要未提供可独立提取的主要驱动。" },
+        { label: "关键风险", text: clause(sections.risk) || clause(riskCandidate ? [riskCandidate] : []) || "来源摘要未单列风险，需进一步核验。" }
+      ],
+      sections,
+      reading_notice: "以下分类与选择由AI基于所列来源摘要生成，所列文字来自来源摘要；不代表任何来源方官方立场，也不构成投资建议，请自行核验。"
+    };
+  }
+
+  function researchReading(item) {
+    const view = item && item.reading_view;
+    if (view && array(view.quick_points).length && view.sections) return view;
+    return fallbackResearchReading(item && item.summary);
+  }
+
+  function researchQuickHtml(item) {
+    return `<div class="research-quick-points">${array(item.quickPoints).map((point) => `<span><b>${esc(first(point.label, "阅读要点"))}</b><em>${esc(first(point.text, "需进一步核验。"))}</em></span>`).join("")}</div>${item.readingNotice ? `<small class="timeline-ai-label">${esc(item.readingNotice)}</small>` : ""}`;
+  }
+
+  function researchSectionHtml(label, points, emptyText) {
+    const values = array(points).filter(Boolean);
+    return `<article><span>${esc(label)}</span>${values.length ? `<ul>${values.map((point) => `<li>${esc(point)}</li>`).join("")}</ul>` : `<p>${esc(emptyText)}</p>`}</article>`;
+  }
+
+  function researchDetailHtml(item) {
+    const sections = item.researchSections || {};
+    const sourceControl = item.url ? `<a href="${esc(item.url)}" target="_blank" rel="noopener noreferrer">查看原始研报</a>` : item.sourceSummaryAvailable ? '<small class="timeline-source-note">来源未提供可直接打开的原始研报链接；可在下方核验未按字数截断的完整来源摘要。</small>' : '<small class="timeline-source-note">来源未提供可直接打开的原始研报链接或可核验摘要，本站不补写内容性结论。</small>';
+    const fullSummary = item.sourceSummaryAvailable ? `<details class="research-source-summary"><summary>查看完整来源摘要</summary><p>${esc(item.sourceSummary)}</p>${item.summaryNotice ? `<small class="timeline-source-note">${esc(item.summaryNotice)}</small>` : ""}</details>` : "";
+    return `<section class="research-reading-detail"><div class="research-section-grid">${researchSectionHtml("核心观点", sections.core, "来源摘要未提供可独立提取的核心观点。")}${researchSectionHtml("策略建议", sections.strategy, "来源摘要未单列策略建议。")}${researchSectionHtml("风险提示", sections.risk, "来源摘要未单列风险，需进一步核验。")}</div><small class="timeline-ai-notice">${esc(item.readingNotice)}</small></section><section class="research-recommendation"><span>推荐与来源</span><p>${esc(item.detail)}</p><div class="research-evidence">${array(item.evidence).filter(Boolean).map((entry) => `<b>${esc(entry)}</b>`).join("")}</div>${sourceControl}</section>${fullSummary}`;
+  }
+
   function buildTimeline(data) {
     const events = [];
     array(data.watch && data.watch.events).forEach((item) => events.push({
@@ -374,16 +437,19 @@
       scope: "油脂研究", impact: "中", nextCheck: "下一次研究任务"
     });
     if (data.researchWatch && data.researchWatch.status === "ready") {
-      array(data.researchWatch.items).forEach((item) => events.push({
-        type: "report", category: first(item.sector, "公开研报"), title: first(item.title, "公开研报"),
-        summary: first(item.summary, "机构公开晨报已更新"),
-        detail: `推荐依据：${first(item.recommendation_reason, "与市场研究相关")}。${first(item.ai_notice, "推荐分、筛选和推荐依据由AI基于所列来源字段生成，不代表任何来源方官方立场，也不构成投资建议；请自行核验。")}`,
-        aiNotice: first(item.summary_notice, item.ai_notice),
-        evidence: [first(item.organization, "机构研究"), `推荐分 ${first(item.recommendation_score, "--")}`, ...array(item.topics)],
-        source: first(item.source, "公开研报搜索"), time: item.published_at || data.researchWatch.generated_at,
-        scope: array(item.topics).join(" · ") || first(item.sector, "跨板块"), impact: "中", nextCheck: "下一轮5分钟研报扫描", url: item.url,
-        isPublicResearch: true, sourceSummaryAvailable: item.summary_type !== "missing_source_content"
-      }));
+      array(data.researchWatch.items).forEach((item) => {
+        const reading = researchReading(item);
+        events.push({
+          type: "report", category: first(item.sector, "公开研报"), title: first(item.title, "公开研报"),
+          summary: first(item.summary, "机构公开晨报已更新"), sourceSummary: first(item.summary, ""), summaryNotice: first(item.summary_notice, ""),
+          quickPoints: array(reading.quick_points), researchSections: reading.sections || {}, readingNotice: first(reading.reading_notice, item.ai_notice),
+          detail: `推荐依据：${first(item.recommendation_reason, "与市场研究相关")}。${first(item.ai_notice, "推荐分、筛选和推荐依据由AI基于所列来源字段生成，不代表任何来源方官方立场，也不构成投资建议；请自行核验。")}`,
+          evidence: [first(item.organization, "机构研究"), `推荐分 ${first(item.recommendation_score, "--")}`, ...array(item.topics)],
+          source: first(item.source, "公开研报搜索"), time: item.published_at || data.researchWatch.generated_at,
+          scope: array(item.topics).join(" · ") || first(item.sector, "跨板块"), impact: "中", nextCheck: "下一轮5分钟研报扫描", url: item.url,
+          isPublicResearch: true, sourceSummaryAvailable: item.summary_type !== "missing_source_content"
+        });
+      });
     }
     if (data.supply && !data.supply._error && Object.keys(data.supply).length) {
       const countries = Object.values(data.supply.countries || {});
@@ -411,15 +477,12 @@
         <time class="timeline-time" datetime="${esc(item.time)}"><strong>${esc(fmtTime(item.time, false))}</strong><small>${esc(relativeAge(item.time))}</small></time>
         <div class="timeline-content">
           <button type="button" aria-expanded="false" aria-controls="${detailId}">
-            <span class="timeline-copy"><span class="timeline-title-row"><b class="timeline-category">${esc(item.category || labels[item.type] || item.type)}</b><h3>${esc(item.title)}</h3></span><p>${esc(item.summary)}</p>${item.aiNotice ? `<small class="timeline-ai-label">${esc(item.aiNotice)}</small>` : ""}</span>
+            <span class="timeline-copy"><span class="timeline-title-row"><b class="timeline-category">${esc(item.category || labels[item.type] || item.type)}</b><h3>${esc(item.title)}</h3></span>${item.isPublicResearch ? researchQuickHtml(item) : `<p>${esc(item.summary)}</p>${item.aiNotice ? `<small class="timeline-ai-label">${esc(item.aiNotice)}</small>` : ""}`}</span>
             <span class="timeline-context"><span><small>影响合约</small><b>${esc(first(item.scope, "待核验"))}</b></span><span><small>来源</small><b>${esc(item.source)}</b></span><span><small>影响级别</small><b class="impact-${esc(item.impact || "低")}">${esc(first(item.impact, "低"))}</b></span></span>
             <span class="timeline-toggle" aria-hidden="true">展开</span>
           </button>
           <div id="${detailId}" class="timeline-detail">
-            ${item.detailSummary ? `<section class="timeline-detail-summary"><span>事件详情</span><p>${esc(item.detailSummary)}</p><small class="timeline-ai-notice">${esc(item.aiNotice)}</small></section>` : ""}
-            <section><span>影响研判</span><p>${esc(item.detail)}</p>${item.aiNotice ? `<small class="timeline-ai-notice">${esc(item.aiNotice)}</small>` : ""}</section>
-            <section><span>关键证据</span>${evidence.length ? `<ul>${evidence.map((entry) => `<li>${esc(entry)}</li>`).join("")}</ul>` : "<p>本轮没有新增可核验证据。</p>"}</section>
-            <section><span>下一步检查</span><p>${esc(first(item.nextCheck, "等待下一轮自动检查"))}</p>${item.url ? `<a href="${esc(item.url)}" target="_blank" rel="noopener noreferrer">${item.type === "report" ? "查看原始研报" : "查看直接来源"}</a>` : item.isPublicResearch && item.sourceSummaryAvailable ? '<small class="timeline-source-note">来源未提供可直接打开的原始研报链接；以上摘要按来源接口返回内容完整展示，未按字数截断。</small>' : item.isPublicResearch ? '<small class="timeline-source-note">来源未提供可直接打开的原始研报链接或可核验摘要，本站不补写内容性结论。</small>' : ["weather", "policy", "industry", "macro"].includes(item.type) ? '<small class="timeline-source-note">未提供可直接打开的原文链接；本页仅展示已获取内容的整理摘要。</small>' : ""}</section>
+            ${item.isPublicResearch ? researchDetailHtml(item) : `${item.detailSummary ? `<section class="timeline-detail-summary"><span>事件详情</span><p>${esc(item.detailSummary)}</p><small class="timeline-ai-notice">${esc(item.aiNotice)}</small></section>` : ""}<section><span>影响研判</span><p>${esc(item.detail)}</p>${item.aiNotice ? `<small class="timeline-ai-notice">${esc(item.aiNotice)}</small>` : ""}</section><section><span>关键证据</span>${evidence.length ? `<ul>${evidence.map((entry) => `<li>${esc(entry)}</li>`).join("")}</ul>` : "<p>本轮没有新增可核验证据。</p>"}</section><section><span>下一步检查</span><p>${esc(first(item.nextCheck, "等待下一轮自动检查"))}</p>${item.url ? `<a href="${esc(item.url)}" target="_blank" rel="noopener noreferrer">${item.type === "report" ? "查看原始研报" : "查看直接来源"}</a>` : ["weather", "policy", "industry", "macro"].includes(item.type) ? '<small class="timeline-source-note">未提供可直接打开的原文链接；本页仅展示已获取内容的整理摘要。</small>' : ""}</section>`}
           </div>
         </div>
       </article>`;

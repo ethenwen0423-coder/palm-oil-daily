@@ -219,6 +219,11 @@ h1 { margin: 0; font: 600 clamp(30px, 3.3vw, 42px)/1.04 Georgia, "Songti SC", se
 .timeline-content h3 { overflow: hidden; margin: 0; font-size: 12px; line-height: 1.4; text-overflow: ellipsis; white-space: nowrap; }
 .timeline-content p { overflow-wrap: anywhere; margin: 4px 0 0; color: var(--muted); font-size: 9px; line-height: 1.45; }
 .timeline-ai-label { display: block; margin-top: 5px; color: #70867a; font-size: 8px; line-height: 1.4; }
+.research-quick-points { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 8px; }
+.research-quick-points > span { min-width: 0; padding: 7px 8px; border: 1px solid rgba(119,168,219,.13); border-radius: 5px; background: rgba(119,168,219,.045); }
+.research-quick-points b, .research-quick-points em { display: block; overflow-wrap: anywhere; }
+.research-quick-points b { color: var(--blue); font-size: 7px; letter-spacing: .08em; }
+.research-quick-points em { margin-top: 4px; color: #aebfb5; font-size: 8px; font-style: normal; line-height: 1.5; }
 .timeline-context { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; min-width: 0; }
 .timeline-context > span { min-width: 0; }.timeline-context small, .timeline-context b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }.timeline-context small { color: #70867a; font-size: 7px; }.timeline-context b { margin-top: 4px; color: #b8c8be; font-size: 8px; font-weight: 600; }
 .timeline-context b[class^="impact-"] { display: inline-flex; align-items: center; width: max-content; min-width: 22px; padding: 3px 7px; border: 1px solid currentColor; border-radius: 999px; line-height: 1; }
@@ -232,6 +237,15 @@ h1 { margin: 0; font: 600 clamp(30px, 3.3vw, 42px)/1.04 Georgia, "Songti SC", se
 .timeline-detail .timeline-detail-summary + section { border-left: 0; }
 .timeline-ai-notice, .timeline-source-note { display: block; margin-top: 8px; color: #70867a; font-size: 8px; line-height: 1.55; }
 .timeline-detail a { display: inline-block; margin-top: 8px; color: var(--green); font-size: 9px; text-decoration: none; }.timeline-detail a:hover { text-decoration: underline; }
+.timeline-detail .research-reading-detail, .timeline-detail .research-recommendation, .research-source-summary { grid-column: 1 / -1; }
+.research-section-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; margin-top: 8px; border: 1px solid var(--line); border-radius: 6px; }
+.research-section-grid article { min-width: 0; padding: 10px 12px; }.research-section-grid article + article { border-left: 1px solid var(--line); }
+.research-section-grid article > span { color: var(--gold); font-size: 8px; font-weight: 800; letter-spacing: .1em; }
+.research-section-grid p, .research-section-grid ul { margin-top: 7px; }
+.research-evidence { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }.research-evidence b { padding: 4px 7px; border: 1px solid var(--line); border-radius: 999px; color: #9eb0a5; font-size: 8px; font-weight: 600; }
+.research-source-summary { margin: 0 12px 11px; padding: 11px 12px; border: 1px solid var(--line); border-radius: 7px; background: rgba(7,19,15,.7); }
+.research-source-summary summary { color: var(--green); cursor: pointer; font-size: 9px; font-weight: 750; }.research-source-summary summary:hover, .research-source-summary summary:focus-visible { outline: none; color: var(--text); }
+.research-source-summary p { margin-top: 10px; color: #aebfb5; white-space: normal; }
 .right-rail { display: grid; align-content: start; gap: 12px; }
 .rail-card { padding: 16px 18px; }.rail-card .panel-heading h2 { font-size: 17px; }.rail-card .panel-heading a { color: var(--muted); font-size: 10px; }
 .trigger-list { margin: 14px 0 0; padding: 0; list-style: none; }
@@ -278,6 +292,7 @@ footer { border-top: 1px solid var(--line); } footer > div { display: flex; just
   .timeline-time strong { font-size: 9px; }.timeline-time small { font-size: 7px; white-space: normal; }
   .timeline-content button { grid-template-columns: minmax(0,1fr) auto; gap: 10px; padding: 10px; }.timeline-context { grid-column: 1 / -1; grid-row: 2; }.timeline-toggle { grid-column: 2; grid-row: 1; }.timeline-title-row { align-items: flex-start; flex-direction: column; gap: 5px; }.timeline-content h3 { white-space: normal; }
   .timeline-detail.is-open { grid-template-columns: 1fr; }.timeline-detail section + section { border-top: 1px solid var(--line); border-left: 0; }
+  .research-quick-points, .research-section-grid { grid-template-columns: 1fr; }.research-section-grid article + article { border-top: 1px solid var(--line); border-left: 0; }
   .market-hub { scroll-margin-top: 104px; margin: 12px 0; padding: 16px 14px 13px; }.market-hub-subheading { align-items: flex-start; flex-direction: column; gap: 5px; }
   .integrated-section { scroll-margin-top: 104px; margin: 12px 0; padding: 18px; }.integrated-heading { align-items: flex-start; flex-direction: column; gap: 8px; }
   .oil-desk-grid, .supply-desk-grid, .contract-analysis-grid, .contract-judgement { grid-template-columns: 1fr; }

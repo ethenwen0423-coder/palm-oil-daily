@@ -90,8 +90,8 @@ class MarketAssistantStaticTests(unittest.TestCase):
         self.assertIn("function eventTimelineType(item)", script)
         self.assertIn('weather: "天气"', script)
         self.assertIn('class="timeline-ai-notice"', script)
-        self.assertIn("market-assistant.js?v=20260828-weather-v2", html)
-        self.assertIn("market-assistant.css?v=20260828-weather-v2", html)
+        self.assertIn("market-assistant.js?v=20260828-research-reading-v1", html)
+        self.assertIn("market-assistant.css?v=20260828-research-reading-v1", html)
 
     def test_research_reports_show_original_links_and_untruncated_source_summary_notice(self):
         script = (ROOT / "assets" / "market-assistant.js").read_text(encoding="utf-8")
@@ -101,6 +101,21 @@ class MarketAssistantStaticTests(unittest.TestCase):
         self.assertIn("未按字数截断", script)
         self.assertIn("item.summary_notice", script)
         self.assertNotIn('.strip()[:240]', builder)
+
+    def test_research_reports_use_two_level_reading_view(self):
+        script = (ROOT / "assets" / "market-assistant.js").read_text(encoding="utf-8")
+        styles = (ROOT / "assets" / "market-assistant.css").read_text(encoding="utf-8")
+        builder = (ROOT / "scripts" / "build_research_watch.py").read_text(encoding="utf-8")
+        self.assertIn('"schema_version": 4', builder)
+        self.assertIn("reading_view", builder)
+        self.assertIn("function fallbackResearchReading", script)
+        self.assertIn('class="research-quick-points"', script)
+        self.assertIn('class="research-reading-detail"', script)
+        self.assertIn('class="research-source-summary"', script)
+        self.assertIn("查看完整来源摘要", script)
+        self.assertIn(".research-quick-points", styles)
+        quick_style = styles.split(".research-quick-points em", 1)[1].split("}", 1)[0]
+        self.assertNotIn("line-clamp", quick_style)
 
     def test_home_page_links_to_assistant(self):
         html = (ROOT / "index.html").read_text(encoding="utf-8")

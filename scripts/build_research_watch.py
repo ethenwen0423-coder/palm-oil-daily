@@ -18,6 +18,12 @@ from zoneinfo import ZoneInfo
 SHANGHAI = ZoneInfo("Asia/Shanghai")
 OIL_KEYS = {"P", "Y", "OI"}
 CROSS_KEYS = {"SC", "MACRO"}
+READING_NOTICE = "以下分类与选择由AI基于所列来源摘要生成，所列文字来自来源摘要；不代表任何来源方官方立场，也不构成投资建议，请自行核验。"
+SECTION_MARKERS = (
+    ("core", re.compile(r"核心观点|核心结论|主要观点|观点摘要|关键结论|结论")),
+    ("strategy", re.compile(r"策略建议|投资建议|操作建议|交易建议|后市展望")),
+    ("risk", re.compile(r"风险提示|风险因素|主要风险")),
+)
 
 
 def public_text(value: Any) -> str:
@@ -43,6 +49,98 @@ def source_url(row: dict[str, Any]) -> str:
             if re.match(r"^https?://", value, re.IGNORECASE):
                 return value
     return ""
+
+
+def complete_clauses(value: str) -> list[str]:
+    text = public_text(value)
+    if not text:
+        return []
+    clauses = [part.strip() for part in re.findall(r".+?(?:[。！？；]|[!?;](?=\s|$)|$)", text) if part.strip()]
+    return clauses or [text]
+
+
+def numbered_points(value: str) -> list[str]:
+    text = public_text(value)
+    if not text:
+        return []
+    markers = list(re.finditer(r"(?:^|\s)(?:\d{1,2}[.、)]|[（(]\d{1,2}[）)])\s*", text))
+    if not markers:
+        return complete_clauses(text)
+    points: list[str] = []
+    prefix = text[:markers[0].start()].strip()
+    if prefix:
+        points.extend(complete_clauses(prefix))
+    for index, marker in enumerate(markers):
+        end = markers[index + 1].start() if index + 1 < len(markers) else len(text)
+        point = text[marker.end():end].strip()
+        if point:
+            points.append(point)
+    return points
+
+
+def section_points(summary: str) -> dict[str, list[str]]:
+    matches: list[tuple[int, int, str]] = []
+    for key, pattern in SECTION_MARKERS:
+        matches.extend((match.start(), match.end(), key) for match in pattern.finditer(summary))
+    matches.sort(key=lambda item: item[0])
+    sections = {"core": [], "strategy": [], "risk": []}
+    if not matches:
+        sections["core"] = numbered_points(summary)
+        return sections
+    prefix = summary[:matches[0][0]].strip()
+    if prefix:
+        sections["core"].extend(numbered_points(prefix))
+    for index, (_, end, key) in enumerate(matches):
+        next_start = matches[index + 1][0] if index + 1 < len(matches) else len(summary)
+        sections[key].extend(numbered_points(summary[end:next_start]))
+    return sections
+
+
+def first_complete_clause(points: list[str]) -> str:
+    for point in points:
+        clauses = complete_clauses(point)
+        if clauses:
+            return clauses[0]
+    return ""
+
+
+def build_reading_view(summary: str, summary_type: str) -> dict[str, Any]:
+    if summary_type == "missing_source_content":
+        return {
+            "quick_points": [
+                {"label": "核心结论", "text": "来源未提供可核验的摘要内容。"},
+                {"label": "主要驱动", "text": "来源摘要未提供可独立提取的主要驱动。"},
+                {"label": "关键风险", "text": "来源摘要未单列风险，需进一步核验。"},
+            ],
+            "sections": {"core": [], "strategy": [], "risk": []},
+            "reading_notice": READING_NOTICE,
+        }
+    sections = section_points(summary)
+    core = sections["core"]
+    strategy = sections["strategy"]
+    risk = sections["risk"]
+    conclusion = first_complete_clause(core) or first_complete_clause(strategy) or "来源摘要未提供可独立提取的核心结论。"
+    driver_terms = ("库存", "供需", "产量", "出口", "进口", "需求", "价格", "成本", "政策", "利率", "汇率", "地缘", "PMI", "天气")
+    driver_candidates = [point for point in core if point != core[0] and any(term in point for term in driver_terms)]
+    driver = first_complete_clause(driver_candidates) or first_complete_clause(core[1:]) or "来源摘要未提供可独立提取的主要驱动。"
+    risk_text = first_complete_clause(risk)
+    if not risk_text:
+        risk_candidates = [point for point in (*core, *strategy) if any(term in point for term in ("风险", "警惕", "不确定", "冲突", "下行"))]
+        risk_text = first_complete_clause(risk_candidates) or "来源摘要未单列风险，需进一步核验。"
+    return {
+        "quick_points": [
+            {"label": "核心结论", "text": conclusion},
+            {"label": "主要驱动", "text": driver},
+            {"label": "关键风险", "text": risk_text},
+        ],
+        "sections": sections,
+        "reading_notice": READING_NOTICE,
+    }
+
+
+def attach_reading_view(item: dict[str, Any]) -> dict[str, Any]:
+    item["reading_view"] = build_reading_view(str(item.get("summary") or ""), str(item.get("summary_type") or "source_summary"))
+    return item
 
 
 def dedupe_key(item: dict[str, Any]) -> str:
@@ -101,7 +199,7 @@ def normalize_item(row: dict[str, Any], sector: str, product: str) -> dict[str, 
     url = source_url(row)
     if url:
         item["url"] = url
-    return item
+    return attach_reading_view(item)
 
 
 def public_search_rows(paths: list[Path]) -> list[dict[str, Any]]:
@@ -143,7 +241,7 @@ def normalize_public_search_item(row: dict[str, Any]) -> dict[str, Any]:
     url = source_url(row)
     if url:
         item["url"] = url
-    return item
+    return attach_reading_view(item)
 
 
 def score_quality(item: dict[str, Any], report_date: date) -> tuple[int, list[str]]:
@@ -256,7 +354,7 @@ def build(source: Path, existing: Path | None, now: datetime, public_paths: list
         oil_count = sum(item["sector"] == "油脂油料" for item in items)
         cross_count = sum(item["sector"] == "跨板块" for item in items)
         return {
-            "schema_version": 3,
+            "schema_version": 4,
             "status": "ready",
             "report_date": today.isoformat(),
             "generated_at": now.astimezone(SHANGHAI).isoformat(timespec="seconds"),
@@ -273,7 +371,7 @@ def build(source: Path, existing: Path | None, now: datetime, public_paths: list
     if previous:
         return previous
     return {
-        "schema_version": 3,
+        "schema_version": 4,
         "status": "pending",
         "report_date": None,
         "generated_at": now.astimezone(SHANGHAI).isoformat(timespec="seconds"),

@@ -40,7 +40,7 @@ class ResearchWatchTests(unittest.TestCase):
         self.assertEqual(payload["status"], "ready")
         self.assertEqual(payload["allocation"], {"油脂油料": 7, "跨板块": 3, "target": "70% / 30%"})
         self.assertEqual(len(payload["items"]), 10)
-        self.assertEqual(payload["schema_version"], 3)
+        self.assertEqual(payload["schema_version"], 4)
         self.assertNotIn("<", json.dumps(payload, ensure_ascii=False))
 
     def test_merges_public_search_and_preserves_source_content(self):
@@ -94,6 +94,41 @@ class ResearchWatchTests(unittest.TestCase):
         self.assertEqual(public["summary"], long_summary)
         self.assertEqual(public["url"], "https://example.test/public-report")
         self.assertIn("保持原文完整展示", institution["summary_notice"])
+        self.assertEqual([point["label"] for point in institution["reading_view"]["quick_points"]], ["核心结论", "主要驱动", "关键风险"])
+
+    def test_builds_structured_two_level_reading_without_changing_source_summary(self):
+        summary = (
+            "核心观点 1. 全球原油库存低位，需警惕航运中断推动油价上行。 "
+            "2. 国内制造业PMI降至49.2，后续关注稳增长政策。 "
+            "策略建议 1. 贵金属和部分农产品逢低关注。 "
+            "风险提示 1. 地缘政治冲突可能推升能源价格。 2. 美联储超预期收紧可能压制风险资产。"
+        )
+        item = MODULE.normalize_item({
+            "id": "structured",
+            "title": "宏观大类日报",
+            "subclassCodeName": "宏观",
+            "publishDateTime": "2026-08-27 08:00:00",
+            "aiContent": summary,
+        }, "跨板块", "MACRO")
+        view = item["reading_view"]
+        self.assertEqual(item["summary"], summary)
+        self.assertEqual(len(view["quick_points"]), 3)
+        self.assertEqual(len(view["sections"]["core"]), 2)
+        self.assertEqual(len(view["sections"]["strategy"]), 1)
+        self.assertEqual(len(view["sections"]["risk"]), 2)
+        self.assertIn("PMI降至49.2", view["quick_points"][1]["text"])
+        self.assertIn("地缘政治冲突", view["quick_points"][2]["text"])
+        self.assertIn("AI基于所列来源摘要生成", view["reading_notice"])
+
+    def test_unlabelled_summary_falls_back_to_complete_clauses(self):
+        summary = "棕榈油库存下降，现货基差走强。出口需求仍需继续核验。天气风险可能影响后续产量。"
+        view = MODULE.build_reading_view(summary, "source_summary")
+        self.assertEqual(view["sections"]["core"], [
+            "棕榈油库存下降，现货基差走强。",
+            "出口需求仍需继续核验。",
+            "天气风险可能影响后续产量。",
+        ])
+        self.assertTrue(all(point["text"].endswith("。") for point in view["quick_points"]))
 
     def test_missing_link_uses_full_source_summary_without_fabricating_url(self):
         item = MODULE.normalize_item({
@@ -148,6 +183,7 @@ class ResearchWatchTests(unittest.TestCase):
         self.assertNotEqual(payload["items"], [{"id": "frozen"}])
         self.assertEqual(payload["report_date"], "2026-08-27")
         self.assertEqual(payload["refresh_policy"], "每5分钟独立扫描机构研报与公开研报；按质量重新择优")
+        self.assertEqual(payload["schema_version"], 4)
 
 
 if __name__ == "__main__":
