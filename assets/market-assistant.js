@@ -492,6 +492,12 @@
     return `<section class="timeline-detail-summary weather-facts"><span>直接天气事实</span><p>${esc(first(analysis.direct_facts, item.detailSummary))}</p><p><b>当前物候</b> ${esc(first(analysis.stage, "物候阶段待核验"))}</p>${item.url ? `<a href="${esc(item.url)}" target="_blank" rel="noopener noreferrer">查看直接预报</a>` : ""}</section><section><span>产量因果链</span><p>${esc(first(analysis.production_chain, item.detail))}</p></section><section><span>行情传导</span><p>${esc(first(analysis.market_chain, "尚无足够证据判断行情方向。"))}</p></section><section><span>判断边界</span><p>${esc(first(analysis.boundary, "单一地点和单周预报不能直接确认减产。"))}</p>${mechanism.url ? `<a href="${esc(mechanism.url)}" target="_blank" rel="noopener noreferrer">${esc(first(mechanism.name, "查看农业机制依据"))}</a>` : ""}<small class="timeline-ai-notice">${esc(item.aiNotice)}</small></section>`;
   }
 
+  function eventDetailHtml(item, evidence) {
+    const facts = array(item.eventFacts).filter(Boolean);
+    const factHtml = facts.length ? `<ul>${facts.map((entry) => `<li>${esc(entry)}</li>`).join("")}</ul>` : `<p>${esc(item.detailSummary)}</p>`;
+    return `<section class="timeline-detail-summary"><span>这条新闻讲了什么</span><p>${esc(item.detailSummary)}</p></section><section><span>关键事实</span>${factHtml}</section><section><span>为什么与油脂有关</span><p>${esc(first(item.marketRelevance, item.detail))}</p></section><section><span>还不能确认什么</span><p>${esc(first(item.uncertainty, "仍需查看原文及后续来源核验。"))}</p><small class="timeline-ai-notice">${esc(item.aiNotice)}</small></section><section><span>来源线索</span>${evidence.length ? `<ul>${evidence.map((entry) => `<li>${esc(entry)}</li>`).join("")}</ul>` : "<p>本轮没有新增可核验证据。</p>"}</section><section><span>下一步检查</span><p>${esc(first(item.nextCheck, "等待下一轮自动检查"))}</p>${item.url ? `<a href="${esc(item.url)}" target="_blank" rel="noopener noreferrer">查看直接来源</a>` : '<small class="timeline-source-note">未提供可直接打开的原文链接；本页仅展示已获取内容的整理摘要。</small>'}</section>`;
+  }
+
   function buildTimeline(data) {
     const events = [];
     array(data.watch && data.watch.events).forEach((item) => events.push({
@@ -499,6 +505,7 @@
       category: first(item.category, "市场扫描"), title: first(item.title, "市场事件"),
       summary: item.kind === "event" ? first(item.summary, completeTimelineSummary(item.title, item.summary)) : first(item.summary, "来源内容待核验"),
       detailSummary: item.kind === "event" ? first(item.detail_summary, item.summary) : "",
+      eventFacts: array(item.event_facts), marketRelevance: first(item.market_relevance, ""), uncertainty: first(item.uncertainty, ""),
       detail: first(item.interpretation, "暂无影响研判"), aiNotice: item.kind === "event" ? first(item.ai_notice, "AI 基于来源返回内容整理，非来源方原话，不代表来源方官方立场，不构成投资建议；请自行核验。") : "",
       evidence: eventEvidence(item), source: first(item.source, "市场扫描"), time: eventTime(item),
       scope: first(item.scope, "相关合约"), impact: first(item.impact, "低"), nextCheck: "下一轮5分钟扫描",
@@ -563,7 +570,7 @@
             <span class="timeline-toggle" aria-hidden="true">展开</span>
           </button>
           <div id="${detailId}" class="timeline-detail">
-            ${item.isPublicResearch ? researchDetailHtml(item) : item.type === "weather" && item.weatherAnalysis ? weatherDetailHtml(item) : item.type === "supply" ? supplyDetailHtml(item) : `${item.detailSummary ? `<section class="timeline-detail-summary"><span>AI 详细摘要</span><p>${esc(item.detailSummary)}</p><small class="timeline-ai-notice">${esc(item.aiNotice)}</small></section>` : ""}<section><span>影响研判</span><p>${esc(item.detail)}</p>${item.aiNotice ? `<small class="timeline-ai-notice">${esc(item.aiNotice)}</small>` : ""}</section><section><span>来源线索</span>${evidence.length ? `<ul>${evidence.map((entry) => `<li>${esc(entry)}</li>`).join("")}</ul>` : "<p>本轮没有新增可核验证据。</p>"}</section><section><span>下一步检查</span><p>${esc(first(item.nextCheck, "等待下一轮自动检查"))}</p>${item.url ? `<a href="${esc(item.url)}" target="_blank" rel="noopener noreferrer">${item.type === "report" ? "查看原始研报" : "查看直接来源"}</a>` : ["weather", "policy", "industry", "macro"].includes(item.type) ? '<small class="timeline-source-note">未提供可直接打开的原文链接；本页仅展示已获取内容的整理摘要。</small>' : ""}</section>`}
+            ${item.isPublicResearch ? researchDetailHtml(item) : item.type === "weather" && item.weatherAnalysis ? weatherDetailHtml(item) : item.type === "supply" ? supplyDetailHtml(item) : eventDetailHtml(item, evidence)}
           </div>
         </div>
       </article>`;

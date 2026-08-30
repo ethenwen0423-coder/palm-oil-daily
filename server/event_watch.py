@@ -4,14 +4,18 @@
 from __future__ import annotations
 
 import concurrent.futures
+import html
+import ipaddress
 import json
 import re
+import socket
 import urllib.error
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta
 from email.utils import parsedate_to_datetime
+from html.parser import HTMLParser
 from typing import Any, Callable
 
 
@@ -36,6 +40,40 @@ WEATHER_MECHANISM_SOURCES = {
     "brazil_soy": {"name": "Embrapa：巴西大豆播种窗口与干旱风险", "url": "https://www.embrapa.br/en/busca-de-noticias/-/noticia/1472780/integracao-de-tecnologias-reduz-riscos-de-perda-com-estiagem"},
     "canola": {"name": "Canola Council of Canada：收获期天气、产量与品质", "url": "https://www.canolacouncil.org/canola-encyclopedia/harvest-management/"},
 }
+ARTICLE_TEXT_LIMIT = 12_000
+ARTICLE_DOWNLOAD_LIMIT = 1_500_000
+ARTICLE_CLASS_RE = re.compile(r"(?:article|post|entry|story|main)[-_ ]?(?:body|content|text)|xeditor_content", re.I)
+
+
+class ArticleTextExtractor(HTMLParser):
+    """Collect visible text from likely article containers without dependencies."""
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.depth = 0
+        self.capture_depths: list[int] = []
+        self.parts: list[str] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        self.depth += 1
+        attributes = {name: value or "" for name, value in attrs}
+        classes = attributes.get("class", "")
+        if tag == "article" or ARTICLE_CLASS_RE.search(classes):
+            self.capture_depths.append(self.depth)
+        if self.capture_depths and tag in {"p", "br", "li", "h1", "h2", "h3"}:
+            self.parts.append("\n")
+
+    def handle_endtag(self, _tag: str) -> None:
+        if self.capture_depths and self.capture_depths[-1] == self.depth:
+            self.capture_depths.pop()
+        self.depth = max(0, self.depth - 1)
+
+    def handle_data(self, data: str) -> None:
+        if self.capture_depths:
+            self.parts.append(data)
+
+    def text(self) -> str:
+        return re.sub(r"[ \t\r\f\v]+", " ", "".join(self.parts)).strip()
 
 
 def compact(value: Any, limit: int = 300) -> str:
@@ -70,6 +108,110 @@ def request_json(url: str, timeout: int, *, headers: dict[str, str] | None = Non
     request = urllib.request.Request(url, data=data, headers={"User-Agent": "Mozilla/5.0", **(headers or {})})
     with urllib.request.urlopen(request, timeout=timeout) as response:
         return json.loads(response.read().decode("utf-8"))
+
+
+def public_https_url(value: Any) -> str:
+    url = compact(value, 1000)
+    parsed = urllib.parse.urlparse(url)
+    if parsed.scheme != "https" or not parsed.hostname:
+        return ""
+    try:
+        addresses = {item[4][0] for item in socket.getaddrinfo(parsed.hostname, 443, type=socket.SOCK_STREAM)}
+        if not addresses or any(not ipaddress.ip_address(address).is_global for address in addresses):
+            return ""
+    except (OSError, ValueError):
+        return ""
+    return url
+
+
+def resolve_google_news_url(url: str, timeout: int = 10) -> str:
+    """Resolve a Google News RSS wrapper to its publisher URL."""
+    safe_url = public_https_url(url)
+    parsed = urllib.parse.urlparse(safe_url)
+    if not safe_url or parsed.hostname != "news.google.com":
+        return safe_url
+    article_match = re.search(r"/(?:rss/)?articles/([^/?]+)", parsed.path)
+    if not article_match:
+        return safe_url
+    article_id = article_match.group(1)
+    wrapper_url = f"https://news.google.com/rss/articles/{article_id}?hl=zh-CN&gl=CN&ceid=CN:zh-Hans"
+    request = urllib.request.Request(wrapper_url, headers={"User-Agent": "Mozilla/5.0"})
+    with urllib.request.urlopen(request, timeout=timeout) as response:
+        wrapper = response.read(ARTICLE_DOWNLOAD_LIMIT + 1).decode("utf-8", "replace")
+    timestamp = re.search(r'data-n-a-ts="([^"]+)', wrapper)
+    signature = re.search(r'data-n-a-sg="([^"]+)', wrapper)
+    if not timestamp or not signature:
+        return safe_url
+    rpc_request = [
+        "garturlreq",
+        [["X", "X", ["X", "X"], None, None, 1, 1, "CN:zh-Hans", None, 180, None, None, None, None, None, 0, None, None, [1608992183, 723341000]], "X", "X", 1, [1608992183, 723341000], 1, None, None, 0],
+        article_id,
+        int(timestamp.group(1)),
+        signature.group(1),
+    ]
+    payload = [[["Fbv4je", json.dumps(rpc_request, separators=(",", ":")), None, "generic"]]]
+    data = urllib.parse.urlencode({"f.req": json.dumps(payload, separators=(",", ":"))}).encode("utf-8")
+    rpc = urllib.request.Request(
+        "https://news.google.com/_/DotsSplashUi/data/batchexecute",
+        data=data,
+        headers={"User-Agent": "Mozilla/5.0", "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"},
+    )
+    with urllib.request.urlopen(rpc, timeout=timeout) as response:
+        result = response.read(200_000).decode("utf-8", "replace")
+    match = re.search(r'\[\\"garturlres\\",\\"(https:[^"\\]+)', result)
+    if not match:
+        return safe_url
+    return public_https_url(match.group(1).replace("\\/", "/")) or safe_url
+
+
+def extract_article_text(document: str) -> str:
+    candidates: list[str] = []
+    # Eastmoney Fortune pages expose the complete article HTML as a JS string.
+    match = re.search(r"var\s+articleTxt\s*=\s*(\"(?:\\.|[^\"\\])*\")\s*;", document, re.S)
+    if match:
+        try:
+            candidates.append(clean_article_text(json.loads(match.group(1))))
+        except (json.JSONDecodeError, TypeError):
+            pass
+    for match in re.finditer(r'"articleBody"\s*:\s*("(?:\\.|[^"\\])*")', document, re.S):
+        try:
+            candidates.append(clean_article_text(json.loads(match.group(1))))
+        except (json.JSONDecodeError, TypeError):
+            pass
+    parser = ArticleTextExtractor()
+    try:
+        parser.feed(document)
+        candidates.append(clean_article_text(parser.text()))
+    except (ValueError, TypeError):
+        pass
+    for match in re.finditer(r'<meta[^>]+(?:name|property)=["\'](?:description|og:description)["\'][^>]+content=["\']([^"\']+)', document, re.I):
+        candidates.append(clean_article_text(html.unescape(match.group(1))))
+    useful = [item for item in candidates if len(item) >= 80]
+    return max(useful, key=len, default="")[:ARTICLE_TEXT_LIMIT]
+
+
+def clean_article_text(value: Any) -> str:
+    text = re.sub(r"<script\b[^>]*>.*?</script>|<style\b[^>]*>.*?</style>", " ", str(value or ""), flags=re.I | re.S)
+    text = html.unescape(re.sub(r"<[^>]+>", "\n", text))
+    lines = [re.sub(r"\s+", " ", line).strip(" =") for line in text.splitlines()]
+    return "\n".join(line for line in lines if line)
+
+
+def fetch_article_text(url: str, timeout: int = 10) -> tuple[str, str]:
+    direct_url = resolve_google_news_url(url, timeout=timeout)
+    safe_url = public_https_url(direct_url)
+    if not safe_url:
+        return url, ""
+    request = urllib.request.Request(safe_url, headers={"User-Agent": "Mozilla/5.0", "Accept": "text/html,application/xhtml+xml"})
+    with urllib.request.urlopen(request, timeout=timeout) as response:
+        content_type = str(response.headers.get("Content-Type") or "").lower()
+        if "html" not in content_type:
+            return safe_url, ""
+        raw = response.read(ARTICLE_DOWNLOAD_LIMIT + 1)
+        if len(raw) > ARTICLE_DOWNLOAD_LIMIT:
+            return safe_url, ""
+        charset = response.headers.get_content_charset() or "utf-8"
+    return safe_url, extract_article_text(raw.decode(charset, "replace"))
 
 
 def source_error(name: str, exc: BaseException) -> dict[str, Any]:
@@ -284,6 +426,7 @@ def rss_events(watch: Any, now: datetime, timeout: int = 10) -> tuple[list[dict[
                 root = ET.fromstring(response.read())
             items = root.findall(".//item")
             included = 0
+            enriched = 0
             for item in items[:40]:
                 observed = normalize_time(item.findtext("pubDate"), now)
                 try:
@@ -291,20 +434,37 @@ def rss_events(watch: Any, now: datetime, timeout: int = 10) -> tuple[list[dict[
                         continue
                 except ValueError:
                     pass
+                raw_title = item.findtext("title")
+                raw_summary = item.findtext("description")
+                raw_url = item.findtext("link") or ""
+                if not watch.flash_relevant(f"{watch.clean_source_text(raw_title)} {watch.clean_source_text(raw_summary)}"):
+                    continue
+                direct_url = raw_url
+                article_text = ""
+                if enriched < 6:
+                    try:
+                        direct_url, article_text = fetch_article_text(raw_url, timeout=min(timeout, 10))
+                        if article_text:
+                            enriched += 1
+                    except (urllib.error.URLError, urllib.error.HTTPError, OSError, ValueError, TypeError, json.JSONDecodeError):
+                        pass
                 event = normalize_event(
                     watch,
                     prefix="web-news",
                     source=f"跨站新闻·{provider}",
-                    title=item.findtext("title"),
-                    summary=item.findtext("description"),
+                    title=raw_title,
+                    summary=article_text or raw_summary,
                     observed_at=observed,
-                    url=item.findtext("link"),
+                    url=direct_url,
                     source_id=item.findtext("guid"),
                 )
                 if event:
+                    event["source_content_level"] = "full_article" if article_text else "source_summary"
+                    if direct_url != raw_url:
+                        event["aggregator_url"] = compact(raw_url, 500)
                     events.append(event)
                     included += 1
-            details.append(f"{provider} {len(items)}→{included}")
+            details.append(f"{provider} {len(items)}→{included}（正文 {enriched}）")
         except (urllib.error.URLError, urllib.error.HTTPError, ET.ParseError, OSError) as exc:
             failures += 1
             details.append(f"{provider} {type(exc).__name__}")

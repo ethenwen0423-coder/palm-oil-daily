@@ -97,12 +97,18 @@ class EventWatchTests(unittest.TestCase):
                     "headline": "巴克莱警示厄尔尼诺或推高棕榈油价格",
                     "summary": "巴克莱把潜在厄尔尼诺天气风险与棕榈油价格上涨联系起来，并给出18个月的观察窗口。",
                     "detail_summary": "巴克莱讨论厄尔尼诺可能影响棕榈油市场，并提出价格在18个月内上涨30%的可能情景。该表述属于机构预测，不是已经发生的涨幅；来源摘要未披露测算依据，仍需查看原文核验。",
+                    "event_facts": ["预测窗口为18个月。", "预测涨幅为30%。"],
+                    "market_relevance": "若天气冲击产量，棕榈油供应预期可能收紧。",
+                    "uncertainty": "来源摘要未披露测算依据。",
+                    "publishable": True,
                 }]}, "mock-model")
 
         events, source = RUNNER.summarize_events(Backend, [event], {})
         self.assertEqual(source["state"], "ready")
         self.assertNotRegex(events[0]["title"], r"[?？…]")
         self.assertEqual(events[0]["summary_method"], "model")
+        self.assertEqual(events[0]["summary_version"], 2)
+        self.assertEqual(len(events[0]["event_facts"]), 2)
         self.assertGreater(len(events[0]["detail_summary"]), len(events[0]["summary"]))
         self.assertNotIn("_source_title", events[0])
         self.assertNotIn("_source_summary", events[0])
@@ -126,9 +132,38 @@ class EventWatchTests(unittest.TestCase):
 
         events, source = RUNNER.summarize_events(Backend, [event], {})
         self.assertEqual(source["state"], "fallback")
-        self.assertEqual(events[0]["title"], "棕榈油会大涨风险受到关注")
-        self.assertIn("只返回了标题级线索", events[0]["summary"])
-        self.assertIn("不应把标题中的疑问", events[0]["detail_summary"])
+        self.assertEqual(events, [])
+
+    def test_eastmoney_article_html_exposes_complete_weekly_view(self):
+        article = '<p>每周棕榈油期货盘后笔记</p><p>周线和日线均为上涨ABC模型。</p><p>四小时、两小时和十五分钟周期也保留上涨结构。</p><p>周一观望，周二偏弱，周三与周四震荡。</p><p>周五日盘震荡上行。</p><p>作者说明窄幅震荡时应多看少动。</p>'
+        document = f'<script>var articleTxt = {json.dumps(article, ensure_ascii=False)};</script>'
+        text = EVENTS.extract_article_text(document)
+        self.assertIn("周线和日线均为上涨ABC模型", text)
+        self.assertIn("周五日盘震荡上行", text)
+
+    def test_unpublishable_title_only_event_is_removed(self):
+        event = EVENTS.normalize_event(
+            WATCH,
+            prefix="web-news",
+            source="跨站新闻·Google News",
+            title="棕榈油每周笔记",
+            summary="棕榈油每周笔记",
+            observed_at=self.now.isoformat(),
+            source_id="empty-note",
+        )
+
+        class Backend:
+            @staticmethod
+            def request_json(**_kwargs):
+                return ({"events": [{
+                    "id": event["id"], "headline": "棕榈油每周笔记内容不足",
+                    "summary": "来源只显示文章标题。", "detail_summary": "来源未提供可复述的观点或事实。",
+                    "event_facts": [], "market_relevance": "暂无可判断的信息价值。",
+                    "uncertainty": "未取得正文。", "publishable": False,
+                }]}, "mock-model")
+
+        events, _source = RUNNER.summarize_events(Backend, [event], {})
+        self.assertEqual(events, [])
 
     def test_htfc_report_permission_failure_is_not_reported_as_zero(self):
         from urllib.error import HTTPError

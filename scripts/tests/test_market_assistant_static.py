@@ -81,7 +81,10 @@ class MarketAssistantStaticTests(unittest.TestCase):
         self.assertIn('class="timeline-detail-summary"', script)
         self.assertIn("未提供可直接打开的原文链接", script)
         self.assertIn("item.aiNotice", script)
-        self.assertIn("AI 详细摘要", script)
+        self.assertIn("这条新闻讲了什么", script)
+        self.assertIn("关键事实", script)
+        self.assertIn("为什么与油脂有关", script)
+        self.assertIn("还不能确认什么", script)
         self.assertIn("first(item.summary, completeTimelineSummary", script)
 
     def test_timeline_has_granular_filters_and_weather_classifier(self):
@@ -92,8 +95,8 @@ class MarketAssistantStaticTests(unittest.TestCase):
         self.assertIn("function eventTimelineType(item)", script)
         self.assertIn('weather: "天气"', script)
         self.assertIn('class="timeline-ai-notice"', script)
-        self.assertIn("market-assistant.js?v=20260830-event-summary-v2", html)
-        self.assertIn("market-assistant.css?v=20260830-event-summary-v2", html)
+        self.assertIn("market-assistant.js?v=20260830-event-summary-v3", html)
+        self.assertIn("market-assistant.css?v=20260830-event-summary-v3", html)
         self.assertIn("function weatherDetailHtml", script)
         self.assertIn("产量因果链", script)
         self.assertIn("行情传导", script)

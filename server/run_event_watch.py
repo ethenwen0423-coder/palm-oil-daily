@@ -20,6 +20,7 @@ SITE_ROOT = Path(os.environ.get("PALM_OIL_SITE_ROOT", "/srv/palm-oil-daily/site"
 LIVE_ROOT = Path(os.environ.get("PALM_OIL_LIVE_DATA_ROOT", "/srv/palm-oil-daily/live-data"))
 STATE_ROOT = Path(os.environ.get("PALM_OIL_SERVER_STATE_ROOT", "/srv/palm-oil-daily/state"))
 SUMMARY_BATCH_SIZE = 12
+SUMMARY_VERSION = 2
 SUMMARY_SCHEMA = {
     "type": "object",
     "properties": {
@@ -32,8 +33,12 @@ SUMMARY_SCHEMA = {
                     "headline": {"type": "string"},
                     "summary": {"type": "string"},
                     "detail_summary": {"type": "string"},
+                    "event_facts": {"type": "array", "items": {"type": "string"}},
+                    "market_relevance": {"type": "string"},
+                    "uncertainty": {"type": "string"},
+                    "publishable": {"type": "boolean"},
                 },
-                "required": ["id", "headline", "summary", "detail_summary"],
+                "required": ["id", "headline", "summary", "detail_summary", "event_facts", "market_relevance", "uncertainty", "publishable"],
                 "additionalProperties": False,
             },
         }
@@ -104,7 +109,9 @@ def fallback_summary(event: dict[str, Any]) -> None:
         "summary": preview,
         "detail_summary": detail,
         "summary_method": "source-bounded-fallback",
+        "summary_version": SUMMARY_VERSION,
         "summary_generated": True,
+        "summary_publishable": not title_only,
     })
 
 
@@ -113,17 +120,21 @@ def summary_prompt(events: list[dict[str, Any]]) -> str:
         "id": str(item.get("id") or ""),
         "source": clean_sentence(item.get("source"), 80),
         "source_title": clean_sentence(item.get("_source_title") or item.get("title"), 220),
-        "source_summary": clean_sentence(item.get("_source_summary"), 1600),
+        "source_summary": clean_sentence(item.get("_source_summary"), 6000),
+        "source_content_level": clean_sentence(item.get("source_content_level"), 30),
         "observed_at": clean_sentence(item.get("observed_at"), 50),
     } for item in events]
     return """你是油脂期货跨源事件编辑。只依据 INPUT_EVENTS 中每条来源返回的标题和摘要，生成中文结构化摘要；不得使用外部知识，不得补造主体、数字、时间、因果或结论。
 
 每条必须满足：
 1. headline 是陈述句，概括实际事件或来源主张，12至42个汉字为宜；不得以问号或省略号结尾，不得保留“史上最强”“重磅”等悬念式开头。若原文是提问，改写成“某机构提出/警示/讨论某风险”之类的有归属陈述。
-2. summary 用1至2句说明用户一眼需要知道的主体、事件和关键变化，不重复 headline。
-3. detail_summary 用2至4句说明“谁、发生/主张什么、涉及哪些明确数字或时间、为什么与油脂相关、尚有哪些不确定性”。只保留来源返回内容中的事实和归属，不复制整段原文。
-4. 来源信息不足时，明确写“来源摘要未披露具体依据/时间/数据，需查看原文核验”，绝不猜测。
-5. 不写交易指令，不把来源观点伪装成官方事实。
+2. summary 用1至2句直接回答“这条新闻讲了什么”，必须写出观点或事件本身，不得只写“某平台发布了一篇文章”。
+3. detail_summary 用2至4句复述核心论点、过程或变化；优先包含方向、周期、数据、主体和时间。只保留来源返回内容中的事实和归属，不复制整段原文。
+4. event_facts 提取2至4条最有信息量的具体事实；不得用“发布了文章”“涉及棕榈油”等空话凑数。
+5. market_relevance 用1至2句解释其对P/Y/OI研究有什么信息价值；推论必须明确是AI解释，不得写成来源原话。
+6. uncertainty 用1句说明最重要的证据边界，例如仅为作者技术模型、缺少价格点位、尚未被第二来源验证。
+7. publishable 只有在来源内容至少提供一个可复述的观点、事实、数字或明确变化时才为 true；若只能知道“某人发布了某标题”，必须为 false。
+8. 来源信息不足时明确写需查看原文核验，绝不猜测；可以用“作者认为/作者采用”的第三方口径转述来源策略框架，但不得改写成本站给用户的交易指令，也不得把来源观点伪装成官方事实。
 
 INPUT_EVENTS:
 """ + json.dumps(inputs, ensure_ascii=False, separators=(",", ":"))
@@ -133,7 +144,17 @@ def valid_model_summary(item: dict[str, Any]) -> bool:
     headline = clean_sentence(item.get("headline"), 80)
     summary = clean_sentence(item.get("summary"), 260)
     detail = clean_sentence(item.get("detail_summary"), 900)
-    return bool(6 <= len(headline) <= 80 and summary and detail and not re.search(r"[?？…]", headline))
+    facts = item.get("event_facts")
+    return bool(
+        6 <= len(headline) <= 80
+        and summary
+        and detail
+        and isinstance(facts, list)
+        and clean_sentence(item.get("market_relevance"), 500)
+        and clean_sentence(item.get("uncertainty"), 500)
+        and isinstance(item.get("publishable"), bool)
+        and not re.search(r"[?？…]", headline)
+    )
 
 
 def summarize_events(
@@ -144,7 +165,7 @@ def summarize_events(
     prior_by_id = {
         str(item.get("id")): item
         for item in previous.get("events", [])
-        if isinstance(item, dict) and item.get("summary_method") == "model"
+        if isinstance(item, dict) and item.get("summary_method") == "model" and item.get("summary_version") == SUMMARY_VERSION
     }
     pending: list[dict[str, Any]] = []
     reused = 0
@@ -156,8 +177,12 @@ def summarize_events(
             "headline": prior.get("title"),
             "summary": prior.get("summary"),
             "detail_summary": prior.get("detail_summary"),
+            "event_facts": prior.get("event_facts"),
+            "market_relevance": prior.get("market_relevance"),
+            "uncertainty": prior.get("uncertainty"),
+            "publishable": prior.get("summary_publishable"),
         }):
-            for key in ("title", "summary", "detail_summary", "summary_method", "summary_backend"):
+            for key in ("title", "summary", "detail_summary", "event_facts", "market_relevance", "uncertainty", "summary_method", "summary_backend", "summary_version", "summary_publishable"):
                 if prior.get(key):
                     event[key] = prior[key]
             reused += 1
@@ -190,8 +215,13 @@ def summarize_events(
                     "title": clean_sentence(summary["headline"], 80),
                     "summary": clean_sentence(summary["summary"], 260),
                     "detail_summary": clean_sentence(summary["detail_summary"], 900),
+                    "event_facts": [clean_sentence(value, 240) for value in summary["event_facts"][:4] if clean_sentence(value, 240)],
+                    "market_relevance": clean_sentence(summary["market_relevance"], 500),
+                    "uncertainty": clean_sentence(summary["uncertainty"], 500),
                     "summary_method": "model",
                     "summary_backend": backend,
+                    "summary_version": SUMMARY_VERSION,
+                    "summary_publishable": summary["publishable"],
                     "summary_generated": True,
                 })
                 generated += 1
@@ -209,6 +239,12 @@ def summarize_events(
         for key in [name for name in event if name.startswith("_")]:
             event.pop(key, None)
 
+    events = [
+        event for event in events
+        if event.get("kind") != "event"
+        or event.get("category") == "天气产量研判"
+        or event.get("summary_publishable", True)
+    ]
     state = "ready" if not failures else ("degraded" if generated or reused else "fallback")
     detail = f"模型新生成 {generated} 条，复用 {reused} 条"
     if failures:
