@@ -45,4 +45,29 @@
 
 - None required for this scope.
 
+---
+
+# Design QA — AI敢死队决策模式下拉框
+
+**Evidence**
+
+- Issue capture: `/var/folders/xx/r68yfq7n04n256vjslj6z3r00000gn/T/TemporaryItems/NSIRD_screencaptureui_ZO8s0h/截屏2026-08-30 23.00.41.png`
+- Browser-rendered implementation: `/Users/ethen/Sites/palm-oil-daily/design-qa-ai-daredevil-select.png`
+- Focused implementation: `/Users/ethen/Sites/palm-oil-daily/design-qa-ai-daredevil-select-focus.png`
+- Side-by-side comparison: `/Users/ethen/Sites/palm-oil-daily/design-qa-ai-daredevil-select-comparison.png`
+- Viewport: 1280 × 720 CSS px, device scale factor 1; state: `纯AI决策` selected.
+
+**Findings**
+
+- No actionable P0, P1, or P2 differences remain for the reported component.
+- Typography and spacing preserve the existing component rules: 15 px/700 value text, 360 px desktop width, and 46 px control height.
+- The white native surface is replaced by the site panel color, existing green gradient and border, with a dark explicit fallback for browser differences.
+- The native disclosure indicator, copy, keyboard focus styling, and strategy switching behavior are preserved.
+
+**Comparison History**
+
+1. Initial P1: the issue capture showed a white select that broke the dark site theme. P2: the stylesheet URL had no release version, allowing stale CSS to persist.
+2. Fix: added an explicit dark background and text fill while preserving the existing gradient and native arrow; versioned the stylesheet URL.
+3. Post-fix: computed styles show `rgb(11, 27, 22)`, a green border, white text, square corners, and working switching between both strategies.
+
 final result: passed

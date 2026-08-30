@@ -28,6 +28,7 @@ class AiDaredevilTests(unittest.TestCase):
         self.assertIn('api: "/api/ai-daredevil"', script)
         self.assertIn('api: "/api/ai-daredevil/pure-ai"', script)
         self.assertIn('kind === "skipped"', script)
+        self.assertIn('assets/ai-daredevil.css?v=20260830-3', html)
         self.assertIn('assets/ai-daredevil.js?v=20260830-2', html)
         self.assertIn("60 * 1000", script)
 
