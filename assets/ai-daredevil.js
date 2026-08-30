@@ -132,7 +132,7 @@
   function renderActivity(containerId, emptyId, items, kind) {
     const list = Array.isArray(items) ? items : []; el(emptyId).hidden = list.length > 0;
     el(containerId).innerHTML = list.map((item) => {
-      const action = actionLabel(item.action); const detail = item.next_instruction || item.reason || item.open_reason || action || "--";
+      const action = actionLabel(item.action); const detail = kind === "skipped" ? (item.reason || item.next_instruction || item.open_reason || action || "--") : (item.next_instruction || item.reason || item.open_reason || action || "--");
       const tail = kind === "trade" ? money.format(Number(item.pnl ?? item.realized_pnl ?? 0)) : (item.confidence != null ? `置信 ${percent(item.confidence)}` : `${item.quantity || 0} 手`);
       return `<article class="activity-item"><span>${escapeHtml(item.time || item.execution_date || item.signal_date || "--")}</span><div><strong>${escapeHtml(item.name || item.variety || "--")} · ${escapeHtml(item.contract || action)}</strong><small>${escapeHtml(detail)}</small></div><b class="${Number(item.pnl ?? item.realized_pnl ?? 0) >= 0 ? "is-positive" : "is-negative"}">${escapeHtml(tail)}</b></article>`;
     }).join("");
@@ -151,7 +151,7 @@
     renderMetrics(data); renderScanAudit(data); renderChart(data.equity_curve); renderPositions(data);
     const trades = Array.isArray(data.today_trades) ? data.today_trades : []; const pending = Array.isArray(data.pending_orders) ? data.pending_orders : []; const decisions = Array.isArray(data.latest_decisions) ? data.latest_decisions : []; const instructions = pending.length ? pending : decisions;
     el("trade-count").textContent = `${trades.length} 条`; el("pending-count").textContent = `${instructions.length} 条`; renderActivity("trades-list", "trades-empty", trades, "trade"); renderActivity("pending-list", "pending-empty", instructions, "instruction");
-    const skipped = Array.isArray(data.skipped_signals) ? data.skipped_signals : []; el("skipped-count").textContent = `${skipped.length} 条`; renderActivity("skipped-list", "skipped-empty", skipped, "pending"); renderSources(data);
+    const skipped = Array.isArray(data.skipped_signals) ? data.skipped_signals : []; el("skipped-count").textContent = `${skipped.length} 条`; renderActivity("skipped-list", "skipped-empty", skipped, "skipped"); renderSources(data);
   }
 
   async function boot() {

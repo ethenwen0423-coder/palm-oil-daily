@@ -27,6 +27,7 @@ class AiDaredevilTests(unittest.TestCase):
         self.assertIn("不构成投资建议", html)
         self.assertIn('api: "/api/ai-daredevil"', script)
         self.assertIn('api: "/api/ai-daredevil/pure-ai"', script)
+        self.assertIn('kind === "skipped"', script)
         self.assertIn("60 * 1000", script)
 
     def test_runtime_initializes_persistent_virtual_fund_without_requesting_quotes(self):
