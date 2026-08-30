@@ -97,6 +97,16 @@ PRODUCT_REALTIME_SYMBOL = {
     "ZN": "沪锌", "NI": "沪镍", "AU": "黄金", "SC": "原油",
     "RU": "橡胶", "SP": "纸浆",
 }
+PRODUCT_REALTIME_NODE = {
+    "FG": "bl_qh", "MA": "zc_qh", "TA": "pta_qh", "SA": "cj_qh", "V": "pvc_qh",
+    "RB": "lwg_qh", "FU": "ry_qh", "PP": "jbx_qh", "AG": "by_qh", "JD": "jd_qh",
+    "EG": "yec_qh", "L": "lldpe_qh", "JM": "jm_qh", "EB": "byx_qh", "HC": "rzjb_qh",
+    "BU": "lq_qh", "SH": "sh_qh", "P": "zly_qh", "Y": "dy_qh", "OI": "czy_qh",
+    "M": "dp_qh", "RM": "czp_qh", "C": "hym_qh", "CF": "mh_qh", "SR": "bst_qh",
+    "UR": "ns_qh", "LH": "lh_qh", "J": "jt_qh", "I": "tks_qh", "PS": "ps_qh",
+    "SI": "si_qh", "LC": "lc_qh", "CU": "tong_qh", "AL": "lv_qh", "ZN": "xing_qh",
+    "NI": "ni_qh", "AU": "hj_qh", "SC": "yy_qh", "RU": "xj_qh", "SP": "zj_qh",
+}
 
 
 class RuntimeErrorSafe(RuntimeError):
@@ -389,37 +399,45 @@ def current_contracts(data_root: Path) -> dict[str, list[str]]:
     # T-1 volume-selected main schedule without ever requesting a continuous
     # symbol. Four contracts bounds the close-scan runtime and avoids dormant
     # far-month prints becoming false rollover candidates.
-    try:
-        import akshare as ak
+    # Call Sina directly with an explicit timeout. AkShare's wrapper does not
+    # set one here, so a slow endpoint can retain the global automation lock
+    # indefinitely even when discovery itself is concurrent.
+    def discover_liquid_contracts(variety: str) -> tuple[str, list[str]]:
+        try:
+            url = (
+                "https://vip.stock.finance.sina.com.cn/quotes_service/api/json_v2.php/"
+                "Market_Center.getHQFuturesData?"
+                + urllib.parse.urlencode({
+                    "page": "1", "sort": "position", "asc": "0",
+                    "node": PRODUCT_REALTIME_NODE[variety], "base": "futures",
+                })
+            )
+            request = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(request, timeout=12) as response:
+                rows = json.loads(response.read().decode("utf-8"))
+            ranked = []
+            for row in rows if isinstance(rows, list) else []:
+                contract = normalized_contract(find_field(row, ("symbol", "合约", "合约代码", "代码", "期货代码")))
+                if not contract or not contract.startswith(variety) or contract.endswith("0"):
+                    continue
+                volume = numeric(find_field(row, ("volume", "成交量"))) or 0.0
+                open_interest = numeric(find_field(row, ("position", "hold", "open_interest", "持仓量"))) or 0.0
+                if volume > 0 or open_interest > 0:
+                    ranked.append((volume, open_interest, contract))
+            liquid = [contract for _volume, _hold, contract in sorted(ranked, reverse=True)[:4]]
+            return variety, liquid
+        except Exception:
+            return variety, []
 
-        def discover_liquid_contracts(variety: str) -> tuple[str, list[str]]:
-            try:
-                frame = ak.futures_zh_realtime(symbol=PRODUCT_REALTIME_SYMBOL[variety])
-                ranked = []
-                for row in frame.to_dict(orient="records") if frame is not None else []:
-                    contract = normalized_contract(find_field(row, ("symbol", "合约", "合约代码", "代码", "期货代码")))
-                    if not contract or not contract.startswith(variety) or contract.endswith("0"):
-                        continue
-                    volume = numeric(find_field(row, ("volume", "成交量"))) or 0.0
-                    open_interest = numeric(find_field(row, ("position", "hold", "open_interest", "持仓量"))) or 0.0
-                    if volume > 0 or open_interest > 0:
-                        ranked.append((volume, open_interest, contract))
-                liquid = [contract for _volume, _hold, contract in sorted(ranked, reverse=True)[:4]]
-                return variety, liquid
-            except Exception:
-                return variety, []
-
-        # Realtime discovery is network-bound and has one request per variety.
-        # A bounded cross-variety pool keeps the close scan within the service
-        # budget even when individual exchange endpoints are slow.
-        with ThreadPoolExecutor(max_workers=min(12, len(PRODUCTS))) as pool:
-            futures = [pool.submit(discover_liquid_contracts, variety) for variety in PRODUCTS]
-            for future in as_completed(futures):
-                variety, liquid = future.result()
-                if liquid:
-                    output[variety] = sorted(set(output.get(variety, []) + liquid))
-    except ImportError:
-        pass
+    # Realtime discovery is network-bound and has one request per variety. A
+    # bounded cross-variety pool plus the per-request timeout keeps the close
+    # scan within the unattended service budget.
+    with ThreadPoolExecutor(max_workers=min(12, len(PRODUCTS))) as pool:
+        futures = [pool.submit(discover_liquid_contracts, variety) for variety in PRODUCTS]
+        for future in as_completed(futures):
+            variety, liquid = future.result()
+            if liquid:
+                output[variety] = sorted(set(output.get(variety, []) + liquid))
     return output
 
 

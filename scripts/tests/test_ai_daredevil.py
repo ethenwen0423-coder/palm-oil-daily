@@ -3,7 +3,6 @@ import json
 import subprocess
 import sys
 import tempfile
-import threading
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
@@ -59,31 +58,42 @@ class AiDaredevilTests(unittest.TestCase):
         self.assertEqual(RUNTIME.PRODUCT_REALTIME_SYMBOL["P"], "棕榈")
         self.assertEqual(RUNTIME.PRODUCT_REALTIME_SYMBOL["TA"], "PTA")
         self.assertEqual(set(RUNTIME.PRODUCT_REALTIME_SYMBOL), set(RUNTIME.PRODUCTS))
+        self.assertEqual(RUNTIME.PRODUCT_REALTIME_NODE["P"], "zly_qh")
+        self.assertEqual(set(RUNTIME.PRODUCT_REALTIME_NODE), set(RUNTIME.PRODUCTS))
 
-    def test_realtime_contract_discovery_runs_across_varieties_concurrently(self):
-        barrier = threading.Barrier(2)
-
-        def realtime(symbol):
-            barrier.wait(timeout=1)
-            contract = "P2701" if symbol == "棕榈" else "Y2701"
-            return pd.DataFrame([{"symbol": contract, "volume": 1000, "position": 2000}])
-
-        fake_akshare = SimpleNamespace(futures_zh_realtime=realtime)
+    def test_realtime_contract_discovery_uses_bounded_direct_requests(self):
         products = {
             "P": {"name": "棕榈油", "sector": "油脂油料"},
             "Y": {"name": "豆油", "sector": "油脂油料"},
         }
-        symbols = {"P": "棕榈", "Y": "豆油"}
+        nodes = {"P": "zly_qh", "Y": "dy_qh"}
+
+        class Response:
+            def __init__(self, request):
+                contract = "P2701" if "zly_qh" in request.full_url else "Y2701"
+                self.payload = json.dumps([{"symbol": contract, "volume": 1000, "position": 2000}]).encode()
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_args):
+                return False
+
+            def read(self):
+                return self.payload
+
         with tempfile.TemporaryDirectory() as temporary:
             data_root = Path(temporary)
             with (
-                mock.patch.dict(sys.modules, {"akshare": fake_akshare}),
                 mock.patch.object(RUNTIME, "PRODUCTS", products),
-                mock.patch.object(RUNTIME, "PRODUCT_REALTIME_SYMBOL", symbols),
+                mock.patch.object(RUNTIME, "PRODUCT_REALTIME_NODE", nodes),
+                mock.patch.object(RUNTIME.urllib.request, "urlopen", side_effect=lambda request, timeout: Response(request)) as fetch,
             ):
                 result = RUNTIME.current_contracts(data_root)
 
         self.assertEqual(result, {"P": ["P2701"], "Y": ["Y2701"]})
+        self.assertEqual(fetch.call_count, 2)
+        self.assertTrue(all(call.kwargs["timeout"] == 12 for call in fetch.call_args_list))
 
     def test_cross_sector_universe_and_non_p_signal_score(self):
         self.assertGreaterEqual(len(RUNTIME.PRODUCTS), 40)
