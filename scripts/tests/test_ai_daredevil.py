@@ -3,6 +3,7 @@ import json
 import subprocess
 import sys
 import tempfile
+import threading
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
@@ -58,6 +59,31 @@ class AiDaredevilTests(unittest.TestCase):
         self.assertEqual(RUNTIME.PRODUCT_REALTIME_SYMBOL["P"], "棕榈")
         self.assertEqual(RUNTIME.PRODUCT_REALTIME_SYMBOL["TA"], "PTA")
         self.assertEqual(set(RUNTIME.PRODUCT_REALTIME_SYMBOL), set(RUNTIME.PRODUCTS))
+
+    def test_realtime_contract_discovery_runs_across_varieties_concurrently(self):
+        barrier = threading.Barrier(2)
+
+        def realtime(symbol):
+            barrier.wait(timeout=1)
+            contract = "P2701" if symbol == "棕榈" else "Y2701"
+            return pd.DataFrame([{"symbol": contract, "volume": 1000, "position": 2000}])
+
+        fake_akshare = SimpleNamespace(futures_zh_realtime=realtime)
+        products = {
+            "P": {"name": "棕榈油", "sector": "油脂油料"},
+            "Y": {"name": "豆油", "sector": "油脂油料"},
+        }
+        symbols = {"P": "棕榈", "Y": "豆油"}
+        with tempfile.TemporaryDirectory() as temporary:
+            data_root = Path(temporary)
+            with (
+                mock.patch.dict(sys.modules, {"akshare": fake_akshare}),
+                mock.patch.object(RUNTIME, "PRODUCTS", products),
+                mock.patch.object(RUNTIME, "PRODUCT_REALTIME_SYMBOL", symbols),
+            ):
+                result = RUNTIME.current_contracts(data_root)
+
+        self.assertEqual(result, {"P": ["P2701"], "Y": ["Y2701"]})
 
     def test_cross_sector_universe_and_non_p_signal_score(self):
         self.assertGreaterEqual(len(RUNTIME.PRODUCTS), 40)

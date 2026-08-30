@@ -391,7 +391,8 @@ def current_contracts(data_root: Path) -> dict[str, list[str]]:
     # far-month prints becoming false rollover candidates.
     try:
         import akshare as ak
-        for variety in PRODUCTS:
+
+        def discover_liquid_contracts(variety: str) -> tuple[str, list[str]]:
             try:
                 frame = ak.futures_zh_realtime(symbol=PRODUCT_REALTIME_SYMBOL[variety])
                 ranked = []
@@ -404,10 +405,19 @@ def current_contracts(data_root: Path) -> dict[str, list[str]]:
                     if volume > 0 or open_interest > 0:
                         ranked.append((volume, open_interest, contract))
                 liquid = [contract for _volume, _hold, contract in sorted(ranked, reverse=True)[:4]]
+                return variety, liquid
+            except Exception:
+                return variety, []
+
+        # Realtime discovery is network-bound and has one request per variety.
+        # A bounded cross-variety pool keeps the close scan within the service
+        # budget even when individual exchange endpoints are slow.
+        with ThreadPoolExecutor(max_workers=min(12, len(PRODUCTS))) as pool:
+            futures = [pool.submit(discover_liquid_contracts, variety) for variety in PRODUCTS]
+            for future in as_completed(futures):
+                variety, liquid = future.result()
                 if liquid:
                     output[variety] = sorted(set(output.get(variety, []) + liquid))
-            except Exception:
-                continue
     except ImportError:
         pass
     return output
