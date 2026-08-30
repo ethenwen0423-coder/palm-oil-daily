@@ -262,6 +262,10 @@ def normalize_event(watch: Any, *, prefix: str, source: str, title: Any, summary
         "direct_source_available": bool(clean_url),
         "observed_at": observed,
         "evidence_ids": [watch.event_id(f"{prefix}-evidence", source_id or clean_title, url)],
+        # Consumed by run_event_watch.py before the public snapshot is written.
+        # Private source text must never reach the public API.
+        "_source_title": clean_title,
+        "_source_summary": clean_summary,
     }
 
 

@@ -78,6 +78,58 @@ class EventWatchTests(unittest.TestCase):
         self.assertEqual(preview, "棕榈油出口变化。")
         self.assertEqual(detail, preview)
 
+    def test_model_summary_replaces_question_title_and_private_source_text(self):
+        event = EVENTS.normalize_event(
+            WATCH,
+            prefix="web-news",
+            source="跨站新闻·Google News",
+            title="史上最强厄尔尼诺逼近？巴克莱：棕榈油或上涨30%",
+            summary="巴克莱讨论厄尔尼诺天气风险，并提出棕榈油价格在18个月内可能上涨30%。",
+            observed_at=self.now.isoformat(),
+            source_id="summary-one",
+        )
+
+        class Backend:
+            @staticmethod
+            def request_json(**_kwargs):
+                return ({"events": [{
+                    "id": event["id"],
+                    "headline": "巴克莱警示厄尔尼诺或推高棕榈油价格",
+                    "summary": "巴克莱把潜在厄尔尼诺天气风险与棕榈油价格上涨联系起来，并给出18个月的观察窗口。",
+                    "detail_summary": "巴克莱讨论厄尔尼诺可能影响棕榈油市场，并提出价格在18个月内上涨30%的可能情景。该表述属于机构预测，不是已经发生的涨幅；来源摘要未披露测算依据，仍需查看原文核验。",
+                }]}, "mock-model")
+
+        events, source = RUNNER.summarize_events(Backend, [event], {})
+        self.assertEqual(source["state"], "ready")
+        self.assertNotRegex(events[0]["title"], r"[?？…]")
+        self.assertEqual(events[0]["summary_method"], "model")
+        self.assertGreater(len(events[0]["detail_summary"]), len(events[0]["summary"]))
+        self.assertNotIn("_source_title", events[0])
+        self.assertNotIn("_source_summary", events[0])
+        self.assertIn("来源标题：", events[0]["evidence"][0])
+
+    def test_sparse_source_fallback_explains_that_details_are_unavailable(self):
+        event = EVENTS.normalize_event(
+            WATCH,
+            prefix="web-news",
+            source="跨站新闻·Google News",
+            title="棕榈油会大涨吗？",
+            summary="棕榈油会大涨吗？",
+            observed_at=self.now.isoformat(),
+            source_id="sparse-one",
+        )
+
+        class Backend:
+            @staticmethod
+            def request_json(**_kwargs):
+                raise RuntimeError("offline")
+
+        events, source = RUNNER.summarize_events(Backend, [event], {})
+        self.assertEqual(source["state"], "fallback")
+        self.assertEqual(events[0]["title"], "棕榈油会大涨风险受到关注")
+        self.assertIn("只返回了标题级线索", events[0]["summary"])
+        self.assertIn("不应把标题中的疑问", events[0]["detail_summary"])
+
     def test_htfc_report_permission_failure_is_not_reported_as_zero(self):
         from urllib.error import HTTPError
         error = HTTPError("https://x", 403, "Forbidden", {}, io.BytesIO(b""))

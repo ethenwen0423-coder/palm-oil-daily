@@ -497,8 +497,8 @@
     array(data.watch && data.watch.events).forEach((item) => events.push({
       type: item.kind === "event" ? eventTimelineType(item) : "move",
       category: first(item.category, "市场扫描"), title: first(item.title, "市场事件"),
-      summary: item.kind === "event" ? completeTimelineSummary(item.title, item.summary) : first(item.summary, "来源内容待核验"),
-      detailSummary: item.kind === "event" ? first(item.detail_summary, completeTimelineSummary(item.title, item.summary)) : "",
+      summary: item.kind === "event" ? first(item.summary, completeTimelineSummary(item.title, item.summary)) : first(item.summary, "来源内容待核验"),
+      detailSummary: item.kind === "event" ? first(item.detail_summary, item.summary) : "",
       detail: first(item.interpretation, "暂无影响研判"), aiNotice: item.kind === "event" ? first(item.ai_notice, "AI 基于来源返回内容整理，非来源方原话，不代表来源方官方立场，不构成投资建议；请自行核验。") : "",
       evidence: eventEvidence(item), source: first(item.source, "市场扫描"), time: eventTime(item),
       scope: first(item.scope, "相关合约"), impact: first(item.impact, "低"), nextCheck: "下一轮5分钟扫描",
@@ -563,7 +563,7 @@
             <span class="timeline-toggle" aria-hidden="true">展开</span>
           </button>
           <div id="${detailId}" class="timeline-detail">
-            ${item.isPublicResearch ? researchDetailHtml(item) : item.type === "weather" && item.weatherAnalysis ? weatherDetailHtml(item) : item.type === "supply" ? supplyDetailHtml(item) : `${item.detailSummary ? `<section class="timeline-detail-summary"><span>事件详情</span><p>${esc(item.detailSummary)}</p><small class="timeline-ai-notice">${esc(item.aiNotice)}</small></section>` : ""}<section><span>影响研判</span><p>${esc(item.detail)}</p>${item.aiNotice ? `<small class="timeline-ai-notice">${esc(item.aiNotice)}</small>` : ""}</section><section><span>关键证据</span>${evidence.length ? `<ul>${evidence.map((entry) => `<li>${esc(entry)}</li>`).join("")}</ul>` : "<p>本轮没有新增可核验证据。</p>"}</section><section><span>下一步检查</span><p>${esc(first(item.nextCheck, "等待下一轮自动检查"))}</p>${item.url ? `<a href="${esc(item.url)}" target="_blank" rel="noopener noreferrer">${item.type === "report" ? "查看原始研报" : "查看直接来源"}</a>` : ["weather", "policy", "industry", "macro"].includes(item.type) ? '<small class="timeline-source-note">未提供可直接打开的原文链接；本页仅展示已获取内容的整理摘要。</small>' : ""}</section>`}
+            ${item.isPublicResearch ? researchDetailHtml(item) : item.type === "weather" && item.weatherAnalysis ? weatherDetailHtml(item) : item.type === "supply" ? supplyDetailHtml(item) : `${item.detailSummary ? `<section class="timeline-detail-summary"><span>AI 详细摘要</span><p>${esc(item.detailSummary)}</p><small class="timeline-ai-notice">${esc(item.aiNotice)}</small></section>` : ""}<section><span>影响研判</span><p>${esc(item.detail)}</p>${item.aiNotice ? `<small class="timeline-ai-notice">${esc(item.aiNotice)}</small>` : ""}</section><section><span>来源线索</span>${evidence.length ? `<ul>${evidence.map((entry) => `<li>${esc(entry)}</li>`).join("")}</ul>` : "<p>本轮没有新增可核验证据。</p>"}</section><section><span>下一步检查</span><p>${esc(first(item.nextCheck, "等待下一轮自动检查"))}</p>${item.url ? `<a href="${esc(item.url)}" target="_blank" rel="noopener noreferrer">${item.type === "report" ? "查看原始研报" : "查看直接来源"}</a>` : ["weather", "policy", "industry", "macro"].includes(item.type) ? '<small class="timeline-source-note">未提供可直接打开的原文链接；本页仅展示已获取内容的整理摘要。</small>' : ""}</section>`}
           </div>
         </div>
       </article>`;

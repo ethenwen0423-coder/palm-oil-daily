@@ -329,6 +329,8 @@ def eastmoney_flash_events(now: datetime, timeout: int = 10) -> tuple[list[dict[
             "url": url,
             "observed_at": observed,
             "evidence_ids": [f"eastmoney-flash:{item.get('id') or event_id('flash', title)}"],
+            "_source_title": title,
+            "_source_summary": source_detail,
         })
     return events[:20], {"name": "东方财富7x24快讯", "state": "ready", "detail": f"公开快讯扫描 {len(records)} 条，纳入 {len(events[:20])} 条油脂相关事件。"}
 
@@ -367,6 +369,8 @@ def news_events(api_key: str | None, now: datetime, timeout: int = 20) -> tuple[
             "url": url,
             "observed_at": event_time(item, now),
             "evidence_ids": [event_id("news-evidence", title, url)],
+            "_source_title": title,
+            "_source_summary": source_detail,
         })
     return events, {"name": "东方财富妙想资讯", "state": "ready", "detail": f"检索 {len(records)} 条，纳入 {len(events)} 条可识别事件。"}
 
