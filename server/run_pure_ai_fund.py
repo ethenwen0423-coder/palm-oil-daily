@@ -394,6 +394,23 @@ def build_signals(
     return snapshot, decision_rows
 
 
+def record_plan_outcomes(
+    audit: dict[str, Any], skipped: list[dict[str, Any]], result: dict[str, Any]
+) -> None:
+    decisions = result.get("decisions", []) if isinstance(result, dict) else []
+    audit["proposed_order_count"] = int(audit.get("order_count", 0) or 0)
+    audit["order_count"] = sum(row.get("status") == "planned" for row in decisions)
+    for row in decisions:
+        if row.get("status") == "planned":
+            continue
+        signal = row.get("signal") if isinstance(row.get("signal"), dict) else {}
+        skipped.append({
+            **signal,
+            "status": row.get("status", "rejected"),
+            "reason": clean_text(row.get("reason") or "外部账本风控未接受该候选指令", 300),
+        })
+
+
 def scan_ai(data_root: Path, state: dict[str, Any], timeout: int, now: datetime):
     facts, issues = select_contract_facts(data_root)
     context, allowed = build_ai_context(data_root, facts, state)
@@ -553,7 +570,9 @@ def main() -> int:
             if snapshot:
                 signal_path = state_dir / "latest_signals.json"
                 BASE.atomic_json(signal_path, snapshot)
-                ledger.command_plan(SimpleNamespace(state_dir=state_dir, signals=signal_path))
+                plan_result = ledger.command_plan(SimpleNamespace(state_dir=state_dir, signals=signal_path))
+                record_plan_outcomes(audit, skipped, plan_result)
+                BASE.atomic_json(audit_path, audit)
                 state = ledger.command_status(SimpleNamespace(state_dir=state_dir))
         payload = public_snapshot(
             state_dir, state, sources, BASE.refresh_reason(now, args.reason), skipped, audit, decisions, now

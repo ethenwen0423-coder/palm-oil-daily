@@ -86,6 +86,22 @@ class PureAiFundTests(unittest.TestCase):
         self.assertEqual(rows[0]["action"], "WAIT")
         self.assertIn("暂停新增风险", rows[0]["risk_override"])
 
+    def test_plan_audit_counts_only_orders_accepted_by_ledger_risk(self):
+        audit = {"order_count": 1}
+        skipped = []
+        result = {"decisions": [{
+            "status": "skipped",
+            "reason": "single contract exceeds variety notional cap",
+            "signal": {"variety": "SC", "contract": "SC2610", "action": "ENTER_LONG"},
+        }]}
+
+        PURE.record_plan_outcomes(audit, skipped, result)
+
+        self.assertEqual(audit["proposed_order_count"], 1)
+        self.assertEqual(audit["order_count"], 0)
+        self.assertEqual(skipped[0]["contract"], "SC2610")
+        self.assertIn("notional cap", skipped[0]["reason"])
+
     def test_ledger_supports_an_independent_model_and_stricter_policy(self):
         ledger, _model, _signal = PURE.BASE.load_components(ROOT)
         with tempfile.TemporaryDirectory() as temporary:
