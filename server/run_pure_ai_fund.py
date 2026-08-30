@@ -159,20 +159,40 @@ def select_contract_facts(data_root: Path) -> tuple[list[dict[str, Any]], list[d
     contracts_by_variety = BASE.current_contracts(data_root)
     facts: list[dict[str, Any]] = []
     issues: list[dict[str, Any]] = []
+    # Fetch the complete contract universe in one bounded pool.  Fetching each
+    # variety in sequence makes the close scan take up to 40 * 15 seconds when
+    # Sina is slow, which exceeds the unattended service timeout before the AI
+    # can make a decision.
+    all_contracts = sorted({
+        contract
+        for contracts in contracts_by_variety.values()
+        for contract in contracts
+    })
+    fetched_frames: dict[str, Any] = {}
+    fetch_errors: dict[str, str] = {}
+    if all_contracts:
+        workers = min(16, len(all_contracts))
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            futures = {pool.submit(BASE.fetch_daily, contract): contract for contract in all_contracts}
+            for future in as_completed(futures):
+                contract = futures[future]
+                try:
+                    fetched_frames[contract] = future.result()
+                except Exception as exc:
+                    fetch_errors[contract] = type(exc).__name__
     for variety, product in BASE.PRODUCTS.items():
         contracts = contracts_by_variety.get(variety, [])
         if not contracts:
             issues.append({"variety": variety, "reason": "未发现可核验的真实交割月合约"})
             continue
-        frames = {}
-        with ThreadPoolExecutor(max_workers=min(6, len(contracts))) as pool:
-            futures = {pool.submit(BASE.fetch_daily, contract): contract for contract in contracts}
-            for future in as_completed(futures):
-                contract = futures[future]
-                try:
-                    frames[contract] = future.result()
-                except Exception as exc:
-                    issues.append({"variety": variety, "contract": contract, "reason": f"日线缺失：{type(exc).__name__}"})
+        frames = {contract: fetched_frames[contract] for contract in contracts if contract in fetched_frames}
+        for contract in contracts:
+            if contract in fetch_errors:
+                issues.append({
+                    "variety": variety,
+                    "contract": contract,
+                    "reason": f"日线缺失：{fetch_errors[contract]}",
+                })
         if not frames:
             continue
         raw = pd.concat(

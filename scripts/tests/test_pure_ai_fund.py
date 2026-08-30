@@ -1,8 +1,10 @@
 import importlib.util
 import tempfile
+import threading
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
+from unittest.mock import patch
 
 import pandas as pd
 
@@ -15,6 +17,34 @@ SPEC.loader.exec_module(PURE)
 
 
 class PureAiFundTests(unittest.TestCase):
+    def test_contract_histories_are_fetched_across_varieties_concurrently(self):
+        dates = pd.bdate_range("2026-04-01", periods=80)
+        close = pd.Series([100 + index * 0.4 for index in range(80)])
+        frame = pd.DataFrame({
+            "date": dates, "open": close, "high": close + 1, "low": close - 1,
+            "close": close, "volume": [1000 + index for index in range(80)], "hold": [2000] * 80,
+        })
+        barrier = threading.Barrier(2)
+
+        def fetch_daily(_contract):
+            barrier.wait(timeout=1)
+            return frame.copy()
+
+        products = {
+            "P": {"name": "棕榈油", "sector": "油脂油料"},
+            "Y": {"name": "豆油", "sector": "油脂油料"},
+        }
+        contracts = {"P": ["P2701"], "Y": ["Y2701"]}
+        with (
+            patch.object(PURE.BASE, "PRODUCTS", products),
+            patch.object(PURE.BASE, "current_contracts", return_value=contracts),
+            patch.object(PURE.BASE, "fetch_daily", side_effect=fetch_daily),
+        ):
+            facts, issues = PURE.select_contract_facts(Path("/unused"))
+
+        self.assertEqual(issues, [])
+        self.assertEqual({row["variety"] for row in facts}, {"P", "Y"})
+
     def test_technical_snapshot_uses_one_exact_contract_history(self):
         dates = pd.bdate_range("2026-04-01", periods=80)
         close = pd.Series([100 + index * 0.4 for index in range(80)])
