@@ -427,6 +427,7 @@ def rss_events(watch: Any, now: datetime, timeout: int = 10) -> tuple[list[dict[
             items = root.findall(".//item")
             included = 0
             enriched = 0
+            article_attempts = 0
             for item in items[:40]:
                 observed = normalize_time(item.findtext("pubDate"), now)
                 try:
@@ -441,7 +442,8 @@ def rss_events(watch: Any, now: datetime, timeout: int = 10) -> tuple[list[dict[
                     continue
                 direct_url = raw_url
                 article_text = ""
-                if enriched < 6:
+                if article_attempts < 6:
+                    article_attempts += 1
                     try:
                         direct_url, article_text = fetch_article_text(raw_url, timeout=min(timeout, 10))
                         if article_text:
