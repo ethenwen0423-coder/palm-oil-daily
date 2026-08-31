@@ -1,6 +1,6 @@
 {
   "month": "2026-08",
-  "generated_at": "2026-08-31 09:38:48",
+  "generated_at": "2026-08-31 11:35:11",
   "source": "akshare:futures_zh_realtime",
   "products": {
     "P": [
@@ -10,16 +10,16 @@
         "product_name": "棕榈油",
         "rank": 1,
         "label": "主力",
-        "volume": 322086,
-        "open_interest": 587982,
+        "volume": 454374,
+        "open_interest": 596292,
         "turnover": null,
-        "data_time": "2026-08-31 09:38:26",
+        "data_time": "2026-08-31 11:30:00",
         "source": "akshare:futures_zh_realtime",
         "warnings": [
           "成交额字段缺失，排序已跳过成交额"
         ],
         "trading_date": "2026-08-31",
-        "exchange_tick_time": "09:38:26"
+        "exchange_tick_time": "11:30:00"
       },
       {
         "symbol": "P2705",
@@ -27,16 +27,16 @@
         "product_name": "棕榈油",
         "rank": 2,
         "label": "次主力",
-        "volume": 66780,
-        "open_interest": 212085,
+        "volume": 99445,
+        "open_interest": 219142,
         "turnover": null,
-        "data_time": "2026-08-31 09:38:26",
+        "data_time": "2026-08-31 11:30:00",
         "source": "akshare:futures_zh_realtime",
         "warnings": [
           "成交额字段缺失，排序已跳过成交额"
         ],
         "trading_date": "2026-08-31",
-        "exchange_tick_time": "09:38:26"
+        "exchange_tick_time": "11:30:00"
       }
     ],
     "Y": [
@@ -46,16 +46,16 @@
         "product_name": "豆油",
         "rank": 1,
         "label": "主力",
-        "volume": 193930,
-        "open_interest": 776880,
+        "volume": 301320,
+        "open_interest": 790146,
         "turnover": null,
-        "data_time": "2026-08-31 09:38:26",
+        "data_time": "2026-08-31 11:30:00",
         "source": "akshare:futures_zh_realtime",
         "warnings": [
           "成交额字段缺失，排序已跳过成交额"
         ],
         "trading_date": "2026-08-31",
-        "exchange_tick_time": "09:38:26"
+        "exchange_tick_time": "11:30:00"
       },
       {
         "symbol": "Y2705",
@@ -63,16 +63,16 @@
         "product_name": "豆油",
         "rank": 2,
         "label": "次主力",
-        "volume": 51860,
-        "open_interest": 254929,
+        "volume": 74691,
+        "open_interest": 257595,
         "turnover": null,
-        "data_time": "2026-08-31 09:38:26",
+        "data_time": "2026-08-31 11:30:00",
         "source": "akshare:futures_zh_realtime",
         "warnings": [
           "成交额字段缺失，排序已跳过成交额"
         ],
         "trading_date": "2026-08-31",
-        "exchange_tick_time": "09:38:26"
+        "exchange_tick_time": "11:30:00"
       }
     ],
     "OI": [
@@ -82,16 +82,16 @@
         "product_name": "菜油",
         "rank": 1,
         "label": "主力",
-        "volume": 112375,
-        "open_interest": 288929,
+        "volume": 177157,
+        "open_interest": 284354,
         "turnover": null,
-        "data_time": "2026-08-31 09:38:34",
+        "data_time": "2026-08-31 11:30:00",
         "source": "akshare:futures_zh_realtime",
         "warnings": [
           "成交额字段缺失，排序已跳过成交额"
         ],
         "trading_date": "2026-08-31",
-        "exchange_tick_time": "09:38:34"
+        "exchange_tick_time": "11:30:00"
       },
       {
         "symbol": "OI2701",
@@ -99,16 +99,16 @@
         "product_name": "菜油",
         "rank": 2,
         "label": "次主力",
-        "volume": 70265,
-        "open_interest": 263594,
+        "volume": 100934,
+        "open_interest": 262656,
         "turnover": null,
-        "data_time": "2026-08-31 09:38:34",
+        "data_time": "2026-08-31 11:30:00",
         "source": "akshare:futures_zh_realtime",
         "warnings": [
           "成交额字段缺失，排序已跳过成交额"
         ],
         "trading_date": "2026-08-31",
-        "exchange_tick_time": "09:38:34"
+        "exchange_tick_time": "11:30:00"
       }
     ],
     "M": [
@@ -118,16 +118,16 @@
         "product_name": "豆粕",
         "rank": 1,
         "label": "主力",
-        "volume": 862969,
-        "open_interest": 2774237,
+        "volume": 1119696,
+        "open_interest": 2771863,
         "turnover": null,
-        "data_time": "2026-08-31 09:38:35",
+        "data_time": "2026-08-31 11:30:00",
         "source": "akshare:futures_zh_realtime",
         "warnings": [
           "成交额字段缺失，排序已跳过成交额"
         ],
         "trading_date": "2026-08-31",
-        "exchange_tick_time": "09:38:35"
+        "exchange_tick_time": "11:30:00"
       },
       {
         "symbol": "M2705",
@@ -135,16 +135,16 @@
         "product_name": "豆粕",
         "rank": 2,
         "label": "次主力",
-        "volume": 149107,
-        "open_interest": 861485,
+        "volume": 191232,
+        "open_interest": 859956,
         "turnover": null,
-        "data_time": "2026-08-31 09:38:34",
+        "data_time": "2026-08-31 11:30:00",
         "source": "akshare:futures_zh_realtime",
         "warnings": [
           "成交额字段缺失，排序已跳过成交额"
         ],
         "trading_date": "2026-08-31",
-        "exchange_tick_time": "09:38:34"
+        "exchange_tick_time": "11:30:00"
       }
     ],
     "RM": [
@@ -154,16 +154,16 @@
         "product_name": "菜粕",
         "rank": 1,
         "label": "主力",
-        "volume": 397704,
-        "open_interest": 653952,
+        "volume": 530670,
+        "open_interest": 652871,
         "turnover": null,
-        "data_time": "2026-08-31 09:38:35",
+        "data_time": "2026-08-31 11:29:59",
         "source": "akshare:futures_zh_realtime",
         "warnings": [
           "成交额字段缺失，排序已跳过成交额"
         ],
         "trading_date": "2026-08-31",
-        "exchange_tick_time": "09:38:35"
+        "exchange_tick_time": "11:29:59"
       },
       {
         "symbol": "RM2701",
@@ -171,16 +171,16 @@
         "product_name": "菜粕",
         "rank": 2,
         "label": "次主力",
-        "volume": 221741,
-        "open_interest": 507935,
+        "volume": 291807,
+        "open_interest": 504692,
         "turnover": null,
-        "data_time": "2026-08-31 09:38:35",
+        "data_time": "2026-08-31 11:29:59",
         "source": "akshare:futures_zh_realtime",
         "warnings": [
           "成交额字段缺失，排序已跳过成交额"
         ],
         "trading_date": "2026-08-31",
-        "exchange_tick_time": "09:38:35"
+        "exchange_tick_time": "11:29:59"
       }
     ]
   },
