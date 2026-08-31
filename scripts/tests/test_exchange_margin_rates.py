@@ -66,7 +66,8 @@ class ExchangeMarginRateTests(unittest.TestCase):
             state_path.write_text(json.dumps(state), encoding="utf-8")
             rates = state_dir / "rates.json"
             rates.write_text(json.dumps({"as_of": "2026-08-31", "rates": [{
-                "contract": "AL2610", "margin_rate": .11, "source": "SHFE",
+                "contract": "AL2610", "margin_rate": .12,
+                "long_margin_rate": .11, "short_margin_rate": .12, "source": "SHFE",
                 "source_url": "https://example.invalid", "source_updated_at": "20260828",
                 "official_direct": True,
             }]}), encoding="utf-8")
@@ -75,6 +76,7 @@ class ExchangeMarginRateTests(unittest.TestCase):
             self.assertEqual(updated["positions"]["AL"]["used_margin"], 13200)
             self.assertEqual(updated["used_margin"], 13200)
             self.assertEqual(updated["positions"]["AL"]["margin_source"], "SHFE")
+            self.assertEqual(updated["positions"]["AL"]["margin_applied_side"], "long")
 
 
 if __name__ == "__main__":

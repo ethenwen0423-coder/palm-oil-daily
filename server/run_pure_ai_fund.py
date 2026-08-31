@@ -568,7 +568,7 @@ def build_signals(
         signal_date = fact["signal_date"]
         execution_date = execution_date_cache.setdefault(signal_date, BASE.next_trade_date(datetime.fromisoformat(signal_date).date()).isoformat())
         contract = position["contract"] if position and action.startswith("EXIT") else fact["execution_contract"]
-        margin = BASE.margin_rate(contract, margin_book)
+        margin = BASE.margin_rate(contract, margin_book, action)
         if not action.startswith("EXIT") and margin is None:
             decision_rows[-1]["risk_override"] = "缺少新鲜的真实合约交易所保证金比例，未生成订单"
             continue
@@ -582,6 +582,7 @@ def build_signals(
             "margin_source_url": (margin.get("source_url") if margin else position.get("margin_source_url") if position else None),
             "margin_as_of": (margin.get("source_updated_at") if margin else position.get("margin_as_of") if position else None),
             "margin_official_direct": (margin.get("official_direct") if margin else position.get("margin_official_direct") if position else None),
+            "margin_applied_side": (margin.get("margin_applied_side") if margin else position.get("margin_applied_side") if position else None),
             "fee_rate": BASE.fee_rate(variety),
             "score": decision["confidence"], "reason": reason,
             "evidence_ids": decision["evidence_ids"],
@@ -736,7 +737,7 @@ def public_snapshot(state_dir: Path, state: dict[str, Any], sources: list[dict[s
                         "note": "不设置仓位、回撤、品种数量或板块上限；AI自行给出有限整数手数，只追求收益率。可能亏损超过本金。"},
         "governance": {"virtual_only": True, "real_delivery_contracts_only": True, "next_open_execution": True,
                        "model_can_trade": True, "risk_controller_can_override": False, "policy": POLICY,
-                       "margin_note": "真实PYYMM逐合约交易所投机保证金，多空取较高值；缺失时禁止新增风险，不含期货公司加收"},
+                       "margin_note": "真实PYYMM逐合约交易所一般/投机保证金；多单使用多头比例、空单使用空头比例，缺失或过期时禁止新增风险，不含期货公司加收"},
         "ai_notice": "纯AI决策、策略选择、手数与文字解释由AI基于页面列明的技术指标、基本面材料、本地回测和虚拟账本生成，不代表任何来源方官方立场，不构成投资建议；无仓位与回撤上限可能导致亏损超过本金，请自行核验。",
     }
 
@@ -748,6 +749,7 @@ def main() -> int:
     parser.add_argument("--state-root", type=Path, default=Path(os.environ.get("PALM_OIL_SERVER_STATE_ROOT", "/srv/palm-oil-daily/state")))
     parser.add_argument("--reason")
     parser.add_argument("--close-scan", action="store_true")
+    parser.add_argument("--margins-only", action="store_true", help="只重算保证金并发布账本，不执行订单或重新研判")
     parser.add_argument("--timeout", type=int, default=300)
     parser.add_argument("--now", help="test-only ISO timestamp")
     args = parser.parse_args()
@@ -777,6 +779,22 @@ def main() -> int:
             state_dir, BASE.margin_contracts(state), now, min(args.timeout, 30), force=False
         )
         state = BASE.update_ledger_margins(ledger, state_dir, margin_book)
+        if args.margins_only:
+            previous = BASE.read_json(live_data_root / FUND_FILE, {})
+            sources = previous.get("sources", []) if isinstance(previous, dict) else []
+            payload = public_snapshot(
+                state_dir, state, sources, BASE.refresh_reason(now, args.reason), skipped, audit, decisions, now
+            )
+            BASE.atomic_json(live_data_root / FUND_FILE, payload)
+            BASE.atomic_json(live_data_root / READY_MARKER, {
+                "schema_version": 1, "generated_at": now.isoformat(timespec="seconds"),
+                "session": "margins-only", "owner": "server-pure-ai-fund",
+            })
+            print(json.dumps({"status": payload["status"], "generated_at": payload["generated_at"],
+                              "positions": len(payload["positions"]), "pending": len(payload["pending_orders"]),
+                              "decision_backend": audit.get("decision_backend"), "session": "margins-only"},
+                             ensure_ascii=False, sort_keys=True))
+            return 0
         needed = [row["contract"] for row in state.get("positions", {}).values()]
         needed += [row["contract"] for row in state.get("pending_orders", []) if row.get("status") == "pending"]
         quotes, sources = BASE.resolve_quotes(needed, min(args.timeout, 30))
@@ -785,7 +803,9 @@ def main() -> int:
         for order in pending:
             if order.get("execution_date") != today:
                 continue
-            if not str(order.get("action", "")).startswith("EXIT") and BASE.margin_rate(order["contract"], margin_book) is None:
+            if not str(order.get("action", "")).startswith("EXIT") and BASE.margin_rate(
+                order["contract"], margin_book, order.get("action")
+            ) is None:
                 continue
             quote = quotes.get(order["contract"])
             if quote and quote.get("open") and quote.get("trade_date") == today:

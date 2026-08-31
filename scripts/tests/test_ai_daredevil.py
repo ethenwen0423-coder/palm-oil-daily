@@ -30,9 +30,12 @@ class AiDaredevilTests(unittest.TestCase):
         self.assertIn('api: "/api/ai-daredevil/pure-ai"', script)
         self.assertIn('kind === "skipped"', script)
         self.assertIn('assets/ai-daredevil.css?v=20260831-3', html)
-        self.assertIn('assets/ai-daredevil.js?v=20260831-4', html)
+        self.assertIn('assets/ai-daredevil.js?v=20260831-5', html)
         self.assertIn("名义金额 / 保证金", html)
-        self.assertIn("position.margin_rate", script)
+        self.assertIn("item.margin_rate", script)
+        self.assertIn('item.margin_applied_side === "long"', script)
+        self.assertIn('item.margin_applied_side === "short"', script)
+        self.assertIn("实际保证金", script)
         self.assertIn("不设置仓位、回撤、品种数量或板块上限", script)
         self.assertIn("策略：${escapeHtml(strategyName(item))}", script)
         self.assertIn('id="max-drawdown" class="is-drawdown"', html)
@@ -76,6 +79,18 @@ class AiDaredevilTests(unittest.TestCase):
         self.assertEqual(set(RUNTIME.PRODUCT_REALTIME_SYMBOL), set(RUNTIME.PRODUCTS))
         self.assertEqual(RUNTIME.PRODUCT_REALTIME_NODE["P"], "zly_qh")
         self.assertEqual(set(RUNTIME.PRODUCT_REALTIME_NODE), set(RUNTIME.PRODUCTS))
+
+    def test_margin_rate_uses_the_actual_long_or_short_exchange_side(self):
+        book = {"rates": {"SA2701": {
+            "contract": "SA2701", "margin_rate": .12,
+            "long_margin_rate": .08, "short_margin_rate": .12,
+        }}}
+        long_row = RUNTIME.margin_rate("SA2701", book, "ENTER_LONG")
+        short_row = RUNTIME.margin_rate("SA2701", book, "ENTER_SHORT")
+        self.assertEqual(long_row["margin_rate"], .08)
+        self.assertEqual(long_row["margin_applied_side"], "long")
+        self.assertEqual(short_row["margin_rate"], .12)
+        self.assertEqual(short_row["margin_applied_side"], "short")
 
     def test_realtime_contract_discovery_uses_bounded_direct_requests(self):
         products = {

@@ -513,11 +513,26 @@ def allocation_score(variety: str, direction: int, indicator_row: Any, selection
     return round(score, 6), components, "跨板块实时信号强度与流动性排序"
 
 
-def margin_rate(contract: str, margin_book: dict[str, Any] | None) -> dict[str, Any] | None:
+def margin_rate(contract: str, margin_book: dict[str, Any] | None,
+                side: int | str | None = None) -> dict[str, Any] | None:
     rates = margin_book.get("rates", {}) if isinstance(margin_book, dict) else {}
     row = rates.get(str(contract).upper()) if isinstance(rates, dict) else None
-    rate = numeric(row.get("margin_rate")) if isinstance(row, dict) else None
-    return row if rate is not None and 0 < rate <= 1 else None
+    if not isinstance(row, dict):
+        return None
+    side_text = str(side or "").upper()
+    if side == 1 or side_text.endswith("LONG"):
+        side_name, key = "long", "long_margin_rate"
+    elif side == -1 or side_text.endswith("SHORT"):
+        side_name, key = "short", "short_margin_rate"
+    else:
+        side_name, key = "higher-side", "margin_rate"
+    rate = numeric(row.get(key))
+    if rate is None or not 0 < rate <= 1:
+        return None
+    selected = dict(row)
+    selected["margin_rate"] = rate
+    selected["margin_applied_side"] = side_name
+    return selected
 
 
 def fee_rate(variety: str) -> float:
@@ -672,7 +687,7 @@ def scan_signals(site_root: Path, data_root: Path, state: dict[str, Any], model,
                 reason = carry_reason or "真实交割月自身日线收盘穿越MA20"
         if action:
             order_contract = position["contract"] if position and action.startswith("EXIT") else contract
-            margin = margin_rate(order_contract, margin_book)
+            margin = margin_rate(order_contract, margin_book, action)
             if not action.startswith("EXIT") and margin_book is not None and margin is None:
                 issue = {
                     "variety": variety, "contract": order_contract,
@@ -690,6 +705,7 @@ def scan_signals(site_root: Path, data_root: Path, state: dict[str, Any], model,
                 "margin_source_url": (margin.get("source_url") if margin else position.get("margin_source_url") if position else None),
                 "margin_as_of": (margin.get("source_updated_at") if margin else position.get("margin_as_of") if position else None),
                 "margin_official_direct": (margin.get("official_direct") if margin else position.get("margin_official_direct") if position else None),
+                "margin_applied_side": (margin.get("margin_applied_side") if margin else position.get("margin_applied_side") if position else None),
                 "fee_rate": fee_rate(variety),
                 "reason": reason, "selection_volume_t_minus_1": float(raw_last.volume),
                 "selection_open_interest_t_minus_1": numeric(raw_last.get("hold")),
@@ -768,7 +784,7 @@ def apply_snapshot_margins(snapshot: dict[str, Any] | None, margin_book: dict[st
         if str(signal.get("action", "")).startswith("EXIT"):
             accepted.append(signal)
             continue
-        row = margin_rate(signal["contract"], margin_book)
+        row = margin_rate(signal["contract"], margin_book, signal.get("action"))
         if row is None:
             skipped.append({
                 "variety": signal.get("variety"), "contract": signal.get("contract"),
@@ -780,6 +796,7 @@ def apply_snapshot_margins(snapshot: dict[str, Any] | None, margin_book: dict[st
             "margin_source_url": row.get("source_url"),
             "margin_as_of": row.get("source_updated_at"),
             "margin_official_direct": bool(row.get("official_direct")),
+            "margin_applied_side": row.get("margin_applied_side"),
         })
         accepted.append(signal)
     snapshot["signals"] = accepted
@@ -955,7 +972,7 @@ def public_snapshot(state_dir: Path, state: dict[str, Any], sources: list[dict[s
                        "eligible_default": list(PRODUCTS),
                        "allocation_policy_version": ALLOCATION_POLICY_VERSION,
                        "allocation_policy": "全策略池平等候选，按真实主力合约信号强度与流动性排序；组合受品种和板块上限约束",
-                       "margin_note": "按真实PYYMM逐合约交易所一般/投机保证金计提，多空不同时取较高值；缺失或过期则禁止新增风险，不包含期货公司加收"},
+                       "margin_note": "按真实PYYMM逐合约交易所一般/投机保证金计提；多单使用多头比例、空单使用空头比例，缺失或过期则禁止新增风险，不包含期货公司加收"},
         "ai_notice": "本页面由 AI 基于所列真实合约行情、模型信号和虚拟基金账本生成，不代表任何来源方官方立场，不构成投资建议；虚拟成交不等于真实成交，请自行核验。",
     }
 
@@ -1041,7 +1058,7 @@ def main() -> int:
                 continue
             if roll.get("execution_date") != today:
                 continue
-            if margin_rate(roll["to"], margin_book) is None:
+            if margin_rate(roll["to"], margin_book, position.get("side")) is None:
                 continue
             old_quote, new_quote = quotes.get(roll["from"]), quotes.get(roll["to"])
             dates_ok = old_quote and new_quote and old_quote.get("trade_date") == today and new_quote.get("trade_date") == today
@@ -1058,7 +1075,7 @@ def main() -> int:
         for order in [row for row in pending_orders if not str(row.get("action", "")).startswith("EXIT")]:
             if order.get("execution_date") != today:
                 continue
-            if margin_rate(order["contract"], margin_book) is None:
+            if margin_rate(order["contract"], margin_book, order.get("action")) is None:
                 continue
             quote = quotes.get(order["contract"])
             if quote and quote.get("open") and quote.get("trade_date") == today:

@@ -119,7 +119,8 @@ class PureAiFundTests(unittest.TestCase):
         }]
         state = {"equity": 910000, "high_water_equity": 1000000, "positions": {}}
         margin_book = {"rates": {"P2701": {
-            "margin_rate": .08, "source": "交易所标准保证金", "source_updated_at": "2026-08-28",
+            "margin_rate": .09, "long_margin_rate": .08, "short_margin_rate": .09,
+            "source": "交易所标准保证金", "source_updated_at": "2026-08-28",
             "source_url": "https://example.invalid", "official_direct": False,
         }}}
         snapshot, rows = PURE.build_signals(facts, decisions, state, margin_book)

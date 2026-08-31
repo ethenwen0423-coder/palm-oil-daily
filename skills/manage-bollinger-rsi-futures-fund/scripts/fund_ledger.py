@@ -386,6 +386,7 @@ def command_plan(args: argparse.Namespace) -> dict[str, Any]:
                 "margin_source_url": signal.get("margin_source_url", position.get("margin_source_url") if position else None),
                 "margin_as_of": signal.get("margin_as_of", position.get("margin_as_of") if position else None),
                 "margin_official_direct": signal.get("margin_official_direct", position.get("margin_official_direct") if position else None),
+                "margin_applied_side": signal.get("margin_applied_side", position.get("margin_applied_side") if position else None),
                 "fee_rate": signal.get("fee_rate", position.get("fee_rate") if position else None),
                 "score": signal.get("score"), "reason": signal.get("reason", "model signal"),
                 "source": snapshot.get("source"),
@@ -481,6 +482,7 @@ def command_fill(args: argparse.Namespace) -> dict[str, Any]:
                 "margin_source_url": order.get("margin_source_url"),
                 "margin_as_of": order.get("margin_as_of"),
                 "margin_official_direct": order.get("margin_official_direct"),
+                "margin_applied_side": order.get("margin_applied_side"),
                 "entry_date": args.date, "entry_atr": order.get("atr14"), "layers": 1,
                 "layer_fills": [{"date": args.date, "price": args.price, "quantity": quantity, "fee": fee}],
                 "model_reason": order.get("reason"),
@@ -618,6 +620,18 @@ def command_mark(args: argparse.Namespace) -> dict[str, Any]:
     return snapshot
 
 
+def _directional_margin_rate(row: dict[str, Any], side: int) -> tuple[float, str]:
+    side_name = "long" if int(side) == 1 else "short"
+    key = f"{side_name}_margin_rate"
+    try:
+        rate = float(row[key])
+    except (KeyError, TypeError, ValueError) as exc:
+        raise LedgerError(f"missing valid {side_name} margin rate for {row.get('contract', '--')}") from exc
+    if not math.isfinite(rate) or not 0 < rate <= 1:
+        raise LedgerError(f"invalid {side_name} margin rate for {row.get('contract', '--')}")
+    return rate, side_name
+
+
 def command_update_margins(args: argparse.Namespace) -> dict[str, Any]:
     """Apply audited exact-contract exchange margin rates to live exposures."""
     payload = _read_json(args.rates)
@@ -639,11 +653,13 @@ def command_update_margins(args: argparse.Namespace) -> dict[str, Any]:
             row = by_contract.get(position["contract"])
             if not row:
                 continue
-            position["margin_rate"] = float(row["margin_rate"])
+            applied_rate, applied_side = _directional_margin_rate(row, int(position["side"]))
+            position["margin_rate"] = applied_rate
             position["margin_source"] = row.get("source")
             position["margin_source_url"] = row.get("source_url")
             position["margin_as_of"] = row.get("source_updated_at") or as_of
             position["margin_official_direct"] = bool(row.get("official_direct"))
+            position["margin_applied_side"] = applied_side
             updated.append(position["contract"])
         for order in state["pending_orders"]:
             if order.get("status") != "pending" or order.get("action") in EXIT_ACTIONS:
@@ -651,11 +667,13 @@ def command_update_margins(args: argparse.Namespace) -> dict[str, Any]:
             row = by_contract.get(order["contract"])
             if not row:
                 continue
-            order["margin_rate"] = float(row["margin_rate"])
+            applied_rate, applied_side = _directional_margin_rate(row, int(order["side"]))
+            order["margin_rate"] = applied_rate
             order["margin_source"] = row.get("source")
             order["margin_source_url"] = row.get("source_url")
             order["margin_as_of"] = row.get("source_updated_at") or as_of
             order["margin_official_direct"] = bool(row.get("official_direct"))
+            order["margin_applied_side"] = applied_side
             updated.append(order["contract"])
         _revalue(state)
         _atomic_json(path, state)
