@@ -1,9 +1,9 @@
 {
   "status": "ok",
   "schema_version": 2,
-  "generated_at": "2026-08-31T09:42:43+08:00",
-  "market_updated_at": "2026-08-31 09:40",
-  "market_update_session": "morning",
+  "generated_at": "2026-08-31T11:39:19+08:00",
+  "market_updated_at": "2026-08-31 11:36",
+  "market_update_session": "midday",
   "market_timezone": "Asia/Shanghai",
   "default_model_id": "bollinger-rsi-ma6-v1",
   "models": [
@@ -212,7 +212,7 @@
           "change": "+1.25%",
           "direction": "↑",
           "trade_date": "2026-08-28",
-          "source": "akshare:futures_zh_daily_sina",
+          "source": "AkShare + 同花顺问财行情skill",
           "unit": "元/吨"
         }
       },
@@ -1135,7 +1135,7 @@
           "change": "-0.26%",
           "direction": "↓",
           "trade_date": "2026-08-28",
-          "source": "akshare:futures_zh_daily_sina",
+          "source": "AkShare + 同花顺问财行情skill",
           "unit": "元/吨"
         }
       },
@@ -1609,7 +1609,7 @@
         "change": "+1.25%",
         "direction": "↑",
         "trade_date": "2026-08-28",
-        "source": "akshare:futures_zh_daily_sina",
+        "source": "AkShare + 同花顺问财行情skill",
         "unit": "元/吨"
       }
     },
@@ -2532,7 +2532,7 @@
         "change": "-0.26%",
         "direction": "↓",
         "trade_date": "2026-08-28",
-        "source": "akshare:futures_zh_daily_sina",
+        "source": "AkShare + 同花顺问财行情skill",
         "unit": "元/吨"
       }
     },
