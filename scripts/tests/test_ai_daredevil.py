@@ -22,14 +22,18 @@ class AiDaredevilTests(unittest.TestCase):
     def test_static_page_exposes_required_fund_sections_and_risk_notice(self):
         html = (ROOT / "ai-daredevil.html").read_text(encoding="utf-8")
         script = (ROOT / "assets" / "ai-daredevil.js").read_text(encoding="utf-8")
+        stylesheet = (ROOT / "assets" / "ai-daredevil.css").read_text(encoding="utf-8")
         for label in ("AI敢死队", "布林带模型", "纯AI决策", "当前持仓", "开仓日期", "开仓原因", "今日动作", "下一步指令", "未执行信号", "净值曲线", "跨板块策略池全量扫描"):
             self.assertIn(label, html)
         self.assertIn("不构成投资建议", html)
         self.assertIn('api: "/api/ai-daredevil"', script)
         self.assertIn('api: "/api/ai-daredevil/pure-ai"', script)
         self.assertIn('kind === "skipped"', script)
-        self.assertIn('assets/ai-daredevil.css?v=20260830-3', html)
-        self.assertIn('assets/ai-daredevil.js?v=20260830-2', html)
+        self.assertIn('assets/ai-daredevil.css?v=20260831-1', html)
+        self.assertIn('assets/ai-daredevil.js?v=20260831-1', html)
+        self.assertIn('className: "position-pnl-negative", text: `（${money.format(Math.abs(amount))}）`', script)
+        self.assertIn('.position-pnl-positive { color: var(--dd-red); }', stylesheet)
+        self.assertIn('.position-pnl-negative { color: var(--dd-green); }', stylesheet)
         self.assertIn("60 * 1000", script)
 
     def test_runtime_initializes_persistent_virtual_fund_without_requesting_quotes(self):

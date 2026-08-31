@@ -34,6 +34,12 @@
     if (Number(value) > 0) node.classList.add("is-positive");
     if (Number(value) < 0) node.classList.add("is-negative");
   }
+  function formatPositionPnl(value) {
+    const amount = Number(value);
+    if (!Number.isFinite(amount)) return { className: "position-pnl-zero", text: "--" };
+    if (amount < 0) return { className: "position-pnl-negative", text: `（${money.format(Math.abs(amount))}）` };
+    return { className: amount > 0 ? "position-pnl-positive" : "position-pnl-zero", text: money.format(amount) };
+  }
   function formatTime(value) {
     if (!value) return "--";
     const parsed = new Date(value);
@@ -115,8 +121,8 @@
     const positions = Array.isArray(data.positions) ? data.positions : [];
     el("position-count").textContent = `${positions.length} 个品种`; el("positions-empty").hidden = positions.length > 0;
     el("positions-body").innerHTML = positions.map((position) => {
-      const pnl = Number(position.unrealized_pnl || 0);
-      return `<tr><td><strong>${escapeHtml(position.name || position.variety)}</strong><span>${escapeHtml(position.contract)}</span></td><td>${escapeHtml(position.entry_date || "--")}</td><td class="reason-cell">${escapeHtml(position.model_reason || "开仓依据待核验")}</td><td><em class="side-badge ${Number(position.side) === 1 ? "side-long" : "side-short"}">${Number(position.side) === 1 ? "多" : "空"}</em></td><td>${escapeHtml(position.quantity)} / ${escapeHtml(position.layers || 1)}</td><td>${number.format(position.average_price)}</td><td>${number.format(position.last_price)}</td><td>${money.format(position.notional || 0)}</td><td class="${pnl >= 0 ? "is-positive" : "is-negative"}">${money.format(pnl)}</td><td>${percent(position.weight || 0)}</td><td><strong>${escapeHtml(position.price_source || "待核验")}</strong><span>${escapeHtml(formatTime(position.price_time))}</span></td><td class="instruction-cell">${escapeHtml(position.next_instruction || "等待下一次完整日线确认")}</td></tr>`;
+      const pnl = formatPositionPnl(position.unrealized_pnl || 0);
+      return `<tr><td><strong>${escapeHtml(position.name || position.variety)}</strong><span>${escapeHtml(position.contract)}</span></td><td>${escapeHtml(position.entry_date || "--")}</td><td class="reason-cell">${escapeHtml(position.model_reason || "开仓依据待核验")}</td><td><em class="side-badge ${Number(position.side) === 1 ? "side-long" : "side-short"}">${Number(position.side) === 1 ? "多" : "空"}</em></td><td>${escapeHtml(position.quantity)} / ${escapeHtml(position.layers || 1)}</td><td>${number.format(position.average_price)}</td><td>${number.format(position.last_price)}</td><td>${money.format(position.notional || 0)}</td><td class="${pnl.className}">${escapeHtml(pnl.text)}</td><td>${percent(position.weight || 0)}</td><td><strong>${escapeHtml(position.price_source || "待核验")}</strong><span>${escapeHtml(formatTime(position.price_time))}</span></td><td class="instruction-cell">${escapeHtml(position.next_instruction || "等待下一次完整日线确认")}</td></tr>`;
     }).join("");
   }
 

@@ -52,6 +52,9 @@ body.daredevil-page { margin: 0; background: radial-gradient(circle at 75% -10%,
 .metric-primary { background: linear-gradient(145deg, rgba(94, 224, 163, .16), var(--dd-panel)); }
 .is-positive { color: var(--dd-green) !important; }
 .is-negative { color: var(--dd-red) !important; }
+.position-pnl-positive { color: var(--dd-red); }
+.position-pnl-negative { color: var(--dd-green); }
+.position-pnl-zero { color: var(--dd-muted); }
 .scan-audit-panel { margin-bottom: 18px; }
 .scan-audit-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 1px; border: 1px solid var(--dd-line); background: var(--dd-line); }
 .scan-stat { min-width: 0; padding: 14px 16px; background: var(--dd-panel-2); }
