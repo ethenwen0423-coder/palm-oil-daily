@@ -10,6 +10,7 @@ STATE_ROOT="${PALM_OIL_SERVER_STATE_ROOT:-/srv/palm-oil-daily/state}"
 COMPOSE_FILE="${PALM_OIL_COMPOSE_FILE:-$DEPLOY_ROOT/compose.yaml}"
 COMPOSE_OVERRIDE="${PALM_OIL_COMPOSE_OVERRIDE:-$DEPLOY_ROOT/compose.automation.yaml}"
 GIT_FETCH_TIMEOUT_SECONDS="${PALM_OIL_GIT_FETCH_TIMEOUT_SECONDS:-75}"
+AUTOMATION_LOCK_WAIT_SECONDS="${PALM_OIL_AUTOMATION_LOCK_WAIT_SECONDS:-90}"
 # This runner serves the public palm.vinsontesla.com site.  Private mode is an
 # explicit maintenance override; defaulting to it stops the web proxy.
 PUBLIC_ACCESS_MODE="${PALM_OIL_PUBLIC_ACCESS_MODE:-public}"
@@ -24,7 +25,7 @@ esac
 
 mkdir -p "$STATE_ROOT"
 exec 9>"$STATE_ROOT/automation.lock"
-if ! flock -n 9; then
+if ! flock -w "$AUTOMATION_LOCK_WAIT_SECONDS" 9; then
   echo '{"status":"busy","reason":"server automation lock is held","retry":true}'
   exit 0
 fi

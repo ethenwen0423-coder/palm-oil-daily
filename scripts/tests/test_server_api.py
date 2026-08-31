@@ -51,6 +51,7 @@ class ServerApiStatusTests(unittest.TestCase):
 
     def test_server_update_runner_validates_all_mutable_payloads(self):
         runner = (ROOT / "server" / "update-site.sh").read_text(encoding="utf-8")
+        self.assertIn('flock -w "$AUTOMATION_LOCK_WAIT_SECONDS" 9', runner)
         for path in (
             "data/reports.json",
             "data/oil_futures.json",
