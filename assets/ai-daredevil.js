@@ -139,8 +139,10 @@
     const list = Array.isArray(items) ? items : []; el(emptyId).hidden = list.length > 0;
     el(containerId).innerHTML = list.map((item) => {
       const action = actionLabel(item.action); const detail = kind === "skipped" ? (item.reason || item.next_instruction || item.open_reason || action || "--") : (item.next_instruction || item.reason || item.open_reason || action || "--");
-      const tail = kind === "trade" ? money.format(Number(item.pnl ?? item.realized_pnl ?? 0)) : (item.confidence != null ? `置信 ${percent(item.confidence)}` : `${item.quantity || 0} 手`);
-      return `<article class="activity-item"><span>${escapeHtml(item.time || item.execution_date || item.signal_date || "--")}</span><div><strong>${escapeHtml(item.name || item.variety || "--")} · ${escapeHtml(item.contract || action)}</strong><small>${escapeHtml(detail)}</small></div><b class="${Number(item.pnl ?? item.realized_pnl ?? 0) >= 0 ? "is-positive" : "is-negative"}">${escapeHtml(tail)}</b></article>`;
+      const pnl = Number(item.pnl ?? item.realized_pnl ?? 0);
+      const pnlClass = kind === "trade" ? (pnl > 0 ? "is-positive" : (pnl < 0 ? "is-negative" : "")) : "";
+      const tail = kind === "trade" ? money.format(pnl) : (item.confidence != null ? `置信 ${percent(item.confidence)}` : `${item.quantity || 0} 手`);
+      return `<article class="activity-item"><span>${escapeHtml(item.time || item.execution_date || item.signal_date || "--")}</span><div><strong>${escapeHtml(item.name || item.variety || "--")} · ${escapeHtml(item.contract || action)}</strong><small>${escapeHtml(detail)}</small></div><b class="${pnlClass}">${escapeHtml(tail)}</b></article>`;
     }).join("");
   }
 
