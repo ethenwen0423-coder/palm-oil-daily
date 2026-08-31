@@ -342,6 +342,40 @@ class ServerMarketCollectorTests(unittest.TestCase):
         self.assertEqual(result["supply_copied"], ["supply-demand.json"])
         self.assertEqual(payload["marker"], "recovery")
 
+    def test_owned_market_accepts_only_strictly_newer_upstream_snapshots(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            upstream = base / "upstream"
+            live = base / "live"
+            write_all_datasets(upstream, "upstream")
+            write_all_datasets(live, "live")
+            for root, stamp, marker in (
+                (upstream, "2026-08-31T09:40:00+08:00", "recovery"),
+                (live, "2026-08-28T21:22:00+08:00", "server-old"),
+            ):
+                for relative in ("oil_futures.json", "exchange_futures.json"):
+                    (root / relative).write_text(
+                        json.dumps({"updated_at": stamp, "marker": marker}),
+                        encoding="utf-8",
+                    )
+                (root / "quant_model_signals.json").write_text(
+                    json.dumps({"generated_at": stamp, "marker": marker}),
+                    encoding="utf-8",
+                )
+                (root / "contracts" / "current_contracts.json").write_text(
+                    json.dumps({"generated_at": stamp, "marker": marker}),
+                    encoding="utf-8",
+                )
+            SYNC.write_marker(live, SYNC.MARKET_READY_MARKER, session="night_open", owner="server-market-collector")
+
+            result = SYNC.sync_upstream(upstream, live)
+            oil = json.loads((live / "oil_futures.json").read_text(encoding="utf-8"))
+            marker = json.loads((live / SYNC.MARKET_READY_MARKER).read_text(encoding="utf-8"))
+
+        self.assertIn("oil_futures.json", result["bootstrapped"])
+        self.assertEqual(oil["marker"], "recovery")
+        self.assertEqual(marker["owner"], "upstream-market-recovery")
+
     def test_ai_ownership_is_independent_from_market_ownership(self):
         with tempfile.TemporaryDirectory() as temporary:
             base = Path(temporary)

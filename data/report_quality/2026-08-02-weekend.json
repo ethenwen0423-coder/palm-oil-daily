@@ -1,0 +1,104 @@
+{
+  "body_character_budget": [
+    1600,
+    2000
+  ],
+  "body_character_count": 1998,
+  "can_publish": true,
+  "components": {
+    "causal_chain_expectation_gap": 15,
+    "concision_repetition": 10,
+    "data_accuracy": 20,
+    "freshness_source_state": 15,
+    "risk_invalidation": 10,
+    "structural_completeness": 10,
+    "view_trade_consistency": 20
+  },
+  "errors": [],
+  "hard_failures": [],
+  "minimum_score": 85,
+  "numeric_audit": {
+    "checks": [
+      {
+        "expected_price": 8405.0,
+        "key": "domestic.soybean_oil",
+        "mentioned": true,
+        "name": "豆油",
+        "percent_checked": false,
+        "percent_ok": true,
+        "price_ok": true,
+        "required": true
+      },
+      {
+        "expected_price": 9296.0,
+        "key": "domestic.palm_oil",
+        "mentioned": true,
+        "name": "棕榈油",
+        "percent_checked": false,
+        "percent_ok": true,
+        "price_ok": true,
+        "required": true
+      },
+      {
+        "expected_price": 9929.0,
+        "key": "domestic.rapeseed_oil",
+        "mentioned": true,
+        "name": "菜油",
+        "percent_checked": false,
+        "percent_ok": true,
+        "price_ok": true,
+        "required": true
+      },
+      {
+        "expected_price": -891.0,
+        "key": "fundamental.spread.soybean_palm_spread",
+        "mentioned": true,
+        "name": "豆棕价差",
+        "percent_checked": false,
+        "percent_ok": true,
+        "price_ok": true,
+        "required": false
+      },
+      {
+        "expected_price": 1524.0,
+        "key": "fundamental.spread.rapeseed_soybean_spread",
+        "mentioned": true,
+        "name": "菜豆油价差",
+        "percent_checked": false,
+        "percent_ok": true,
+        "price_ok": true,
+        "required": false
+      },
+      {
+        "expected_price": 84.67,
+        "key": "fundamental.cross_drivers.crude_oil",
+        "mentioned": true,
+        "name": "WTI 原油",
+        "percent_checked": false,
+        "percent_ok": true,
+        "price_ok": true,
+        "required": false
+      },
+      {
+        "expected_price": 4642.0,
+        "key": "external.bmd_palm_oil",
+        "mentioned": true,
+        "name": "BMD 棕油",
+        "percent_checked": false,
+        "percent_ok": true,
+        "price_ok": true,
+        "required": false
+      }
+    ],
+    "critical_checked": 3,
+    "sample_seed": "2026-08-02|weekend",
+    "sampled_noncritical": [
+      "fundamental.cross_drivers.crude_oil",
+      "external.bmd_palm_oil",
+      "fundamental.spread.rapeseed_soybean_spread"
+    ]
+  },
+  "score": 100,
+  "status": "ok",
+  "warnings": []
+}

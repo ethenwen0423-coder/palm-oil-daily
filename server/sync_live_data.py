@@ -209,6 +209,27 @@ def copy_newer_json(
     return [relative]
 
 
+def recover_newer_upstream_market(source_root: Path, target_root: Path) -> list[str]:
+    """Recover a stale server market snapshot from strictly newer upstream data."""
+    copied: list[str] = []
+    pairs = (
+        ("oil_futures.json", "oil_futures.js", ("updated_at",)),
+        ("exchange_futures.json", "exchange_futures.js", ("updated_at",)),
+        ("quant_model_signals.json", "quant_model_signals.js", ("generated_at", "market_updated_at")),
+        ("contracts/current_contracts.json", None, ("generated_at",)),
+    )
+    for relative, companion, fields in pairs:
+        updated = copy_newer_json(source_root, target_root, relative, fields)
+        if not updated:
+            continue
+        copied.extend(updated)
+        if companion:
+            copied.extend(
+                synchronize_paths(source_root, target_root, (companion,), required=True)
+            )
+    return copied
+
+
 def synchronize_paths(
     source_root: Path,
     target_root: Path,
@@ -324,6 +345,15 @@ def sync_upstream(source_root: Path, target_root: Path) -> dict[str, object]:
             "supply-demand.json",
             ("checked_at", "generated_at"),
         )
+    if market_owned:
+        copied_groups["market"] = recover_newer_upstream_market(source_root, target_root)
+        if copied_groups["market"]:
+            write_marker(
+                target_root,
+                MARKET_READY_MARKER,
+                session="upstream-market-recovery",
+                owner="upstream-market-recovery",
+            )
     return {
         "status": "ok",
         "mode": "upstream",
