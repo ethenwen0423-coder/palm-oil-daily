@@ -1,6 +1,6 @@
 {
   "month": "2026-08",
-  "generated_at": "2026-08-27 06:23:48",
+  "generated_at": "2026-08-31 09:38:48",
   "source": "akshare:futures_zh_realtime",
   "products": {
     "P": [
@@ -10,14 +10,16 @@
         "product_name": "棕榈油",
         "rank": 1,
         "label": "主力",
-        "volume": 233993,
-        "open_interest": 568802,
+        "volume": 322086,
+        "open_interest": 587982,
         "turnover": null,
-        "data_time": "2026-08-26 23:00:00",
+        "data_time": "2026-08-31 09:38:26",
         "source": "akshare:futures_zh_realtime",
         "warnings": [
           "成交额字段缺失，排序已跳过成交额"
-        ]
+        ],
+        "trading_date": "2026-08-31",
+        "exchange_tick_time": "09:38:26"
       },
       {
         "symbol": "P2705",
@@ -25,14 +27,16 @@
         "product_name": "棕榈油",
         "rank": 2,
         "label": "次主力",
-        "volume": 36963,
-        "open_interest": 183499,
+        "volume": 66780,
+        "open_interest": 212085,
         "turnover": null,
-        "data_time": "2026-08-26 22:59:59",
+        "data_time": "2026-08-31 09:38:26",
         "source": "akshare:futures_zh_realtime",
         "warnings": [
           "成交额字段缺失，排序已跳过成交额"
-        ]
+        ],
+        "trading_date": "2026-08-31",
+        "exchange_tick_time": "09:38:26"
       }
     ],
     "Y": [
@@ -42,14 +46,16 @@
         "product_name": "豆油",
         "rank": 1,
         "label": "主力",
-        "volume": 137941,
-        "open_interest": 725368,
+        "volume": 193930,
+        "open_interest": 776880,
         "turnover": null,
-        "data_time": "2026-08-26 23:00:00",
+        "data_time": "2026-08-31 09:38:26",
         "source": "akshare:futures_zh_realtime",
         "warnings": [
           "成交额字段缺失，排序已跳过成交额"
-        ]
+        ],
+        "trading_date": "2026-08-31",
+        "exchange_tick_time": "09:38:26"
       },
       {
         "symbol": "Y2705",
@@ -57,14 +63,16 @@
         "product_name": "豆油",
         "rank": 2,
         "label": "次主力",
-        "volume": 30121,
-        "open_interest": 228869,
+        "volume": 51860,
+        "open_interest": 254929,
         "turnover": null,
-        "data_time": "2026-08-26 22:59:58",
+        "data_time": "2026-08-31 09:38:26",
         "source": "akshare:futures_zh_realtime",
         "warnings": [
           "成交额字段缺失，排序已跳过成交额"
-        ]
+        ],
+        "trading_date": "2026-08-31",
+        "exchange_tick_time": "09:38:26"
       }
     ],
     "OI": [
@@ -74,14 +82,16 @@
         "product_name": "菜油",
         "rank": 1,
         "label": "主力",
-        "volume": 94559,
-        "open_interest": 306431,
+        "volume": 112375,
+        "open_interest": 288929,
         "turnover": null,
-        "data_time": "2026-08-26 23:00:00",
+        "data_time": "2026-08-31 09:38:34",
         "source": "akshare:futures_zh_realtime",
         "warnings": [
           "成交额字段缺失，排序已跳过成交额"
-        ]
+        ],
+        "trading_date": "2026-08-31",
+        "exchange_tick_time": "09:38:34"
       },
       {
         "symbol": "OI2701",
@@ -89,14 +99,16 @@
         "product_name": "菜油",
         "rank": 2,
         "label": "次主力",
-        "volume": 44075,
-        "open_interest": 263809,
+        "volume": 70265,
+        "open_interest": 263594,
         "turnover": null,
-        "data_time": "2026-08-26 23:00:00",
+        "data_time": "2026-08-31 09:38:34",
         "source": "akshare:futures_zh_realtime",
         "warnings": [
           "成交额字段缺失，排序已跳过成交额"
-        ]
+        ],
+        "trading_date": "2026-08-31",
+        "exchange_tick_time": "09:38:34"
       }
     ],
     "M": [
@@ -106,14 +118,16 @@
         "product_name": "豆粕",
         "rank": 1,
         "label": "主力",
-        "volume": 708961,
-        "open_interest": 2739257,
+        "volume": 862969,
+        "open_interest": 2774237,
         "turnover": null,
-        "data_time": "2026-08-26 23:00:00",
+        "data_time": "2026-08-31 09:38:35",
         "source": "akshare:futures_zh_realtime",
         "warnings": [
           "成交额字段缺失，排序已跳过成交额"
-        ]
+        ],
+        "trading_date": "2026-08-31",
+        "exchange_tick_time": "09:38:35"
       },
       {
         "symbol": "M2705",
@@ -121,14 +135,16 @@
         "product_name": "豆粕",
         "rank": 2,
         "label": "次主力",
-        "volume": 120490,
-        "open_interest": 879844,
+        "volume": 149107,
+        "open_interest": 861485,
         "turnover": null,
-        "data_time": "2026-08-26 23:00:00",
+        "data_time": "2026-08-31 09:38:34",
         "source": "akshare:futures_zh_realtime",
         "warnings": [
           "成交额字段缺失，排序已跳过成交额"
-        ]
+        ],
+        "trading_date": "2026-08-31",
+        "exchange_tick_time": "09:38:34"
       }
     ],
     "RM": [
@@ -138,14 +154,16 @@
         "product_name": "菜粕",
         "rank": 1,
         "label": "主力",
-        "volume": 359609,
-        "open_interest": 678222,
+        "volume": 397704,
+        "open_interest": 653952,
         "turnover": null,
-        "data_time": "2026-08-26 23:00:00",
+        "data_time": "2026-08-31 09:38:35",
         "source": "akshare:futures_zh_realtime",
         "warnings": [
           "成交额字段缺失，排序已跳过成交额"
-        ]
+        ],
+        "trading_date": "2026-08-31",
+        "exchange_tick_time": "09:38:35"
       },
       {
         "symbol": "RM2701",
@@ -153,14 +171,16 @@
         "product_name": "菜粕",
         "rank": 2,
         "label": "次主力",
-        "volume": 165237,
-        "open_interest": 533689,
+        "volume": 221741,
+        "open_interest": 507935,
         "turnover": null,
-        "data_time": "2026-08-26 23:00:00",
+        "data_time": "2026-08-31 09:38:35",
         "source": "akshare:futures_zh_realtime",
         "warnings": [
           "成交额字段缺失，排序已跳过成交额"
-        ]
+        ],
+        "trading_date": "2026-08-31",
+        "exchange_tick_time": "09:38:35"
       }
     ]
   },
