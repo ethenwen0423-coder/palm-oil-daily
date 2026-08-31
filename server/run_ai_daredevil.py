@@ -213,6 +213,8 @@ def quote_from_row(row: dict[str, Any], contract: str, source: str) -> dict[str,
         "open": opening,
         "observed_at": observed,
         "trade_date": str(date_value or "")[:10] or None,
+        "source_date": str(date_value or "").strip() or None,
+        "source_time": str(time_value or "").strip() or None,
         "source": source,
     }
 
@@ -772,12 +774,23 @@ def public_snapshot(state_dir: Path, state: dict[str, Any], sources: list[dict[s
                     skipped: list[dict[str, Any]], scan_audit: dict[str, Any], now: datetime) -> dict[str, Any]:
     curve = equity_curve(state_dir, state, now.date().isoformat())
     annual, sharpe = performance(curve)
+    quote_observations = read_json(state_dir / "latest_quote_observations.json", {})
+    observed_by_contract = quote_observations.get("quotes", {}) if isinstance(quote_observations, dict) else {}
     positions = []
     for position in state.get("positions", {}).values():
         row = dict(position)
         row["weight"] = float(row.get("notional", 0)) / float(state["equity"]) if state["equity"] else 0
         row["price_source"] = row.get("mark_source", "基金账本成交价")
-        row["price_time"] = row.get("last_mark_date") or row.get("entry_date")
+        observation = observed_by_contract.get(str(row.get("contract", "")), {})
+        observed_price = numeric(observation.get("price")) if isinstance(observation, dict) else None
+        same_mark = (
+            observed_price is not None
+            and abs(observed_price - float(row.get("last_price", 0))) <= 1e-9
+            and observation.get("trade_date") == row.get("last_mark_date")
+        )
+        row["price_time"] = observation.get("observed_at") if same_mark else (row.get("last_mark_date") or row.get("entry_date"))
+        if same_mark:
+            row["source_price_time"] = observation.get("source_observed_at")
         positions.append(row)
     pending = [row for row in state.get("pending_orders", []) if row.get("status") == "pending"]
     strategy = read_json(state_dir / "strategy_state.json", {})
@@ -819,7 +832,7 @@ def public_snapshot(state_dir: Path, state: dict[str, Any], sources: list[dict[s
             {"label": "日盘开盘", "time": "09:00", "purpose": "获取真实开盘价并处理待执行订单"},
             {"label": "午盘开盘", "time": "13:30", "purpose": "补核成交与持仓盯市"},
             {"label": "夜盘开盘", "time": "21:00", "purpose": "获取夜盘开盘价并处理可交易品种"},
-            {"label": "整点刷新", "time": "每小时", "purpose": "更新持仓价格、权益、来源状态和净值"},
+            {"label": "交易时段盯市", "time": "每分钟", "purpose": "仅用当日精确合约实时行情更新持仓价格、权益和净值"},
         ],
         "sources": sources,
         "governance": {"virtual_only": True, "scanned_universe": list(PRODUCTS),

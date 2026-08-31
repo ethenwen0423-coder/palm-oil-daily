@@ -50,6 +50,7 @@ for required in \
   "$SITE_ROOT/server/run_supply_demand.py" \
   "$SITE_ROOT/server/run_ai_brief.py" \
   "$SITE_ROOT/server/run_ai_daredevil.py" \
+  "$SITE_ROOT/server/run_ai_daredevil_quotes.py" \
   "$SITE_ROOT/server/run_pure_ai_fund.py" \
   "$SITE_ROOT/server/run_research_agent.py" \
   "$SITE_ROOT/server/run_prediction_review.py" \
@@ -105,6 +106,7 @@ print(json.dumps(
         "ai_timer": "installed disabled until backend acceptance",
         "research_timer": "installed disabled until backend acceptance",
         "prediction_review_timer": "every 15 minutes with after-close gate",
+        "daredevil_quote_timer": "every minute during China-futures sessions",
         "web_service": "stopped" if sys.argv[-1] == "private" else "running",
     },
     sort_keys=True,
@@ -361,6 +363,10 @@ write_service \
   "$temporary_root/palm-oil-ai-daredevil.service" \
   "Refresh the persistent AI Daredevil virtual futures fund" \
   "run_ai_daredevil.py"
+write_service \
+  "$temporary_root/palm-oil-ai-daredevil-quotes.service" \
+  "Refresh exact-contract AI Daredevil position marks" \
+  "run_ai_daredevil_quotes.py"
 cat >"$temporary_root/palm-oil-ai-daredevil.timer" <<EOF
 [Unit]
 Description=Refresh AI Daredevil at session opens and every hour
@@ -373,6 +379,22 @@ AccuracySec=10s
 RandomizedDelaySec=0
 Persistent=true
 Unit=palm-oil-ai-daredevil.service
+
+[Install]
+WantedBy=timers.target
+EOF
+cat >"$temporary_root/palm-oil-ai-daredevil-quotes.timer" <<EOF
+[Unit]
+Description=Refresh AI Daredevil exact-contract marks every trading minute
+
+[Timer]
+OnCalendar=Mon..Fri *-*-* 09..15:*:00 Asia/Shanghai
+OnCalendar=Mon..Fri *-*-* 21..23:*:00 Asia/Shanghai
+OnCalendar=Tue..Sat *-*-* 00..02:*:00 Asia/Shanghai
+AccuracySec=1s
+RandomizedDelaySec=0
+Persistent=false
+Unit=palm-oil-ai-daredevil-quotes.service
 
 [Install]
 WantedBy=timers.target
@@ -396,7 +418,9 @@ systemd-analyze verify \
   "$temporary_root/palm-oil-htfc-tianji.service" \
   "$temporary_root/palm-oil-htfc-tianji.timer" \
   "$temporary_root/palm-oil-ai-daredevil.service" \
-  "$temporary_root/palm-oil-ai-daredevil.timer"
+  "$temporary_root/palm-oil-ai-daredevil.timer" \
+  "$temporary_root/palm-oil-ai-daredevil-quotes.service" \
+  "$temporary_root/palm-oil-ai-daredevil-quotes.timer"
 
 install -m 0644 "$temporary_root/compose.automation.yaml" "$COMPOSE_OVERRIDE"
 for unit in \
@@ -417,7 +441,9 @@ for unit in \
   palm-oil-htfc-tianji.service \
   palm-oil-htfc-tianji.timer \
   palm-oil-ai-daredevil.service \
-  palm-oil-ai-daredevil.timer
+  palm-oil-ai-daredevil.timer \
+  palm-oil-ai-daredevil-quotes.service \
+  palm-oil-ai-daredevil-quotes.timer
 do
   install -m 0644 "$temporary_root/$unit" "$UNIT_ROOT/$unit"
 done
@@ -436,12 +462,14 @@ systemctl enable --now palm-oil-event-watch.timer
 systemctl enable --now palm-oil-supply-demand.timer
 systemctl enable --now palm-oil-prediction-review.timer
 systemctl enable --now palm-oil-ai-daredevil.timer
+systemctl enable --now palm-oil-ai-daredevil-quotes.timer
 systemctl start palm-oil-market-collector.service
 systemctl start palm-oil-market-refresh.service
 systemctl start palm-oil-event-watch.service
 systemctl start palm-oil-supply-demand.service
 systemctl start palm-oil-prediction-review.service
 systemctl start palm-oil-ai-daredevil.service
+systemctl start palm-oil-ai-daredevil-quotes.service
 
 htfc_key_present=false
 htfc_base_present=false
@@ -464,6 +492,7 @@ systemctl --no-pager list-timers palm-oil-event-watch.timer
 systemctl --no-pager list-timers palm-oil-supply-demand.timer
 systemctl --no-pager list-timers palm-oil-prediction-review.timer
 systemctl --no-pager list-timers palm-oil-ai-daredevil.timer
+systemctl --no-pager list-timers palm-oil-ai-daredevil-quotes.timer
 docker compose -f "$COMPOSE_FILE" -f "$COMPOSE_OVERRIDE" ps
 set +e
 python3 "$SITE_ROOT/server/audit_runtime.py" --access-mode "$PUBLIC_ACCESS_MODE"

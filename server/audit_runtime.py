@@ -35,6 +35,7 @@ REQUIRED_REPOSITORY_PATHS = (
     "server/run_market_collector.py",
     "server/run_supply_demand.py",
     "server/run_ai_daredevil.py",
+    "server/run_ai_daredevil_quotes.py",
     "server/run_pure_ai_fund.py",
     "server/sync_live_data.py",
     "scripts/deploy_oil_futures_tab.sh",
@@ -277,6 +278,7 @@ def systemd_status() -> dict[str, Any]:
         "palm-oil-prediction-review.timer",
         "palm-oil-htfc-tianji.timer",
         "palm-oil-ai-daredevil.timer",
+        "palm-oil-ai-daredevil-quotes.timer",
     )
     states: dict[str, dict[str, bool]] = {}
     if available:

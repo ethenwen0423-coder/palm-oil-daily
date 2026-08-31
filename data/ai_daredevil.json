@@ -56,7 +56,7 @@
     {"label": "日盘开盘", "time": "09:00", "purpose": "获取真实开盘价并处理待执行订单"},
     {"label": "午盘开盘", "time": "13:30", "purpose": "补核成交与持仓盯市"},
     {"label": "夜盘开盘", "time": "21:00", "purpose": "获取夜盘开盘价并处理可交易品种"},
-    {"label": "整点刷新", "time": "每小时", "purpose": "更新持仓价格、权益、来源状态和净值"}
+    {"label": "交易时段盯市", "time": "每分钟", "purpose": "仅用当日精确合约实时行情更新持仓价格、权益和净值"}
   ],
   "sources": [
     {"priority": "主来源", "name": "AKShare 真实交割月行情", "state": "ready", "state_label": "待首次行情刷新", "note": "优先使用 futures_zh_realtime / futures_zh_daily_sina 的真实 PYYMM 数据"},
