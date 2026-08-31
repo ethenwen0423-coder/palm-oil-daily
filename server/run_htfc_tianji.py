@@ -11,7 +11,9 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from datetime import datetime, timedelta
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 
 DEFAULT_SITE_ROOT = Path("/srv/palm-oil-daily/site")
@@ -83,7 +85,13 @@ def main() -> int:
                     output.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
             public_search_inputs = []
             public_search_count = 0
+            source_status = {
+                "institution-report-skill": {"configured": True, "status": "ready" if htfc_fresh else "unavailable"},
+                "report-search": {"configured": bool(os.environ.get("IWENCAI_API_KEY", "").strip()), "status": "not_configured"},
+                "mx-search": {"configured": bool(os.environ.get("MX_APIKEY", "").strip()), "status": "not_configured"},
+            }
             if os.environ.get("IWENCAI_API_KEY", "").strip():
+                source_status["report-search"]["status"] = "request_failed"
                 for name, query in (
                     ("oil", "棕榈油 豆油 菜油 油脂油料 研报"),
                     ("cross", "原油 宏观 农产品 研报"),
@@ -114,6 +122,52 @@ def main() -> int:
                     if public_result.returncode == 0 and public_output.is_file():
                         public_search_inputs.extend(["--public-search", str(public_output)])
                         public_search_count += 1
+                if public_search_count:
+                    source_status["report-search"]["status"] = "ready"
+            mx_search_inputs = []
+            mx_search_count = 0
+            if os.environ.get("MX_APIKEY", "").strip():
+                source_status["mx-search"]["status"] = "request_failed"
+                today = datetime.now(ZoneInfo("Asia/Shanghai")).date()
+                yesterday = today - timedelta(days=1)
+                date_window = (
+                    f"{yesterday.year}年{yesterday.month}月{yesterday.day}日"
+                    f"至{today.year}年{today.month}月{today.day}日"
+                )
+                for name, query in (
+                    ("oil", f"{date_window} 棕榈油 豆油 菜油 油脂油料 券商研报 研究报告"),
+                    ("cross", f"{date_window} 原油 宏观 农产品 券商研报 研究报告"),
+                ):
+                    mx_output = output_root / f"mx_research_{name}.json"
+                    try:
+                        mx_result = subprocess.run(
+                            [
+                                sys.executable,
+                                str(site_root / "scripts" / "update_mx_research_search.py"),
+                                "--query",
+                                query,
+                                "--output",
+                                str(mx_output),
+                                "--timeout",
+                                str(args.timeout),
+                            ],
+                            cwd=site_root,
+                            env={**os.environ, "PYTHONUNBUFFERED": "1"},
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.STDOUT,
+                            text=True,
+                            timeout=max(args.timeout * 2, 90),
+                            check=False,
+                        )
+                    except subprocess.TimeoutExpired:
+                        continue
+                    if mx_result.returncode == 0 and mx_output.is_file():
+                        mx_search_inputs.extend(["--mx-search", str(mx_output)])
+                        mx_search_count += 1
+                if mx_search_count:
+                    source_status["mx-search"]["status"] = "ready"
+            source_status_output = output_root / "research_source_status.json"
+            source_status_output.write_text(json.dumps(source_status, ensure_ascii=False), encoding="utf-8")
             research_output = output_root / "research_watch.json"
             research_result = subprocess.run(
                 [
@@ -126,6 +180,9 @@ def main() -> int:
                     "--output",
                     str(research_output),
                     *public_search_inputs,
+                    *mx_search_inputs,
+                    "--source-status",
+                    str(source_status_output),
                 ],
                 cwd=site_root,
                 stdout=subprocess.PIPE,
@@ -143,6 +200,8 @@ def main() -> int:
             "available_modules": payload.get("available_modules"),
             "htfc_fresh": htfc_fresh,
             "public_search_count": public_search_count,
+            "mx_search_count": mx_search_count,
+            "source_status": source_status,
             "copied": copied.get("copied", []),
         }, ensure_ascii=False, sort_keys=True))
         return 0

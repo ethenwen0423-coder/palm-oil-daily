@@ -40,7 +40,7 @@ class ResearchWatchTests(unittest.TestCase):
         self.assertEqual(payload["status"], "ready")
         self.assertEqual(payload["allocation"], {"油脂油料": 7, "跨板块": 3, "target": "70% / 30%"})
         self.assertEqual(len(payload["items"]), 10)
-        self.assertEqual(payload["schema_version"], 4)
+        self.assertEqual(payload["schema_version"], 5)
         self.assertNotIn("<", json.dumps(payload, ensure_ascii=False))
 
     def test_merges_public_search_and_preserves_source_content(self):
@@ -69,7 +69,67 @@ class ResearchWatchTests(unittest.TestCase):
         self.assertIn("institution-report-skill", result["source_counts"])
         self.assertIn("report-search", result["source_counts"])
         self.assertEqual(result["candidate_source_counts"]["report-search"], 1)
-        self.assertEqual(result["source_policy"], "机构研报 skill 与问财公开研报搜索来源平权；仅按质量评分择优；跨源标题去重")
+        self.assertEqual(result["source_policy"], "机构研报、问财公开研报搜索与东方财富妙想来源平权；仅按质量评分择优；跨源标题去重")
+
+    def test_merges_mx_reports_and_refreshes_weekend_snapshot(self):
+        now = datetime(2026, 8, 31, 10, 5, tzinfo=SHANGHAI)
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "source.json"
+            source.write_text(json.dumps(source_payload(), ensure_ascii=False), encoding="utf-8")
+            mx = root / "mx.json"
+            mx.write_text(json.dumps({
+                "data": {"data": {"llmSearchResponse": {"data": [{
+                    "code": "AP-20260831",
+                    "title": "棕榈油周报：天气影响发酵",
+                    "content": "核心观点 棕榈油库存下降，天气与生柴政策提供支撑。风险因素：MPOB报告。",
+                    "date": "2026-08-31 09:21:16",
+                    "informationType": "REPORT",
+                    "insName": "公开期货机构",
+                    "author": "研究员",
+                }]}}},
+            }, ensure_ascii=False), encoding="utf-8")
+            result = MODULE.build(source, None, now, mx_paths=[mx])
+        self.assertEqual(result["status"], "ready")
+        self.assertEqual(result["report_date"], "2026-08-31")
+        self.assertEqual(result["fresh_item_count"], 1)
+        self.assertEqual(result["candidate_source_counts"]["mx-search"], 1)
+        self.assertIn("mx-search", result["source_counts"])
+        mx_item = next(item for item in result["items"] if item["source_channel"] == "mx-search")
+        self.assertEqual(mx_item["organization"], "公开期货机构")
+        self.assertIn("保持来源内容完整展示", mx_item["summary_notice"])
+
+    def test_mx_original_crude_title_is_cross_sector_even_if_body_mentions_oilseeds(self):
+        item = MODULE.normalize_mx_search_item({
+            "code": "AP-crude",
+            "title": "原油早报",
+            "content": "原油供应与库存变化，同时提到豆油和棕榈油联动。",
+            "date": "2026-08-31 09:14:16",
+            "informationType": "REPORT",
+            "insName": "公开期货机构",
+        })
+        self.assertEqual(item["sector"], "跨板块")
+
+    def test_no_current_report_publishes_scan_state_instead_of_frozen_payload(self):
+        now = datetime(2026, 8, 31, 10, 5, tzinfo=SHANGHAI)
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "source.json"
+            source.write_text(json.dumps(source_payload(), ensure_ascii=False), encoding="utf-8")
+            existing = root / "existing.json"
+            existing.write_text(json.dumps({
+                "schema_version": 4,
+                "status": "ready",
+                "report_date": "2026-08-27",
+                "generated_at": "2026-08-27T22:31:46+08:00",
+                "items": [{"id": "frozen"}],
+            }), encoding="utf-8")
+            result = MODULE.build(source, existing, now)
+        self.assertEqual(result["status"], "stale")
+        self.assertEqual(result["report_date"], "2026-08-27")
+        self.assertEqual(result["last_scanned_at"], "2026-08-31T10:05:00+08:00")
+        self.assertEqual(result["fresh_item_count"], 0)
+        self.assertNotEqual(result["items"], [{"id": "frozen"}])
 
     def test_preserves_complete_summary_and_direct_source_link(self):
         long_summary = "第一项关键信息包含库存与产量变化。" * 20 + "最后一项风险信息必须完整保留。"
@@ -183,7 +243,7 @@ class ResearchWatchTests(unittest.TestCase):
         self.assertNotEqual(payload["items"], [{"id": "frozen"}])
         self.assertEqual(payload["report_date"], "2026-08-27")
         self.assertEqual(payload["refresh_policy"], "每5分钟独立扫描机构研报与公开研报；按质量重新择优")
-        self.assertEqual(payload["schema_version"], 4)
+        self.assertEqual(payload["schema_version"], 5)
 
 
 if __name__ == "__main__":

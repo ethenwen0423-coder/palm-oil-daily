@@ -244,6 +244,49 @@ def normalize_public_search_item(row: dict[str, Any]) -> dict[str, Any]:
     return attach_reading_view(item)
 
 
+def mx_search_rows(paths: list[Path]) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for path in paths:
+        payload = load_object(path)
+        current: Any = payload
+        for key in ("data", "data", "llmSearchResponse", "data"):
+            current = current.get(key, {}) if isinstance(current, dict) else {}
+        if isinstance(current, list):
+            rows.extend(row for row in current if isinstance(row, dict) and row.get("informationType") == "REPORT")
+    return rows
+
+
+def normalize_mx_search_item(row: dict[str, Any]) -> dict[str, Any]:
+    title = public_text(row.get("title") or "公开研报").strip()
+    summary = public_text(row.get("content") or "").strip()
+    published = str(row.get("date") or "时间待核验")
+    combined = f"{title} {summary}"
+    oil_terms = ("棕榈油", "豆油", "菜油", "油脂", "油料", "大豆", "豆粕", "菜粕")
+    cross_title_terms = ("原油", "宏观", "汇率", "利率", "航运", "能源")
+    title_is_cross = any(term in title for term in cross_title_terms) and not any(term in title for term in oil_terms)
+    sector = "跨板块" if title_is_cross else "油脂油料" if any(term in combined for term in oil_terms) else "跨板块"
+    topic_terms = oil_terms if sector == "油脂油料" else ("原油", "宏观", "汇率", "利率", "航运", "生物柴油", "政策")
+    topics = [term for term in topic_terms if term in combined][:4]
+    item = {
+        "id": str(row.get("code") or f"mx:{published}:{title}"),
+        "title": title,
+        "summary": summary or "来源未提供可核验的摘要内容。",
+        "summary_type": "source_content" if summary else "missing_source_content",
+        "summary_notice": (
+            "该内容来自东方财富妙想资讯搜索返回的研报字段，保持来源内容完整展示；请结合原始研报自行核验。"
+            if summary else
+            "AI基于来源字段生成信息缺失提示，不代表来源方官方立场，也不构成投资建议；请自行核验。"
+        ),
+        "organization": public_text(row.get("insName") or row.get("author") or "公开研究机构"),
+        "published_at": published,
+        "sector": sector,
+        "topics": topics,
+        "source": "东方财富妙想资讯搜索（研究报告）",
+        "source_channel": "mx-search",
+    }
+    return attach_reading_view(item)
+
+
 def score_quality(item: dict[str, Any], report_date: date) -> tuple[int, list[str]]:
     published = published_date({"publish_date": item.get("published_at")})
     days = (report_date - published).days if published else 30
@@ -275,7 +318,7 @@ def score_quality(item: dict[str, Any], report_date: date) -> tuple[int, list[st
     if any(term in combined for term in sector_terms):
         score += 10
         factors.append("主题相关")
-    if any(term in title for term in ("日报", "周报", "月报", "深度", "策略", "展望")):
+    if any(term in title for term in ("日报", "早报", "周报", "月报", "深度", "策略", "展望")):
         score += 5
         factors.append("报告类型明确")
     if len(summary) >= 180:
@@ -299,12 +342,17 @@ def score_quality(item: dict[str, Any], report_date: date) -> tuple[int, list[st
     return min(score, 100), factors
 
 
-def select(payload: dict[str, Any], report_date: date, public_paths: list[Path] | None = None) -> tuple[list[dict[str, Any]], int, dict[str, int], dict[str, int]]:
+def select(
+    payload: dict[str, Any],
+    report_date: date,
+    public_paths: list[Path] | None = None,
+    mx_paths: list[Path] | None = None,
+) -> tuple[list[dict[str, Any]], int, dict[str, int], dict[str, int]]:
     candidates: list[dict[str, Any]] = []
     oil: list[dict[str, Any]] = []
     cross: list[dict[str, Any]] = []
     candidate_count = 0
-    candidate_source_counts = {"institution-report-skill": 0, "report-search": 0}
+    candidate_source_counts = {"institution-report-skill": 0, "report-search": 0, "mx-search": 0}
     for product in (*sorted(OIL_KEYS), *sorted(CROSS_KEYS)):
         sector = "油脂油料" if product in OIL_KEYS else "跨板块"
         for row in rows_for(payload, product):
@@ -319,6 +367,15 @@ def select(payload: dict[str, Any], report_date: date, public_paths: list[Path] 
     candidate_source_counts["report-search"] += len(web_rows)
     for row in web_rows:
         item = normalize_public_search_item(row)
+        published = published_date({"publish_date": item["published_at"]})
+        if published is None or (report_date - published).days < 0 or (report_date - published).days > 30:
+            continue
+        candidates.append(item)
+    mx_rows = mx_search_rows(mx_paths or [])
+    candidate_count += len(mx_rows)
+    candidate_source_counts["mx-search"] += len(mx_rows)
+    for row in mx_rows:
+        item = normalize_mx_search_item(row)
         published = published_date({"publish_date": item["published_at"]})
         if published is None or (report_date - published).days < 0 or (report_date - published).days > 30:
             continue
@@ -345,36 +402,64 @@ def select(payload: dict[str, Any], report_date: date, public_paths: list[Path] 
     return selected, candidate_count, candidate_source_counts, selected_counts
 
 
-def build(source: Path, existing: Path | None, now: datetime, public_paths: list[Path] | None = None) -> dict[str, Any]:
+def build(
+    source: Path,
+    existing: Path | None,
+    now: datetime,
+    public_paths: list[Path] | None = None,
+    mx_paths: list[Path] | None = None,
+    source_status_path: Path | None = None,
+) -> dict[str, Any]:
     today = now.astimezone(SHANGHAI).date()
     previous = load_object(existing) if existing and existing.is_file() else {}
     payload = load_object(source)
-    items, candidate_count, candidate_source_counts, source_counts = select(payload, today, public_paths)
-    if any(str(item.get("published_at", "")).startswith(today.isoformat()) for item in items):
+    items, candidate_count, candidate_source_counts, source_counts = select(payload, today, public_paths, mx_paths)
+    source_status = load_object(source_status_path) if source_status_path else {}
+    if items:
+        fresh_item_count = sum(str(item.get("published_at", "")).startswith(today.isoformat()) for item in items)
+        latest_date = max(
+            (published_date({"publish_date": item.get("published_at")}) for item in items),
+            default=None,
+        )
         oil_count = sum(item["sector"] == "油脂油料" for item in items)
         cross_count = sum(item["sector"] == "跨板块" for item in items)
         return {
-            "schema_version": 4,
-            "status": "ready",
-            "report_date": today.isoformat(),
+            "schema_version": 5,
+            "status": "ready" if fresh_item_count else "stale",
+            "report_date": latest_date.isoformat() if latest_date else None,
             "generated_at": now.astimezone(SHANGHAI).isoformat(timespec="seconds"),
+            "last_scanned_at": now.astimezone(SHANGHAI).isoformat(timespec="seconds"),
+            "fresh_item_count": fresh_item_count,
+            "stale_reason": None if fresh_item_count else "当日来源未返回新增公开研报；继续展示最近可核验内容。",
             "refresh_policy": "每5分钟独立扫描机构研报与公开研报；按质量重新择优",
             "candidate_count": candidate_count,
             "candidate_source_counts": candidate_source_counts,
             "deduplicated_count": len(items),
             "allocation": {"油脂油料": oil_count, "跨板块": cross_count, "target": "70% / 30%"},
             "source_counts": source_counts,
-            "source_policy": "机构研报 skill 与问财公开研报搜索来源平权；仅按质量评分择优；跨源标题去重",
+            "source_status": source_status,
+            "source_policy": "机构研报、问财公开研报搜索与东方财富妙想来源平权；仅按质量评分择优；跨源标题去重",
             "items": items,
             "notice": "推荐分、筛选和推荐依据由AI基于所列来源字段生成，不代表任何来源方官方立场，也不构成投资建议；请自行核验。",
         }
-    if previous:
+    if previous and previous.get("items"):
+        previous.update({
+            "schema_version": 5,
+            "status": "stale",
+            "generated_at": now.astimezone(SHANGHAI).isoformat(timespec="seconds"),
+            "last_scanned_at": now.astimezone(SHANGHAI).isoformat(timespec="seconds"),
+            "fresh_item_count": 0,
+            "stale_reason": "本轮扫描没有返回可发布研报；继续展示最近可核验内容。",
+            "source_status": source_status,
+        })
         return previous
     return {
-        "schema_version": 4,
+        "schema_version": 5,
         "status": "pending",
         "report_date": None,
         "generated_at": now.astimezone(SHANGHAI).isoformat(timespec="seconds"),
+        "last_scanned_at": now.astimezone(SHANGHAI).isoformat(timespec="seconds"),
+        "source_status": source_status,
         "refresh_policy": "每5分钟独立扫描机构研报与公开研报；按质量重新择优",
         "items": [],
         "notice": "等待当日公开晨报发布。",
@@ -395,9 +480,18 @@ def main() -> int:
     parser.add_argument("--input", type=Path, required=True)
     parser.add_argument("--existing", type=Path)
     parser.add_argument("--public-search", type=Path, action="append", default=[])
+    parser.add_argument("--mx-search", type=Path, action="append", default=[])
+    parser.add_argument("--source-status", type=Path)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
-    payload = build(args.input, args.existing, datetime.now(SHANGHAI), args.public_search)
+    payload = build(
+        args.input,
+        args.existing,
+        datetime.now(SHANGHAI),
+        args.public_search,
+        args.mx_search,
+        args.source_status,
+    )
     atomic_write(args.output, payload)
     print(json.dumps({"status": payload["status"], "report_date": payload.get("report_date"), "items": len(payload.get("items", []))}, ensure_ascii=False))
     return 0

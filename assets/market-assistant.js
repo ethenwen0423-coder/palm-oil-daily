@@ -524,7 +524,7 @@
       evidence: [first(report.id || report.slug, "最新报告")], source: first(report.source, "Vinson Research"), time: eventTime(report),
       scope: "油脂研究", impact: "中", nextCheck: "下一次研究任务"
     });
-    if (data.researchWatch && data.researchWatch.status === "ready") {
+    if (data.researchWatch && ["ready", "stale"].includes(data.researchWatch.status)) {
       array(data.researchWatch.items).forEach((item) => {
         const reading = researchReading(item);
         events.push({
@@ -828,7 +828,11 @@
     const checkedAt = new Date().toISOString();
     $("refresh-note").textContent = `页面刷新 ${fmtTime(checkedAt, false)} · 不把系统检查写入时间线`;
     const scanAt = data.watch && (data.watch.events_updated_at || data.watch.generated_at);
-    $("timeline-refresh-state").textContent = scanAt ? `5分钟全量扫描 · 最近 ${fmtTime(scanAt, false)} · 仅显示可追溯证据` : "等待首轮5分钟市场扫描";
+    const researchScanAt = data.researchWatch && (data.researchWatch.last_scanned_at || data.researchWatch.generated_at);
+    const researchState = data.researchWatch && data.researchWatch.status === "stale" ? "研报源暂无当日新增" : "研报已更新";
+    $("timeline-refresh-state").textContent = scanAt
+      ? `5分钟全量扫描 · 市场 ${fmtTime(scanAt, false)} · 研报 ${fmtTime(researchScanAt, false)}（${researchState}） · 仅显示可追溯证据`
+      : "等待首轮5分钟市场扫描";
   }
 
   function clock() { $("live-clock").textContent = new Intl.DateTimeFormat("zh-CN", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).format(new Date()); }
