@@ -174,6 +174,41 @@ class PureAiFundTests(unittest.TestCase):
             self.assertEqual(filled["state"]["positions"]["AG"]["strategy_name"], "MACD动量")
             self.assertEqual(filled["fill"]["strategy_name"], "MACD动量")
 
+    def test_decisions_are_requested_in_bounded_batches_and_merged(self):
+        context = [{"variety": f"V{index}"} for index in range(18)]
+
+        def request_json(**kwargs):
+            batch = __import__("json").loads(kwargs["prompt"].split("INPUT:\n", 1)[1])
+            return {
+                "market_summary": f"覆盖{len(batch)}个品种",
+                "decisions": [{"variety": row["variety"]} for row in batch],
+            }, "test-backend"
+
+        with (
+            patch.dict(PURE.os.environ, {
+                "PURE_AI_DECISION_BATCH_SIZE": "8",
+                "PURE_AI_DECISION_BATCH_WORKERS": "3",
+            }),
+            patch.object(PURE.MODEL_BACKEND, "request_json", side_effect=request_json) as mocked,
+        ):
+            output, backend = PURE.request_decisions(context, {}, 30)
+
+        self.assertEqual(mocked.call_count, 3)
+        self.assertEqual(output["batch_count"], 3)
+        self.assertEqual(output["batch_errors"], [])
+        self.assertEqual(len(output["decisions"]), 18)
+        self.assertEqual(backend, "test-backend")
+
+    def test_missing_batch_decision_is_a_validation_issue(self):
+        decisions, issues = PURE.validate_decisions(
+            {"decisions": []},
+            [{"variety": "P", "local_strategy_backtests": []}],
+            {"P": set()},
+            {"positions": {}},
+        )
+        self.assertEqual(decisions, [])
+        self.assertEqual(issues, [{"variety": "P", "reason": "AI批次未返回该品种决定"}])
+
 
 if __name__ == "__main__":
     unittest.main()
