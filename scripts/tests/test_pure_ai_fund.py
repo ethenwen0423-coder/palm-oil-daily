@@ -118,7 +118,11 @@ class PureAiFundTests(unittest.TestCase):
             "backtest_summary": None,
         }]
         state = {"equity": 910000, "high_water_equity": 1000000, "positions": {}}
-        snapshot, rows = PURE.build_signals(facts, decisions, state)
+        margin_book = {"rates": {"P2701": {
+            "margin_rate": .08, "source": "交易所标准保证金", "source_updated_at": "2026-08-28",
+            "source_url": "https://example.invalid", "official_direct": False,
+        }}}
+        snapshot, rows = PURE.build_signals(facts, decisions, state, margin_book)
         self.assertEqual(snapshot["signals"][0]["requested_quantity"], 17)
         self.assertEqual(snapshot["signals"][0]["strategy_name"], "趋势跟随")
         self.assertEqual(rows[0]["action"], "ENTER_LONG")

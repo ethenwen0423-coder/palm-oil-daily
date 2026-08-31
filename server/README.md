@@ -101,6 +101,15 @@ lock is busy. Durable state lives under `/srv/palm-oil-daily/state/ai-daredevil`
 while only the read-only `ai_daredevil.json` snapshot is published to the API
 data mount.
 
+Both fund modes resolve margin by exact PYYMM contract. SHFE/INE use the
+exchange's official daily general-position parameter file; other exchanges use
+the exchange-standard margin fields aggregated by 9qihuo/AKShare. The higher
+of long/short speculative rates is booked. Missing or older-than-seven-day
+parameters block new risk instead of falling back to a generic percentage.
+Existing positions and pending entries are revalued through the persistent
+ledger, and the public payload exposes the rate, source, source date and margin
+audit.
+
 服务器 AI 使用官方 Codex CLI，并通过 ChatGPT 登录消耗 Codex 套餐额度；不会把
 OpenAI API Key 作为后备，也不会消耗独立 API credits。先安装 CLI，再把认证写入
 systemd 服务专用的 `CODEX_HOME`：

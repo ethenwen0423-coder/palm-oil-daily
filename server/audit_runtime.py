@@ -36,6 +36,7 @@ REQUIRED_REPOSITORY_PATHS = (
     "server/run_supply_demand.py",
     "server/run_ai_daredevil.py",
     "server/run_ai_daredevil_quotes.py",
+    "server/exchange_margin_rates.py",
     "server/run_pure_ai_fund.py",
     "server/sync_live_data.py",
     "scripts/deploy_oil_futures_tab.sh",

@@ -36,10 +36,11 @@ INITIAL_CAPITAL = 1_000_000.0
 FUND_FILE = "ai_daredevil.json"
 READY_MARKER = ".server-ai-daredevil-ready.json"
 SCAN_AUDIT_FILE = "latest_scan_audit.json"
+MARGIN_BOOK_FILE = "exchange_margin_rates.json"
 CONTRACT_RE = re.compile(r"^[A-Z]{1,3}[0-9]{3,4}$")
 
-# Multiplier is a contract specification. Margin is deliberately a conservative
-# portfolio reserve, not a claim about the broker's current collection ratio.
+# Multiplier is a contract specification. Margin is resolved separately for
+# every exact PYYMM contract from exchange-standard data.
 PRODUCTS = {
     "FG": {"name": "玻璃", "sector": "建材", "multiplier": 20.0},
     "MA": {"name": "甲醇", "sector": "化工", "multiplier": 10.0},
@@ -146,6 +147,10 @@ def load_python(path: Path, name: str):
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+def load_margin_resolver():
+    return load_python(Path(__file__).resolve().parent / "exchange_margin_rates.py", "ai_daredevil_exchange_margins")
 
 
 def load_components(site_root: Path):
@@ -508,9 +513,11 @@ def allocation_score(variety: str, direction: int, indicator_row: Any, selection
     return round(score, 6), components, "跨板块实时信号强度与流动性排序"
 
 
-def margin_rate(variety: str) -> float:
-    configured = numeric(os.environ.get(f"AI_DAREDEVIL_MARGIN_RATE_{variety}"))
-    return configured if configured and 0 < configured <= 1 else 0.20
+def margin_rate(contract: str, margin_book: dict[str, Any] | None) -> dict[str, Any] | None:
+    rates = margin_book.get("rates", {}) if isinstance(margin_book, dict) else {}
+    row = rates.get(str(contract).upper()) if isinstance(rates, dict) else None
+    rate = numeric(row.get("margin_rate")) if isinstance(row, dict) else None
+    return row if rate is not None and 0 < rate <= 1 else None
 
 
 def fee_rate(variety: str) -> float:
@@ -518,7 +525,9 @@ def fee_rate(variety: str) -> float:
     return configured if configured is not None and configured >= 0 else 0.0004
 
 
-def scan_signals(site_root: Path, data_root: Path, state: dict[str, Any], model, generated_at: datetime | None = None) -> tuple[dict[str, Any] | None, list[dict[str, Any]], dict[str, Any]]:
+def scan_signals(site_root: Path, data_root: Path, state: dict[str, Any], model,
+                 generated_at: datetime | None = None,
+                 margin_book: dict[str, Any] | None = None) -> tuple[dict[str, Any] | None, list[dict[str, Any]], dict[str, Any]]:
     import pandas as pd
     contracts_by_variety = current_contracts(data_root)
     signals = []
@@ -663,12 +672,25 @@ def scan_signals(site_root: Path, data_root: Path, state: dict[str, Any], model,
                 reason = carry_reason or "真实交割月自身日线收盘穿越MA20"
         if action:
             order_contract = position["contract"] if position and action.startswith("EXIT") else contract
+            margin = margin_rate(order_contract, margin_book)
+            if not action.startswith("EXIT") and margin_book is not None and margin is None:
+                issue = {
+                    "variety": variety, "contract": order_contract,
+                    "reason": "缺少新鲜的真实合约交易所保证金比例，需进一步核验",
+                }
+                skipped.append(issue)
+                continue
             item = {
                 "variety": variety, "name": PRODUCTS[variety]["name"], "sector": PRODUCTS[variety]["sector"],
                 "contract": order_contract, "action": action, "signal_date": signal_date.isoformat(),
                 "execution_date": next_trade_date(signal_date).isoformat(), "reference_price": execution_close,
                 "atr14": signal_atr, "multiplier": PRODUCTS[variety]["multiplier"],
-                "margin_rate": margin_rate(variety), "fee_rate": fee_rate(variety),
+                "margin_rate": (margin.get("margin_rate") if margin else position.get("margin_rate") if position else None),
+                "margin_source": (margin.get("source") if margin else position.get("margin_source") if position else None),
+                "margin_source_url": (margin.get("source_url") if margin else position.get("margin_source_url") if position else None),
+                "margin_as_of": (margin.get("source_updated_at") if margin else position.get("margin_as_of") if position else None),
+                "margin_official_direct": (margin.get("official_direct") if margin else position.get("margin_official_direct") if position else None),
+                "fee_rate": fee_rate(variety),
                 "reason": reason, "selection_volume_t_minus_1": float(raw_last.volume),
                 "selection_open_interest_t_minus_1": numeric(raw_last.get("hold")),
             }
@@ -693,6 +715,90 @@ def scan_signals(site_root: Path, data_root: Path, state: dict[str, Any], model,
         "indicator_history_calendar_days": 120,
         "signals": signals,
     }, skipped, audit
+
+
+def margin_contracts(state: dict[str, Any], snapshot: dict[str, Any] | None = None) -> list[str]:
+    contracts = [row["contract"] for row in state.get("positions", {}).values()]
+    contracts.extend(
+        row["contract"] for row in state.get("pending_orders", [])
+        if row.get("status") == "pending" and not str(row.get("action", "")).startswith("EXIT")
+    )
+    if snapshot:
+        contracts.extend(
+            row["contract"] for row in snapshot.get("signals", [])
+            if not str(row.get("action", "")).startswith("EXIT")
+        )
+    return sorted({contract.upper() for contract in contracts if contract})
+
+
+def resolve_margin_book(state_dir: Path, contracts: list[str], now: datetime, timeout: int,
+                        *, force: bool = False) -> dict[str, Any]:
+    resolver = load_margin_resolver()
+    path = state_dir / MARGIN_BOOK_FILE
+    cached = resolver.load_cached_margin_book(path, contracts, now.date())
+    fetched_today = str((cached or {}).get("fetched_at", ""))[:10] == now.date().isoformat()
+    if cached is not None and fetched_today and not force:
+        return cached
+    if not contracts:
+        return {
+            "schema_version": 1, "as_of": now.date().isoformat(),
+            "fetched_at": now.isoformat(timespec="seconds"), "coverage_status": "complete",
+            "expected_count": 0, "validated_count": 0, "unresolved_contracts": [],
+            "rates": {}, "validation": "当前无持仓、待执行开仓或新增信号，无需保证金参数",
+        }
+    fresh = resolver.fetch_margin_book(contracts, now.date(), timeout=max(timeout, 30))
+    if fresh.get("coverage_status") != "complete" and cached:
+        merged = dict(cached.get("rates", {}))
+        merged.update(fresh.get("rates", {}))
+        fresh["rates"] = {contract: merged[contract] for contract in contracts if contract in merged}
+        fresh["validated_count"] = len(fresh["rates"])
+        fresh["unresolved_contracts"] = sorted(set(contracts) - set(fresh["rates"]))
+        fresh["coverage_status"] = "complete" if not fresh["unresolved_contracts"] else "partial"
+        fresh["cache_fallback_used"] = True
+    atomic_json(path, fresh)
+    return fresh
+
+
+def apply_snapshot_margins(snapshot: dict[str, Any] | None, margin_book: dict[str, Any],
+                           skipped: list[dict[str, Any]], audit: dict[str, Any]) -> dict[str, Any] | None:
+    if not snapshot:
+        return None
+    accepted = []
+    for signal in snapshot.get("signals", []):
+        if str(signal.get("action", "")).startswith("EXIT"):
+            accepted.append(signal)
+            continue
+        row = margin_rate(signal["contract"], margin_book)
+        if row is None:
+            skipped.append({
+                "variety": signal.get("variety"), "contract": signal.get("contract"),
+                "reason": "缺少新鲜的真实合约交易所保证金比例，信号不生成订单，需进一步核验",
+            })
+            continue
+        signal.update({
+            "margin_rate": row["margin_rate"], "margin_source": row.get("source"),
+            "margin_source_url": row.get("source_url"),
+            "margin_as_of": row.get("source_updated_at"),
+            "margin_official_direct": bool(row.get("official_direct")),
+        })
+        accepted.append(signal)
+    snapshot["signals"] = accepted
+    audit["order_count"] = len(accepted)
+    audit["issues"] = skipped
+    return snapshot
+
+
+def update_ledger_margins(ledger, state_dir: Path, margin_book: dict[str, Any]) -> dict[str, Any]:
+    rates = list(margin_book.get("rates", {}).values())
+    if not rates:
+        return ledger.command_status(SimpleNamespace(state_dir=state_dir))
+    path = state_dir / "latest_margin_rates.json"
+    atomic_json(path, {
+        "as_of": margin_book.get("as_of"),
+        "source": "合约级交易所标准保证金审计",
+        "rates": rates,
+    })
+    return ledger.command_update_margins(SimpleNamespace(state_dir=state_dir, rates=path))
 
 
 def refresh_reason(now: datetime, requested: str | None) -> str:
@@ -775,6 +881,7 @@ def public_snapshot(state_dir: Path, state: dict[str, Any], sources: list[dict[s
     curve = equity_curve(state_dir, state, now.date().isoformat())
     annual, sharpe = performance(curve)
     quote_observations = read_json(state_dir / "latest_quote_observations.json", {})
+    margin_book = read_json(state_dir / MARGIN_BOOK_FILE, {})
     observed_by_contract = quote_observations.get("quotes", {}) if isinstance(quote_observations, dict) else {}
     positions = []
     for position in state.get("positions", {}).values():
@@ -804,7 +911,9 @@ def public_snapshot(state_dir: Path, state: dict[str, Any], sources: list[dict[s
             "reason": roll.get("reason", "主力换月"),
         })
     events = load_events(state_dir, now.date().isoformat())
-    status = "ready" if not positions or all(row.get("mark_source") for row in positions) else "degraded"
+    price_ok = not positions or all(row.get("mark_source") for row in positions)
+    margin_ok = not positions or all(row.get("margin_source") and row.get("margin_as_of") for row in positions)
+    status = "ready" if price_ok and margin_ok else "degraded"
     summary = {
         "initial_capital": INITIAL_CAPITAL, "equity": state["equity"],
         "net_value": state["equity"] / INITIAL_CAPITAL, "cash": state["cash"],
@@ -828,6 +937,13 @@ def public_snapshot(state_dir: Path, state: dict[str, Any], sources: list[dict[s
         "summary": summary, "equity_curve": curve, "positions": positions,
         "today_trades": events, "pending_orders": pending, "skipped_signals": skipped,
         "scan_audit": scan_audit,
+        "margin_audit": {
+            key: value for key, value in margin_book.items()
+            if key != "rates"
+        } | {
+            "contracts": list((margin_book.get("rates") or {}).values())
+            if isinstance(margin_book.get("rates"), dict) else []
+        },
         "refresh_schedule": [
             {"label": "日盘开盘", "time": "09:00", "purpose": "获取真实开盘价并处理待执行订单"},
             {"label": "午盘开盘", "time": "13:30", "purpose": "补核成交与持仓盯市"},
@@ -839,7 +955,7 @@ def public_snapshot(state_dir: Path, state: dict[str, Any], sources: list[dict[s
                        "eligible_default": list(PRODUCTS),
                        "allocation_policy_version": ALLOCATION_POLICY_VERSION,
                        "allocation_policy": "全策略池平等候选，按真实主力合约信号强度与流动性排序；组合受品种和板块上限约束",
-                       "margin_note": "默认20%为保守组合预留率，不代表交易所或经纪商实时保证金率"},
+                       "margin_note": "按真实PYYMM逐合约交易所一般/投机保证金计提，多空不同时取较高值；缺失或过期则禁止新增风险，不包含期货公司加收"},
         "ai_notice": "本页面由 AI 基于所列真实合约行情、模型信号和虚拟基金账本生成，不代表任何来源方官方立场，不构成投资建议；虚拟成交不等于真实成交，请自行核验。",
     }
 
@@ -876,8 +992,21 @@ def main() -> int:
         last_scan_day = str(scan_audit.get("generated_at", ""))[:10] if isinstance(scan_audit, dict) else ""
         catch_up_scan = not args.now and catch_up_window and last_scan_day != now.date().isoformat()
         should_scan = args.close_scan or automatic_close_scan or catch_up_scan
+        snapshot = None
         if should_scan:
             snapshot, skipped, scan_audit = scan_signals(site_root, live_data_root, state, model, now)
+        contracts_requiring_margin = margin_contracts(state, snapshot)
+        pending_margin_rolls = read_json(state_dir / "strategy_state.json", {}).get("pending_rolls", {})
+        for roll in pending_margin_rolls.values():
+            contracts_requiring_margin.extend([roll.get("from"), roll.get("to")])
+        contracts_requiring_margin = sorted({contract for contract in contracts_requiring_margin if contract})
+        margin_book = resolve_margin_book(
+            state_dir, contracts_requiring_margin, now, args.timeout, force=should_scan
+        )
+        snapshot = apply_snapshot_margins(snapshot, margin_book, skipped, scan_audit)
+        state = update_ledger_margins(ledger, state_dir, margin_book)
+        state["_strategy_path"] = str(state_dir / "strategy_state.json")
+        if should_scan:
             atomic_json(scan_audit_path, scan_audit)
             if snapshot:
                 signal_path = state_dir / "latest_signals.json"
@@ -912,6 +1041,8 @@ def main() -> int:
                 continue
             if roll.get("execution_date") != today:
                 continue
+            if margin_rate(roll["to"], margin_book) is None:
+                continue
             old_quote, new_quote = quotes.get(roll["from"]), quotes.get(roll["to"])
             dates_ok = old_quote and new_quote and old_quote.get("trade_date") == today and new_quote.get("trade_date") == today
             if dates_ok and old_quote.get("open") and new_quote.get("open"):
@@ -921,10 +1052,13 @@ def main() -> int:
                 ))
                 pending_rolls.pop(variety, None)
                 state = ledger.command_status(SimpleNamespace(state_dir=state_dir))
+                state = update_ledger_margins(ledger, state_dir, margin_book)
         strategy["pending_rolls"] = pending_rolls
         atomic_json(state_dir / "strategy_state.json", strategy)
         for order in [row for row in pending_orders if not str(row.get("action", "")).startswith("EXIT")]:
             if order.get("execution_date") != today:
+                continue
+            if margin_rate(order["contract"], margin_book) is None:
                 continue
             quote = quotes.get(order["contract"])
             if quote and quote.get("open") and quote.get("trade_date") == today:

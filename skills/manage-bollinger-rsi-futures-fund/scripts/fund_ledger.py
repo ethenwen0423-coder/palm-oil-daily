@@ -382,6 +382,10 @@ def command_plan(args: argparse.Namespace) -> dict[str, Any]:
                 "atr14": signal.get("atr14"),
                 "multiplier": signal.get("multiplier", position.get("multiplier") if position else None),
                 "margin_rate": signal.get("margin_rate", position.get("margin_rate") if position else None),
+                "margin_source": signal.get("margin_source", position.get("margin_source") if position else None),
+                "margin_source_url": signal.get("margin_source_url", position.get("margin_source_url") if position else None),
+                "margin_as_of": signal.get("margin_as_of", position.get("margin_as_of") if position else None),
+                "margin_official_direct": signal.get("margin_official_direct", position.get("margin_official_direct") if position else None),
                 "fee_rate": signal.get("fee_rate", position.get("fee_rate") if position else None),
                 "score": signal.get("score"), "reason": signal.get("reason", "model signal"),
                 "source": snapshot.get("source"),
@@ -473,6 +477,10 @@ def command_fill(args: argparse.Namespace) -> dict[str, Any]:
                 "contract": order["contract"], "side": int(order["side"]),
                 "quantity": quantity, "average_price": args.price, "last_price": args.price,
                 "multiplier": multiplier, "margin_rate": float(order["margin_rate"]), "fee_rate": fee_rate,
+                "margin_source": order.get("margin_source"),
+                "margin_source_url": order.get("margin_source_url"),
+                "margin_as_of": order.get("margin_as_of"),
+                "margin_official_direct": order.get("margin_official_direct"),
                 "entry_date": args.date, "entry_atr": order.get("atr14"), "layers": 1,
                 "layer_fills": [{"date": args.date, "price": args.price, "quantity": quantity, "fee": fee}],
                 "model_reason": order.get("reason"),
@@ -608,6 +616,54 @@ def command_mark(args: argparse.Namespace) -> dict[str, Any]:
         _atomic_json(path, state)
         _append_jsonl(args.state_dir / "snapshots.jsonl", {"event": "DAILY_MARK", "timestamp": _now(), **snapshot})
     return snapshot
+
+
+def command_update_margins(args: argparse.Namespace) -> dict[str, Any]:
+    """Apply audited exact-contract exchange margin rates to live exposures."""
+    payload = _read_json(args.rates)
+    as_of, rows = str(payload.get("as_of", "")), payload.get("rates")
+    if not as_of or not isinstance(rows, list):
+        raise LedgerError("margin file requires as_of and rates list")
+    by_contract: dict[str, dict[str, Any]] = {}
+    for row in rows:
+        contract = _validate_contract(row.get("contract", ""))
+        rate = _positive(row, "margin_rate")
+        if rate > 1:
+            raise LedgerError(f"margin rate for {contract} must not exceed 1")
+        by_contract[contract] = row
+    with locked(args.state_dir):
+        path = state_path(args.state_dir)
+        state = _read_json(path)
+        updated: list[str] = []
+        for position in state["positions"].values():
+            row = by_contract.get(position["contract"])
+            if not row:
+                continue
+            position["margin_rate"] = float(row["margin_rate"])
+            position["margin_source"] = row.get("source")
+            position["margin_source_url"] = row.get("source_url")
+            position["margin_as_of"] = row.get("source_updated_at") or as_of
+            position["margin_official_direct"] = bool(row.get("official_direct"))
+            updated.append(position["contract"])
+        for order in state["pending_orders"]:
+            if order.get("status") != "pending" or order.get("action") in EXIT_ACTIONS:
+                continue
+            row = by_contract.get(order["contract"])
+            if not row:
+                continue
+            order["margin_rate"] = float(row["margin_rate"])
+            order["margin_source"] = row.get("source")
+            order["margin_source_url"] = row.get("source_url")
+            order["margin_as_of"] = row.get("source_updated_at") or as_of
+            order["margin_official_direct"] = bool(row.get("official_direct"))
+            updated.append(order["contract"])
+        _revalue(state)
+        _atomic_json(path, state)
+        _append_jsonl(args.state_dir / "trade_ledger.jsonl", {
+            "event": "MARGIN_RATES_UPDATED", "timestamp": _now(), "as_of": as_of,
+            "contracts": sorted(set(updated)), "source": payload.get("source"),
+        })
+    return state
 
 
 def _summary(state: dict[str, Any]) -> dict[str, Any]:
@@ -751,6 +807,8 @@ def build_parser() -> argparse.ArgumentParser:
     roll.add_argument("--new-price", type=float, required=True)
     mark = sub.add_parser("mark")
     mark.add_argument("--prices", type=Path, required=True)
+    margins = sub.add_parser("update-margins")
+    margins.add_argument("--rates", type=Path, required=True)
     report = sub.add_parser("report")
     report.add_argument("--format", choices=["json", "markdown"], default="json")
     return parser
@@ -761,7 +819,8 @@ def main() -> None:
     commands = {
         "init": command_init, "status": command_status, "verify": command_verify,
         "plan": command_plan, "fill": command_fill, "cancel": command_cancel,
-        "roll": command_roll, "mark": command_mark, "report": command_report,
+        "roll": command_roll, "mark": command_mark,
+        "update-margins": command_update_margins, "report": command_report,
     }
     try:
         result = commands[args.command](args)

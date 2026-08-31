@@ -550,7 +550,8 @@ def validate_decisions(
 
 
 def build_signals(
-    facts: list[dict[str, Any]], decisions: list[dict[str, Any]], state: dict[str, Any]
+    facts: list[dict[str, Any]], decisions: list[dict[str, Any]], state: dict[str, Any],
+    margin_book: dict[str, Any],
 ) -> tuple[dict[str, Any] | None, list[dict[str, Any]]]:
     by_variety = {row["variety"]: row for row in facts}
     signals, decision_rows = [], []
@@ -567,12 +568,21 @@ def build_signals(
         signal_date = fact["signal_date"]
         execution_date = execution_date_cache.setdefault(signal_date, BASE.next_trade_date(datetime.fromisoformat(signal_date).date()).isoformat())
         contract = position["contract"] if position and action.startswith("EXIT") else fact["execution_contract"]
+        margin = BASE.margin_rate(contract, margin_book)
+        if not action.startswith("EXIT") and margin is None:
+            decision_rows[-1]["risk_override"] = "缺少新鲜的真实合约交易所保证金比例，未生成订单"
+            continue
         signals.append({
             "variety": variety, "name": fact["name"], "sector": fact["sector"],
             "contract": contract, "action": action, "signal_date": signal_date,
             "execution_date": execution_date, "reference_price": fact["execution_reference_price"],
             "atr14": fact["atr14"], "multiplier": BASE.PRODUCTS[variety]["multiplier"],
-            "margin_rate": BASE.margin_rate(variety), "fee_rate": BASE.fee_rate(variety),
+            "margin_rate": (margin.get("margin_rate") if margin else position.get("margin_rate") if position else None),
+            "margin_source": (margin.get("source") if margin else position.get("margin_source") if position else None),
+            "margin_source_url": (margin.get("source_url") if margin else position.get("margin_source_url") if position else None),
+            "margin_as_of": (margin.get("source_updated_at") if margin else position.get("margin_as_of") if position else None),
+            "margin_official_direct": (margin.get("official_direct") if margin else position.get("margin_official_direct") if position else None),
+            "fee_rate": BASE.fee_rate(variety),
             "score": decision["confidence"], "reason": reason,
             "evidence_ids": decision["evidence_ids"],
             "next_instruction": clean_text(decision.get("next_instruction"), 300),
@@ -615,8 +625,11 @@ def record_plan_outcomes(
         })
 
 
-def scan_ai(data_root: Path, state: dict[str, Any], timeout: int, now: datetime):
+def scan_ai(data_root: Path, state_dir: Path, state: dict[str, Any], timeout: int, now: datetime):
     facts, issues = select_contract_facts(data_root)
+    contracts = BASE.margin_contracts(state)
+    contracts.extend(row["execution_contract"] for row in facts)
+    margin_book = BASE.resolve_margin_book(state_dir, sorted(set(contracts)), now, min(timeout, 30), force=True)
     context, allowed = build_ai_context(data_root, facts, state)
     audit = {
         "generated_at": now.isoformat(timespec="seconds"),
@@ -638,7 +651,7 @@ def scan_ai(data_root: Path, state: dict[str, Any], timeout: int, now: datetime)
                 "reason": f"AI研判批次{row.get('batch')}失败：{row.get('reason')}",
             })
         issues.extend(validation_issues)
-        snapshot, decision_rows = build_signals(facts, decisions, state)
+        snapshot, decision_rows = build_signals(facts, decisions, state, margin_book)
         audit.update({
             "decision_backend": backend,
             "decision_summary": clean_text(output.get("market_summary"), 500),
@@ -650,11 +663,11 @@ def scan_ai(data_root: Path, state: dict[str, Any], timeout: int, now: datetime)
             "signal_candidates": decision_rows,
             "issues": issues,
         })
-        return snapshot, decision_rows, issues, audit
+        return snapshot, decision_rows, issues, audit, margin_book
     except Exception as exc:
         issues.append({"variety": "AI", "reason": f"本次研判不可用：{type(exc).__name__}"})
         audit["issues"] = issues
-        return None, [], issues, audit
+        return None, [], issues, audit, margin_book
 
 
 def public_snapshot(state_dir: Path, state: dict[str, Any], sources: list[dict[str, Any]], reason: str,
@@ -662,6 +675,7 @@ def public_snapshot(state_dir: Path, state: dict[str, Any], sources: list[dict[s
     curve = BASE.equity_curve(state_dir, state, now.date().isoformat())
     annual, sharpe = BASE.performance(curve)
     latest_by_variety = {row.get("variety"): row for row in decisions}
+    margin_book = BASE.read_json(state_dir / BASE.MARGIN_BOOK_FILE, {})
     positions = []
     for position in state.get("positions", {}).values():
         row = dict(position)
@@ -675,9 +689,10 @@ def public_snapshot(state_dir: Path, state: dict[str, Any], sources: list[dict[s
     events = BASE.load_events(state_dir, now.date().isoformat())
     drawdown = float(state["equity"]) / max(float(state["high_water_equity"]), 1) - 1
     backend = audit.get("decision_backend")
+    margins_ok = not positions or all(row.get("margin_source") and row.get("margin_as_of") for row in positions)
     batches_ok = not audit.get("decision_failed_batch_count")
     decisions_complete = len(decisions) == int(audit.get("evaluated_count", len(decisions)) or 0)
-    status = "ready" if backend and backend != "unavailable" and batches_ok and decisions_complete else "degraded"
+    status = "ready" if backend and backend != "unavailable" and margins_ok and batches_ok and decisions_complete else "degraded"
     summary = {
         "initial_capital": INITIAL_CAPITAL, "equity": state["equity"], "net_value": state["equity"] / INITIAL_CAPITAL,
         "cash": state["cash"], "available_cash": state["cash"] - state["used_margin"], "used_margin": state["used_margin"],
@@ -697,7 +712,14 @@ def public_snapshot(state_dir: Path, state: dict[str, Any], sources: list[dict[s
         "model": {"name": "纯AI决策", "version": MODEL_VERSION, "capital_policy": "独立100万元权益复利",
                   "execution": "AI按品种选择策略与整手数量，下一交易日开盘执行；无仓位与回撤上限"},
         "summary": summary, "equity_curve": curve, "positions": positions, "today_trades": events,
-        "pending_orders": pending, "skipped_signals": skipped, "scan_audit": audit, "latest_decisions": decisions,
+        "pending_orders": pending, "skipped_signals": skipped, "scan_audit": audit,
+        "margin_audit": {
+            key: value for key, value in margin_book.items() if key != "rates"
+        } | {
+            "contracts": list((margin_book.get("rates") or {}).values())
+            if isinstance(margin_book.get("rates"), dict) else []
+        },
+        "latest_decisions": decisions,
         "refresh_schedule": [
             {"label": "日盘开盘", "time": "09:00", "purpose": "核验开盘价并执行已确认AI订单"},
             {"label": "午盘开盘", "time": "13:30", "purpose": "补核成交与持仓盯市"},
@@ -713,7 +735,8 @@ def public_snapshot(state_dir: Path, state: dict[str, Any], sources: list[dict[s
                         "guaranteed": False, "current_drawdown": drawdown,
                         "note": "不设置仓位、回撤、品种数量或板块上限；AI自行给出有限整数手数，只追求收益率。可能亏损超过本金。"},
         "governance": {"virtual_only": True, "real_delivery_contracts_only": True, "next_open_execution": True,
-                       "model_can_trade": True, "risk_controller_can_override": False, "policy": POLICY},
+                       "model_can_trade": True, "risk_controller_can_override": False, "policy": POLICY,
+                       "margin_note": "真实PYYMM逐合约交易所投机保证金，多空取较高值；缺失时禁止新增风险，不含期货公司加收"},
         "ai_notice": "纯AI决策、策略选择、手数与文字解释由AI基于页面列明的技术指标、基本面材料、本地回测和虚拟账本生成，不代表任何来源方官方立场，不构成投资建议；无仓位与回撤上限可能导致亏损超过本金，请自行核验。",
     }
 
@@ -750,6 +773,10 @@ def main() -> int:
         should_scan = args.close_scan or automatic or catch_up
         stored_decisions = BASE.read_json(state_dir / "latest_decisions.json", {})
         decisions = stored_decisions.get("items", decisions) if isinstance(stored_decisions, dict) else decisions
+        margin_book = BASE.resolve_margin_book(
+            state_dir, BASE.margin_contracts(state), now, min(args.timeout, 30), force=False
+        )
+        state = BASE.update_ledger_margins(ledger, state_dir, margin_book)
         needed = [row["contract"] for row in state.get("positions", {}).values()]
         needed += [row["contract"] for row in state.get("pending_orders", []) if row.get("status") == "pending"]
         quotes, sources = BASE.resolve_quotes(needed, min(args.timeout, 30))
@@ -757,6 +784,8 @@ def main() -> int:
         pending = [row for row in state.get("pending_orders", []) if row.get("status") == "pending"]
         for order in pending:
             if order.get("execution_date") != today:
+                continue
+            if not str(order.get("action", "")).startswith("EXIT") and BASE.margin_rate(order["contract"], margin_book) is None:
                 continue
             quote = quotes.get(order["contract"])
             if quote and quote.get("open") and quote.get("trade_date") == today:
@@ -779,7 +808,10 @@ def main() -> int:
         # Mark and execute already-authorized orders before the close decision,
         # so the AI sees the current portfolio truth before choosing strategies.
         if should_scan:
-            snapshot, decisions, skipped, audit = scan_ai(live_data_root, state, args.timeout, now)
+            snapshot, decisions, skipped, audit, margin_book = scan_ai(
+                live_data_root, state_dir, state, args.timeout, now
+            )
+            state = BASE.update_ledger_margins(ledger, state_dir, margin_book)
             BASE.atomic_json(audit_path, audit)
             BASE.atomic_json(state_dir / "latest_decisions.json", {"items": decisions})
             if snapshot:
