@@ -13,10 +13,10 @@
     "pure-ai": {
       label: "纯AI决策", api: "/api/ai-daredevil/pure-ai", fallback: "data/ai_daredevil_pure_ai.json",
       kicker: "Source-grounded AI · Independent Fund",
-      lead: "独立100万元虚拟基金。AI自行汇总技术指标、公开研报与基本面证据，决定开仓、平仓或等待；外部风控以约10%最大回撤为目标约束组合。",
+      lead: "独立100万元虚拟基金。AI可为不同品种选择不同策略与有限整数手数，结合本地Python回测、技术指标、公开研报与基本面证据决定开平仓；不设置仓位、回撤、品种数量或板块上限，唯一目标是追求最高收益率。",
       auditTitle: "纯AI技术与基本面全量研判",
-      disciplines: [["证据约束", "只允许引用列明来源、时间和真实合约的数据"], ["独立研判", "AI自行选择指标权重并决定开仓、平仓或等待"], ["下一开盘", "收盘决定经校验后，仅在可核验的下一开盘执行"], ["回撤目标", "8%进入降风险区，目标约10%；跳空可能使实际回撤超出目标"]],
-      notice: "本模式的观点、开平仓决定与文字解释由 AI 基于页面列明的技术指标、基本面材料和虚拟账本生成，不代表任何来源方官方立场，也不构成投资建议。约10%回撤是风控目标而非保证，请自行核验。",
+      disciplines: [["逐品种选策略", "每个品种可使用不同的AI自主、公开研究或本地回测策略"], ["本地Python回测", "真实交割月、收盘确认、下一开盘并计入成本，按净收益排序"], ["下一开盘", "AI决定经合约与时序校验后，仅在可核验的下一开盘执行"], ["收益率优先", "不设仓位、回撤、品种数量和板块上限；AI自行给出有限整数手数"]],
+      notice: "本模式的策略选择、开平仓决定、手数与文字解释由 AI 基于页面列明的技术指标、基本面材料、本地回测和虚拟账本生成，不代表任何来源方官方立场，也不构成投资建议。无仓位与回撤上限可能导致负现金、权益归零或亏损超过本金，请自行核验。",
     },
   };
   const money = new Intl.NumberFormat("zh-CN", { style: "currency", currency: "CNY", maximumFractionDigits: 2 });
@@ -47,6 +47,24 @@
   }
   function actionLabel(value) {
     return ({ WAIT: "等待", ENTER_LONG: "开多", ENTER_SHORT: "开空", EXIT_LONG: "平多", EXIT_SHORT: "平空", ADD_LONG: "加多", ADD_SHORT: "加空", ROLL: "换月" })[value] || value || "待核验";
+  }
+  function strategyName(item) {
+    return item.strategy_name || (selected === "bollinger" ? "布林带 + RSI + MA6" : "AI策略待记录");
+  }
+  function strategyMeta(item) {
+    const summary = item.backtest_summary && typeof item.backtest_summary === "object" ? item.backtest_summary : null;
+    const parts = [item.strategy_source || item.strategy_type];
+    if (summary && summary.total_return != null) parts.push(`本地回测 ${percent(summary.total_return)}`);
+    if (summary && summary.sample_start && summary.sample_end) parts.push(`${summary.sample_start} 至 ${summary.sample_end}`);
+    return parts.filter(Boolean).join(" · ") || "策略来源待核验";
+  }
+  function strategyRules(item) {
+    const parts = [];
+    if (item.strategy_rationale) parts.push(`选择依据：${item.strategy_rationale}`);
+    if (item.strategy_entry_rule) parts.push(`开仓：${item.strategy_entry_rule}`);
+    if (item.strategy_exit_rule) parts.push(`平仓：${item.strategy_exit_rule}`);
+    if (item.quantity_reason) parts.push(`手数：${item.quantity_reason}`);
+    return parts.join("；") || "策略规则待核验";
   }
 
   async function fetchPayload(url) {
@@ -122,7 +140,7 @@
     el("position-count").textContent = `${positions.length} 个品种`; el("positions-empty").hidden = positions.length > 0;
     el("positions-body").innerHTML = positions.map((position) => {
       const pnl = formatPositionPnl(position.unrealized_pnl || 0);
-      return `<tr><td><strong>${escapeHtml(position.name || position.variety)}</strong><span>${escapeHtml(position.contract)}</span></td><td>${escapeHtml(position.entry_date || "--")}</td><td class="reason-cell">${escapeHtml(position.model_reason || "开仓依据待核验")}</td><td><em class="side-badge ${Number(position.side) === 1 ? "side-long" : "side-short"}">${Number(position.side) === 1 ? "多" : "空"}</em></td><td>${escapeHtml(position.quantity)} / ${escapeHtml(position.layers || 1)}</td><td>${number.format(position.average_price)}</td><td>${number.format(position.last_price)}</td><td>${money.format(position.notional || 0)}</td><td class="${pnl.className}">${escapeHtml(pnl.text)}</td><td>${percent(position.weight || 0)}</td><td><strong>${escapeHtml(position.price_source || "待核验")}</strong><span>${escapeHtml(formatTime(position.price_time))}</span></td><td class="instruction-cell">${escapeHtml(position.next_instruction || "等待下一次完整日线确认")}</td></tr>`;
+      return `<tr><td><strong>${escapeHtml(position.name || position.variety)}</strong><span>${escapeHtml(position.contract)}</span></td><td>${escapeHtml(position.entry_date || "--")}</td><td class="strategy-cell"><strong>${escapeHtml(strategyName(position))}</strong><span>${escapeHtml(strategyMeta(position))}</span><span>${escapeHtml(strategyRules(position))}</span></td><td class="reason-cell">${escapeHtml(position.model_reason || "开仓依据待核验")}</td><td><em class="side-badge ${Number(position.side) === 1 ? "side-long" : "side-short"}">${Number(position.side) === 1 ? "多" : "空"}</em></td><td>${escapeHtml(position.quantity)} / ${escapeHtml(position.layers || 1)}</td><td>${number.format(position.average_price)}</td><td>${number.format(position.last_price)}</td><td>${money.format(position.notional || 0)}</td><td class="${pnl.className}">${escapeHtml(pnl.text)}</td><td>${percent(position.weight || 0)}</td><td><strong>${escapeHtml(position.price_source || "待核验")}</strong><span>${escapeHtml(formatTime(position.price_time))}</span></td><td class="instruction-cell">${escapeHtml(position.next_instruction || "等待下一次完整日线确认")}</td></tr>`;
     }).join("");
   }
 
@@ -142,7 +160,7 @@
       const pnl = Number(item.pnl ?? item.realized_pnl ?? 0);
       const pnlClass = kind === "trade" ? (pnl > 0 ? "is-positive" : (pnl < 0 ? "is-negative" : "")) : "";
       const tail = kind === "trade" ? money.format(pnl) : (item.confidence != null ? `置信 ${percent(item.confidence)}` : `${item.quantity || 0} 手`);
-      return `<article class="activity-item"><span>${escapeHtml(item.time || item.execution_date || item.signal_date || "--")}</span><div><strong>${escapeHtml(item.name || item.variety || "--")} · ${escapeHtml(item.contract || action)}</strong><small>${escapeHtml(detail)}</small></div><b class="${pnlClass}">${escapeHtml(tail)}</b></article>`;
+      return `<article class="activity-item"><span>${escapeHtml(item.time || item.execution_date || item.signal_date || "--")}</span><div><strong>${escapeHtml(item.name || item.variety || "--")} · ${escapeHtml(item.contract || action)}</strong><small class="strategy-line">策略：${escapeHtml(strategyName(item))} · ${escapeHtml(strategyMeta(item))}</small><small>${escapeHtml(strategyRules(item))}</small><small>${escapeHtml(detail)}</small></div><b class="${pnlClass}">${escapeHtml(tail)}</b></article>`;
     }).join("");
   }
 

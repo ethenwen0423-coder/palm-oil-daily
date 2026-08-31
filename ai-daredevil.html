@@ -9,7 +9,7 @@
     <meta name="theme-color" content="#071712" />
     <link rel="icon" href="data:," />
     <link rel="stylesheet" href="assets/styles.css" />
-    <link rel="stylesheet" href="assets/ai-daredevil.css?v=20260831-2" />
+    <link rel="stylesheet" href="assets/ai-daredevil.css?v=20260831-3" />
   </head>
   <body class="daredevil-page">
     <header class="daredevil-topbar">
@@ -108,11 +108,11 @@
         </header>
         <div class="table-scroll">
           <table>
-            <thead><tr><th>品种 / 合约</th><th>开仓日期</th><th>开仓原因</th><th>方向</th><th>手数 / 层数</th><th>持仓均价</th><th>最新价</th><th>名义金额</th><th>浮动盈亏</th><th>组合权重</th><th>行情来源</th><th>下一步指令</th></tr></thead>
+            <thead><tr><th>品种 / 合约</th><th>开仓日期</th><th>使用策略</th><th>开仓原因</th><th>方向</th><th>手数 / 层数</th><th>持仓均价</th><th>最新价</th><th>名义金额</th><th>浮动盈亏</th><th>组合权重</th><th>行情来源</th><th>下一步指令</th></tr></thead>
             <tbody id="positions-body"></tbody>
           </table>
         </div>
-        <div id="positions-empty" class="panel-empty"><strong>当前空仓</strong><span>没有满足模型、执行窗口和组合约束的已成交仓位。</span></div>
+        <div id="positions-empty" class="panel-empty"><strong>当前空仓</strong><span>尚无经模型确认并在下一开盘成交的仓位。</span></div>
       </section>
 
       <section class="activity-grid">
@@ -129,7 +129,7 @@
         <article class="panel">
           <header class="panel-heading"><div><span>Skipped Signals</span><h2>未执行信号</h2></div><span id="skipped-count" class="panel-count">0 条</span></header>
           <div id="skipped-list" class="activity-list"></div>
-          <div id="skipped-empty" class="panel-empty compact"><strong>暂无未执行信号</strong><span>数据、评分和风控均未触发拒绝记录。</span></div>
+          <div id="skipped-empty" class="panel-empty compact"><strong>暂无未执行信号</strong><span>合约、执行时序和策略字段校验均未触发拒绝记录。</span></div>
         </article>
       </section>
 
@@ -145,6 +145,6 @@
       </section>
     </main>
 
-    <script src="assets/ai-daredevil.js?v=20260831-2"></script>
+    <script src="assets/ai-daredevil.js?v=20260831-3"></script>
   </body>
 </html>

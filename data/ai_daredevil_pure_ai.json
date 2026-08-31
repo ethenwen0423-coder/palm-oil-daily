@@ -1,37 +1,39 @@
 {
-  "ai_notice": "纯AI决策由AI基于页面列明的技术指标、基本面材料和虚拟账本生成，不代表任何来源方官方立场，不构成投资建议；请自行核验。",
+  "ai_notice": "纯AI决策、策略选择、手数与文字解释由AI基于页面列明的技术指标、基本面材料、本地回测和虚拟账本生成，不代表任何来源方官方立场，不构成投资建议；无仓位与回撤上限可能导致亏损超过本金，请自行核验。",
   "equity_curve": [
     {
       "daily_return": 0.0,
-      "date": "2026-08-28",
+      "date": "2026-08-31",
       "equity": 1000000.0,
       "net_value": 1.0
     }
   ],
-  "generated_at": "2026-08-28T19:00:00+08:00",
+  "generated_at": "2026-08-31T15:30:00+08:00",
   "governance": {
     "model_can_trade": true,
     "next_open_execution": true,
     "policy": {
-      "max_gross_multiple": 1.0,
-      "max_margin_fraction": 0.3,
-      "max_positions": 6,
-      "max_sector_fraction": 0.25,
-      "max_variety_fraction": 0.12
+      "enforce_caps": false,
+      "max_gross_multiple": null,
+      "max_margin_fraction": null,
+      "max_positions": null,
+      "max_sector_fraction": null,
+      "max_variety_fraction": null,
+      "position_sizing": "ai_requested_integer_quantity"
     },
     "real_delivery_contracts_only": true,
-    "risk_controller_can_override": true,
+    "risk_controller_can_override": false,
     "virtual_only": true
   },
   "latest_decisions": [],
   "market_date": null,
   "model": {
     "capital_policy": "独立100万元权益复利",
-    "execution": "AI收盘研判，外部风控校验，下一交易日开盘执行",
+    "execution": "AI按品种选择策略与整手数量，下一交易日开盘执行；无仓位与回撤上限",
     "name": "纯AI决策",
-    "version": "pure-ai-multifactor-real-contract-v1"
+    "version": "pure-ai-adaptive-strategy-unbounded-v2"
   },
-  "next_refresh": "2026-08-28T20:00:00+08:00",
+  "next_refresh": "2026-08-31T16:00:00+08:00",
   "pending_orders": [],
   "positions": [],
   "price_source": "尚无持仓，无需盯市",
@@ -54,20 +56,45 @@
     },
     {
       "label": "整点盯市",
-      "purpose": "更新真实合约价格、权益和风控状态",
+      "purpose": "更新真实合约价格、权益和敞口状态",
       "time": "每小时"
     }
   ],
   "risk_policy": {
     "current_drawdown": 0.0,
     "guaranteed": false,
-    "note": "目标约10%，8%暂停新增风险并退出持仓；隔夜跳空和流动性可能使实际回撤超过目标。",
-    "soft_drawdown": 0.08,
-    "target_drawdown": 0.1
+    "note": "不设置仓位、回撤、品种数量或板块上限；AI自行给出有限整数手数，只追求收益率。可能亏损超过本金。",
+    "soft_drawdown": null,
+    "target_drawdown": null
   },
-  "scan_audit": {},
-  "schema_version": 1,
-  "skipped_signals": [],
+  "scan_audit": {
+    "as_of": "2026-08-28",
+    "blocked_candidate_count": 0,
+    "candidate_count": 0,
+    "coverage_status": "complete",
+    "decision_backend": "unavailable",
+    "decision_summary": "AI后端尚未完成本次收盘研判",
+    "discovered_count": 40,
+    "evaluated_count": 40,
+    "generated_at": "2026-08-31T15:30:00+08:00",
+    "issues": [
+      {
+        "reason": "本次研判不可用：ModelBackendError",
+        "variety": "AI"
+      }
+    ],
+    "missing_varieties": [],
+    "order_count": 0,
+    "signal_candidates": [],
+    "universe_count": 40
+  },
+  "schema_version": 2,
+  "skipped_signals": [
+    {
+      "reason": "本次研判不可用：ModelBackendError",
+      "variety": "AI"
+    }
+  ],
   "sources": [
     {
       "name": "AKShare 真实交割月行情",
@@ -91,11 +118,17 @@
       "name": "公开研报与交易所品种基本面摘要",
       "note": "只把带来源和时间的已发布材料交给AI",
       "priority": "决策证据",
-      "state": "failed"
+      "state": "ready"
+    },
+    {
+      "name": "本地Python多策略回测",
+      "note": "逐品种比较趋势、动量、突破与均值回归；收盘确认、下一开盘、含成本",
+      "priority": "策略选择",
+      "state": "ready"
     },
     {
       "name": "unavailable",
-      "note": "结构化输出需通过合约、持仓、证据ID与风控校验",
+      "note": "AI可逐品种选择不同策略与有限整数手数；账本仅校验合约和执行时序",
       "priority": "决策引擎",
       "state": "failed"
     }

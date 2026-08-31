@@ -197,13 +197,24 @@ def _existing_exposure(state: dict[str, Any], key: str, value: str) -> float:
 
 
 def _size_signal(state: dict[str, Any], signal: dict[str, Any]) -> tuple[int, str]:
+    policy = state["policy"]
+    if policy.get("enforce_caps") is False:
+        _positive(signal, "reference_price")
+        _positive(signal, "multiplier")
+        _positive(signal, "margin_rate")
+        try:
+            quantity = int(signal["requested_quantity"])
+        except (KeyError, TypeError, ValueError) as exc:
+            raise LedgerError("requested_quantity must be a positive integer when caps are disabled") from exc
+        if quantity < 1:
+            raise LedgerError("requested_quantity must be a positive integer when caps are disabled")
+        return quantity, "AI自主决定整手数量；账本不施加仓位上限"
     price = _positive(signal, "reference_price")
     multiplier = _positive(signal, "multiplier")
     margin_rate = _positive(signal, "margin_rate")
     variety = str(signal["variety"]).upper()
     sector = str(signal.get("sector", "未分类"))
     equity = float(state["equity"])
-    policy = state["policy"]
     reserved_gross, reserved_margin, reserved_varieties, reserved_sectors = _reserved(state)
     gross_left = max(0.0, equity * policy["max_gross_multiple"] - state["gross_notional"] - reserved_gross)
     margin_left = max(0.0, equity * policy["max_margin_fraction"] - state["used_margin"] - reserved_margin)
@@ -338,7 +349,7 @@ def command_plan(args: argparse.Namespace) -> dict[str, Any]:
                     if position:
                         decisions.append({"signal": signal, "status": "skipped", "reason": "position already exists"})
                         continue
-                    if len(active_varieties) >= int(state["policy"]["max_positions"]):
+                    if state["policy"].get("enforce_caps") is not False and len(active_varieties) >= int(state["policy"]["max_positions"]):
                         decisions.append({"signal": signal, "status": "skipped", "reason": "maximum concurrent varieties reached"})
                         continue
                     if "score" not in signal:
@@ -374,6 +385,15 @@ def command_plan(args: argparse.Namespace) -> dict[str, Any]:
                 "fee_rate": signal.get("fee_rate", position.get("fee_rate") if position else None),
                 "score": signal.get("score"), "reason": signal.get("reason", "model signal"),
                 "source": snapshot.get("source"),
+                "strategy_name": signal.get("strategy_name"),
+                "strategy_type": signal.get("strategy_type"),
+                "strategy_source": signal.get("strategy_source"),
+                "strategy_rationale": signal.get("strategy_rationale"),
+                "strategy_entry_rule": signal.get("strategy_entry_rule"),
+                "strategy_exit_rule": signal.get("strategy_exit_rule"),
+                "backtest_summary": signal.get("backtest_summary"),
+                "requested_quantity": signal.get("requested_quantity"),
+                "quantity_reason": signal.get("quantity_reason"),
             }
             state["pending_orders"].append(order)
             existing_order_ids.add(proposed_order_id)
@@ -395,6 +415,8 @@ def _find_order(state: dict[str, Any], order_id: str) -> dict[str, Any]:
 
 
 def _assert_caps(state: dict[str, Any], variety: str) -> None:
+    if state["policy"].get("enforce_caps") is False:
+        return
     equity = float(state["equity"])
     policy = state["policy"]
     tolerance = 1e-7
@@ -454,6 +476,14 @@ def command_fill(args: argparse.Namespace) -> dict[str, Any]:
                 "entry_date": args.date, "entry_atr": order.get("atr14"), "layers": 1,
                 "layer_fills": [{"date": args.date, "price": args.price, "quantity": quantity, "fee": fee}],
                 "model_reason": order.get("reason"),
+                "strategy_name": order.get("strategy_name"),
+                "strategy_type": order.get("strategy_type"),
+                "strategy_source": order.get("strategy_source"),
+                "strategy_rationale": order.get("strategy_rationale"),
+                "strategy_entry_rule": order.get("strategy_entry_rule"),
+                "strategy_exit_rule": order.get("strategy_exit_rule"),
+                "backtest_summary": order.get("backtest_summary"),
+                "quantity_reason": order.get("quantity_reason"),
             }
         else:
             if not position or int(position["side"]) != int(order["side"]):
@@ -481,7 +511,17 @@ def command_fill(args: argparse.Namespace) -> dict[str, Any]:
             "action": action, "side": order["side"], "quantity": quantity,
             "price": args.price, "multiplier": multiplier, "notional": notional,
             "fee": fee, "realized_pnl": realized, "virtual": True,
+            "strategy_name": order.get("strategy_name"),
+            "strategy_type": order.get("strategy_type"),
+            "strategy_source": order.get("strategy_source"),
+            "strategy_rationale": order.get("strategy_rationale"),
+            "strategy_entry_rule": order.get("strategy_entry_rule"),
+            "strategy_exit_rule": order.get("strategy_exit_rule"),
+            "backtest_summary": order.get("backtest_summary"),
+            "quantity_reason": order.get("quantity_reason"),
         }
+        if action in EXIT_ACTIONS and position:
+            event["entry_strategy_name"] = position.get("strategy_name")
         _append_jsonl(args.state_dir / "trade_ledger.jsonl", event)
     return {"fill": event, "state": state}
 
