@@ -1,6 +1,6 @@
 {
   "schema_version": 3,
-  "generated_at": "2026-08-03T06:23:29+08:00",
+  "generated_at": "2026-08-31T09:45:29+08:00",
   "timezone": "Asia/Shanghai",
   "display_months": 24,
   "countries": {
@@ -8,7 +8,7 @@
       "name": "马来西亚",
       "status": "ok",
       "status_message": "官方月度数据已更新。",
-      "latest_period": "2026-06",
+      "latest_period": "2026-07",
       "source": {
         "name": "Malaysian Palm Oil Board (MPOB)",
         "url": "https://bepi.mpob.gov.my/"
@@ -166,8 +166,14 @@
             },
             {
               "period": "2026-06",
-              "value": 1638777,
+              "value": 1638796,
               "published_at": "2026-07-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202644"
+            },
+            {
+              "period": "2026-07",
+              "value": 1792979,
+              "published_at": "2026-08-10",
               "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202644"
             }
           ]
@@ -186,73 +192,73 @@
             },
             {
               "period": "2024-07",
-              "value": 1698536,
+              "value": 1696239,
               "published_at": "2024-08-10",
               "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202434"
             },
             {
               "period": "2024-08",
-              "value": 1532905,
+              "value": 1535194,
               "published_at": "2024-09-10",
               "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202434"
             },
             {
               "period": "2024-09",
-              "value": 1559868,
+              "value": 1559639,
               "published_at": "2024-10-10",
               "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202434"
             },
             {
               "period": "2024-10",
-              "value": 1744265,
+              "value": 1744333,
               "published_at": "2024-11-10",
               "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202434"
             },
             {
               "period": "2024-11",
-              "value": 1490043,
+              "value": 1490357,
               "published_at": "2024-12-10",
               "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202434"
             },
             {
               "period": "2024-12",
-              "value": 1341936,
+              "value": 1341784,
               "published_at": "2025-01-10",
               "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202434"
             },
             {
               "period": "2025-01",
-              "value": 1179874,
+              "value": 1179907,
               "published_at": "2025-02-10",
               "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202534"
             },
             {
               "period": "2025-02",
-              "value": 996463,
+              "value": 996472,
               "published_at": "2025-03-10",
               "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202534"
             },
             {
               "period": "2025-03",
-              "value": 1005664,
+              "value": 1005641,
               "published_at": "2025-04-10",
               "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202534"
             },
             {
               "period": "2025-04",
-              "value": 1104359,
+              "value": 1104384,
               "published_at": "2025-05-10",
               "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202534"
             },
             {
               "period": "2025-05",
-              "value": 1407603,
+              "value": 1407595,
               "published_at": "2025-06-10",
               "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202534"
             },
             {
               "period": "2025-06",
-              "value": 1260957,
+              "value": 1260973,
               "published_at": "2025-07-10",
               "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202534"
             },
@@ -276,19 +282,19 @@
             },
             {
               "period": "2025-10",
-              "value": 1687495,
+              "value": 1696495,
               "published_at": "2025-11-10",
               "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202534"
             },
             {
               "period": "2025-11",
-              "value": 1213150,
+              "value": 1204150,
               "published_at": "2025-12-10",
               "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202534"
             },
             {
               "period": "2025-12",
-              "value": 1331894,
+              "value": 1331850,
               "published_at": "2026-01-10",
               "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202534"
             },
@@ -324,8 +330,14 @@
             },
             {
               "period": "2026-06",
-              "value": 1198567,
+              "value": 1215850,
               "published_at": "2026-07-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202634"
+            },
+            {
+              "period": "2026-07",
+              "value": 1392178,
+              "published_at": "2026-08-10",
               "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202634"
             }
           ]
@@ -476,14 +488,20 @@
             },
             {
               "period": "2026-05",
-              "value": 2427943,
+              "value": 2427972,
               "published_at": "2026-06-10",
               "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202611"
             },
             {
               "period": "2026-06",
-              "value": 2544066,
+              "value": 2543830,
               "published_at": "2026-07-10",
+              "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202611"
+            },
+            {
+              "period": "2026-07",
+              "value": 2628326,
+              "published_at": "2026-08-10",
               "source_url": "https://bepi.mpob.gov.my/stat/web_report1.php?val=202611"
             }
           ]
@@ -494,7 +512,7 @@
       "name": "印度尼西亚",
       "status": "partial",
       "status_message": "部分历史月份缺少可比的官方原始口径，图中保留断点；需进一步核验。",
-      "latest_period": "2026-05",
+      "latest_period": "2026-06",
       "source": {
         "name": "Gabungan Pengusaha Kelapa Sawit Indonesia (GAPKI)",
         "url": "https://gapki.id/"
@@ -625,6 +643,12 @@
               "value": 4165000,
               "published_at": "2026-07-15",
               "source_url": "https://gapki.id/news/2026/07/15/ekspor-sawit-turun-28-stok-cpo-nasional-capai-304-juta-ton/"
+            },
+            {
+              "period": "2026-06",
+              "value": 4823000,
+              "published_at": "2026-08-26",
+              "source_url": "https://gapki.id/news/2026/08/26/ekspor-sawit-indonesia-melonjak-64-pada-juni-2026-produksi-dan-konsumsi-ikut-naik/"
             }
           ]
         },
@@ -759,6 +783,12 @@
               "value": 1996000,
               "published_at": "2026-07-15",
               "source_url": "https://gapki.id/news/2026/07/15/ekspor-sawit-turun-28-stok-cpo-nasional-capai-304-juta-ton/"
+            },
+            {
+              "period": "2026-06",
+              "value": 3275000,
+              "published_at": "2026-08-26",
+              "source_url": "https://gapki.id/news/2026/08/26/ekspor-sawit-indonesia-melonjak-64-pada-juni-2026-produksi-dan-konsumsi-ikut-naik/"
             }
           ]
         },
@@ -893,6 +923,12 @@
               "value": 3042000,
               "published_at": "2026-07-15",
               "source_url": "https://gapki.id/news/2026/07/15/ekspor-sawit-turun-28-stok-cpo-nasional-capai-304-juta-ton/"
+            },
+            {
+              "period": "2026-06",
+              "value": 2844000,
+              "published_at": "2026-08-26",
+              "source_url": "https://gapki.id/news/2026/08/26/ekspor-sawit-indonesia-melonjak-64-pada-juni-2026-produksi-dan-konsumsi-ikut-naik/"
             }
           ]
         }
@@ -902,7 +938,7 @@
   "supplemental": {
     "status": "ok",
     "status_message": "USDA PSD年度供需数据已更新。",
-    "release_period": "2026-07",
+    "release_period": "2026-08",
     "frequency": "market_year",
     "unit": "tonnes",
     "display_unit": "万吨",
@@ -917,7 +953,7 @@
       "series": [
         {
           "market_year": "2015/16",
-          "release_period": "2026-07",
+          "release_period": "2026-08",
           "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
           "production": 58751000,
           "domestic_consumption": 59272000,
@@ -925,7 +961,7 @@
         },
         {
           "market_year": "2016/17",
-          "release_period": "2026-07",
+          "release_period": "2026-08",
           "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
           "production": 65566000,
           "domestic_consumption": 60714000,
@@ -933,7 +969,7 @@
         },
         {
           "market_year": "2017/18",
-          "release_period": "2026-07",
+          "release_period": "2026-08",
           "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
           "production": 70589000,
           "domestic_consumption": 65572000,
@@ -941,7 +977,7 @@
         },
         {
           "market_year": "2018/19",
-          "release_period": "2026-07",
+          "release_period": "2026-08",
           "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
           "production": 74159000,
           "domestic_consumption": 70988000,
@@ -949,7 +985,7 @@
         },
         {
           "market_year": "2019/20",
-          "release_period": "2026-07",
+          "release_period": "2026-08",
           "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
           "production": 73367000,
           "domestic_consumption": 71081000,
@@ -957,51 +993,51 @@
         },
         {
           "market_year": "2020/21",
-          "release_period": "2026-07",
+          "release_period": "2026-08",
           "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
-          "production": 73665000,
-          "domestic_consumption": 72630000,
-          "ending_stocks": 15155000
+          "production": 73658000,
+          "domestic_consumption": 72617000,
+          "ending_stocks": 15161000
         },
         {
           "market_year": "2021/22",
-          "release_period": "2026-07",
+          "release_period": "2026-08",
           "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
-          "production": 73320000,
-          "domestic_consumption": 69703000,
-          "ending_stocks": 16805000
+          "production": 73322000,
+          "domestic_consumption": 69708000,
+          "ending_stocks": 16808000
         },
         {
           "market_year": "2022/23",
-          "release_period": "2026-07",
+          "release_period": "2026-08",
           "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
-          "production": 76758000,
-          "domestic_consumption": 73843000,
-          "ending_stocks": 16994000
+          "production": 76781000,
+          "domestic_consumption": 73873000,
+          "ending_stocks": 16990000
         },
         {
           "market_year": "2023/24",
-          "release_period": "2026-07",
+          "release_period": "2026-08",
           "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
-          "production": 76175000,
-          "domestic_consumption": 75104000,
-          "ending_stocks": 16014000
+          "production": 76204000,
+          "domestic_consumption": 75179000,
+          "ending_stocks": 15964000
         },
         {
           "market_year": "2024/25",
-          "release_period": "2026-07",
+          "release_period": "2026-08",
           "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
-          "production": 78938000,
-          "domestic_consumption": 76242000,
-          "ending_stocks": 15051000
+          "production": 78944000,
+          "domestic_consumption": 76237000,
+          "ending_stocks": 15016000
         },
         {
           "market_year": "2025/26",
-          "release_period": "2026-07",
+          "release_period": "2026-08",
           "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
           "production": 81461000,
-          "domestic_consumption": 78473000,
-          "ending_stocks": 15551000
+          "domestic_consumption": 77855000,
+          "ending_stocks": 15382000
         }
       ]
     },
@@ -1095,11 +1131,11 @@
             },
             {
               "market_year": "2025/26",
-              "release_period": "2026-06",
+              "release_period": "2026-08",
               "source_url": "https://apps.fas.usda.gov/psdonline/downloads/psd_oilseeds_csv.zip",
-              "domestic_consumption": 9105000,
+              "domestic_consumption": 8605000,
               "ending_stocks": 2098000,
-              "imports": 9050000
+              "imports": 8550000
             }
           ]
         },
@@ -1275,19 +1311,19 @@
             },
             {
               "market_year": "2024/25",
-              "release_period": "2026-04",
+              "release_period": "2026-08",
               "source_url": "https://apps.fas.usda.gov/psdonline/downloads/psd_oilseeds_csv.zip",
               "domestic_consumption": 3200000,
-              "ending_stocks": 373000,
-              "imports": 3135000
+              "ending_stocks": 378000,
+              "imports": 3140000
             },
             {
               "market_year": "2025/26",
-              "release_period": "2026-04",
+              "release_period": "2026-08",
               "source_url": "https://apps.fas.usda.gov/psdonline/downloads/psd_oilseeds_csv.zip",
-              "domestic_consumption": 3350000,
-              "ending_stocks": 403000,
-              "imports": 3500000
+              "domestic_consumption": 3150000,
+              "ending_stocks": 408000,
+              "imports": 3300000
             }
           ]
         },
@@ -1377,11 +1413,11 @@
             },
             {
               "market_year": "2025/26",
-              "release_period": "2026-04",
+              "release_period": "2026-08",
               "source_url": "https://apps.fas.usda.gov/psdonline/downloads/psd_oilseeds_csv.zip",
-              "domestic_consumption": 3600000,
+              "domestic_consumption": 3450000,
               "ending_stocks": 281000,
-              "imports": 3650000
+              "imports": 3500000
             }
           ]
         }
@@ -1397,7 +1433,7 @@
           "series": [
             {
               "market_year": "2015/16",
-              "release_period": "2026-07",
+              "release_period": "2026-08",
               "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
               "production": 58751000,
               "domestic_consumption": 59272000,
@@ -1405,7 +1441,7 @@
             },
             {
               "market_year": "2016/17",
-              "release_period": "2026-07",
+              "release_period": "2026-08",
               "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
               "production": 65566000,
               "domestic_consumption": 60714000,
@@ -1413,7 +1449,7 @@
             },
             {
               "market_year": "2017/18",
-              "release_period": "2026-07",
+              "release_period": "2026-08",
               "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
               "production": 70589000,
               "domestic_consumption": 65572000,
@@ -1421,7 +1457,7 @@
             },
             {
               "market_year": "2018/19",
-              "release_period": "2026-07",
+              "release_period": "2026-08",
               "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
               "production": 74159000,
               "domestic_consumption": 70988000,
@@ -1429,7 +1465,7 @@
             },
             {
               "market_year": "2019/20",
-              "release_period": "2026-07",
+              "release_period": "2026-08",
               "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
               "production": 73367000,
               "domestic_consumption": 71081000,
@@ -1437,51 +1473,51 @@
             },
             {
               "market_year": "2020/21",
-              "release_period": "2026-07",
+              "release_period": "2026-08",
               "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
-              "production": 73665000,
-              "domestic_consumption": 72630000,
-              "ending_stocks": 15155000
+              "production": 73658000,
+              "domestic_consumption": 72617000,
+              "ending_stocks": 15161000
             },
             {
               "market_year": "2021/22",
-              "release_period": "2026-07",
+              "release_period": "2026-08",
               "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
-              "production": 73320000,
-              "domestic_consumption": 69703000,
-              "ending_stocks": 16805000
+              "production": 73322000,
+              "domestic_consumption": 69708000,
+              "ending_stocks": 16808000
             },
             {
               "market_year": "2022/23",
-              "release_period": "2026-07",
+              "release_period": "2026-08",
               "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
-              "production": 76758000,
-              "domestic_consumption": 73843000,
-              "ending_stocks": 16994000
+              "production": 76781000,
+              "domestic_consumption": 73873000,
+              "ending_stocks": 16990000
             },
             {
               "market_year": "2023/24",
-              "release_period": "2026-07",
+              "release_period": "2026-08",
               "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
-              "production": 76175000,
-              "domestic_consumption": 75104000,
-              "ending_stocks": 16014000
+              "production": 76204000,
+              "domestic_consumption": 75179000,
+              "ending_stocks": 15964000
             },
             {
               "market_year": "2024/25",
-              "release_period": "2026-07",
+              "release_period": "2026-08",
               "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
-              "production": 78938000,
-              "domestic_consumption": 76242000,
-              "ending_stocks": 15051000
+              "production": 78944000,
+              "domestic_consumption": 76237000,
+              "ending_stocks": 15016000
             },
             {
               "market_year": "2025/26",
-              "release_period": "2026-07",
+              "release_period": "2026-08",
               "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
               "production": 81461000,
-              "domestic_consumption": 78473000,
-              "ending_stocks": 15551000
+              "domestic_consumption": 77855000,
+              "ending_stocks": 15382000
             }
           ]
         },
@@ -1491,7 +1527,7 @@
           "series": [
             {
               "market_year": "2015/16",
-              "release_period": "2026-07",
+              "release_period": "2026-08",
               "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
               "production": 51662000,
               "domestic_consumption": 52087000,
@@ -1499,7 +1535,7 @@
             },
             {
               "market_year": "2016/17",
-              "release_period": "2026-07",
+              "release_period": "2026-08",
               "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
               "production": 53953000,
               "domestic_consumption": 53576000,
@@ -1507,7 +1543,7 @@
             },
             {
               "market_year": "2017/18",
-              "release_period": "2026-07",
+              "release_period": "2026-08",
               "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
               "production": 55311000,
               "domestic_consumption": 54442000,
@@ -1515,7 +1551,7 @@
             },
             {
               "market_year": "2018/19",
-              "release_period": "2026-07",
+              "release_period": "2026-08",
               "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
               "production": 56477000,
               "domestic_consumption": 55649000,
@@ -1523,7 +1559,7 @@
             },
             {
               "market_year": "2019/20",
-              "release_period": "2026-07",
+              "release_period": "2026-08",
               "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
               "production": 58911000,
               "domestic_consumption": 57303000,
@@ -1531,7 +1567,7 @@
             },
             {
               "market_year": "2020/21",
-              "release_period": "2026-07",
+              "release_period": "2026-08",
               "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
               "production": 60061000,
               "domestic_consumption": 58937000,
@@ -1539,7 +1575,7 @@
             },
             {
               "market_year": "2021/22",
-              "release_period": "2026-07",
+              "release_period": "2026-08",
               "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
               "production": 60006000,
               "domestic_consumption": 59727000,
@@ -1547,35 +1583,35 @@
             },
             {
               "market_year": "2022/23",
-              "release_period": "2026-07",
+              "release_period": "2026-08",
               "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
               "production": 60725000,
-              "domestic_consumption": 59415000,
-              "ending_stocks": 5849000
+              "domestic_consumption": 59395000,
+              "ending_stocks": 5869000
             },
             {
               "market_year": "2023/24",
-              "release_period": "2026-07",
+              "release_period": "2026-08",
               "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
               "production": 64009000,
-              "domestic_consumption": 62896000,
-              "ending_stocks": 5683000
+              "domestic_consumption": 62886000,
+              "ending_stocks": 5713000
             },
             {
               "market_year": "2024/25",
-              "release_period": "2026-07",
+              "release_period": "2026-08",
               "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
-              "production": 70060000,
-              "domestic_consumption": 68324000,
-              "ending_stocks": 6470000
+              "production": 70065000,
+              "domestic_consumption": 68289000,
+              "ending_stocks": 6436000
             },
             {
               "market_year": "2025/26",
-              "release_period": "2026-07",
+              "release_period": "2026-08",
               "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
-              "production": 72358000,
-              "domestic_consumption": 71168000,
-              "ending_stocks": 6319000
+              "production": 72662000,
+              "domestic_consumption": 71363000,
+              "ending_stocks": 6444000
             }
           ]
         },
@@ -1585,7 +1621,7 @@
           "series": [
             {
               "market_year": "2015/16",
-              "release_period": "2026-07",
+              "release_period": "2026-08",
               "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
               "production": 27562000,
               "domestic_consumption": 28479000,
@@ -1593,7 +1629,7 @@
             },
             {
               "market_year": "2016/17",
-              "release_period": "2026-07",
+              "release_period": "2026-08",
               "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
               "production": 27805000,
               "domestic_consumption": 29141000,
@@ -1601,7 +1637,7 @@
             },
             {
               "market_year": "2017/18",
-              "release_period": "2026-07",
+              "release_period": "2026-08",
               "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
               "production": 28321000,
               "domestic_consumption": 29169000,
@@ -1609,7 +1645,7 @@
             },
             {
               "market_year": "2018/19",
-              "release_period": "2026-07",
+              "release_period": "2026-08",
               "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
               "production": 28042000,
               "domestic_consumption": 28386000,
@@ -1617,7 +1653,7 @@
             },
             {
               "market_year": "2019/20",
-              "release_period": "2026-07",
+              "release_period": "2026-08",
               "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
               "production": 28421000,
               "domestic_consumption": 28331000,
@@ -1625,7 +1661,7 @@
             },
             {
               "market_year": "2020/21",
-              "release_period": "2026-07",
+              "release_period": "2026-08",
               "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
               "production": 29438000,
               "domestic_consumption": 28594000,
@@ -1633,7 +1669,7 @@
             },
             {
               "market_year": "2021/22",
-              "release_period": "2026-07",
+              "release_period": "2026-08",
               "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
               "production": 29145000,
               "domestic_consumption": 30162000,
@@ -1641,7 +1677,7 @@
             },
             {
               "market_year": "2022/23",
-              "release_period": "2026-07",
+              "release_period": "2026-08",
               "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
               "production": 33247000,
               "domestic_consumption": 32714000,
@@ -1649,7 +1685,7 @@
             },
             {
               "market_year": "2023/24",
-              "release_period": "2026-07",
+              "release_period": "2026-08",
               "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
               "production": 34386000,
               "domestic_consumption": 34348000,
@@ -1657,19 +1693,19 @@
             },
             {
               "market_year": "2024/25",
-              "release_period": "2026-07",
+              "release_period": "2026-08",
               "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
               "production": 34281000,
-              "domestic_consumption": 34380000,
+              "domestic_consumption": 34399000,
               "ending_stocks": 3296000
             },
             {
               "market_year": "2025/26",
-              "release_period": "2026-07",
+              "release_period": "2026-08",
               "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
-              "production": 36268000,
-              "domestic_consumption": 35881000,
-              "ending_stocks": 3501000
+              "production": 36344000,
+              "domestic_consumption": 36049000,
+              "ending_stocks": 3531000
             }
           ]
         },
@@ -1679,7 +1715,7 @@
           "series": [
             {
               "market_year": "2015/16",
-              "release_period": "2026-07",
+              "release_period": "2026-08",
               "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
               "production": 15404000,
               "domestic_consumption": 15073000,
@@ -1687,7 +1723,7 @@
             },
             {
               "market_year": "2016/17",
-              "release_period": "2026-07",
+              "release_period": "2026-08",
               "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
               "production": 18298000,
               "domestic_consumption": 16366000,
@@ -1695,7 +1731,7 @@
             },
             {
               "market_year": "2017/18",
-              "release_period": "2026-07",
+              "release_period": "2026-08",
               "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
               "production": 18568000,
               "domestic_consumption": 17403000,
@@ -1703,7 +1739,7 @@
             },
             {
               "market_year": "2018/19",
-              "release_period": "2026-07",
+              "release_period": "2026-08",
               "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
               "production": 19618000,
               "domestic_consumption": 18020000,
@@ -1711,7 +1747,7 @@
             },
             {
               "market_year": "2019/20",
-              "release_period": "2026-07",
+              "release_period": "2026-08",
               "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
               "production": 21205000,
               "domestic_consumption": 18912000,
@@ -1719,7 +1755,7 @@
             },
             {
               "market_year": "2020/21",
-              "release_period": "2026-07",
+              "release_period": "2026-08",
               "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
               "production": 19005000,
               "domestic_consumption": 18259000,
@@ -1727,7 +1763,7 @@
             },
             {
               "market_year": "2021/22",
-              "release_period": "2026-07",
+              "release_period": "2026-08",
               "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
               "production": 19679000,
               "domestic_consumption": 17524000,
@@ -1735,7 +1771,7 @@
             },
             {
               "market_year": "2022/23",
-              "release_period": "2026-07",
+              "release_period": "2026-08",
               "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
               "production": 21712000,
               "domestic_consumption": 19550000,
@@ -1743,7 +1779,7 @@
             },
             {
               "market_year": "2023/24",
-              "release_period": "2026-07",
+              "release_period": "2026-08",
               "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
               "production": 22119000,
               "domestic_consumption": 21068000,
@@ -1751,28 +1787,28 @@
             },
             {
               "market_year": "2024/25",
-              "release_period": "2026-07",
+              "release_period": "2026-08",
               "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
-              "production": 20410000,
+              "production": 20414000,
               "domestic_consumption": 19102000,
-              "ending_stocks": 2546000
+              "ending_stocks": 2549000
             },
             {
               "market_year": "2025/26",
-              "release_period": "2026-07",
+              "release_period": "2026-08",
               "source_url": "https://apps.fas.usda.gov/psdonline/app/index.html",
-              "production": 21123000,
-              "domestic_consumption": 19324000,
-              "ending_stocks": 2417000
+              "production": 21016000,
+              "domestic_consumption": 19481000,
+              "ending_stocks": 2488000
             }
           ]
         }
       ]
     }
   },
-  "checked_at": "2026-08-03T06:23:29+08:00",
-  "checked_for_report_date": "2026-08-03",
-  "data_updated_at": "2026-08-02T22:24:18+08:00",
-  "update_status": "no_change",
-  "update_message": "今日已检查官方来源，官网暂未更新数据，继续展示最近一期官方值。"
+  "checked_at": "2026-08-31T09:45:29+08:00",
+  "checked_for_report_date": "2026-08-31",
+  "data_updated_at": "2026-08-31T09:45:29+08:00",
+  "update_status": "updated",
+  "update_message": "今日检查发现官方新数据或历史修订，页面数据已完成更新。"
 }
