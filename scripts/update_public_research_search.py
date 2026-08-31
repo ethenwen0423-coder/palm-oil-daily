@@ -63,6 +63,12 @@ def main() -> int:
         atomic_write(args.output, request_body(args.query, api_key, args.timeout))
         print(f"raw_response={args.output}")
         return 0
+    except urllib.error.HTTPError as exc:
+        body = exc.read()
+        atomic_write(args.output, body)
+        message = body.decode("utf-8", "replace").strip().replace("\n", " ")[:240]
+        print(f"report-search request failed: HTTP {exc.code}: {message}")
+        return 3
     except (OSError, urllib.error.URLError) as exc:
         print(f"report-search request failed: {str(exc)[:240]}")
         return 2

@@ -6,7 +6,7 @@
   "last_scanned_at": "2026-08-31T09:59:05+08:00",
   "fresh_item_count": 6,
   "stale_reason": null,
-  "refresh_policy": "每5分钟独立扫描机构研报与公开研报；按质量重新择优",
+  "refresh_policy": "机构研报每5分钟扫描；公开搜索每日07/10/14/18时段各刷新一次；按质量重新择优",
   "candidate_count": 27,
   "candidate_source_counts": {
     "institution-report-skill": 0,

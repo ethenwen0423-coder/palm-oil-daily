@@ -18,6 +18,45 @@ from zoneinfo import ZoneInfo
 
 DEFAULT_SITE_ROOT = Path("/srv/palm-oil-daily/site")
 DEFAULT_LIVE_DATA_ROOT = Path("/srv/palm-oil-daily/live-data")
+SUPPLEMENTAL_REFRESH_HOURS = (7, 10, 14, 18)
+
+
+def supplemental_refresh_slot(now: datetime) -> str | None:
+    """Limit each paid public-search source to four two-query batches per day."""
+    local = now.astimezone(ZoneInfo("Asia/Shanghai"))
+    eligible = [hour for hour in SUPPLEMENTAL_REFRESH_HOURS if local.hour >= hour]
+    if not eligible:
+        return None
+    return f"{local.date().isoformat()}T{max(eligible):02d}"
+
+
+def load_previous_source_status(path: Path) -> dict[str, object]:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    value = payload.get("source_status", {}) if isinstance(payload, dict) else {}
+    return value if isinstance(value, dict) else {}
+
+
+def retained_source_status(previous: dict[str, object], configured: bool, slot: str | None) -> dict[str, object]:
+    if not configured:
+        return {"configured": False, "status": "not_configured"}
+    result: dict[str, object] = {
+        "configured": True,
+        "status": "scheduled" if slot is None else "cached",
+    }
+    for key in ("attempt_slot", "last_attempt_at"):
+        value = previous.get(key)
+        if value:
+            result[key] = value
+    return result
+
+
+def failure_status(output: str) -> str:
+    normalized = output.lower()
+    quota_markers = ("次数已用完", "调用次数已达到上限", "额度", "quota", "rate limit")
+    return "quota_exhausted" if any(marker in normalized for marker in quota_markers) else "request_failed"
 
 
 def load_sync(site_root: Path):
@@ -85,13 +124,34 @@ def main() -> int:
                     output.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
             public_search_inputs = []
             public_search_count = 0
+            scan_now = datetime.now(ZoneInfo("Asia/Shanghai"))
+            refresh_slot = supplemental_refresh_slot(scan_now)
+            previous_status = load_previous_source_status(live_data_root / "research_watch.json")
+            iwencai_configured = bool(os.environ.get("IWENCAI_API_KEY", "").strip())
+            mx_configured = bool(os.environ.get("MX_APIKEY", "").strip())
             source_status = {
                 "institution-report-skill": {"configured": True, "status": "ready" if htfc_fresh else "unavailable"},
-                "report-search": {"configured": bool(os.environ.get("IWENCAI_API_KEY", "").strip()), "status": "not_configured"},
-                "mx-search": {"configured": bool(os.environ.get("MX_APIKEY", "").strip()), "status": "not_configured"},
+                "report-search": retained_source_status(
+                    previous_status.get("report-search", {}) if isinstance(previous_status.get("report-search"), dict) else {},
+                    iwencai_configured,
+                    refresh_slot,
+                ),
+                "mx-search": retained_source_status(
+                    previous_status.get("mx-search", {}) if isinstance(previous_status.get("mx-search"), dict) else {},
+                    mx_configured,
+                    refresh_slot,
+                ),
             }
-            if os.environ.get("IWENCAI_API_KEY", "").strip():
-                source_status["report-search"]["status"] = "request_failed"
+            previous_iwencai = previous_status.get("report-search", {}) if isinstance(previous_status.get("report-search"), dict) else {}
+            attempt_iwencai = iwencai_configured and refresh_slot is not None and previous_iwencai.get("attempt_slot") != refresh_slot
+            if attempt_iwencai:
+                source_status["report-search"] = {
+                    "configured": True,
+                    "status": "request_failed",
+                    "attempt_slot": refresh_slot,
+                    "last_attempt_at": scan_now.isoformat(timespec="seconds"),
+                }
+                public_failures: list[str] = []
                 for name, query in (
                     ("oil", "棕榈油 豆油 菜油 油脂油料 研报"),
                     ("cross", "原油 宏观 农产品 研报"),
@@ -118,17 +178,30 @@ def main() -> int:
                             check=False,
                         )
                     except subprocess.TimeoutExpired:
+                        public_failures.append("request_failed")
                         continue
                     if public_result.returncode == 0 and public_output.is_file():
                         public_search_inputs.extend(["--public-search", str(public_output)])
                         public_search_count += 1
+                    else:
+                        public_failures.append(failure_status(public_result.stdout or ""))
                 if public_search_count:
                     source_status["report-search"]["status"] = "ready"
+                elif "quota_exhausted" in public_failures:
+                    source_status["report-search"]["status"] = "quota_exhausted"
             mx_search_inputs = []
             mx_search_count = 0
-            if os.environ.get("MX_APIKEY", "").strip():
-                source_status["mx-search"]["status"] = "request_failed"
-                today = datetime.now(ZoneInfo("Asia/Shanghai")).date()
+            previous_mx = previous_status.get("mx-search", {}) if isinstance(previous_status.get("mx-search"), dict) else {}
+            attempt_mx = mx_configured and refresh_slot is not None and previous_mx.get("attempt_slot") != refresh_slot
+            if attempt_mx:
+                source_status["mx-search"] = {
+                    "configured": True,
+                    "status": "request_failed",
+                    "attempt_slot": refresh_slot,
+                    "last_attempt_at": scan_now.isoformat(timespec="seconds"),
+                }
+                mx_failures: list[str] = []
+                today = scan_now.date()
                 yesterday = today - timedelta(days=1)
                 date_window = (
                     f"{yesterday.year}年{yesterday.month}月{yesterday.day}日"
@@ -160,12 +233,17 @@ def main() -> int:
                             check=False,
                         )
                     except subprocess.TimeoutExpired:
+                        mx_failures.append("request_failed")
                         continue
                     if mx_result.returncode == 0 and mx_output.is_file():
                         mx_search_inputs.extend(["--mx-search", str(mx_output)])
                         mx_search_count += 1
+                    else:
+                        mx_failures.append(failure_status(mx_result.stdout or ""))
                 if mx_search_count:
                     source_status["mx-search"]["status"] = "ready"
+                elif "quota_exhausted" in mx_failures:
+                    source_status["mx-search"]["status"] = "quota_exhausted"
             source_status_output = output_root / "research_source_status.json"
             source_status_output.write_text(json.dumps(source_status, ensure_ascii=False), encoding="utf-8")
             research_output = output_root / "research_watch.json"

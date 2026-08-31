@@ -421,6 +421,26 @@ def build(
             (published_date({"publish_date": item.get("published_at")}) for item in items),
             default=None,
         )
+        previous_date = published_date({"publish_date": previous.get("report_date")}) if previous else None
+        supplemental_candidates = candidate_source_counts["report-search"] + candidate_source_counts["mx-search"]
+        if (
+            previous.get("items")
+            and int(previous.get("schema_version") or 0) >= 5
+            and previous_date
+            and latest_date
+            and previous_date >= latest_date
+            and supplemental_candidates == 0
+        ):
+            previous.update({
+                "schema_version": 5,
+                "status": "ready" if previous_date == today else "stale",
+                "last_scanned_at": now.astimezone(SHANGHAI).isoformat(timespec="seconds"),
+                "source_status": source_status,
+                "last_scan_candidate_source_counts": candidate_source_counts,
+                "stale_reason": None if previous_date == today else "本轮增量来源未返回更新；继续展示较新的已核验研报快照。",
+                "refresh_policy": "机构研报每5分钟扫描；公开搜索每日07/10/14/18时段各刷新一次；按质量重新择优",
+            })
+            return previous
         oil_count = sum(item["sector"] == "油脂油料" for item in items)
         cross_count = sum(item["sector"] == "跨板块" for item in items)
         return {
@@ -431,7 +451,7 @@ def build(
             "last_scanned_at": now.astimezone(SHANGHAI).isoformat(timespec="seconds"),
             "fresh_item_count": fresh_item_count,
             "stale_reason": None if fresh_item_count else "当日来源未返回新增公开研报；继续展示最近可核验内容。",
-            "refresh_policy": "每5分钟独立扫描机构研报与公开研报；按质量重新择优",
+            "refresh_policy": "机构研报每5分钟扫描；公开搜索每日07/10/14/18时段各刷新一次；按质量重新择优",
             "candidate_count": candidate_count,
             "candidate_source_counts": candidate_source_counts,
             "deduplicated_count": len(items),
@@ -460,7 +480,7 @@ def build(
         "generated_at": now.astimezone(SHANGHAI).isoformat(timespec="seconds"),
         "last_scanned_at": now.astimezone(SHANGHAI).isoformat(timespec="seconds"),
         "source_status": source_status,
-        "refresh_policy": "每5分钟独立扫描机构研报与公开研报；按质量重新择优",
+        "refresh_policy": "机构研报每5分钟扫描；公开搜索每日07/10/14/18时段各刷新一次；按质量重新择优",
         "items": [],
         "notice": "等待当日公开晨报发布。",
     }

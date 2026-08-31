@@ -46,6 +46,14 @@ class MxResearchSearchTests(unittest.TestCase):
         self.assertEqual(request.get_header("Apikey"), "secret")
         self.assertEqual(captured["timeout"], 12)
 
+    def test_semantic_quota_error_is_not_success(self):
+        body = json.dumps({"success": False, "status": 113, "code": 113, "message": "调用次数已达到上限"}, ensure_ascii=False).encode()
+        self.assertIn("调用次数已达到上限", MODULE.api_error(body))
+
+    def test_success_body_has_no_semantic_error(self):
+        body = b'{"success":true,"status":0,"code":0,"data":{}}'
+        self.assertEqual(MODULE.api_error(body), "")
+
 
 if __name__ == "__main__":
     unittest.main()

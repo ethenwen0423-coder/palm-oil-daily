@@ -15,6 +15,22 @@ from pathlib import Path
 API_URL = "https://mkapi2.dfcfs.com/finskillshub/api/claw/news-search"
 
 
+def api_error(body: bytes) -> str:
+    """Return the upstream semantic error without treating an HTTP 200 as success."""
+    try:
+        payload = json.loads(body)
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return "invalid JSON response"
+    if not isinstance(payload, dict):
+        return "unexpected response type"
+    status = payload.get("status", payload.get("code", 0))
+    code = payload.get("code", status)
+    success = payload.get("success")
+    if status in (0, "0") and code in (0, "0") and success is not False:
+        return ""
+    return str(payload.get("message") or f"upstream status={status} code={code}")[:240]
+
+
 def request_body(query: str, api_key: str, timeout: int) -> bytes:
     body = json.dumps({"query": query}, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
     request = urllib.request.Request(
@@ -46,7 +62,12 @@ def main() -> int:
         print("MX_APIKEY is not configured")
         return 2
     try:
-        atomic_write(args.output, request_body(args.query, api_key, args.timeout))
+        body = request_body(args.query, api_key, args.timeout)
+        atomic_write(args.output, body)
+        error = api_error(body)
+        if error:
+            print(f"mx-search API rejected request: {error}")
+            return 3
         print(f"raw_response={args.output}")
         return 0
     except (OSError, urllib.error.URLError) as exc:

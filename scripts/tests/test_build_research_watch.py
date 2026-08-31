@@ -242,8 +242,36 @@ class ResearchWatchTests(unittest.TestCase):
             payload = MODULE.build(source, existing, now)
         self.assertNotEqual(payload["items"], [{"id": "frozen"}])
         self.assertEqual(payload["report_date"], "2026-08-27")
-        self.assertEqual(payload["refresh_policy"], "每5分钟独立扫描机构研报与公开研报；按质量重新择优")
+        self.assertEqual(payload["refresh_policy"], "机构研报每5分钟扫描；公开搜索每日07/10/14/18时段各刷新一次；按质量重新择优")
         self.assertEqual(payload["schema_version"], 5)
+
+    def test_does_not_regress_newer_snapshot_when_supplemental_search_is_unavailable(self):
+        now = datetime(2026, 8, 31, 10, 40, tzinfo=SHANGHAI)
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "source.json"
+            source.write_text(json.dumps(source_payload(), ensure_ascii=False), encoding="utf-8")
+            existing = root / "existing.json"
+            existing.write_text(json.dumps({
+                "schema_version": 5,
+                "status": "ready",
+                "report_date": "2026-08-31",
+                "generated_at": "2026-08-31T09:59:05+08:00",
+                "fresh_item_count": 2,
+                "items": [{"id": "newer", "published_at": "2026-08-31 09:21:16"}],
+            }), encoding="utf-8")
+            source_status = root / "source-status.json"
+            source_status.write_text(json.dumps({
+                "mx-search": {"configured": True, "status": "quota_exhausted"},
+                "report-search": {"configured": True, "status": "quota_exhausted"},
+            }), encoding="utf-8")
+            result = MODULE.build(source, existing, now, source_status_path=source_status)
+        self.assertEqual(result["status"], "ready")
+        self.assertEqual(result["report_date"], "2026-08-31")
+        self.assertEqual(result["items"], [{"id": "newer", "published_at": "2026-08-31 09:21:16"}])
+        self.assertEqual(result["fresh_item_count"], 2)
+        self.assertEqual(result["source_status"]["mx-search"]["status"], "quota_exhausted")
+        self.assertEqual(result["last_scan_candidate_source_counts"]["mx-search"], 0)
 
 
 if __name__ == "__main__":
