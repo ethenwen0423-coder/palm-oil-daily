@@ -127,7 +127,11 @@ class ServerApiStatusTests(unittest.TestCase):
 
         status = API.build_status(self.data_root, now=now)
 
-        self.assertEqual(status["automation"]["market"]["state"], "ready")
+        self.assertEqual(status["automation"]["market"]["state"], "stale")
+        self.assertIn(
+            "/api/exchange-futures",
+            status["automation"]["market"]["unhealthy_routes"],
+        )
         self.assertEqual(
             status["datasets"]["/api/oil-futures"]["owner"],
             "server-market-collector",

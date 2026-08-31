@@ -213,7 +213,10 @@ def _flatten_records(value: Any, prefix: str = "") -> list[NumericRecord]:
             if isinstance(value.get("label"), str)
             else prefix
         )
-        aliases = ALIASES.get(prefix, (name,))
+        aliases = list(ALIASES.get(prefix, (name,)))
+        contract = str(value.get("contract") or value.get("symbol") or "").upper()
+        if re.fullmatch(r"[A-Z]+\d{4}", contract) and contract not in aliases:
+            aliases.append(contract)
         change_pct = value.get("change_pct")
         rows.append(
             NumericRecord(
@@ -227,7 +230,7 @@ def _flatten_records(value: Any, prefix: str = "") -> list[NumericRecord]:
             )
         )
     for key, child in value.items():
-        if key == "previous_snapshot":
+        if key in {"previous_snapshot", "previous_source_snapshot"}:
             continue
         if isinstance(child, dict):
             child_prefix = f"{prefix}.{key}" if prefix else key

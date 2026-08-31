@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import sys
 import unittest
 from datetime import datetime
@@ -28,6 +29,31 @@ gate = load_module(
 
 
 class IntradaySourceConflictTests(unittest.TestCase):
+    def test_manifest_rejects_continuous_contract_discovery(self) -> None:
+        import tempfile
+        from pathlib import Path
+
+        with tempfile.TemporaryDirectory() as temporary:
+            manifest = Path(temporary) / "manifest.json"
+            manifest.write_text(
+                json.dumps(
+                    {
+                        "results": [
+                            {"name": "futures_oil_fetch_market_data", "status": "ok"}
+                        ],
+                        "contract_discovery": {
+                            "symbols": ["P0", "Y2701", "OI2611", "M2701", "RM2611"]
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+            errors: list[str] = []
+            warnings: list[str] = []
+            gate.validate_manifest(manifest, errors, warnings)
+
+        self.assertTrue(any("连续合约" in error for error in errors))
+
     def test_small_relative_price_gap_is_consistent(self) -> None:
         note = update.verification_note(
             {"price": 9269, "change_pct": 0.62},

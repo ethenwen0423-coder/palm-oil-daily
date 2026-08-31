@@ -117,6 +117,98 @@ def atomic_copy(source: Path, target: Path) -> None:
             temporary.unlink()
 
 
+def atomic_write_json(target: Path, payload: object) -> None:
+    target.parent.mkdir(parents=True, exist_ok=True)
+    temporary: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            "w",
+            encoding="utf-8",
+            dir=target.parent,
+            prefix=f".{target.name}.",
+            suffix=".tmp",
+            delete=False,
+        ) as stream:
+            temporary = Path(stream.name)
+            json.dump(payload, stream, ensure_ascii=False, indent=2)
+            stream.write("\n")
+        os.replace(temporary, target)
+        temporary = None
+    finally:
+        if temporary and temporary.exists():
+            temporary.unlink()
+
+
+def merge_new_upstream_reports(source_root: Path, target_root: Path) -> list[str]:
+    """Add missing report dates without replacing server-authored dates."""
+    source = source_root / "reports.json"
+    target = target_root / "reports.json"
+    if not source.is_file() or not target.is_file():
+        return []
+    validate_payload(source, "reports.json")
+    validate_payload(target, "reports.json")
+    upstream = json.loads(source.read_text(encoding="utf-8"))
+    live = json.loads(target.read_text(encoding="utf-8"))
+    live_dates = {
+        str(item.get("date"))
+        for item in live
+        if isinstance(item, dict) and item.get("date")
+    }
+    additions = [
+        item
+        for item in upstream
+        if isinstance(item, dict)
+        and item.get("date")
+        and str(item.get("date")) not in live_dates
+    ]
+    if not additions:
+        return []
+    merged = additions + live
+    merged.sort(
+        key=lambda item: str(item.get("date") or "") if isinstance(item, dict) else "",
+        reverse=True,
+    )
+    atomic_write_json(target, merged)
+    return ["reports.json"]
+
+
+def copy_newer_json(
+    source_root: Path,
+    target_root: Path,
+    relative: str,
+    timestamp_fields: tuple[str, ...],
+) -> list[str]:
+    source = source_root / validate_relative(relative)
+    target = target_root / validate_relative(relative)
+    if not source.is_file() or not target.is_file():
+        return []
+    validate_payload(source, relative)
+    validate_payload(target, relative)
+    upstream = json.loads(source.read_text(encoding="utf-8"))
+    live = json.loads(target.read_text(encoding="utf-8"))
+
+    def timestamp(payload: object) -> datetime | None:
+        if not isinstance(payload, dict):
+            return None
+        for field in timestamp_fields:
+            raw = payload.get(field)
+            if not isinstance(raw, str) or not raw.strip():
+                continue
+            try:
+                parsed = datetime.fromisoformat(raw.strip().replace("Z", "+00:00"))
+                return parsed.replace(tzinfo=SHANGHAI) if parsed.tzinfo is None else parsed
+            except ValueError:
+                continue
+        return None
+
+    upstream_at = timestamp(upstream)
+    live_at = timestamp(live)
+    if upstream_at is None or live_at is None or upstream_at <= live_at:
+        return []
+    atomic_copy(source, target)
+    return [relative]
+
+
 def synchronize_paths(
     source_root: Path,
     target_root: Path,
@@ -223,6 +315,15 @@ def sync_upstream(source_root: Path, target_root: Path) -> dict[str, object]:
         if not pure_ai_fund_owned
         else []
     )
+    if research_owned:
+        copied_groups["reports"] = merge_new_upstream_reports(source_root, target_root)
+    if supply_owned:
+        copied_groups["supply"] = copy_newer_json(
+            source_root,
+            target_root,
+            "supply-demand.json",
+            ("checked_at", "generated_at"),
+        )
     return {
         "status": "ok",
         "mode": "upstream",

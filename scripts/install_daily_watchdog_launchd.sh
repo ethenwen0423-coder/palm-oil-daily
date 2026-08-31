@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-RUNTIME_ROOT="${PALM_OIL_AUTOMATION_ROOT:-$HOME/Sites/palm-oil-daily}"
+RUNTIME_ROOT="${PALM_OIL_AUTOMATION_ROOT:-$HOME/Sites/palm-oil-daily-runtime}"
 PLIST="$HOME/Library/LaunchAgents/com.vinsontesla.palm-oil-daily-watchdog.plist"
 SUPPORT_DIR="$HOME/Library/Application Support/VinsonTesla"
 RUNNER="$SUPPORT_DIR/palm-oil-daily-watchdog.sh"
@@ -79,13 +79,16 @@ if [[ -z "\$CODEX_BIN" || ! -x "\$CODEX_BIN" ]]; then
 fi
 
 ROOT="$RUNTIME_ROOT"
+export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
 REPORT_DATE="\$(TZ=Asia/Shanghai date +%F)"
 WEEKDAY="\$(TZ=Asia/Shanghai date +%u)"
 REPORT="\$ROOT/reports/\$REPORT_DATE.md"
 DOWNLOAD="\$ROOT/downloads/\$REPORT_DATE.md"
 DATA="\$ROOT/data/reports.js"
+QUALITY="\$ROOT/source_runs/\$REPORT_DATE-daily/report_quality.json"
 LOG="$SUPPORT_DIR/palm-oil-daily-watchdog.check.log"
 STATE_DIR="$SUPPORT_DIR/market-refresh-state"
+ATTEMPT_STATE="\$STATE_DIR/\$REPORT_DATE-daily-attempt.json"
 MORNING_STATE="\$STATE_DIR/\$REPORT_DATE-morning.ok"
 SUPPLY_STATE="\$STATE_DIR/\$REPORT_DATE-supply-demand.ok"
 RESEARCH_RUNNER="$SUPPORT_DIR/palm-oil-research-notifier.sh"
@@ -129,11 +132,22 @@ if (( WEEKDAY < 1 || WEEKDAY > 5 )); then
   exit 0
 fi
 
-python3 "\$ROOT/scripts/sync_automation_runtime.py" \
-  --root "\$ROOT" >> "\$LOG" 2>&1
+if ! python3 "\$ROOT/scripts/sync_automation_runtime.py" \
+  --root "\$ROOT" >> "\$LOG" 2>&1; then
+  if ! git -C "\$ROOT" fetch --quiet origin main >> "\$LOG" 2>&1; then
+    echo "[\$(TZ=Asia/Shanghai date '+%F %T')] runtime sync and remote verification failed" >> "\$LOG"
+    exit 2
+  fi
+  if [[ "\$(git -C "\$ROOT" rev-parse HEAD)" != "\$(git -C "\$ROOT" rev-parse origin/main)" ]]; then
+    echo "[\$(TZ=Asia/Shanghai date '+%F %T')] runtime sync failed and local revision is stale; refuse report generation" >> "\$LOG"
+    exit 2
+  fi
+  echo "[\$(TZ=Asia/Shanghai date '+%F %T')] runtime sync skipped; preserved local change and current main revision verified" >> "\$LOG"
+fi
 
-if [[ -s "\$REPORT" && -s "\$DOWNLOAD" && -s "\$DATA" ]] \\
+if [[ -s "\$REPORT" && -s "\$DOWNLOAD" && -s "\$DATA" && -s "\$QUALITY" ]] \\
   && grep -q "\"date\": \"\$REPORT_DATE\"" "\$DATA" \\
+  && grep -q '"can_publish": true' "\$QUALITY" \\
   && ! grep -Eq "\$FORBIDDEN" "\$REPORT"; then
   notify_morning_research
   refresh_supply_demand
@@ -150,16 +164,32 @@ fi
 
 echo "[\$(TZ=Asia/Shanghai date '+%F %T')] missing or invalid, start codex backfill" >> "\$LOG"
 
-PROMPT='这是棕榈油每日晨报的 macOS 系统级调度任务，工作日06:00生成、06:20补检。先核验当天是否为中国期货市场交易日，并检查 reports/当前上海日期.md、data/reports.js、downloads/当前上海日期.md；非交易日或三项均合格时按规范停止。需要生成或补跑时，必须先完整读取并严格执行 references/daily_automation_prompt.md 及其列出的 skills；该文件和 skills/report_writer_skill/SKILL.md 是正文结构的唯一权威。正文严格按新版九栏顺序生成：【今日观点】【今日交易信号】【核心驱动与预期差】【关键数据与价格】【开盘推演】【风险提示】【信息来源与核验说明】【消息来源链接】【AI观点风险提示】。不得要求、恢复或额外新增旧独立栏目【昨夜发生了什么】【相关新闻导向分析】【今日交易重点】【关键价格】【今日观察指标】。必须覆盖P/Y/OI，交易方向与价位只取自既有数据和策略结果；先完成数据门禁、预测generation feedback、freshness治理、结构化提纲、正文、标题和85分报告审计，再运行 bash scripts/deploy_report.sh。generation feedback只能读取此前已评估结果并下调约束，必须逐字写入required_report_disclosures；晨间任务不得调用或修改收盘复盘入口、actual snapshot、预测评估、滚动指标构建及其调度，也不得改变永久权重、参数或策略。失败时重写或停止发布，不得绕过门禁。最终简要说明是否生成、审计是否通过、是否已发布。'
+PROMPT='这是棕榈油每日晨报的 macOS 系统级调度任务，工作日06:00生成、06:20补检。你只有15分钟完成任务。先核验当天是否为中国期货市场交易日，并检查 reports/当前上海日期.md、data/reports.js、downloads/当前上海日期.md；非交易日或三项均合格时按规范停止。需要生成或补跑时，必须先完整读取并严格执行 references/daily_automation_prompt.md 及其列出的 skills；该文件和 skills/report_writer_skill/SKILL.md 是正文结构的唯一权威。正文严格按新版九栏顺序生成：【今日观点】【今日交易信号】【核心驱动与预期差】【关键数据与价格】【开盘推演】【风险提示】【信息来源与核验说明】【消息来源链接】【AI观点风险提示】。必须覆盖P/Y/OI，交易方向与价位只取自既有数据和策略结果；先完成数据门禁、预测generation feedback、freshness治理、结构化提纲、正文、标题和92分报告审计，再运行 bash scripts/deploy_report.sh。generation feedback只能读取此前已评估结果并下调约束，必须逐字写入required_report_disclosures；晨间任务不得调用或修改收盘复盘入口、actual snapshot、预测评估、滚动指标构建及其调度，也不得改变永久权重、参数或策略。失败时停止发布，不得绕过门禁。'
 
-printf '%s\n' "\$PROMPT" | "\$CODEX_BIN" exec \\
-  --cd "\$ROOT" \\
-  --sandbox danger-full-access \\
-  --dangerously-bypass-approvals-and-sandbox \\
-  -
+if ! printf '%s\n' "\$PROMPT" | python3 "\$ROOT/scripts/run_codex_bounded.py" \\
+  --timeout-seconds 900 \\
+  --status-file "\$ATTEMPT_STATE" \\
+  -- "\$CODEX_BIN" exec \\
+    --cd "\$ROOT" \\
+    --ephemeral \\
+    --ignore-user-config \\
+    --ignore-rules \\
+    --model gpt-5.6-terra \\
+    --disable apps \\
+    --disable browser_use \\
+    --disable computer_use \\
+    --disable image_generation \\
+    --disable multi_agent \\
+    --disable plugins \\
+    --sandbox danger-full-access \\
+    --dangerously-bypass-approvals-and-sandbox \\
+    -; then
+  echo "[\$(TZ=Asia/Shanghai date '+%F %T')] bounded codex attempt failed; 06:20 retry remains independent" >> "\$LOG"
+fi
 
-if [[ -s "\$REPORT" && -s "\$DOWNLOAD" && -s "\$DATA" ]] \\
+if [[ -s "\$REPORT" && -s "\$DOWNLOAD" && -s "\$DATA" && -s "\$QUALITY" ]] \\
   && grep -q "\"date\": \"\$REPORT_DATE\"" "\$DATA" \\
+  && grep -q '"can_publish": true' "\$QUALITY" \\
   && ! grep -Eq "\$FORBIDDEN" "\$REPORT"; then
   notify_morning_research
   refresh_supply_demand

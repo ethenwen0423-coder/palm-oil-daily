@@ -98,6 +98,22 @@ def validate_manifest(path: Path, errors: list[str], warnings: list[str]) -> Non
     symbols = manifest.get("contract_discovery", {}).get("symbols")
     if symbols is not None and not isinstance(symbols, list):
         add_issue(warnings, "contract_discovery.symbols 格式异常")
+    elif isinstance(symbols, list):
+        normalized = [str(symbol or "").upper() for symbol in symbols]
+        for product in DOMESTIC_PRODUCTS:
+            selected = [symbol for symbol in normalized if symbol.startswith(product)]
+            if not selected:
+                add_issue(errors, f"contract_discovery 缺少 {product} 真实交割月合约")
+                continue
+            if not any(valid_contract_month(symbol, datetime.now(ZoneInfo("Asia/Shanghai"))) for symbol in selected):
+                add_issue(errors, f"contract_discovery 的 {product} 合约月份非法或已过期")
+        continuous = [
+            symbol
+            for symbol in normalized
+            if re.fullmatch(r"(?:P|Y|OI|M|RM)0", symbol)
+        ]
+        if continuous:
+            add_issue(errors, "contract_discovery 不得使用连续合约：" + ", ".join(continuous))
 
 
 def validate_contract(item: dict[str, Any], base: datetime, errors: list[str], warnings: list[str], downgraded: list[str]) -> None:

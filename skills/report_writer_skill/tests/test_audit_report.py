@@ -144,6 +144,34 @@ def valid_report() -> str:
 
 
 class AuditReportTest(unittest.TestCase):
+    def test_concrete_contract_is_added_as_numeric_alias(self) -> None:
+        payload = {
+            "domestic": {
+                "palm_oil": {
+                    "name": "棕榈油",
+                    "contract": "P2701",
+                    "price": 10171.0,
+                    "change_pct": 1.25,
+                }
+            }
+        }
+        records = audit._flatten_records(payload)
+        palm = next(record for record in records if record.key == "domestic.palm_oil")
+        self.assertIn("P2701", palm.aliases)
+
+    def test_previous_source_snapshot_is_not_a_current_numeric_record(self) -> None:
+        records = audit._flatten_records(
+            {
+                "domestic": {"palm_oil": {"contract": "P2701", "price": 10171}},
+                "research_history": {
+                    "previous_source_snapshot": {
+                        "domestic": {"palm_oil": {"contract": "P2609", "price": 9000}}
+                    }
+                },
+            }
+        )
+        self.assertEqual([record.price for record in records], [10171.0])
+
     def test_integral_prices_accept_decimal_zero_formatting(self) -> None:
         pattern = audit._number_pattern(8819.0)
         self.assertIsNotNone(pattern.search("豆油 8819.0"))

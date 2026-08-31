@@ -70,6 +70,11 @@ Default tolerances:
 
 If AkShare and WenCai/MiaoXiang disagree beyond tolerance, the data cannot be written as a confirmed fact.
 
+Only compare quotes for the same concrete delivery contract. `P0/Y0/OI0` and
+other continuous symbols are not comparable to `PYYMM/YYYMM/OIYYMM`; they may
+be retained as background but must never replace, verify, or conflict-check the
+selected rank-1 delivery contract used by a formal report.
+
 ### FCPO Rule
 
 FCPO change must explicitly state the comparison basis:

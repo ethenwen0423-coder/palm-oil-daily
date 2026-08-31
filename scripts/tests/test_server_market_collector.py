@@ -292,6 +292,56 @@ class ServerMarketCollectorTests(unittest.TestCase):
                 "server",
             )
 
+    def test_owned_research_merges_only_missing_upstream_dates(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            upstream = base / "upstream"
+            live = base / "live"
+            write_all_datasets(upstream, "upstream")
+            write_all_datasets(live, "live")
+            (upstream / "reports.json").write_text(
+                json.dumps([
+                    {"date": "2026-08-31", "marker": "recovery"},
+                    {"date": "2026-08-27", "marker": "upstream-old"},
+                ]),
+                encoding="utf-8",
+            )
+            (live / "reports.json").write_text(
+                json.dumps([{"date": "2026-08-27", "marker": "server"}]),
+                encoding="utf-8",
+            )
+            SYNC.write_marker(live, SYNC.RESEARCH_READY_MARKER, session="daily", owner="server-research-agent")
+
+            result = SYNC.sync_upstream(upstream, live)
+            reports = json.loads((live / "reports.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(result["reports_copied"], ["reports.json"])
+        self.assertEqual([item["date"] for item in reports], ["2026-08-31", "2026-08-27"])
+        self.assertEqual(reports[1]["marker"], "server")
+
+    def test_owned_supply_accepts_only_newer_checked_payload(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            upstream = base / "upstream"
+            live = base / "live"
+            write_all_datasets(upstream, "upstream")
+            write_all_datasets(live, "live")
+            (upstream / "supply-demand.json").write_text(
+                json.dumps({"checked_at": "2026-08-31T09:45:00+08:00", "marker": "recovery"}),
+                encoding="utf-8",
+            )
+            (live / "supply-demand.json").write_text(
+                json.dumps({"checked_at": "2026-08-03T08:00:00+08:00", "marker": "server-old"}),
+                encoding="utf-8",
+            )
+            SYNC.write_marker(live, SYNC.SUPPLY_READY_MARKER, session="daily", owner="server-supply-checker")
+
+            result = SYNC.sync_upstream(upstream, live)
+            payload = json.loads((live / "supply-demand.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(result["supply_copied"], ["supply-demand.json"])
+        self.assertEqual(payload["marker"], "recovery")
+
     def test_ai_ownership_is_independent_from_market_ownership(self):
         with tempfile.TemporaryDirectory() as temporary:
             base = Path(temporary)

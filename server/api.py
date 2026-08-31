@@ -394,6 +394,10 @@ def build_status(data_root: Path, *, now: datetime | None = None) -> dict[str, A
         owner = automation[key].get("owner") or "upstream-sync"
         for route in rule["routes"]:
             datasets[route]["owner"] = owner
+        unhealthy = [route for route in rule["routes"] if datasets[route]["state"] != "ready"]
+        if automation[key]["state"] == "ready" and unhealthy:
+            automation[key]["state"] = "stale"
+            automation[key]["unhealthy_routes"] = unhealthy
     degraded = [route for route, item in datasets.items() if item["state"] != "ready"]
     return {
         "status": "degraded" if degraded else "ok",
