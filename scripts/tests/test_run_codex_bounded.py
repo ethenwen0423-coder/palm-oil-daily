@@ -76,6 +76,8 @@ class BoundedCodexRunnerTests(unittest.TestCase):
         self.assertIn("report_quality.json", installer)
         self.assertIn("92分报告审计", installer)
         self.assertNotIn("85分报告审计", installer)
+        self.assertIn("preserve dirty supply-demand runtime", installer)
+        self.assertNotIn("supply-demand runtime must be a clean main checkout", installer)
 
 
 if __name__ == "__main__":

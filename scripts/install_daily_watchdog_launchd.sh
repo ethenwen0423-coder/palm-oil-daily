@@ -26,10 +26,10 @@ if [[ ! -d "$SUPPLY_RUNTIME/.git" ]]; then
 else
   if [[ "$(git -C "$SUPPLY_RUNTIME" branch --show-current)" != "main" ]] \
     || [[ -n "$(git -C "$SUPPLY_RUNTIME" status --porcelain --untracked-files=all)" ]]; then
-    echo "supply-demand runtime must be a clean main checkout: $SUPPLY_RUNTIME" >&2
-    exit 2
+    echo "warning: preserve dirty supply-demand runtime and continue daily watchdog install: $SUPPLY_RUNTIME" >&2
+  else
+    python3 "$ROOT/scripts/sync_automation_runtime.py" --root "$SUPPLY_RUNTIME"
   fi
-  python3 "$ROOT/scripts/sync_automation_runtime.py" --root "$SUPPLY_RUNTIME"
 fi
 
 cat > "$SUPPLY_RUNNER" <<SUPPLY_RUNNER
