@@ -73,7 +73,7 @@ class BoundedCodexRunnerTests(unittest.TestCase):
         self.assertIn("--ephemeral", installer)
         self.assertIn("--ignore-user-config", installer)
         self.assertIn("--model gpt-5.6-terra", installer)
-        self.assertIn("report_quality.json", installer)
+        self.assertIn("data/report_quality", installer)
         self.assertIn("92分报告审计", installer)
         self.assertNotIn("85分报告审计", installer)
         self.assertIn("preserve dirty supply-demand runtime", installer)

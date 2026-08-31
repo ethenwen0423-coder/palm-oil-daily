@@ -1,0 +1,74 @@
+{
+  "body_character_budget": [
+    1000,
+    1400
+  ],
+  "body_character_count": 1355,
+  "can_publish": true,
+  "components": {
+    "causal_chain_expectation_gap": 15,
+    "concision_repetition": 10,
+    "data_accuracy": 16,
+    "freshness_source_state": 15,
+    "risk_invalidation": 10,
+    "structural_completeness": 10,
+    "view_trade_consistency": 20
+  },
+  "errors": [],
+  "hard_failures": [],
+  "minimum_score": 92,
+  "numeric_audit": {
+    "checks": [
+      {
+        "expected_price": 8965.0,
+        "key": "domestic.soybean_oil",
+        "mentioned": true,
+        "name": "豆油",
+        "percent_checked": true,
+        "percent_ok": true,
+        "price_ok": true,
+        "required": true
+      },
+      {
+        "expected_price": 10171.0,
+        "key": "domestic.palm_oil",
+        "mentioned": true,
+        "name": "棕榈油",
+        "percent_checked": true,
+        "percent_ok": true,
+        "price_ok": true,
+        "required": true
+      },
+      {
+        "expected_price": 10333.0,
+        "key": "domestic.rapeseed_oil",
+        "mentioned": true,
+        "name": "菜油",
+        "percent_checked": true,
+        "percent_ok": true,
+        "price_ok": true,
+        "required": true
+      },
+      {
+        "expected_price": -1206.0,
+        "key": "fundamental.spread.soybean_palm_spread",
+        "mentioned": true,
+        "name": "豆棕价差",
+        "percent_checked": false,
+        "percent_ok": true,
+        "price_ok": true,
+        "required": false
+      }
+    ],
+    "critical_checked": 3,
+    "sample_seed": "2026-08-31|daily",
+    "sampled_noncritical": [
+      "fundamental.spread.soybean_palm_spread"
+    ]
+  },
+  "score": 96,
+  "status": "ok",
+  "warnings": [
+    "可复核的非关键数字仅 1 项，未达到固定抽样 3 项"
+  ]
+}

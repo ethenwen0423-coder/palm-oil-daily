@@ -16,6 +16,7 @@ REPORTS_DIR = ROOT / "reports"
 DATA_FILE = ROOT / "data" / "reports.js"
 VERSION_FILE = ROOT / "data" / "version.js"
 DOWNLOADS_DIR = ROOT / "downloads"
+QUALITY_DIR = ROOT / "data" / "report_quality"
 REPORT_RE = re.compile(r"^(?P<date>\d{4}-\d{2}-\d{2})(?P<suffix>-weekend)?$")
 
 
@@ -70,6 +71,17 @@ def main() -> None:
         if not content:
             continue
         report_id = f"{date}{suffix}"
+        run_kind = "weekend" if suffix else "daily"
+        quality_source = ROOT / "source_runs" / f"{date}-{run_kind}" / "report_quality.json"
+        if quality_source.is_file():
+            quality = json.loads(quality_source.read_text(encoding="utf-8"))
+            if not isinstance(quality, dict) or quality.get("can_publish") is not True:
+                raise RuntimeError(f"report quality is not publishable: {quality_source}")
+            QUALITY_DIR.mkdir(parents=True, exist_ok=True)
+            (QUALITY_DIR / f"{report_id}.json").write_text(
+                json.dumps(quality, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
         download_name = f"{report_id}.md"
         (DOWNLOADS_DIR / download_name).write_text(content + "\n", encoding="utf-8")
         reports.append(
@@ -78,7 +90,7 @@ def main() -> None:
                 "title": extract_title(content, date),
                 "headline": extract_headline(content, extract_title(content, date)),
                 "summary": extract_summary(content),
-                "kind": "weekend" if suffix else "daily",
+                "kind": run_kind,
                 "download": f"downloads/{download_name}",
                 "updated_at": datetime.fromtimestamp(path.stat().st_mtime).strftime(
                     "%Y-%m-%d %H:%M"

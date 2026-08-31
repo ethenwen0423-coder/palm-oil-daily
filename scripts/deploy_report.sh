@@ -183,6 +183,7 @@ fi
 # explicit directory add exits non-zero before the exclusion pathspec applies.
 git add -- reports downloads miniprogram/data \
   data/contracts \
+  data/report_quality \
   data/oil_futures.js data/oil_futures.json \
   data/reports.js data/reports.json data/version.js
 if git diff --cached --name-only -- data/forecast/daily data/review/runtime_snapshots | grep -q .; then
