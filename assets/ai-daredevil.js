@@ -26,6 +26,13 @@
 
   function el(id) { return document.getElementById(id); }
   function percent(value) { return Number.isFinite(Number(value)) ? `${(Number(value) * 100).toFixed(2)}%` : "--"; }
+  function signedMoney(value) {
+    const amount = Number(value);
+    if (!Number.isFinite(amount)) return "--";
+    if (amount > 0) return `+${money.format(amount)}`;
+    if (amount < 0) return `-${money.format(Math.abs(amount))}`;
+    return money.format(0);
+  }
   function escapeHtml(value) {
     return String(value == null ? "" : value).replace(/[&<>'"]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[character]);
   }
@@ -107,8 +114,11 @@
     el("net-value").textContent = `净值 ${Number(summary.net_value || 1).toFixed(4)}`;
     el("cumulative-return").textContent = percent(summary.cumulative_return); colorize(el("cumulative-return"), summary.cumulative_return);
     el("annualized-return").textContent = summary.annualized_return == null ? "年化：样本不足" : `年化 ${percent(summary.annualized_return)}`;
-    el("daily-pnl").textContent = money.format(Number(summary.daily_pnl || 0)); colorize(el("daily-pnl"), summary.daily_pnl);
-    el("realized-pnl").textContent = `已实现 ${money.format(Number(summary.realized_pnl || 0))}`;
+    el("daily-pnl").textContent = signedMoney(summary.daily_pnl); colorize(el("daily-pnl"), summary.daily_pnl);
+    el("daily-pnl").title = "今日盈亏 = 当前权益 − 上一交易日权益";
+    el("realized-pnl").textContent = `累计已实现（非今日） ${signedMoney(summary.realized_pnl)}`;
+    el("realized-pnl").title = "累计已实现包含历次开平仓损益与费用，不是今日盈亏";
+    colorize(el("realized-pnl"), summary.realized_pnl);
     el("max-drawdown").textContent = percent(summary.max_drawdown || 0); colorize(el("max-drawdown"), summary.max_drawdown);
     el("sharpe").textContent = summary.sharpe == null ? "夏普：样本不足" : `夏普 ${Number(summary.sharpe).toFixed(2)}`;
     el("margin-use").textContent = percent(summary.margin_usage || 0);
