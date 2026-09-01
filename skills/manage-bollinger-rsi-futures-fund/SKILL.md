@@ -45,9 +45,9 @@ Use `roll` only after both old- and new-contract execution prices are observable
 
 ## Portfolio boundary
 
-The objective is to seek the highest long-run risk-adjusted compound return across sectors, not to promise a return or mechanically maximize a fitted CAGR. Palm oil is only one candidate and must never be the hard-coded default allocation. Portfolio sizing is a separate overlay and must not be described as an improvement to the model signal. Preserve the defaults unless the user explicitly approves a separately backtested policy change: gross notional cap 2.0x equity, margin-use cap 60%, per-variety notional cap 25%, per-sector cap 40%, at most eight varieties, and at least one contract per accepted order.
+The objective is to seek the highest long-run risk-adjusted compound return across sectors, not to promise a return or mechanically maximize a fitted CAGR. Palm oil is only one candidate and must never be the hard-coded default allocation. Portfolio sizing is a separate overlay and must not be described as an improvement to the model signal. Preserve the defaults unless the user explicitly approves a separately backtested policy change: gross notional cap 2.0x equity, margin-use cap 60%, per-variety notional cap 25%, per-sector cap 40%, at most eight varieties, and at least one contract per accepted order. Because futures contracts are indivisible, an eligible new entry that sizes to zero only because one lot exceeds the soft per-variety or per-sector cap must use the whole-lot floor when one lot still fits the hard gross-notional cap, actual exchange-margin cap, available cash, and concurrent-variety cap. Store and display that exception. Never use it for pyramids or to bypass a hard cap.
 
-Never create a fill that breaches the caps. If even one contract does not fit, output `因资金/风控未执行`. Never increase leverage merely because the latest backtest has a high annualized return.
+Never create a fill that breaches the hard caps. If even one contract does not fit the hard constraints, output `因资金/风控未执行`. Never increase leverage merely because the latest backtest has a high annualized return.
 
 ## Required response
 

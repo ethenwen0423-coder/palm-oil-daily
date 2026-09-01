@@ -32,7 +32,7 @@ from zoneinfo import ZoneInfo
 
 SHANGHAI = ZoneInfo("Asia/Shanghai")
 MODEL_VERSION = "palm-oil-v2-real-contract-indicators-carry5-main-contract"
-ALLOCATION_POLICY_VERSION = "cross-sector-signal-strength-v1"
+ALLOCATION_POLICY_VERSION = "cross-sector-signal-strength-v2-whole-lot-floor"
 INITIAL_CAPITAL = 1_000_000.0
 FUND_FILE = "ai_daredevil.json"
 READY_MARKER = ".server-ai-daredevil-ready.json"
@@ -1124,7 +1124,7 @@ def public_snapshot(state_dir: Path, state: dict[str, Any], sources: list[dict[s
         "governance": {"virtual_only": True, "scanned_universe": list(PRODUCTS),
                        "eligible_default": list(PRODUCTS),
                        "allocation_policy_version": ALLOCATION_POLICY_VERSION,
-                       "allocation_policy": "全策略池平等候选，按真实主力合约信号强度与流动性排序；组合受品种和板块上限约束",
+                       "allocation_policy": "全策略池平等候选，按真实主力合约信号强度与流动性排序；常规组合受品种和板块上限约束，若一手通过总敞口、实际保证金、可用资金和持仓数硬约束，则启用整手底线",
                        "margin_note": "按真实PYYMM逐合约交易所一般/投机保证金计提；多单使用多头比例、空单使用空头比例，缺失或过期则禁止新增风险，不包含期货公司加收"},
         "ai_notice": "本页面由 AI 基于所列真实合约行情、模型信号和虚拟基金账本生成，不代表任何来源方官方立场，不构成投资建议；虚拟成交不等于真实成交，请自行核验。",
     }

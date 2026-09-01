@@ -31,6 +31,7 @@ DEFAULT_POLICY = {
     "max_variety_fraction": 0.25,
     "max_sector_fraction": 0.40,
     "max_positions": 8,
+    "whole_lot_floor": True,
 }
 
 
@@ -196,7 +197,7 @@ def _existing_exposure(state: dict[str, Any], key: str, value: str) -> float:
     )
 
 
-def _size_signal(state: dict[str, Any], signal: dict[str, Any]) -> tuple[int, str]:
+def _size_signal(state: dict[str, Any], signal: dict[str, Any]) -> tuple[int, str, bool]:
     policy = state["policy"]
     if policy.get("enforce_caps") is False:
         _positive(signal, "reference_price")
@@ -208,7 +209,7 @@ def _size_signal(state: dict[str, Any], signal: dict[str, Any]) -> tuple[int, st
             raise LedgerError("requested_quantity must be a positive integer when caps are disabled") from exc
         if quantity < 1:
             raise LedgerError("requested_quantity must be a positive integer when caps are disabled")
-        return quantity, "AI自主决定整手数量；账本不施加仓位上限"
+        return quantity, "AI自主决定整手数量；账本不施加仓位上限", False
     price = _positive(signal, "reference_price")
     multiplier = _positive(signal, "multiplier")
     margin_rate = _positive(signal, "margin_rate")
@@ -225,7 +226,26 @@ def _size_signal(state: dict[str, Any], signal: dict[str, Any]) -> tuple[int, st
         variety_left = min(variety_left, equity * policy["max_variety_fraction"] / 2)
     per_contract = price * multiplier
     quantity = math.floor(min(gross_left, variety_left, sector_left, margin_left / margin_rate) / per_contract)
-    return (quantity, "按组合容量取整手数") if quantity >= 1 else (0, "因资金/风控未执行")
+    if quantity >= 1:
+        return quantity, "按组合容量取整手数", False
+    one_contract_margin = per_contract * margin_rate
+    available_cash = max(0.0, float(state["cash"]) - state["used_margin"] - reserved_margin)
+    hard_capacity_ok = (
+        gross_left >= per_contract
+        and margin_left >= one_contract_margin
+        and available_cash >= one_contract_margin
+    )
+    if (
+        str(signal["action"]).startswith("ENTER")
+        and policy.get("whole_lot_floor", True)
+        and hard_capacity_ok
+    ):
+        return (
+            1,
+            "整手底线：单手通过总敞口、实际保证金、可用资金与持仓数量硬约束；仅豁免软性品种/板块上限",
+            True,
+        )
+    return 0, "硬性总敞口、实际保证金、可用资金或持仓数量不足，因资金/风控未执行", False
 
 
 def _pending_for(state: dict[str, Any], variety: str) -> bool:
@@ -339,6 +359,8 @@ def command_plan(args: argparse.Namespace) -> dict[str, Any]:
                 continue
             position = state["positions"].get(variety)
             side = 1 if action.endswith("LONG") else -1
+            sizing_reason = str(signal.get("quantity_reason") or "")
+            whole_lot_floor_applied = False
             if action in EXIT_ACTIONS:
                 if not position or int(position["side"]) != side:
                     decisions.append({"signal": signal, "status": "skipped", "reason": "no matching open position"})
@@ -365,7 +387,7 @@ def command_plan(args: argparse.Namespace) -> dict[str, Any]:
                 try:
                     _positive(signal, "atr14")
                     _positive(signal, "fee_rate", zero_ok=True)
-                    quantity, sizing_reason = _size_signal(state, signal)
+                    quantity, sizing_reason, whole_lot_floor_applied = _size_signal(state, signal)
                 except LedgerError as exc:
                     decisions.append({"signal": signal, "status": "rejected", "reason": str(exc)})
                     continue
@@ -398,7 +420,8 @@ def command_plan(args: argparse.Namespace) -> dict[str, Any]:
                 "strategy_exit_rule": signal.get("strategy_exit_rule"),
                 "backtest_summary": signal.get("backtest_summary"),
                 "requested_quantity": signal.get("requested_quantity"),
-                "quantity_reason": signal.get("quantity_reason"),
+                "quantity_reason": signal.get("quantity_reason") or sizing_reason,
+                "whole_lot_floor_applied": whole_lot_floor_applied,
             }
             state["pending_orders"].append(order)
             existing_order_ids.add(proposed_order_id)
@@ -419,7 +442,7 @@ def _find_order(state: dict[str, Any], order_id: str) -> dict[str, Any]:
     return matches[0]
 
 
-def _assert_caps(state: dict[str, Any], variety: str) -> None:
+def _assert_caps(state: dict[str, Any], variety: str, *, whole_lot_floor_applied: bool = False) -> None:
     if state["policy"].get("enforce_caps") is False:
         return
     equity = float(state["equity"])
@@ -430,12 +453,13 @@ def _assert_caps(state: dict[str, Any], variety: str) -> None:
     if state["used_margin"] > equity * policy["max_margin_fraction"] + tolerance:
         raise LedgerError("actual fill would breach margin-use cap")
     position = state["positions"].get(variety)
-    if position and position["notional"] > equity * policy["max_variety_fraction"] + tolerance:
-        raise LedgerError("actual fill would breach per-variety cap")
-    if position:
-        sector_exposure = _existing_exposure(state, "sector", position["sector"])
-        if sector_exposure > equity * policy["max_sector_fraction"] + tolerance:
-            raise LedgerError("actual fill would breach sector cap")
+    if not whole_lot_floor_applied:
+        if position and position["notional"] > equity * policy["max_variety_fraction"] + tolerance:
+            raise LedgerError("actual fill would breach per-variety cap")
+        if position:
+            sector_exposure = _existing_exposure(state, "sector", position["sector"])
+            if sector_exposure > equity * policy["max_sector_fraction"] + tolerance:
+                raise LedgerError("actual fill would breach sector cap")
     if len(state["positions"]) > int(policy["max_positions"]):
         raise LedgerError("actual fill would breach concurrent-position cap")
 
@@ -494,6 +518,7 @@ def command_fill(args: argparse.Namespace) -> dict[str, Any]:
                 "strategy_exit_rule": order.get("strategy_exit_rule"),
                 "backtest_summary": order.get("backtest_summary"),
                 "quantity_reason": order.get("quantity_reason"),
+                "whole_lot_floor_applied": bool(order.get("whole_lot_floor_applied")),
             }
         else:
             if not position or int(position["side"]) != int(order["side"]):
@@ -511,7 +536,10 @@ def command_fill(args: argparse.Namespace) -> dict[str, Any]:
         state["total_fees"] = _money(state["total_fees"] + fee)
         _revalue(state)
         if action in ENTRY_ACTIONS:
-            _assert_caps(state, variety)
+            _assert_caps(
+                state, variety,
+                whole_lot_floor_applied=bool(order.get("whole_lot_floor_applied")),
+            )
         order.update({"status": "filled", "fill_date": args.date, "fill_price": args.price, "fee": fee})
         state["filled_order_ids"].append(order["order_id"])
         _atomic_json(path, state)
@@ -529,6 +557,7 @@ def command_fill(args: argparse.Namespace) -> dict[str, Any]:
             "strategy_exit_rule": order.get("strategy_exit_rule"),
             "backtest_summary": order.get("backtest_summary"),
             "quantity_reason": order.get("quantity_reason"),
+            "whole_lot_floor_applied": bool(order.get("whole_lot_floor_applied")),
         }
         if action in EXIT_ACTIONS and position:
             event["entry_strategy_name"] = position.get("strategy_name")

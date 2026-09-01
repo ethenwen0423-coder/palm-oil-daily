@@ -120,6 +120,66 @@ class FundLedgerTests(unittest.TestCase):
         self.assertFalse(state["positions"])
         self.assertEqual(state["pending_orders"][0]["status"], "pending")
 
+    def test_whole_lot_floor_plans_high_notional_contract_when_hard_capacity_fits(self) -> None:
+        signal = self.entry()
+        signal.update({
+            "variety": "AU", "name": "黄金", "sector": "贵金属",
+            "contract": "AU2610", "action": "ENTER_SHORT",
+            "reference_price": 959.94, "multiplier": 1000,
+            "margin_rate": 0.16, "score": 0.9,
+        })
+        result = ledger.command_plan(argparse.Namespace(
+            state_dir=self.state_dir, signals=self.signal_file([signal])
+        ))
+        order = result["decisions"][0]["order"]
+        self.assertEqual(result["decisions"][0]["status"], "planned")
+        self.assertEqual(order["quantity"], 1)
+        self.assertTrue(order["whole_lot_floor_applied"])
+        self.assertIn("整手底线", order["quantity_reason"])
+
+        filled = ledger.command_fill(argparse.Namespace(
+            state_dir=self.state_dir, order_id=order["order_id"], date="2026-08-31",
+            price=960.0, fee=None, allow_date_mismatch=False,
+        ))
+        self.assertTrue(filled["state"]["positions"]["AU"]["whole_lot_floor_applied"])
+        self.assertLess(filled["state"]["used_margin"], 600_000)
+        self.assertLess(filled["state"]["gross_notional"], 2_000_000)
+
+    def test_whole_lot_floor_never_bypasses_hard_gross_or_margin_capacity(self) -> None:
+        signal = self.entry()
+        signal.update({
+            "variety": "AU", "name": "黄金", "sector": "贵金属",
+            "contract": "AU2610", "action": "ENTER_SHORT",
+            "reference_price": 2500, "multiplier": 1000,
+            "margin_rate": 0.60, "score": 0.9,
+        })
+        result = ledger.command_plan(argparse.Namespace(
+            state_dir=self.state_dir, signals=self.signal_file([signal])
+        ))
+        self.assertEqual(result["decisions"][0]["status"], "skipped")
+        self.assertIn("硬性总敞口", result["decisions"][0]["reason"])
+
+    def test_whole_lot_floor_rechecks_hard_caps_at_actual_gap_open(self) -> None:
+        signal = self.entry()
+        signal.update({
+            "variety": "AU", "name": "黄金", "sector": "贵金属",
+            "contract": "AU2610", "action": "ENTER_SHORT",
+            "reference_price": 959.94, "multiplier": 1000,
+            "margin_rate": 0.16, "score": 0.9,
+        })
+        planned = ledger.command_plan(argparse.Namespace(
+            state_dir=self.state_dir, signals=self.signal_file([signal])
+        ))
+        order_id = planned["decisions"][0]["order"]["order_id"]
+        with self.assertRaises(ledger.LedgerError):
+            ledger.command_fill(argparse.Namespace(
+                state_dir=self.state_dir, order_id=order_id, date="2026-08-31",
+                price=2500.0, fee=None, allow_date_mismatch=False,
+            ))
+        state = ledger.command_status(argparse.Namespace(state_dir=self.state_dir))
+        self.assertNotIn("AU", state["positions"])
+        self.assertEqual(state["pending_orders"][0]["status"], "pending")
+
 
 if __name__ == "__main__":
     unittest.main()

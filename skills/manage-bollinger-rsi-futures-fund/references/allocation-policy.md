@@ -23,6 +23,8 @@ Historical walk-forward evidence may be supplied as a configured score overlay w
 
 For each accepted entry, the ledger sizes whole contracts using the smallest of the remaining gross, margin, variety, and sector capacities. Higher-scored signals are considered first. The reference price is only for capacity planning; the actual next-open fill determines booked price, fees, notional, and margin.
 
+Futures lots are indivisible. If a new entry would size to zero solely because one lot exceeds the soft variety or sector capacity, apply a one-lot floor only when that lot still fits all hard constraints: total gross notional, actual exchange margin use, cash available after existing and reserved margin, and concurrent-variety count. Mark the order, position, and ledger event with `whole_lot_floor_applied=true` and retain the sizing explanation. Pyramids never receive this exception. The actual next-open price must pass the hard constraints again; a gap that breaches them leaves the order unfilled for review.
+
 If contract-level margin schedules or fees differ from the snapshot, update them before filling. Limit-up/down, suspended, illiquid, stale, or non-executable contracts remain pending or are cancelled with a reason.
 
 ## Governance
