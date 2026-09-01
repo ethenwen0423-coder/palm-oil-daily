@@ -268,6 +268,7 @@ def build_prompt(
         ]
     )
     budget = "1000-1400" if kind == "daily" else "1600-2000"
+    draft_target = "1050-1200" if kind == "daily" else "1650-1850"
     title = datetime.fromisoformat(report_date).strftime("%m月%d日") + (
         "晨报" if kind == "daily" else "周报"
     )
@@ -320,7 +321,8 @@ def build_prompt(
 1. 报告日期为 {report_date}，类型为 {kind}，一级标题必须精确为“# {title}”。
 2. 正文栏目按此顺序且标题格式为 `## 【栏目】`：{json.dumps(sections, ensure_ascii=False)}。
 3. 正文可见字符预算 {budget}；消息链接与固定免责声明不计入预算。
-3a. `## 【今日观点】`（周报为 `## 【一句话核心观点】`）标题后的第一句是页面 Headline：日报去除空白后不得超过 50 个字符，周报不得超过 100 个字符；只写一句明确观点，不得使用价格、数字或交易执行词。该句必须短于其后的解释段落。
+3a. 模型初稿必须控制在 {draft_target} 个可见字符，为服务器按同一提纲补齐审计句预留空间；表格单元格使用最短且完整的短语，表格后不得复述同一事实。超出目标时必须删去重复修饰和重复解释，不能删去必需栏目、证据、P/Y/OI 行或执行字段。
+3b. `## 【今日观点】`（周报为 `## 【一句话核心观点】`）标题后的第一句是页面 Headline：日报去除空白后不得超过 50 个字符，周报不得超过 100 个字符；只写一句明确观点，不得使用价格、数字或交易执行词。该句必须短于其后的解释段落。
 4. 只能复制 SOURCE_JSON 中的数字、价格、涨跌、时间、合约、score 与 strategy_recommendation；禁止自行计算或创造任何价格、概率、止损、目标、仓位与来源。
 4a. 数据栏目除 P/Y/OI 三个 rank=1 合约外，必须再列出至少三项 SOURCE_JSON 中有精确数字的辅助证据（优先官方供需、FCPO、CBOT、WTI、库存或价差）；每项均写名称、精确数字与该字段的时点。若源中没有三项，停止输出而不要编造。
 4b. institutional_evidence 中的华泰天玑快讯、研报和智能K线可用于交叉验证与风险提示，但属于机构资讯与研究判断，不得冒充官方统计，不得覆盖交易所行情或官方供需数据；权限受限模块只能在“信息来源与核验说明”中披露。
@@ -347,6 +349,8 @@ REQUIRED_DISCLOSURES：
 SOURCE_JSON：
 {json.dumps(source_snapshot, ensure_ascii=False, sort_keys=True)}
 {correction_block}
+
+若存在上次门禁反馈，必须重写整份 report_markdown，而不是在旧稿后追加修补；若反馈含正文篇幅超限，优先压缩表格单元格、来源状态和重复解释，初稿仍须落在 {draft_target} 个可见字符内。
 """.strip()
 
 
@@ -418,11 +422,63 @@ def ensure_daily_audit_contracts(
     outline: dict[str, Any],
     kind: str,
 ) -> str:
-    """Expose the audited direction and invalidation without inventing values."""
+    """Expose audited outline fields without inventing values or conclusions."""
     if kind != "daily":
         return markdown
     stance = str(outline.get("market_stance") or "")
+    top_call = str(outline.get("top_call") or "").strip().rstrip("。")
+    transmission = str(outline.get("transmission_chain") or "").strip().rstrip("。")
+    counter_case = str(outline.get("strongest_counter_case") or "").strip().rstrip("。")
     invalidation = str(outline.get("invalidation_condition") or "").strip().rstrip("。")
+
+    view_pattern = re.compile(
+        r"(## 【今日观点】\s*\n)(.*?)(?=\n## 【|\Z)",
+        re.DOTALL,
+    )
+    view_match = view_pattern.search(markdown)
+    if (
+        view_match
+        and stance in {"偏多", "偏空", "震荡", "观望"}
+        and top_call
+        and invalidation
+    ):
+        body = view_match.group(2).strip()
+        has_top_call = (
+            stance in body
+            and top_call in body
+            and invalidation in body
+            and any(marker in body for marker in ("策略", "执行", "观望", "空仓", "交易", "不追"))
+            and any(marker in body for marker in ("失效", "推翻", "放弃", "反证"))
+        )
+        if not has_top_call:
+            lines = body.splitlines()
+            audit_line = f"基准方向：{stance}；策略：{top_call}；失效条件：{invalidation}。"
+            body = "\n".join([lines[0], "", audit_line, *lines[1:]]).strip()
+            updated = f"{view_match.group(1)}{body}\n"
+            markdown = markdown[: view_match.start()] + updated + markdown[view_match.end() :]
+
+    driver_pattern = re.compile(
+        r"(## 【核心驱动与预期差】\s*\n)(.*?)(?=\n## 【|\Z)",
+        re.DOTALL,
+    )
+    driver_match = driver_pattern.search(markdown)
+    if driver_match:
+        body = driver_match.group(2).strip()
+        audit_lines: list[str] = []
+        if transmission and transmission not in body:
+            audit_lines.append(f"传导链：{transmission}。")
+        risk_match_for_counter = re.search(
+            r"## 【风险提示】\s*\n(.*?)(?=\n## 【|\Z)",
+            markdown,
+            re.DOTALL,
+        )
+        counter_scope = body + (risk_match_for_counter.group(1) if risk_match_for_counter else "")
+        if counter_case and counter_case not in counter_scope:
+            audit_lines.append(f"最强反证：{counter_case}。")
+        if audit_lines:
+            body = f"{body}\n\n{' '.join(audit_lines)}"
+            updated = f"{driver_match.group(1)}{body}\n"
+            markdown = markdown[: driver_match.start()] + updated + markdown[driver_match.end() :]
 
     signal_pattern = re.compile(
         r"(## 【今日交易信号】\s*\n)(.*?)(?=\n## 【|\Z)",

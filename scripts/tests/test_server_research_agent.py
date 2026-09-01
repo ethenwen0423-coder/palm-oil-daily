@@ -149,6 +149,8 @@ class ServerResearchAgentTests(unittest.TestCase):
         self.assertIn("分别列出 P、Y、OI 三行", prompt)
         self.assertIn("news_and_research_evidence.today_new_drivers", prompt)
         self.assertIn("两个主驱动合计不得少于350个中文可见字符", prompt)
+        self.assertIn("模型初稿必须控制在 1050-1200 个可见字符", prompt)
+        self.assertIn("必须重写整份 report_markdown", prompt)
         self.assertIn("REPOSITORY CONTRACT SENTINEL", prompt)
         self.assertIn("指标、数值、时点、含义", prompt)
         self.assertIn("实际 skill", prompt)
@@ -299,6 +301,47 @@ class ServerResearchAgentTests(unittest.TestCase):
         )
         self.assertIn("今日策略：震荡。", updated)
         self.assertIn("可检验失效条件：P跌破观察区间。", updated)
+
+    def test_daily_audit_contracts_ground_top_call_chain_and_counter_from_outline(self) -> None:
+        markdown = """# 08月24日晨报
+
+## 【今日观点】
+
+油脂等待供需确认。
+
+置信度：★★☆☆☆。
+
+## 【今日交易信号】
+
+| 品种 | 行动 |
+|---|---|
+| P | 等待 |
+
+## 【核心驱动与预期差】
+
+主驱动一与主驱动二均有来源证据，预期与现实仍有差异。
+
+## 【风险提示】
+
+供需与价格可能背离。
+
+## 【信息来源与核验说明】
+"""
+        outline = {
+            "market_stance": "震荡",
+            "top_call": "等待库存与外盘形成共振",
+            "transmission_chain": "库存变化→基差→P/Y/OI分化",
+            "strongest_counter_case": "外盘快速反向且库存累积",
+            "invalidation_condition": "P跌破观察区间",
+        }
+        updated = MODULE.ensure_daily_audit_contracts(markdown, outline, "daily")
+        self.assertIn(
+            "基准方向：震荡；策略：等待库存与外盘形成共振；失效条件：P跌破观察区间。",
+            updated,
+        )
+        self.assertIn("传导链：库存变化→基差→P/Y/OI分化。", updated)
+        self.assertIn("最强反证：外盘快速反向且库存累积。", updated)
+        self.assertNotIn("不新开仓", updated)
 
     def test_weekly_audit_contracts_never_fabricate_previous_validation(self) -> None:
         markdown = """# 08月24日周报
