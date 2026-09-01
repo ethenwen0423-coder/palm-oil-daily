@@ -26,6 +26,26 @@ class AiDaredevilMinuteQuoteTests(unittest.TestCase):
         self.assertIsNone(RUNTIME.BASE.quote_from_row(row, "P0", "test"))
         self.assertIsNone(RUNTIME.BASE.quote_from_row(row, "P2705", "test"))
 
+    def test_night_quotes_accept_exchange_date_label_variance(self):
+        evening = datetime.fromisoformat("2026-09-01T21:24:00+08:00")
+        current_day = {"last": 100, "trade_date": "2026-09-01", "source_time": "21:24:00"}
+        next_trade_day = {"last": 100, "trade_date": "2026-09-02", "source_time": "21:24:00"}
+        self.assertTrue(RUNTIME.quote_is_current(current_day, evening, "night-evening"))
+        self.assertTrue(RUNTIME.quote_is_current(next_trade_day, evening, "night-evening"))
+        fresh = {"TA2701": current_day, "AL2610": next_trade_day}
+        self.assertTrue(RUNTIME.quote_coverage_complete(
+            list(fresh), fresh, ["2026-09-01", "2026-09-02"], "night-evening"
+        ))
+        self.assertEqual(
+            RUNTIME.canonical_mark_date(evening, "night-evening", ["2026-09-01", "2026-09-02"]),
+            "2026-09-01",
+        )
+
+    def test_after_midnight_quote_may_keep_previous_calendar_label(self):
+        now = datetime.fromisoformat("2026-09-02T00:01:00+08:00")
+        quote = {"last": 100, "trade_date": "2026-09-01", "source_time": "00:01:00"}
+        self.assertTrue(RUNTIME.quote_is_current(quote, now, "night-after-midnight"))
+
     def test_session_gate_excludes_breaks_weekends_and_accepts_overnight(self):
         cases = {
             "2026-08-31T08:59:00+08:00": None,

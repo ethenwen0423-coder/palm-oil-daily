@@ -79,7 +79,11 @@ def quote_is_current(quote: dict[str, Any] | None, now: datetime, session: str) 
     calendar_gap = (trade_day - now.date()).days
     if session.startswith("day-") and calendar_gap != 0:
         return False
-    if session.startswith("night-") and not 0 <= calendar_gap <= 3:
+    # Night-session feeds differ by exchange: some label the same live quote
+    # with the calendar day, others with the next trading day. After midnight,
+    # a still-live feed may therefore be one calendar day behind ``now``.
+    # The independent source-clock check below remains the freshness gate.
+    if session.startswith("night-") and not -1 <= calendar_gap <= 3:
         return False
     source_minutes = _source_clock_minutes(quote.get("source_time"))
     if source_minutes is None:
@@ -87,6 +91,21 @@ def quote_is_current(quote: dict[str, Any] | None, now: datetime, session: str) 
     now_minutes = now.hour * 60 + now.minute
     clock_gap = abs(source_minutes - now_minutes)
     return min(clock_gap, 24 * 60 - clock_gap) <= 5
+
+
+def quote_coverage_complete(contracts: list[str], fresh: dict[str, dict[str, Any]],
+                            trade_dates: list[str], session: str) -> bool:
+    if len(fresh) != len(contracts):
+        return False
+    return session.startswith("night-") or len(trade_dates) <= 1
+
+
+def canonical_mark_date(now: datetime, session: str, trade_dates: list[str]) -> str:
+    # Keep the virtual equity curve on the observed calendar day at night;
+    # source-specific trading-day labels remain available in the quote audit.
+    if session.startswith("night-"):
+        return now.date().isoformat()
+    return trade_dates[0]
 
 
 def _publish(state_dir: Path, live_data_root: Path, state: dict[str, Any], sources: list[dict[str, Any]],
@@ -160,14 +179,14 @@ def main() -> int:
             "session": session,
             "expected_count": len(contracts),
             "validated_count": len(fresh),
-            "coverage_status": "complete" if len(fresh) == len(contracts) and len(trade_dates) <= 1 else "partial",
+            "coverage_status": "complete" if quote_coverage_complete(contracts, fresh, trade_dates, session) else "partial",
             "missing_or_stale_contracts": missing,
             "trade_dates": trade_dates,
             "freshness_seconds": 300,
             "validation": "精确PYYMM、交易日、来源时钟与最新价均通过校验后才更新账本",
         }
         if positions and audit["coverage_status"] == "complete":
-            mark_date = trade_dates[0]
+            mark_date = canonical_mark_date(now, session, trade_dates)
             marks = {"as_of": mark_date, "source": "minute exact-contract quote fallback chain", "prices": [
                 {"variety": variety, "contract": position["contract"],
                  "price": fresh[position["contract"]]["last"], "source": fresh[position["contract"]]["source"]}
