@@ -372,6 +372,26 @@ def automation_status(data_root: Path) -> dict[str, dict[str, Any]]:
             continue
         generated_at = parse_timestamp(payload.get("generated_at"))
         owner = str(payload.get("owner") or "").strip()
+        session = str(payload.get("session") or "").strip()
+        if key == "research" and (
+            owner != "server-research-agent" or session not in {"daily", "weekend"}
+        ):
+            item.update(
+                {
+                    "owner": (
+                        "upstream-sync"
+                        if session == "upstream-report-publish"
+                        else owner or None
+                    ),
+                    "last_success_at": (
+                        generated_at.isoformat() if generated_at is not None else None
+                    ),
+                    "session": session,
+                    "reason": "server-generation-not-verified",
+                }
+            )
+            status[key] = item
+            continue
         if generated_at is None or not owner:
             item["state"] = "invalid"
         else:
@@ -380,7 +400,7 @@ def automation_status(data_root: Path) -> dict[str, dict[str, Any]]:
                     "state": "ready",
                     "owner": owner,
                     "last_success_at": generated_at.isoformat(),
-                    "session": payload.get("session"),
+                    "session": session,
                 }
             )
         status[key] = item

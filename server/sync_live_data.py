@@ -18,6 +18,7 @@ MARKET_READY_MARKER = ".server-market-ready.json"
 AI_READY_MARKER = ".server-ai-ready.json"
 SUPPLY_READY_MARKER = ".server-supply-ready.json"
 RESEARCH_READY_MARKER = ".server-research-ready.json"
+LEGACY_UPSTREAM_RESEARCH_SESSION = "upstream-report-publish"
 REVIEW_READY_MARKER = ".server-review-ready.json"
 HTFC_READY_MARKER = ".server-htfc-ready.json"
 DAREDEVIL_READY_MARKER = ".server-ai-daredevil-ready.json"
@@ -291,12 +292,43 @@ def write_marker(
             temporary.unlink()
 
 
+def server_research_marker_is_valid(target_root: Path) -> bool:
+    """Return true only for a marker written after a real server report run."""
+    target = target_root / RESEARCH_READY_MARKER
+    try:
+        payload = json.loads(target.read_text(encoding="utf-8"))
+    except (FileNotFoundError, OSError, json.JSONDecodeError):
+        return False
+    if not isinstance(payload, dict):
+        return False
+    generated_at = str(payload.get("generated_at") or "").strip()
+    try:
+        datetime.fromisoformat(generated_at.replace("Z", "+00:00"))
+    except ValueError:
+        return False
+    return (
+        str(payload.get("owner") or "").strip() == "server-research-agent"
+        and str(payload.get("session") or "").strip() in {"daily", "weekend"}
+    )
+
+
 def sync_upstream(source_root: Path, target_root: Path) -> dict[str, object]:
     market_owned = (target_root / MARKET_READY_MARKER).exists()
     ai_owned = (target_root / AI_READY_MARKER).exists()
     supply_owned = (target_root / SUPPLY_READY_MARKER).exists()
     htfc_owned = (target_root / HTFC_READY_MARKER).exists()
-    research_owned = (target_root / RESEARCH_READY_MARKER).exists()
+    research_marker = target_root / RESEARCH_READY_MARKER
+    research_owned = server_research_marker_is_valid(target_root)
+    if research_marker.exists() and not research_owned:
+        try:
+            marker_payload = json.loads(research_marker.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            marker_payload = None
+        if (
+            isinstance(marker_payload, dict)
+            and marker_payload.get("session") == LEGACY_UPSTREAM_RESEARCH_SESSION
+        ):
+            research_marker.unlink()
     review_owned = (target_root / REVIEW_READY_MARKER).exists()
     daredevil_owned = (target_root / DAREDEVIL_READY_MARKER).exists()
     pure_ai_fund_owned = (target_root / PURE_AI_FUND_READY_MARKER).exists()

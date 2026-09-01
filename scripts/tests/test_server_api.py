@@ -86,8 +86,8 @@ class ServerApiStatusTests(unittest.TestCase):
         )
         self.assertIn('restart api', runner)
         self.assertIn('PUBLIC_ACCESS_MODE="${PALM_OIL_PUBLIC_ACCESS_MODE:-public}"', runner)
-        self.assertIn('--mode research', runner)
-        self.assertIn('--session upstream-report-publish', runner)
+        self.assertNotIn('--mode research', runner)
+        self.assertNotIn('--session upstream-report-publish', runner)
         self.assertIn('compose exec -T api python3 -c', runner)
         self.assertIn('compose stop web || true', runner)
         self.assertIn('/api/status', runner)
@@ -192,6 +192,29 @@ class ServerApiStatusTests(unittest.TestCase):
         self.assertEqual(
             status["datasets"]["/api/forecast/metrics/latest"]["owner"],
             "server-prediction-review",
+        )
+
+    def test_upstream_publish_marker_does_not_claim_server_research_ready(self):
+        now = datetime(2026, 9, 1, 12, 0, tzinfo=timezone.utc)
+        self.write_json("reports.json", [{"date": "2026-08-31"}])
+        self.write_json(
+            ".server-research-ready.json",
+            {
+                "generated_at": "2026-09-01T14:14:41+08:00",
+                "session": "upstream-report-publish",
+                "owner": "server-research-agent",
+            },
+        )
+
+        status = API.build_status(self.data_root, now=now)
+
+        research = status["automation"]["research"]
+        self.assertEqual(research["state"], "pending")
+        self.assertEqual(research["owner"], "upstream-sync")
+        self.assertEqual(research["reason"], "server-generation-not-verified")
+        self.assertEqual(
+            status["datasets"]["/api/reports"]["owner"],
+            "upstream-sync",
         )
 
     def test_report_array_uses_latest_report_date(self):

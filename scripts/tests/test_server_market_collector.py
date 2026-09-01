@@ -319,6 +319,25 @@ class ServerMarketCollectorTests(unittest.TestCase):
         self.assertEqual([item["date"] for item in reports], ["2026-08-31", "2026-08-27"])
         self.assertEqual(reports[1]["marker"], "server")
 
+    def test_upstream_publish_marker_is_retired_without_claiming_server_ownership(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            upstream = base / "upstream"
+            live = base / "live"
+            write_all_datasets(upstream, "upstream")
+            live.mkdir(parents=True)
+            SYNC.write_marker(
+                live,
+                SYNC.RESEARCH_READY_MARKER,
+                session=SYNC.LEGACY_UPSTREAM_RESEARCH_SESSION,
+                owner="server-research-agent",
+            )
+
+            result = SYNC.sync_upstream(upstream, live)
+            self.assertFalse(result["server_research_owned"])
+            self.assertEqual(result["reports_copied"], ["reports.json"])
+            self.assertFalse((live / SYNC.RESEARCH_READY_MARKER).exists())
+
     def test_owned_supply_accepts_only_newer_checked_payload(self):
         with tempfile.TemporaryDirectory() as temporary:
             base = Path(temporary)

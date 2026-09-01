@@ -61,15 +61,6 @@ python3 server/sync_live_data.py \
   --source data \
   --target "$LIVE_DATA_ROOT"
 
-# Reports are generated and published by the upstream runtime.  A server-side
-# research marker must not leave /api/reports behind data/reports.json, because
-# the homepage correctly prefers the API over its static fallback.
-python3 server/sync_live_data.py \
-  --mode research \
-  --source data \
-  --target "$LIVE_DATA_ROOT" \
-  --session upstream-report-publish
-
 api_changed=false
 for api_source in server/api.py server/contract_analysis.py
 do
