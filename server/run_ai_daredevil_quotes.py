@@ -108,6 +108,17 @@ def canonical_mark_date(now: datetime, session: str, trade_dates: list[str]) -> 
     return trade_dates[0]
 
 
+def quote_observation(quote: dict[str, Any], now: datetime, mark_date: str) -> dict[str, Any]:
+    return {
+        "price": quote["last"],
+        "trade_date": mark_date,
+        "source_trade_date": quote.get("trade_date"),
+        "observed_at": now.isoformat(timespec="seconds"),
+        "source_observed_at": quote.get("observed_at"),
+        "source": quote.get("source"),
+    }
+
+
 def _publish(state_dir: Path, live_data_root: Path, state: dict[str, Any], sources: list[dict[str, Any]],
              scan_audit: dict[str, Any], skipped: list[dict[str, Any]], now: datetime,
              audit: dict[str, Any]) -> dict[str, Any]:
@@ -198,13 +209,7 @@ def main() -> int:
             BASE.atomic_json(state_dir / "latest_quote_observations.json", {
                 "generated_at": now.isoformat(timespec="seconds"),
                 "quotes": {
-                    contract: {
-                        "price": quote["last"],
-                        "trade_date": quote["trade_date"],
-                        "observed_at": now.isoformat(timespec="seconds"),
-                        "source_observed_at": quote.get("observed_at"),
-                        "source": quote.get("source"),
-                    }
+                    contract: quote_observation(quote, now, mark_date)
                     for contract, quote in fresh.items()
                 },
             })

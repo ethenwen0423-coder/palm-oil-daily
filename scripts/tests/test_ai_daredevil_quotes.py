@@ -46,6 +46,17 @@ class AiDaredevilMinuteQuoteTests(unittest.TestCase):
         quote = {"last": 100, "trade_date": "2026-09-01", "source_time": "00:01:00"}
         self.assertTrue(RUNTIME.quote_is_current(quote, now, "night-after-midnight"))
 
+    def test_quote_observation_keeps_canonical_and_source_trade_dates(self):
+        now = datetime.fromisoformat("2026-09-01T21:27:00+08:00")
+        quote = {
+            "last": 24025, "trade_date": "2026-09-02",
+            "observed_at": "2026-09-02 21:26:35", "source": "test",
+        }
+        observation = RUNTIME.quote_observation(quote, now, "2026-09-01")
+        self.assertEqual(observation["trade_date"], "2026-09-01")
+        self.assertEqual(observation["source_trade_date"], "2026-09-02")
+        self.assertEqual(observation["observed_at"], "2026-09-01T21:27:00+08:00")
+
     def test_session_gate_excludes_breaks_weekends_and_accepts_overnight(self):
         cases = {
             "2026-08-31T08:59:00+08:00": None,
