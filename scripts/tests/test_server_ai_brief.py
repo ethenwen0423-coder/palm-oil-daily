@@ -35,7 +35,7 @@ def valid_brief() -> dict[str, object]:
 
 class ServerAiBriefTests(unittest.TestCase):
     def test_server_timeout_allows_full_subscription_generation(self):
-        self.assertEqual(RUNNER.DEFAULT_TIMEOUT_SECONDS, 600)
+        self.assertEqual(RUNNER.DEFAULT_TIMEOUT_SECONDS, 900)
 
     def test_validate_brief_requires_dynamic_quant_evidence_snapshot(self):
         with tempfile.TemporaryDirectory() as temporary:

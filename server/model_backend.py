@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+from contextlib import contextmanager
+import fcntl
 import json
 import os
 import shutil
@@ -38,6 +40,31 @@ PROVIDERS = {
 
 class ModelBackendError(RuntimeError):
     """Raised when the configured model backend cannot return valid JSON."""
+
+
+def _model_lock_root() -> Path:
+    configured = os.environ.get("PALM_OIL_SERVER_STATE_ROOT", "").strip()
+    if configured:
+        return Path(configured)
+    production = Path("/srv/palm-oil-daily/state")
+    if production.is_dir():
+        return production
+    return Path(tempfile.gettempdir()) / "palm-oil-model-backend"
+
+
+@contextmanager
+def _model_execution_slot():
+    """Serialize unattended model calls without changing their prompts."""
+
+    state_root = _model_lock_root()
+    state_root.mkdir(parents=True, exist_ok=True)
+    lock = (state_root / "model-backend.lock").open("a+", encoding="utf-8")
+    try:
+        fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
+        yield
+    finally:
+        fcntl.flock(lock.fileno(), fcntl.LOCK_UN)
+        lock.close()
 
 
 def provider_name() -> str:
@@ -272,15 +299,16 @@ def request_json(
     if model:
         config["model"] = model.strip()
     if config["style"] == "codex-cli":
-        return (
-            _request_codex(
-                config=config,
-                schema=schema,
-                prompt=prompt,
-                timeout=timeout,
-            ),
-            config["backend"],
-        )
+        with _model_execution_slot():
+            return (
+                _request_codex(
+                    config=config,
+                    schema=schema,
+                    prompt=prompt,
+                    timeout=timeout,
+                ),
+                config["backend"],
+            )
     if config["style"] == "responses":
         body: dict[str, Any] = {
             "model": config["model"],
@@ -315,17 +343,18 @@ def request_json(
         },
         method="POST",
     )
-    try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:
-            raw = response.read().decode("utf-8")
-    except urllib.error.HTTPError as exc:
-        raise ModelBackendError(
-            f"{config['provider']} API request failed (HTTP {exc.code})"
-        ) from exc
-    except (OSError, TimeoutError) as exc:
-        raise ModelBackendError(
-            f"{config['provider']} API request timed out or network failed"
-        ) from exc
+    with _model_execution_slot():
+        try:
+            with urllib.request.urlopen(request, timeout=timeout) as response:
+                raw = response.read().decode("utf-8")
+        except urllib.error.HTTPError as exc:
+            raise ModelBackendError(
+                f"{config['provider']} API request failed (HTTP {exc.code})"
+            ) from exc
+        except (OSError, TimeoutError) as exc:
+            raise ModelBackendError(
+                f"{config['provider']} API request timed out or network failed"
+            ) from exc
     try:
         response_payload = json.loads(raw)
         text = (

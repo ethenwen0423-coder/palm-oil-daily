@@ -18,6 +18,11 @@ SPEC.loader.exec_module(MODULE)
 
 
 class ServerModelBackendCodexTests(unittest.TestCase):
+    def test_all_model_requests_share_the_server_execution_slot(self):
+        script = SCRIPT.read_text(encoding="utf-8")
+        self.assertIn('state_root / "model-backend.lock"', script)
+        self.assertGreaterEqual(script.count("with _model_execution_slot():"), 2)
+
     def test_codex_provider_uses_chatgpt_auth_and_structured_read_only_exec(self):
         calls: list[tuple[list[str], dict[str, str]]] = []
 
