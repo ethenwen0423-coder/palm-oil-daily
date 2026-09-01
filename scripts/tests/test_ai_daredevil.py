@@ -108,6 +108,18 @@ class AiDaredevilTests(unittest.TestCase):
         self.assertEqual(result[0]["contract"], "AU2610")
         self.assertEqual(result[0]["reason"], "账本未生成订单：因资金/风控未执行")
 
+    def test_published_scan_order_count_matches_actual_pending_ledger_orders(self):
+        audit = {"as_of": "2026-09-01", "candidate_count": 2, "order_count": 2}
+        pending = [
+            {"as_of": "2026-09-01", "contract": "PS2611", "status": "pending"},
+            {"as_of": "2026-08-31", "contract": "TA2701", "status": "pending"},
+        ]
+        result = RUNTIME.reconcile_scan_audit(audit, pending, [{"contract": "AU2610"}])
+        self.assertEqual(result["candidate_count"], 2)
+        self.assertEqual(result["eligible_order_count"], 2)
+        self.assertEqual(result["order_count"], 1)
+        self.assertEqual(result["ledger_skipped_count"], 1)
+
     def test_akshare_realtime_uses_display_symbols_instead_of_variety_codes(self):
         self.assertEqual(RUNTIME.PRODUCT_REALTIME_SYMBOL["P"], "棕榈")
         self.assertEqual(RUNTIME.PRODUCT_REALTIME_SYMBOL["TA"], "PTA")

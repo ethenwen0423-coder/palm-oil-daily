@@ -978,6 +978,17 @@ def latest_plan_skips(state_dir: Path, as_of: str | None) -> list[dict[str, Any]
     return []
 
 
+def reconcile_scan_audit(scan_audit: dict[str, Any], pending: list[dict[str, Any]],
+                         ledger_skips: list[dict[str, Any]]) -> dict[str, Any]:
+    published = dict(scan_audit)
+    as_of = str(scan_audit.get("as_of") or "")
+    if as_of:
+        published["eligible_order_count"] = scan_audit.get("order_count", 0)
+        published["order_count"] = sum(1 for row in pending if str(row.get("as_of") or "") == as_of)
+        published["ledger_skipped_count"] = len(ledger_skips)
+    return published
+
+
 def equity_curve(state_dir: Path, state: dict[str, Any], today: str) -> list[dict[str, Any]]:
     observed = {}
     path = state_dir / "snapshots.jsonl"
@@ -1052,11 +1063,13 @@ def public_snapshot(state_dir: Path, state: dict[str, Any], sources: list[dict[s
     pending = [row for row in state.get("pending_orders", []) if row.get("status") == "pending"]
     effective_skipped = list(skipped)
     seen_skips = {(row.get("variety"), row.get("contract"), row.get("reason")) for row in effective_skipped}
-    for row in latest_plan_skips(state_dir, scan_audit.get("as_of")):
+    ledger_skips = latest_plan_skips(state_dir, scan_audit.get("as_of"))
+    for row in ledger_skips:
         identity = (row.get("variety"), row.get("contract"), row.get("reason"))
         if identity not in seen_skips:
             effective_skipped.append(row)
             seen_skips.add(identity)
+    published_scan_audit = reconcile_scan_audit(scan_audit, pending, ledger_skips)
     strategy = read_json(state_dir / "strategy_state.json", {})
     for variety, roll in strategy.get("pending_rolls", {}).items():
         pending.append({
@@ -1093,7 +1106,7 @@ def public_snapshot(state_dir: Path, state: dict[str, Any], sources: list[dict[s
                   "execution": "完整日线确认，下一交易日开盘执行"},
         "summary": summary, "equity_curve": curve, "positions": positions,
         "today_trades": events, "pending_orders": pending, "skipped_signals": effective_skipped,
-        "scan_audit": scan_audit,
+        "scan_audit": published_scan_audit,
         "margin_audit": {
             key: value for key, value in margin_book.items()
             if key != "rates"
