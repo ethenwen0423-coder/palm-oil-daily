@@ -43,6 +43,29 @@ load_model_environment() {
   done <"$AI_ENV_FILE"
 }
 
+require_current_acceptance() {
+  local output="$1"
+  local kind="$2"
+  python3 - "$output" "$kind" <<'PY'
+import json
+import sys
+
+try:
+    payload = json.loads(sys.argv[1])
+except json.JSONDecodeError as exc:
+    raise SystemExit(f"{sys.argv[2]} acceptance returned invalid JSON: {exc}")
+
+kind = sys.argv[2]
+if payload.get("status") != "ok" or payload.get("backend") != "codex-chatgpt-cli":
+    raise SystemExit(f"{kind} acceptance did not complete successfully: {payload}")
+if kind == "ai-brief":
+    if payload.get("server_ai_owned") is not True or not payload.get("generated_at"):
+        raise SystemExit(f"AI brief acceptance did not publish a fresh owned result: {payload}")
+elif payload.get("acceptance") != "real_model_report_draft_validated":
+    raise SystemExit(f"research acceptance did not validate a real model draft: {payload}")
+PY
+}
+
 if [[ "$MODE" == "--status" ]]; then
   api_key_present=false
   provider="missing"
@@ -181,25 +204,30 @@ fi
   exit 2
 }
 
-"$VENV_ROOT/bin/python" \
+ai_acceptance="$("$VENV_ROOT/bin/python" \
   "$SITE_ROOT/server/run_ai_brief.py" \
   --site-root "$SITE_ROOT" \
   --live-data-root "$LIVE_DATA_ROOT" \
-  --state-root "$STATE_ROOT"
+  --state-root "$STATE_ROOT" \
+  --force)"
+printf '%s\n' "$ai_acceptance"
+require_current_acceptance "$ai_acceptance" "ai-brief"
 
 [[ -s "$LIVE_DATA_ROOT/.server-ai-ready.json" ]] || {
   echo "real AI generation did not publish the server ownership marker" >&2
   exit 2
 }
 
-"$VENV_ROOT/bin/python" \
+research_acceptance="$("$VENV_ROOT/bin/python" \
   "$SITE_ROOT/server/run_research_agent.py" \
   --site-root "$SITE_ROOT" \
   --live-data-root "$LIVE_DATA_ROOT" \
   --state-root "$STATE_ROOT" \
   --force-kind weekend \
   --acceptance-only \
-  --attempts 1
+  --attempts 1)"
+printf '%s\n' "$research_acceptance"
+require_current_acceptance "$research_acceptance" "research"
 [[ -s "$STATE_ROOT/research-backend.accepted.json" ]] || {
   echo "real research model acceptance did not publish its state marker" >&2
   exit 2
