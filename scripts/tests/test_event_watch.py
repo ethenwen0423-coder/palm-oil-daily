@@ -140,6 +140,37 @@ class EventWatchTests(unittest.TestCase):
         self.assertEqual(source["state"], "ready")
         self.assertEqual(events, [])
 
+    def test_legacy_non_cross_source_summary_is_reused_during_v3_migration(self):
+        event = EVENTS.normalize_event(
+            WATCH,
+            prefix="flash",
+            source="机构资讯·油脂油料快讯",
+            title="印尼棕榈油出口更新",
+            summary="印尼公布棕榈油出口数据。",
+            observed_at=self.now.isoformat(),
+            source_id="legacy-flash",
+        )
+        previous_event = {
+            **event,
+            "title": "印尼公布棕榈油出口数据",
+            "summary": "印尼公布最新棕榈油出口数据，市场仍需核验统计期与同比口径。",
+            "detail_summary": "来源公布印尼棕榈油出口数据，但当前摘要没有完整列出统计区间和比较基准。",
+            "summary_method": "model",
+            "summary_backend": "legacy-model",
+            "summary_version": 2,
+            "summary_publishable": True,
+        }
+
+        class Backend:
+            @staticmethod
+            def request_json(**_kwargs):
+                raise AssertionError("eligible legacy non-cross-source summaries should be reused")
+
+        events, source = RUNNER.summarize_events(Backend, [event], {"events": [previous_event]})
+        self.assertEqual(events[0]["summary_version"], 2)
+        self.assertEqual(events[0]["summary_backend"], "legacy-model")
+        self.assertIn("复用 1 条", source["detail"])
+
     def test_eastmoney_article_html_exposes_complete_weekly_view(self):
         article = '<p>每周棕榈油期货盘后笔记</p><p>周线和日线均为上涨ABC模型。</p><p>四小时、两小时和十五分钟周期也保留上涨结构。</p><p>周一观望，周二偏弱，周三与周四震荡。</p><p>周五日盘震荡上行。</p><p>作者说明窄幅震荡时应多看少动。</p>'
         document = f'<script>var articleTxt = {json.dumps(article, ensure_ascii=False)};</script>'

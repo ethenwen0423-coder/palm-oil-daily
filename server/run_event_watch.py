@@ -280,6 +280,13 @@ def summarize_events(
     events: list[dict[str, Any]],
     previous: dict[str, Any],
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    legacy_by_id = {
+        str(item.get("id")): item
+        for item in previous.get("events", [])
+        if isinstance(item, dict)
+        and item.get("summary_method") == "model"
+        and item.get("summary_version") in (2, 3, "2", "3")
+    }
     prior_by_id = {
         str(item.get("id")): item
         for item in previous.get("events", [])
@@ -297,6 +304,23 @@ def summarize_events(
                 "summary_publishable": False,
                 "summary_generated": True,
             })
+            continue
+        legacy = legacy_by_id.get(str(event.get("id")))
+        if (
+            legacy
+            and not str(event.get("source") or "").startswith("跨站新闻·")
+            and clean_sentence(legacy.get("title"), 80)
+            and clean_sentence(legacy.get("summary"), 260)
+        ):
+            for key in (
+                "title", "summary", "detail_summary", "background", "event_facts",
+                "transmission_chain", "market_relevance", "what_to_watch", "uncertainty",
+                "summary_method", "summary_backend", "summary_version", "summary_publishable",
+            ):
+                if legacy.get(key):
+                    event[key] = legacy[key]
+            event["summary_generated"] = True
+            reused += 1
             continue
         prior = prior_by_id.get(str(event.get("id")))
         if prior and valid_model_summary({
