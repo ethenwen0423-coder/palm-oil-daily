@@ -85,6 +85,29 @@ class AiDaredevilTests(unittest.TestCase):
         self.assertIsNone(RUNTIME.quote_from_row(row, "P0", "test"))
         self.assertIsNone(RUNTIME.quote_from_row(row, "P2705", "test"))
 
+    def test_latest_plan_skips_exposes_real_ledger_rejection_only(self):
+        events = [
+            {"event": "ORDER_PLAN", "as_of": "2026-08-31", "decisions": []},
+            {"event": "ORDER_PLAN", "as_of": "2026-09-01", "decisions": [
+                {"status": "skipped", "reason": "因资金/风控未执行", "signal": {
+                    "variety": "AU", "name": "黄金", "contract": "AU2610",
+                    "action": "ENTER_SHORT", "score": .31,
+                }},
+                {"status": "skipped", "reason": "signal order was already recorded", "signal": {
+                    "variety": "PS", "contract": "PS2611", "action": "ENTER_LONG",
+                }},
+            ]},
+        ]
+        with tempfile.TemporaryDirectory() as temporary:
+            state_dir = Path(temporary)
+            (state_dir / "trade_ledger.jsonl").write_text(
+                "\n".join(json.dumps(row, ensure_ascii=False) for row in events), encoding="utf-8"
+            )
+            result = RUNTIME.latest_plan_skips(state_dir, "2026-09-01")
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0]["contract"], "AU2610")
+        self.assertEqual(result[0]["reason"], "账本未生成订单：因资金/风控未执行")
+
     def test_akshare_realtime_uses_display_symbols_instead_of_variety_codes(self):
         self.assertEqual(RUNTIME.PRODUCT_REALTIME_SYMBOL["P"], "棕榈")
         self.assertEqual(RUNTIME.PRODUCT_REALTIME_SYMBOL["TA"], "PTA")

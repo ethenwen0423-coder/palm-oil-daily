@@ -951,6 +951,33 @@ def load_events(state_dir: Path, target: str) -> list[dict[str, Any]]:
     return events
 
 
+def latest_plan_skips(state_dir: Path, as_of: str | None) -> list[dict[str, Any]]:
+    try:
+        lines = (state_dir / "trade_ledger.jsonl").read_text(encoding="utf-8").splitlines()
+    except FileNotFoundError:
+        return []
+    for line in reversed(lines):
+        row = json.loads(line)
+        if row.get("event") != "ORDER_PLAN" or (as_of and row.get("as_of") != as_of):
+            continue
+        result = []
+        for decision in row.get("decisions", []):
+            if decision.get("status") not in {"skipped", "rejected"}:
+                continue
+            reason = str(decision.get("reason") or "账本规则未通过")
+            if reason == "signal order was already recorded":
+                continue
+            signal = decision.get("signal", {})
+            result.append({
+                "variety": signal.get("variety"), "name": signal.get("name"),
+                "contract": signal.get("contract"), "action": signal.get("action"),
+                "score": signal.get("score"),
+                "reason": f"账本未生成订单：{reason}",
+            })
+        return result
+    return []
+
+
 def equity_curve(state_dir: Path, state: dict[str, Any], today: str) -> list[dict[str, Any]]:
     observed = {}
     path = state_dir / "snapshots.jsonl"
@@ -1023,6 +1050,13 @@ def public_snapshot(state_dir: Path, state: dict[str, Any], sources: list[dict[s
             row["source_price_time"] = observation.get("source_observed_at")
         positions.append(row)
     pending = [row for row in state.get("pending_orders", []) if row.get("status") == "pending"]
+    effective_skipped = list(skipped)
+    seen_skips = {(row.get("variety"), row.get("contract"), row.get("reason")) for row in effective_skipped}
+    for row in latest_plan_skips(state_dir, scan_audit.get("as_of")):
+        identity = (row.get("variety"), row.get("contract"), row.get("reason"))
+        if identity not in seen_skips:
+            effective_skipped.append(row)
+            seen_skips.add(identity)
     strategy = read_json(state_dir / "strategy_state.json", {})
     for variety, roll in strategy.get("pending_rolls", {}).items():
         pending.append({
@@ -1058,7 +1092,7 @@ def public_snapshot(state_dir: Path, state: dict[str, Any], sources: list[dict[s
         "model": {"name": "布林带模型", "version": MODEL_VERSION, "capital_policy": "独立100万元权益复利",
                   "execution": "完整日线确认，下一交易日开盘执行"},
         "summary": summary, "equity_curve": curve, "positions": positions,
-        "today_trades": events, "pending_orders": pending, "skipped_signals": skipped,
+        "today_trades": events, "pending_orders": pending, "skipped_signals": effective_skipped,
         "scan_audit": scan_audit,
         "margin_audit": {
             key: value for key, value in margin_book.items()
