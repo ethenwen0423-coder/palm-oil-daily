@@ -11,6 +11,7 @@ from __future__ import annotations
 import json
 import math
 import re
+import time
 import urllib.request
 from datetime import date, datetime, timedelta
 from html.parser import HTMLParser
@@ -21,6 +22,7 @@ from typing import Any
 SHFE_DAILY_URL = "https://www.shfe.cn/data/busiparamdata/future/ContractDailyTradeArgument{day}.dat"
 QIHUO_URL = "https://www.9qihuo.com/qihuoshouxufei"
 MAX_SOURCE_AGE_DAYS = 7
+QIHUO_FETCH_ATTEMPTS = 2
 CONTRACT_RE = re.compile(r"^([A-Z]{1,3})(\d{4})$")
 VALIDATION_NOTE = "真实PYYMM逐合约；保留多空保证金并按实际持仓方向使用；缺失或超过7日不使用默认比例"
 
@@ -205,11 +207,22 @@ def fetch_margin_book(contracts: list[str], as_of: date, timeout: int = 30) -> d
     missing = [contract for contract in exact if contract not in rates]
     qihuo_error = None
     if missing:
-        try:
-            qihuo = parse_qihuo_margin_rows(_download_text(QIHUO_URL, max(timeout, 30)), missing)
-            rates.update(qihuo)
-        except (OSError, ValueError) as exc:
-            qihuo_error = f"{type(exc).__name__}: {exc}"
+        # The public table occasionally stalls from the production network.
+        # Retry once, but cap each request so a refresh can never retain the
+        # automation lock indefinitely.
+        qihuo_timeout = min(max(timeout, 10), 30)
+        for attempt in range(QIHUO_FETCH_ATTEMPTS):
+            try:
+                qihuo = parse_qihuo_margin_rows(
+                    _download_text(QIHUO_URL, qihuo_timeout), missing
+                )
+                rates.update(qihuo)
+                qihuo_error = None
+                break
+            except (OSError, ValueError) as exc:
+                qihuo_error = f"{type(exc).__name__}: {exc}"
+                if attempt + 1 < QIHUO_FETCH_ATTEMPTS:
+                    time.sleep(0.75 * (attempt + 1))
     stale = sorted(contract for contract, row in rates.items() if not source_is_fresh(row, as_of))
     for contract in stale:
         rates.pop(contract, None)

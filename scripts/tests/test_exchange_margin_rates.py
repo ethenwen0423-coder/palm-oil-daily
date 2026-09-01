@@ -51,6 +51,25 @@ class ExchangeMarginRateTests(unittest.TestCase):
             result = MARGINS.fetch_margin_book([], date(2026, 9, 1))
         self.assertIn("按实际持仓方向使用", result["validation"])
 
+    def test_qihuo_fetch_retries_once_after_transient_timeout(self):
+        html = """
+        <table><tr><th>合约</th><th>现价</th><th>涨跌停</th><th>多头</th><th>空头</th></tr>
+        <tr><td title="手续费更新时间：2026-08-31 21:25:25"><a>PTA701 (<b>TA701</b>)</a></td>
+        <td>5100</td><td>5500/4700</td><td>7%</td><td>8%</td></tr></table>
+        """
+        with (
+            mock.patch.object(MARGINS, "_fetch_shfe", return_value=({}, None)),
+            mock.patch.object(MARGINS, "_download_text", side_effect=[TimeoutError("slow"), html]) as fetch,
+            mock.patch.object(MARGINS.time, "sleep") as sleep,
+        ):
+            result = MARGINS.fetch_margin_book(["TA2701"], date(2026, 9, 1), timeout=90)
+        self.assertEqual(result["coverage_status"], "complete")
+        self.assertEqual(result["rates"]["TA2701"]["margin_rate"], .08)
+        self.assertIsNone(result["qihuo_error"])
+        self.assertEqual(fetch.call_count, 2)
+        self.assertTrue(all(call.args[1] == 30 for call in fetch.call_args_list))
+        sleep.assert_called_once()
+
     def test_fresh_cache_rewrites_legacy_validation_note(self):
         with tempfile.TemporaryDirectory() as temporary:
             path = Path(temporary) / "margins.json"

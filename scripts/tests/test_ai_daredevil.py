@@ -92,6 +92,29 @@ class AiDaredevilTests(unittest.TestCase):
         self.assertEqual(RUNTIME.PRODUCT_REALTIME_NODE["P"], "zly_qh")
         self.assertEqual(set(RUNTIME.PRODUCT_REALTIME_NODE), set(RUNTIME.PRODUCTS))
 
+    def test_realtime_quotes_use_bounded_concurrent_direct_requests(self):
+        payload = json.dumps([{
+            "symbol": "P2701", "trade": "10020", "open": "9990",
+            "date": "2026-09-01", "time": "21:01:00",
+        }]).encode()
+
+        class Response:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_args):
+                return False
+
+            def read(self):
+                return payload
+
+        with mock.patch.object(RUNTIME.urllib.request, "urlopen", return_value=Response()) as fetch:
+            quotes, error = RUNTIME.akshare_quotes(["P2701"], timeout=90)
+        self.assertIsNone(error)
+        self.assertEqual(quotes["P2701"]["last"], 10020)
+        self.assertEqual(quotes["P2701"]["source"], "新浪期货实时行情（AKShare 同源）")
+        self.assertEqual(fetch.call_args.kwargs["timeout"], 12)
+
     def test_margin_rate_uses_the_actual_long_or_short_exchange_side(self):
         book = {"rates": {"SA2701": {
             "contract": "SA2701", "margin_rate": .12,
@@ -122,6 +145,39 @@ class AiDaredevilTests(unittest.TestCase):
             persisted = json.loads((state_dir / RUNTIME.MARGIN_BOOK_FILE).read_text(encoding="utf-8"))
         self.assertEqual(result["validation"], "按实际持仓方向使用")
         self.assertEqual(persisted["validation"], "按实际持仓方向使用")
+
+    def test_partial_fresh_margin_cache_is_merged_with_partial_refresh(self):
+        cached_rate = {
+            "contract": "TA2701", "margin_rate": .08,
+            "long_margin_rate": .07, "short_margin_rate": .08,
+            "source_updated_at": "2026-08-31",
+        }
+        fresh_rate = {
+            "contract": "AU2610", "margin_rate": .16,
+            "long_margin_rate": .16, "short_margin_rate": .16,
+            "source_updated_at": "2026-09-01",
+        }
+        resolver = SimpleNamespace(
+            source_is_fresh=lambda row, _day: row.get("source_updated_at") >= "2026-08-25",
+            load_cached_margin_book=mock.Mock(return_value=None),
+            fetch_margin_book=mock.Mock(return_value={
+                "coverage_status": "partial", "rates": {"AU2610": fresh_rate},
+                "unresolved_contracts": ["TA2701"], "validated_count": 1,
+            }),
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            state_dir = Path(temporary)
+            (state_dir / RUNTIME.MARGIN_BOOK_FILE).write_text(
+                json.dumps({"rates": {"TA2701": cached_rate}}), encoding="utf-8"
+            )
+            now = pd.Timestamp("2026-09-01T20:30:00+08:00").to_pydatetime()
+            with mock.patch.object(RUNTIME, "load_margin_resolver", return_value=resolver):
+                result = RUNTIME.resolve_margin_book(
+                    state_dir, ["AU2610", "TA2701"], now, 20, force=True
+                )
+        self.assertEqual(result["coverage_status"], "complete")
+        self.assertEqual(set(result["rates"]), {"AU2610", "TA2701"})
+        self.assertTrue(result["cache_fallback_used"])
 
     def test_realtime_contract_discovery_uses_bounded_direct_requests(self):
         products = {

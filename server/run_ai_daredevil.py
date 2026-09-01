@@ -227,27 +227,52 @@ def quote_from_row(row: dict[str, Any], contract: str, source: str) -> dict[str,
     }
 
 
-def akshare_quotes(contracts: list[str]) -> tuple[dict[str, dict[str, Any]], str | None]:
-    try:
-        import akshare as ak
-    except ImportError as exc:
-        return {}, f"akshare unavailable: {exc}"
+def akshare_quotes(contracts: list[str], timeout: int = 12) -> tuple[dict[str, dict[str, Any]], str | None]:
+    """Read the same Sina delivery-contract feed used by AkShare, with a timeout.
+
+    ``ak.futures_zh_realtime`` calls ``requests.get`` without a timeout. A slow
+    upstream therefore used to block the minute refresh after the close scan
+    had already finished. Direct, concurrent requests preserve the exact raw
+    feed while making the wall-clock boundary explicit.
+    """
     output: dict[str, dict[str, Any]] = {}
     errors = []
     by_variety: dict[str, list[str]] = {}
     for contract in contracts:
         variety = re.match(r"[A-Z]+", contract).group(0)
         by_variety.setdefault(variety, []).append(contract)
-    for variety, expected in by_variety.items():
+    request_timeout = min(max(int(timeout), 3), 12)
+
+    def fetch_variety(variety: str, expected: list[str]):
         try:
-            frame = ak.futures_zh_realtime(symbol=PRODUCT_REALTIME_SYMBOL[variety])
-            for row in frame.to_dict(orient="records") if frame is not None else []:
+            url = (
+                "https://vip.stock.finance.sina.com.cn/quotes_service/api/json_v2.php/"
+                "Market_Center.getHQFuturesData?"
+                + urllib.parse.urlencode({
+                    "page": "1", "sort": "position", "asc": "0",
+                    "node": PRODUCT_REALTIME_NODE[variety], "base": "futures",
+                })
+            )
+            request = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(request, timeout=request_timeout) as response:
+                rows = json.loads(response.read().decode("utf-8"))
+            found = {}
+            for row in rows if isinstance(rows, list) else []:
                 for contract in expected:
-                    quote = quote_from_row(row, contract, "AKShare 真实交割月行情")
+                    quote = quote_from_row(row, contract, "新浪期货实时行情（AKShare 同源）")
                     if quote:
-                        output[contract] = quote
+                        found[contract] = quote
+            return found, None
         except Exception as exc:  # remote schema/network boundary
-            errors.append(f"{variety}:{type(exc).__name__}")
+            return {}, f"{variety}:{type(exc).__name__}"
+
+    with ThreadPoolExecutor(max_workers=min(8, len(by_variety))) as pool:
+        futures = [pool.submit(fetch_variety, variety, expected) for variety, expected in by_variety.items()]
+        for future in as_completed(futures):
+            found, error = future.result()
+            output.update(found)
+            if error:
+                errors.append(error)
     return output, ", ".join(errors) or None
 
 
@@ -344,13 +369,13 @@ def resolve_quotes(contracts: list[str], timeout: int) -> tuple[dict[str, dict[s
     contracts = sorted(set(filter(None, contracts)))
     if not contracts:
         return {}, [
-            {"priority": "主来源", "name": "AKShare 真实交割月行情", "state": "ready", "note": "当前无持仓或待执行订单，本轮无需请求"},
+            {"priority": "主来源", "name": "新浪期货实时行情（AKShare 同源）", "state": "ready", "note": "当前无持仓或待执行订单，本轮无需请求"},
             {"priority": "回退 1", "name": "同花顺问财行情 Skill", "state": "fallback", "note": "仅在 AKShare 精确合约行情缺失时启用"},
             {"priority": "回退 2", "name": "华泰智能 K 线 Skill", "state": "fallback", "note": "仅接受包含精确 PYYMM 合约的原始 K 线"},
         ]
-    quotes, ak_error = akshare_quotes(contracts)
+    quotes, ak_error = akshare_quotes(contracts, timeout)
     source_rows = [{
-        "priority": "主来源", "name": "AKShare 真实交割月行情",
+        "priority": "主来源", "name": "新浪期货实时行情（AKShare 同源）",
         "state": "ready" if quotes else "failed",
         "note": f"命中 {len(quotes)}/{len(contracts)} 个精确合约" + (f"；{ak_error}" if ak_error else ""),
     }]
@@ -796,6 +821,13 @@ def resolve_margin_book(state_dir: Path, contracts: list[str], now: datetime, ti
                         *, force: bool = False) -> dict[str, Any]:
     resolver = load_margin_resolver()
     path = state_dir / MARGIN_BOOK_FILE
+    raw_cached = read_json(path, {})
+    raw_cached_rates = raw_cached.get("rates", {}) if isinstance(raw_cached, dict) else {}
+    reusable_cached = {
+        contract: row for contract, row in raw_cached_rates.items()
+        if contract in contracts and isinstance(row, dict)
+        and resolver.source_is_fresh(row, now.date())
+    } if isinstance(raw_cached_rates, dict) else {}
     cached = resolver.load_cached_margin_book(path, contracts, now.date())
     fetched_today = str((cached or {}).get("fetched_at", ""))[:10] == now.date().isoformat()
     if cached is not None and fetched_today and not force:
@@ -809,14 +841,16 @@ def resolve_margin_book(state_dir: Path, contracts: list[str], now: datetime, ti
             "rates": {}, "validation": "当前无持仓、待执行开仓或新增信号，无需保证金参数",
         }
     fresh = resolver.fetch_margin_book(contracts, now.date(), timeout=max(timeout, 30))
-    if fresh.get("coverage_status") != "complete" and cached:
-        merged = dict(cached.get("rates", {}))
+    if fresh.get("coverage_status") != "complete" and reusable_cached:
+        refreshed_contracts = set(fresh.get("rates", {}))
+        merged = dict(reusable_cached)
         merged.update(fresh.get("rates", {}))
         fresh["rates"] = {contract: merged[contract] for contract in contracts if contract in merged}
         fresh["validated_count"] = len(fresh["rates"])
         fresh["unresolved_contracts"] = sorted(set(contracts) - set(fresh["rates"]))
         fresh["coverage_status"] = "complete" if not fresh["unresolved_contracts"] else "partial"
         fresh["cache_fallback_used"] = True
+        fresh["cache_fallback_contracts"] = sorted(set(reusable_cached) - refreshed_contracts)
     atomic_json(path, fresh)
     return fresh
 
