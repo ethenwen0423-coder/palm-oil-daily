@@ -3,6 +3,7 @@ import json
 import subprocess
 import sys
 import tempfile
+import urllib.error
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
@@ -167,6 +168,45 @@ class AiDaredevilTests(unittest.TestCase):
         self.assertIn("urlopen(request, timeout=15)", source)
         self.assertIn("ThreadPoolExecutor", source)
         self.assertIn("pd.Timedelta(days=120)", source)
+
+    def test_daily_fetch_retries_on_the_alternate_history_host(self):
+        payload = (
+            "var _contract_history=(["
+            '{"d":"2026-08-31","o":"100","h":"102","l":"99",'
+            '"c":"101","v":"1000","p":"2000","s":"100"}]);'
+        ).encode()
+
+        class Response:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_args):
+                return False
+
+            def read(self):
+                return payload
+
+        with (
+            mock.patch.object(
+                RUNTIME.urllib.request, "urlopen",
+                side_effect=[urllib.error.URLError("temporary"), Response()],
+            ) as fetch,
+            mock.patch.object(RUNTIME.time_module, "sleep") as sleep,
+        ):
+            frame = RUNTIME.fetch_daily("MA2611")
+
+        self.assertEqual(len(frame), 1)
+        self.assertEqual(fetch.call_count, 2)
+        self.assertIn("stock2.finance.sina.com.cn", fetch.call_args_list[0].args[0].full_url)
+        self.assertIn("stock.finance.sina.com.cn", fetch.call_args_list[1].args[0].full_url)
+        self.assertEqual(fetch.call_args_list[0].kwargs["timeout"], 15)
+        sleep.assert_called_once()
+
+    def test_completed_close_cutoff_excludes_the_current_morning_bar(self):
+        morning = pd.Timestamp("2026-09-01T09:12:00+08:00").to_pydatetime()
+        close = pd.Timestamp("2026-09-01T15:25:00+08:00").to_pydatetime()
+        self.assertEqual(str(RUNTIME.completed_close_cutoff(morning)), "2026-08-31")
+        self.assertEqual(str(RUNTIME.completed_close_cutoff(close)), "2026-09-01")
 
     def test_installer_has_exact_session_open_and_hourly_schedule(self):
         installer = (ROOT / "server" / "install_automation.sh").read_text(encoding="utf-8")

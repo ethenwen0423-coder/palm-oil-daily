@@ -19,6 +19,7 @@ import statistics
 import subprocess
 import sys
 import tempfile
+import time as time_module
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -38,6 +39,8 @@ READY_MARKER = ".server-ai-daredevil-ready.json"
 SCAN_AUDIT_FILE = "latest_scan_audit.json"
 MARGIN_BOOK_FILE = "exchange_margin_rates.json"
 CONTRACT_RE = re.compile(r"^[A-Z]{1,3}[0-9]{3,4}$")
+DAILY_HISTORY_HOSTS = ("stock2.finance.sina.com.cn", "stock.finance.sina.com.cn")
+DAILY_FETCH_ATTEMPTS = 3
 
 # Multiplier is a contract specification. Margin is resolved separately for
 # every exact PYYMM contract from exchange-standard data.
@@ -448,10 +451,10 @@ def current_contracts(data_root: Path) -> dict[str, list[str]]:
     return output
 
 
-def fetch_daily(contract: str):
+def _fetch_daily_once(contract: str, host: str):
     import pandas as pd
     url = (
-        "https://stock2.finance.sina.com.cn/futures/api/jsonp.php/var%20_contract_history="
+        f"https://{host}/futures/api/jsonp.php/var%20_contract_history="
         "/InnerFuturesNewService.getDailyKLine?"
         + urllib.parse.urlencode({"symbol": contract, "type": "2021_04_12"})
     )
@@ -471,6 +474,37 @@ def fetch_daily(contract: str):
         if column in frame:
             frame[column] = pd.to_numeric(frame[column], errors="coerce")
     return frame.dropna(subset=["date", "open", "high", "low", "close", "volume"]).sort_values("date")
+
+
+def fetch_daily(contract: str):
+    """Fetch one real delivery contract with bounded cross-host retries.
+
+    Sina's two history hosts expose the same delivery-contract series. The
+    close scan used to turn a single transient URLError into a public skipped
+    signal. Retrying on the alternate host keeps that failure visible only
+    when all bounded attempts have actually failed.
+    """
+    last_error: Exception | None = None
+    for attempt in range(DAILY_FETCH_ATTEMPTS):
+        host = DAILY_HISTORY_HOSTS[attempt % len(DAILY_HISTORY_HOSTS)]
+        try:
+            return _fetch_daily_once(contract, host)
+        except (urllib.error.URLError, TimeoutError, ConnectionError, OSError) as exc:
+            last_error = exc
+            if attempt + 1 < DAILY_FETCH_ATTEMPTS:
+                contract_spread = sum(ord(value) for value in contract) % 7
+                time_module.sleep(0.45 * (2 ** attempt) + contract_spread * 0.04)
+    reason = getattr(last_error, "reason", None)
+    detail = type(reason or last_error).__name__ if last_error else "UnknownError"
+    raise RuntimeErrorSafe(
+        f"{contract}: daily source unavailable after {DAILY_FETCH_ATTEMPTS} attempts ({detail})"
+    ) from last_error
+
+
+def completed_close_cutoff(generated_at: datetime) -> date:
+    """Latest date that may be treated as a completed China futures day bar."""
+    local = generated_at.astimezone(SHANGHAI) if generated_at.tzinfo else generated_at.replace(tzinfo=SHANGHAI)
+    return local.date() if local.time().replace(tzinfo=None) >= time(15, 5) else local.date() - timedelta(days=1)
 
 
 def next_trade_date(after: date) -> date:
@@ -544,6 +578,8 @@ def scan_signals(site_root: Path, data_root: Path, state: dict[str, Any], model,
                  generated_at: datetime | None = None,
                  margin_book: dict[str, Any] | None = None) -> tuple[dict[str, Any] | None, list[dict[str, Any]], dict[str, Any]]:
     import pandas as pd
+    generated_at = generated_at or now_shanghai()
+    close_cutoff = completed_close_cutoff(generated_at)
     contracts_by_variety = current_contracts(data_root)
     signals = []
     skipped = []
@@ -556,7 +592,8 @@ def scan_signals(site_root: Path, data_root: Path, state: dict[str, Any], model,
         if isinstance(row, dict) and row.get("variety")
     } if isinstance(previous_audit, dict) else {}
     audit = {
-        "generated_at": (generated_at or now_shanghai()).isoformat(timespec="seconds"),
+        "generated_at": generated_at.isoformat(timespec="seconds"),
+        "completed_close_cutoff": close_cutoff.isoformat(),
         "allocation_policy_version": ALLOCATION_POLICY_VERSION,
         "universe_count": len(PRODUCTS), "discovered_count": len(contracts_by_variety),
         "sector_count": len({row["sector"] for row in PRODUCTS.values()}),
@@ -576,9 +613,17 @@ def scan_signals(site_root: Path, data_root: Path, state: dict[str, Any], model,
             for future in as_completed(futures):
                 contract = futures[future]
                 try:
-                    frames[contract] = future.result()
+                    frame = future.result()
+                    frame = frame.loc[frame.date.dt.date.le(close_cutoff)].copy()
+                    if frame.empty:
+                        raise RuntimeErrorSafe(f"{contract}: no completed daily bars through {close_cutoff}")
+                    frames[contract] = frame
                 except Exception as exc:
-                    skipped.append({"variety": variety, "contract": contract, "reason": f"日线缺失：{type(exc).__name__}"})
+                    detail = str(exc).strip() if isinstance(exc, RuntimeErrorSafe) else type(exc).__name__
+                    skipped.append({
+                        "variety": variety, "contract": contract,
+                        "reason": f"日线抓取失败（已重试{DAILY_FETCH_ATTEMPTS}次）：{detail}",
+                    })
         if not frames:
             continue
         raw_parts = []
