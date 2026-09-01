@@ -698,6 +698,11 @@ def public_snapshot(state_dir: Path, state: dict[str, Any], sources: list[dict[s
     batches_ok = not audit.get("decision_failed_batch_count")
     decisions_complete = len(decisions) == int(audit.get("evaluated_count", len(decisions)) or 0)
     status = "ready" if backend and backend != "unavailable" and margins_ok and batches_ok and decisions_complete else "degraded"
+    generated_source_priorities = {"决策证据", "策略选择", "决策引擎"}
+    external_sources = [
+        row for row in sources
+        if isinstance(row, dict) and row.get("priority") not in generated_source_priorities
+    ]
     summary = {
         "initial_capital": INITIAL_CAPITAL, "equity": state["equity"], "net_value": state["equity"] / INITIAL_CAPITAL,
         "cash": state["cash"], "available_cash": state["cash"] - state["used_margin"], "used_margin": state["used_margin"],
@@ -734,7 +739,7 @@ def public_snapshot(state_dir: Path, state: dict[str, Any], sources: list[dict[s
             {"label": "收盘研判", "time": "15:25", "purpose": "汇总技术与基本面证据，由AI独立决定"},
             {"label": "整点盯市", "time": "每小时", "purpose": "更新真实合约价格、权益和敞口状态"},
         ],
-        "sources": sources + [
+        "sources": external_sources + [
             {"priority": "决策证据", "name": "公开研报与交易所品种基本面摘要", "state": "ready" if audit.get("evaluated_count") else "failed", "note": "只把带来源和时间的已发布材料交给AI"},
             {"priority": "策略选择", "name": "本地Python多策略回测", "state": "ready" if audit.get("evaluated_count") else "failed", "note": "逐品种比较趋势、动量、突破与均值回归；收盘确认、下一开盘、含成本"},
             {"priority": "决策引擎", "name": audit.get("decision_backend", "unavailable"), "state": "ready" if status == "ready" else "failed",

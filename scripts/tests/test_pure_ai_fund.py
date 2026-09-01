@@ -226,13 +226,16 @@ class PureAiFundTests(unittest.TestCase):
             patch.object(PURE.BASE, "read_json", return_value={}),
             patch.object(PURE.BASE, "next_refresh", return_value=None),
         ):
-            payload = PURE.public_snapshot(Path("/unused"), state, [], "test", [], audit, [], now)
+            payload = PURE.public_snapshot(Path("/unused"), state, [{
+                "priority": "决策引擎", "name": "stale-engine", "state": "ready", "note": "stale",
+            }], "test", [], audit, [], now)
 
         self.assertEqual(payload["model"]["decision_model"], "gpt-5.6-sol")
         self.assertEqual(payload["model"]["latest_decision_model"], "gpt-5.6-sol")
         self.assertTrue(payload["governance"]["decision_model_fixed"])
         self.assertEqual(payload["governance"]["decision_model"], "gpt-5.6-sol")
         self.assertIn("固定模型 gpt-5.6-sol", payload["sources"][-1]["note"])
+        self.assertEqual(sum(row["priority"] == "决策引擎" for row in payload["sources"]), 1)
 
     def test_missing_batch_decision_is_a_validation_issue(self):
         decisions, issues = PURE.validate_decisions(
