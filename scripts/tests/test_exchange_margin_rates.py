@@ -51,6 +51,19 @@ class ExchangeMarginRateTests(unittest.TestCase):
             result = MARGINS.fetch_margin_book([], date(2026, 9, 1))
         self.assertIn("按实际持仓方向使用", result["validation"])
 
+    def test_fresh_cache_rewrites_legacy_validation_note(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "margins.json"
+            path.write_text(json.dumps({"validation": "旧口径", "rates": {
+                "AL2610": {
+                    "contract": "AL2610", "margin_rate": .12,
+                    "long_margin_rate": .11, "short_margin_rate": .12,
+                    "source_updated_at": "2026-09-01",
+                }
+            }}), encoding="utf-8")
+            payload = MARGINS.load_cached_margin_book(path, ["AL2610"], date(2026, 9, 1))
+        self.assertEqual(payload["validation"], MARGINS.VALIDATION_NOTE)
+
     def test_ledger_revalues_existing_position_with_exchange_rate(self):
         ledger_spec = importlib.util.spec_from_file_location(
             "margin_ledger_test", ROOT / "skills" / "manage-bollinger-rsi-futures-fund" / "scripts" / "fund_ledger.py"

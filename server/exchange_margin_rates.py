@@ -22,6 +22,7 @@ SHFE_DAILY_URL = "https://www.shfe.cn/data/busiparamdata/future/ContractDailyTra
 QIHUO_URL = "https://www.9qihuo.com/qihuoshouxufei"
 MAX_SOURCE_AGE_DAYS = 7
 CONTRACT_RE = re.compile(r"^([A-Z]{1,3})(\d{4})$")
+VALIDATION_NOTE = "真实PYYMM逐合约；保留多空保证金并按实际持仓方向使用；缺失或超过7日不使用默认比例"
 
 
 class MarginRateError(RuntimeError):
@@ -225,7 +226,7 @@ def fetch_margin_book(contracts: list[str], as_of: date, timeout: int = 30) -> d
         "official_shfe_report_date": official_day,
         "qihuo_error": qihuo_error,
         "rates": rates,
-        "validation": "真实PYYMM逐合约；保留多空保证金并按实际持仓方向使用；缺失或超过7日不使用默认比例",
+        "validation": VALIDATION_NOTE,
     }
 
 
@@ -242,5 +243,6 @@ def load_cached_margin_book(path: Path, contracts: list[str], as_of: date) -> di
         return None
     if any(not source_is_fresh(rates[contract], as_of) for contract in wanted):
         return None
+    payload["validation"] = VALIDATION_NOTE
     payload["cache_used"] = True
     return payload
