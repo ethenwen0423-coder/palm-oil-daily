@@ -21,6 +21,14 @@ LIVE_ROOT = Path(os.environ.get("PALM_OIL_LIVE_DATA_ROOT", "/srv/palm-oil-daily/
 STATE_ROOT = Path(os.environ.get("PALM_OIL_SERVER_STATE_ROOT", "/srv/palm-oil-daily/state"))
 SUMMARY_BATCH_SIZE = 12
 SUMMARY_VERSION = 2
+WEATHER_CATEGORY = "天气产量研判"
+WEATHER_CHANGE_THRESHOLDS = {
+    "rain_total_mm": 10.0,
+    "peak_precipitation_probability_pct": 20.0,
+    "max_temperature_c": 2.0,
+    "hot_days": 2.0,
+    "wet_days": 2.0,
+}
 SUMMARY_SCHEMA = {
     "type": "object",
     "properties": {
@@ -76,6 +84,85 @@ def env_value(key: str) -> str | None:
 def clean_sentence(value: Any, limit: int) -> str:
     text = re.sub(r"\s+", " ", str(value or "")).strip()
     return text[:limit].strip()
+
+
+def weather_region(item: dict[str, Any]) -> str:
+    region = clean_sentence(item.get("weather_region"), 80)
+    if region:
+        return region
+    for evidence_id in item.get("evidence_ids", []):
+        parts = str(evidence_id).split(":")
+        if len(parts) >= 3 and parts[0] == "weather":
+            return clean_sentence(parts[1], 80)
+    return ""
+
+
+def weather_snapshot(item: dict[str, Any]) -> dict[str, Any]:
+    snapshot = item.get("weather_snapshot")
+    if isinstance(snapshot, dict):
+        return snapshot
+    analysis = item.get("weather_analysis")
+    facts = str(analysis.get("direct_facts") or "") if isinstance(analysis, dict) else ""
+    patterns = {
+        "rain_total_mm": r"累计降雨\s*([\d.]+)\s*mm",
+        "peak_precipitation_probability_pct": r"最高降雨概率\s*([\d.]+)%",
+        "max_temperature_c": r"最高温\s*([\d.]+)°C",
+        "hot_days": r"≥35°C共\s*(\d+)\s*天",
+    }
+    parsed: dict[str, Any] = {}
+    for key, pattern in patterns.items():
+        match = re.search(pattern, facts)
+        if match:
+            parsed[key] = float(match.group(1))
+    return parsed
+
+
+def weather_materially_changed(current: dict[str, Any], prior: dict[str, Any]) -> bool:
+    if current.get("title") != prior.get("title") or current.get("impact") != prior.get("impact"):
+        return True
+    current_analysis = current.get("weather_analysis") if isinstance(current.get("weather_analysis"), dict) else {}
+    prior_analysis = prior.get("weather_analysis") if isinstance(prior.get("weather_analysis"), dict) else {}
+    if current_analysis.get("signal") and prior_analysis.get("signal") and current_analysis["signal"] != prior_analysis["signal"]:
+        return True
+    current_snapshot = weather_snapshot(current)
+    baseline = prior.get("weather_published_snapshot")
+    if not isinstance(baseline, dict) or not baseline:
+        baseline = weather_snapshot(prior)
+    if not current_snapshot or not baseline:
+        return True
+    for key, threshold in WEATHER_CHANGE_THRESHOLDS.items():
+        current_value = current_snapshot.get(key)
+        prior_value = baseline.get(key)
+        if current_value is None or prior_value is None:
+            continue
+        if abs(float(current_value) - float(prior_value)) >= threshold:
+            return True
+    return False
+
+
+def stabilize_weather_events(events: list[dict[str, Any]], previous: dict[str, Any]) -> tuple[list[dict[str, Any]], int]:
+    prior_by_region = {
+        weather_region(item): item
+        for item in previous.get("events", [])
+        if isinstance(item, dict) and item.get("category") == WEATHER_CATEGORY and weather_region(item)
+    }
+    unchanged = 0
+    for event in events:
+        if event.get("category") != WEATHER_CATEGORY:
+            continue
+        snapshot = weather_snapshot(event)
+        prior = prior_by_region.get(weather_region(event))
+        if prior and not weather_materially_changed(event, prior):
+            refreshed_at = event.get("observed_at")
+            event["id"] = prior.get("id") or event["id"]
+            event["observed_at"] = prior.get("observed_at") or event["observed_at"]
+            event["weather_refreshed_at"] = clean_sentence(refreshed_at, 50)
+            event["weather_published_snapshot"] = prior.get("weather_published_snapshot") or weather_snapshot(prior)
+            unchanged += 1
+        else:
+            event["weather_published_snapshot"] = snapshot
+            event["weather_refreshed_at"] = event.get("observed_at")
+    return events, unchanged
 
 
 def declarative_title(value: Any) -> str:
@@ -301,6 +388,10 @@ def main() -> int:
             htfc_base_url=env_value("HTFC_BASE_URL"),
             htfc_api_key=env_value("HTFC_API_KEY"),
         )
+        events, unchanged_weather = stabilize_weather_events(events, previous)
+        for source in sources:
+            if source.get("name") == "全球农产品产区天气" and unchanged_weather:
+                source["detail"] = f"{source.get('detail', '')}；{unchanged_weather} 条无实质变化，保留原发布时间"
         model_backend = load_module("palm_event_summary_backend", SITE_ROOT / "server" / "model_backend.py")
         events, summary_source = summarize_events(model_backend, events, previous)
         sources.append(summary_source)

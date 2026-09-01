@@ -201,6 +201,8 @@ class EventWatchTests(unittest.TestCase):
         self.assertTrue(all("不构成投资建议" in item["ai_notice"] for item in events))
         self.assertTrue(all("production_chain" in item["weather_analysis"] for item in events))
         self.assertTrue(all("market_chain" in item["weather_analysis"] for item in events))
+        self.assertTrue(all(item["weather_region"] for item in events))
+        self.assertTrue(all("rain_total_mm" in item["weather_snapshot"] for item in events))
         by_title = {item["title"]: item for item in events}
         iowa = next(item for title, item in by_title.items() if "爱荷华" in title)
         brazil = next(item for title, item in by_title.items() if "马托格罗索" in title)
@@ -234,6 +236,80 @@ class EventWatchTests(unittest.TestCase):
         self.assertEqual(result["generated_at"], prior["generated_at"])
         self.assertEqual({item["id"] for item in result["events"]}, {"price:1", "new-news"})
         self.assertEqual(result["coverage"]["event_sources_ready"], 1)
+
+    def test_weather_refresh_keeps_original_time_when_forecast_has_no_material_change(self):
+        prior = {
+            "events": [{
+                "id": "weather:prior",
+                "kind": "event",
+                "category": "天气产量研判",
+                "weather_region": "马来西亚柔佛",
+                "title": "马来西亚柔佛温雨适中：短期供应影响有限",
+                "impact": "低",
+                "observed_at": "2026-08-26T08:00:00+08:00",
+                "weather_analysis": {"signal": "供应影响中性"},
+                "weather_snapshot": {
+                    "rain_total_mm": 40.0,
+                    "peak_precipitation_probability_pct": 60.0,
+                    "max_temperature_c": 32.0,
+                    "hot_days": 0,
+                    "wet_days": 1,
+                },
+            }]
+        }
+        current = [{
+            "id": "weather:new",
+            "kind": "event",
+            "category": "天气产量研判",
+            "weather_region": "马来西亚柔佛",
+            "title": "马来西亚柔佛温雨适中：短期供应影响有限",
+            "impact": "低",
+            "observed_at": "2026-08-26T08:05:00+08:00",
+            "weather_analysis": {"signal": "供应影响中性"},
+            "weather_snapshot": {
+                "rain_total_mm": 44.0,
+                "peak_precipitation_probability_pct": 70.0,
+                "max_temperature_c": 32.6,
+                "hot_days": 0,
+                "wet_days": 1,
+            },
+        }]
+        events, unchanged = RUNNER.stabilize_weather_events(current, prior)
+        self.assertEqual(unchanged, 1)
+        self.assertEqual(events[0]["id"], "weather:prior")
+        self.assertEqual(events[0]["observed_at"], "2026-08-26T08:00:00+08:00")
+        self.assertEqual(events[0]["weather_published_snapshot"]["rain_total_mm"], 40.0)
+
+    def test_weather_refresh_gets_new_time_after_material_change(self):
+        prior = {
+            "events": [{
+                "id": "weather:prior",
+                "kind": "event",
+                "category": "天气产量研判",
+                "weather_region": "美国爱荷华",
+                "title": "美国爱荷华温雨未见极端：美豆单产暂维持观察",
+                "impact": "低",
+                "observed_at": "2026-08-26T08:00:00+08:00",
+                "weather_analysis": {"signal": "单产影响中性"},
+                "weather_snapshot": {"rain_total_mm": 30.0, "max_temperature_c": 31.0},
+            }]
+        }
+        current = [{
+            "id": "weather:new",
+            "kind": "event",
+            "category": "天气产量研判",
+            "weather_region": "美国爱荷华",
+            "title": "美国爱荷华鼓粒期高温少雨：单产风险上升",
+            "impact": "高",
+            "observed_at": "2026-08-26T08:05:00+08:00",
+            "weather_analysis": {"signal": "美豆单产下修风险"},
+            "weather_snapshot": {"rain_total_mm": 5.0, "max_temperature_c": 39.0},
+        }]
+        events, unchanged = RUNNER.stabilize_weather_events(current, prior)
+        self.assertEqual(unchanged, 0)
+        self.assertEqual(events[0]["id"], "weather:new")
+        self.assertEqual(events[0]["observed_at"], "2026-08-26T08:05:00+08:00")
+        self.assertEqual(events[0]["weather_published_snapshot"]["rain_total_mm"], 5.0)
 
 
 if __name__ == "__main__":
