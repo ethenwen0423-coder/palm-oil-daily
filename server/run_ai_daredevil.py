@@ -754,6 +754,7 @@ def resolve_margin_book(state_dir: Path, contracts: list[str], now: datetime, ti
     cached = resolver.load_cached_margin_book(path, contracts, now.date())
     fetched_today = str((cached or {}).get("fetched_at", ""))[:10] == now.date().isoformat()
     if cached is not None and fetched_today and not force:
+        atomic_json(path, cached)
         return cached
     if not contracts:
         return {

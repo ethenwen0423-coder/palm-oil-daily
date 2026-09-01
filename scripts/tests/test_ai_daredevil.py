@@ -92,6 +92,25 @@ class AiDaredevilTests(unittest.TestCase):
         self.assertEqual(short_row["margin_rate"], .12)
         self.assertEqual(short_row["margin_applied_side"], "short")
 
+    def test_normalized_margin_cache_is_persisted_before_public_snapshot(self):
+        cached = {
+            "fetched_at": "2026-09-01T08:00:00+08:00",
+            "validation": "按实际持仓方向使用",
+            "rates": {"AL2610": {"contract": "AL2610"}},
+        }
+        resolver = SimpleNamespace(
+            load_cached_margin_book=mock.Mock(return_value=cached),
+            fetch_margin_book=mock.Mock(side_effect=AssertionError("fresh cache should be reused")),
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            state_dir = Path(temporary)
+            now = pd.Timestamp("2026-09-01T08:30:00+08:00").to_pydatetime()
+            with mock.patch.object(RUNTIME, "load_margin_resolver", return_value=resolver):
+                result = RUNTIME.resolve_margin_book(state_dir, ["AL2610"], now, 20)
+            persisted = json.loads((state_dir / RUNTIME.MARGIN_BOOK_FILE).read_text(encoding="utf-8"))
+        self.assertEqual(result["validation"], "按实际持仓方向使用")
+        self.assertEqual(persisted["validation"], "按实际持仓方向使用")
+
     def test_realtime_contract_discovery_uses_bounded_direct_requests(self):
         products = {
             "P": {"name": "棕榈油", "sector": "油脂油料"},
