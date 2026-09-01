@@ -183,6 +183,7 @@ class PureAiFundTests(unittest.TestCase):
         context = [{"variety": f"V{index}"} for index in range(18)]
 
         def request_json(**kwargs):
+            self.assertEqual(kwargs["model"], PURE.DECISION_MODEL)
             batch = __import__("json").loads(kwargs["prompt"].split("INPUT:\n", 1)[1])
             return {
                 "market_summary": f"覆盖{len(batch)}个品种",
@@ -203,6 +204,35 @@ class PureAiFundTests(unittest.TestCase):
         self.assertEqual(output["batch_errors"], [])
         self.assertEqual(len(output["decisions"]), 18)
         self.assertEqual(backend, "test-backend")
+
+    def test_public_snapshot_distinguishes_fixed_and_latest_decision_model(self):
+        state = {
+            "equity": 1_000_000.0, "cash": 1_000_000.0, "used_margin": 0.0,
+            "gross_notional": 0.0, "realized_pnl": 0.0, "unrealized_pnl": 0.0,
+            "total_fees": 0.0, "max_drawdown": 0.0, "high_water_equity": 1_000_000.0,
+            "positions": {}, "pending_orders": [], "last_mark_date": "2026-09-01",
+        }
+        audit = {
+            "decision_backend": "codex-chatgpt-cli",
+            "decision_model_configured": PURE.DECISION_MODEL,
+            "decision_model_used": PURE.DECISION_MODEL,
+            "evaluated_count": 0,
+        }
+        now = PURE.datetime.fromisoformat("2026-09-01T10:00:00+08:00")
+        with (
+            patch.object(PURE.BASE, "equity_curve", return_value=[{"date": "2026-09-01", "equity": 1_000_000.0}]),
+            patch.object(PURE.BASE, "performance", return_value=(None, None)),
+            patch.object(PURE.BASE, "load_events", return_value=[]),
+            patch.object(PURE.BASE, "read_json", return_value={}),
+            patch.object(PURE.BASE, "next_refresh", return_value=None),
+        ):
+            payload = PURE.public_snapshot(Path("/unused"), state, [], "test", [], audit, [], now)
+
+        self.assertEqual(payload["model"]["decision_model"], "gpt-5.6-sol")
+        self.assertEqual(payload["model"]["latest_decision_model"], "gpt-5.6-sol")
+        self.assertTrue(payload["governance"]["decision_model_fixed"])
+        self.assertEqual(payload["governance"]["decision_model"], "gpt-5.6-sol")
+        self.assertIn("固定模型 gpt-5.6-sol", payload["sources"][-1]["note"])
 
     def test_missing_batch_decision_is_a_validation_issue(self):
         decisions, issues = PURE.validate_decisions(

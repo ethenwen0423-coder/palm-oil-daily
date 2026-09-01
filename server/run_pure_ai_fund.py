@@ -23,6 +23,7 @@ from typing import Any
 
 SCRIPT_ROOT = Path(__file__).resolve().parent
 MODEL_VERSION = "pure-ai-adaptive-strategy-unbounded-v2"
+DECISION_MODEL = "gpt-5.6-sol"
 INITIAL_CAPITAL = 1_000_000.0
 FUND_FILE = "ai_daredevil_pure_ai.json"
 READY_MARKER = ".server-pure-ai-fund-ready.json"
@@ -445,6 +446,7 @@ def request_decisions(context: list[dict[str, Any]], state: dict[str, Any], time
             prompt=decision_prompt(batch),
             timeout=timeout,
             verbosity="medium",
+            model=DECISION_MODEL,
         )
 
     # One 40-variety structured response can exceed the backend hard timeout.
@@ -640,6 +642,7 @@ def scan_ai(data_root: Path, state_dir: Path, state: dict[str, Any], timeout: in
         "evaluated_count": len(facts), "candidate_count": 0, "order_count": 0,
         "blocked_candidate_count": 0, "missing_varieties": sorted(set(BASE.PRODUCTS) - {row["variety"] for row in facts}),
         "signal_candidates": [], "issues": issues, "decision_backend": "unavailable",
+        "decision_model_configured": DECISION_MODEL,
         "decision_summary": "AI后端尚未完成本次收盘研判",
     }
     try:
@@ -655,6 +658,7 @@ def scan_ai(data_root: Path, state_dir: Path, state: dict[str, Any], timeout: in
         snapshot, decision_rows = build_signals(facts, decisions, state, margin_book)
         audit.update({
             "decision_backend": backend,
+            "decision_model_used": DECISION_MODEL,
             "decision_summary": clean_text(output.get("market_summary"), 500),
             "decision_batch_count": int(output.get("batch_count", 1)),
             "decision_failed_batch_count": len(batch_errors),
@@ -710,7 +714,10 @@ def public_snapshot(state_dir: Path, state: dict[str, Any], sources: list[dict[s
         "generated_at": now.isoformat(timespec="seconds"), "market_date": state.get("last_mark_date"),
         "refresh_reason": reason, "price_source": " / ".join(sorted({row.get("mark_source", "") for row in positions if row.get("mark_source")})) or "尚无持仓，无需盯市",
         "next_refresh": BASE.next_refresh(now),
-        "model": {"name": "纯AI决策", "version": MODEL_VERSION, "capital_policy": "独立100万元权益复利",
+        "model": {"name": "纯AI决策", "version": MODEL_VERSION,
+                  "decision_model": DECISION_MODEL,
+                  "latest_decision_model": audit.get("decision_model_used"),
+                  "capital_policy": "独立100万元权益复利",
                   "execution": "AI按品种选择策略与整手数量，下一交易日开盘执行；无仓位与回撤上限"},
         "summary": summary, "equity_curve": curve, "positions": positions, "today_trades": events,
         "pending_orders": pending, "skipped_signals": skipped, "scan_audit": audit,
@@ -730,13 +737,17 @@ def public_snapshot(state_dir: Path, state: dict[str, Any], sources: list[dict[s
         "sources": sources + [
             {"priority": "决策证据", "name": "公开研报与交易所品种基本面摘要", "state": "ready" if audit.get("evaluated_count") else "failed", "note": "只把带来源和时间的已发布材料交给AI"},
             {"priority": "策略选择", "name": "本地Python多策略回测", "state": "ready" if audit.get("evaluated_count") else "failed", "note": "逐品种比较趋势、动量、突破与均值回归；收盘确认、下一开盘、含成本"},
-            {"priority": "决策引擎", "name": audit.get("decision_backend", "unavailable"), "state": "ready" if status == "ready" else "failed", "note": "AI可逐品种选择不同策略与有限整数手数；账本仅校验合约和执行时序"},
+            {"priority": "决策引擎", "name": audit.get("decision_backend", "unavailable"), "state": "ready" if status == "ready" else "failed",
+             "note": (f"固定模型 {DECISION_MODEL}；最近成功研判也使用该模型；AI可逐品种选择不同策略与有限整数手数"
+                      if audit.get("decision_model_used") == DECISION_MODEL
+                      else f"固定模型 {DECISION_MODEL}；尚待下一次成功收盘研判生成实际使用记录")},
         ],
         "risk_policy": {"target_drawdown": None, "soft_drawdown": None,
                         "guaranteed": False, "current_drawdown": drawdown,
                         "note": "不设置仓位、回撤、品种数量或板块上限；AI自行给出有限整数手数，只追求收益率。可能亏损超过本金。"},
         "governance": {"virtual_only": True, "real_delivery_contracts_only": True, "next_open_execution": True,
-                       "model_can_trade": True, "risk_controller_can_override": False, "policy": POLICY,
+                       "model_can_trade": True, "risk_controller_can_override": False,
+                       "decision_model_fixed": True, "decision_model": DECISION_MODEL, "policy": POLICY,
                        "margin_note": "真实PYYMM逐合约交易所一般/投机保证金；多单使用多头比例、空单使用空头比例，缺失或过期时禁止新增风险，不含期货公司加收"},
         "ai_notice": "纯AI决策、策略选择、手数与文字解释由AI基于页面列明的技术指标、基本面材料、本地回测和虚拟账本生成，不代表任何来源方官方立场，不构成投资建议；无仓位与回撤上限可能导致亏损超过本金，请自行核验。",
     }
@@ -789,10 +800,12 @@ def main() -> int:
             BASE.atomic_json(live_data_root / READY_MARKER, {
                 "schema_version": 1, "generated_at": now.isoformat(timespec="seconds"),
                 "session": "margins-only", "owner": "server-pure-ai-fund",
+                "decision_model": DECISION_MODEL,
             })
             print(json.dumps({"status": payload["status"], "generated_at": payload["generated_at"],
                               "positions": len(payload["positions"]), "pending": len(payload["pending_orders"]),
-                              "decision_backend": audit.get("decision_backend"), "session": "margins-only"},
+                              "decision_backend": audit.get("decision_backend"), "decision_model": DECISION_MODEL,
+                              "session": "margins-only"},
                              ensure_ascii=False, sort_keys=True))
             return 0
         needed = [row["contract"] for row in state.get("positions", {}).values()]
@@ -848,10 +861,12 @@ def main() -> int:
         BASE.atomic_json(live_data_root / READY_MARKER, {
             "schema_version": 1, "generated_at": now.isoformat(timespec="seconds"),
             "session": "close-scan" if should_scan else "hourly", "owner": "server-pure-ai-fund",
+            "decision_model": DECISION_MODEL,
         })
     print(json.dumps({"status": payload["status"], "generated_at": payload["generated_at"],
                       "positions": len(payload["positions"]), "pending": len(payload["pending_orders"]),
-                      "decision_backend": audit.get("decision_backend")}, ensure_ascii=False, sort_keys=True))
+                      "decision_backend": audit.get("decision_backend"), "decision_model": DECISION_MODEL},
+                     ensure_ascii=False, sort_keys=True))
     return 0
 
 
