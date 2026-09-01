@@ -382,6 +382,242 @@ def _has_markdown_table(text: str) -> bool:
     )
 
 
+def _markdown_tables(text: str) -> list[tuple[list[str], list[list[str]]]]:
+    """Parse simple pipe tables so contracts are checked per column and row."""
+    lines = [line.strip() for line in text.splitlines()]
+    tables: list[tuple[list[str], list[list[str]]]] = []
+    index = 0
+    while index + 1 < len(lines):
+        header_line = lines[index]
+        separator = lines[index + 1]
+        if not (
+            header_line.startswith("|")
+            and header_line.endswith("|")
+            and re.fullmatch(r"\|[\s:|-]+\|", separator)
+        ):
+            index += 1
+            continue
+        headers = [cell.strip() for cell in header_line.strip("|").split("|")]
+        rows: list[list[str]] = []
+        index += 2
+        while index < len(lines) and lines[index].startswith("|") and lines[index].endswith("|"):
+            cells = [cell.strip() for cell in lines[index].strip("|").split("|")]
+            if len(cells) == len(headers):
+                rows.append(cells)
+            index += 1
+        tables.append((headers, rows))
+    return tables
+
+
+def _column_index(headers: list[str], aliases: tuple[str, ...]) -> int | None:
+    for index, header in enumerate(headers):
+        compact = re.sub(r"\s+", "", header)
+        if any(alias in compact for alias in aliases):
+            return index
+    return None
+
+
+def _require_execution_table(
+    section: str,
+    label: str,
+    hard_failures: list[str],
+) -> None:
+    required = {
+        "品种": ("品种", "合约"),
+        "方向": ("方向",),
+        "触发": ("触发",),
+        "确认": ("确认",),
+        "止损": ("止损", "失效"),
+        "目标": ("目标",),
+        "仓位上限": ("仓位", "行动"),
+        "信号有效期": ("有效期", "到期"),
+    }
+    for headers, rows in _markdown_tables(section):
+        indexes = {name: _column_index(headers, aliases) for name, aliases in required.items()}
+        if any(index is None for index in indexes.values()):
+            continue
+        symbol_index = indexes["品种"]
+        assert symbol_index is not None
+        missing_rows: list[str] = []
+        incomplete: list[str] = []
+        for symbol in ("P", "Y", "OI"):
+            row = next(
+                (
+                    cells
+                    for cells in rows
+                    if re.fullmatch(rf"{symbol}(?:\d{{4}})?", re.sub(r"\s+", "", cells[symbol_index]), re.I)
+                ),
+                None,
+            )
+            if row is None:
+                missing_rows.append(symbol)
+                continue
+            missing_cells = [
+                name
+                for name, column in indexes.items()
+                if column is not None and not re.sub(r"[-—/\s]", "", row[column])
+            ]
+            if missing_cells:
+                incomplete.append(f"{symbol}缺{'/'.join(missing_cells)}")
+        if not missing_rows and not incomplete:
+            return
+        details = [
+            *( [f"缺少品种 {'/'.join(missing_rows)}"] if missing_rows else [] ),
+            *incomplete,
+        ]
+        hard_failures.append(f"{label}执行表不完整：{'；'.join(details)}")
+        return
+    hard_failures.append(
+        f"{label}必须使用包含品种、方向、触发、确认、止损、目标、仓位上限、信号有效期的 Markdown 表格"
+    )
+
+
+def _require_key_data_table(
+    section: str,
+    outline: dict[str, Any],
+    hard_failures: list[str],
+) -> None:
+    for headers, rows in _markdown_tables(section):
+        item_index = _column_index(headers, ("品种", "指标", "合约"))
+        value_index = _column_index(headers, ("数值", "价格", "关键位"))
+        time_index = _column_index(headers, ("时点", "时间", "日期", "口径"))
+        meaning_index = _column_index(headers, ("含义", "意义", "判断"))
+        if None in (item_index, value_index, time_index, meaning_index):
+            continue
+        assert item_index is not None and value_index is not None
+        assert time_index is not None and meaning_index is not None
+        complete = [
+            row
+            for row in rows
+            if all(re.sub(r"[-—/\s]", "", row[index]) for index in (item_index, value_index, time_index, meaning_index))
+        ]
+        item_text = "\n".join(row[item_index] for row in complete)
+        all_text = "\n".join("|".join(row) for row in complete)
+        missing = [symbol for symbol in ("P", "Y", "OI") if re.search(rf"(?:^|[^A-Z]){symbol}(?:\d{{4}})?(?:[^A-Z]|$)", item_text, re.I) is None]
+        if missing:
+            hard_failures.append(f"关键数据表缺少品种：{'/'.join(missing)}")
+            return
+        if not any(marker in all_text for marker in ("FCPO", "BMD", "CBOT", "WTI", "原油", "美豆")):
+            hard_failures.append("关键数据表缺少可核验的关键外盘或原油数据")
+            return
+        if not any(marker in all_text for marker in ("价差", "基差")):
+            hard_failures.append("关键数据表缺少至少一个价差或基差")
+            return
+        key_tokens = _trade_numbers(str(outline.get("stop_loss") or "")) + _trade_numbers(
+            str(outline.get("target_range") or "")
+        )
+        if not key_tokens or not any(_has_number(all_text, token) for token in key_tokens):
+            hard_failures.append("关键数据表缺少提纲中可执行的 P 止损或目标关键位")
+            return
+        return
+    hard_failures.append("关键数据与价格必须使用包含指标、数值、时点和含义的 Markdown 表格")
+
+
+def _require_weekly_data_table(section: str, hard_failures: list[str]) -> None:
+    for headers, rows in _markdown_tables(section):
+        indexes = {
+            "指标": _column_index(headers, ("品种", "指标", "合约")),
+            "数值": _column_index(headers, ("数值", "价格", "本周")),
+            "统计时间": _column_index(headers, ("时点", "时间", "日期", "口径")),
+            "变化": _column_index(headers, ("变化", "涨跌", "上周")),
+            "含义": _column_index(headers, ("含义", "意义", "判断")),
+        }
+        if any(index is None for index in indexes.values()):
+            continue
+        complete = [
+            row
+            for row in rows
+            if all(index is not None and re.sub(r"[-—/\s]", "", row[index]) for index in indexes.values())
+        ]
+        item_index = indexes["指标"]
+        assert item_index is not None
+        item_text = "\n".join(row[item_index] for row in complete)
+        missing = [symbol for symbol in ("P", "Y", "OI") if re.search(rf"(?:^|[^A-Z]){symbol}(?:\d{{4}})?(?:[^A-Z]|$)", item_text, re.I) is None]
+        if missing:
+            hard_failures.append(f"周报核心数据表缺少品种：{'/'.join(missing)}")
+            return
+        missing_spreads = [name for name in ("豆棕价差", "菜豆油价差") if name not in item_text]
+        if missing_spreads:
+            hard_failures.append(f"周报核心数据表缺少相对价值指标：{'/'.join(missing_spreads)}")
+        return
+    hard_failures.append("周报核心数据变化必须使用包含指标、数值、统计时间、变化和含义的 Markdown 表格")
+
+
+def _require_weekly_events_table(section: str, hard_failures: list[str]) -> None:
+    for headers, rows in _markdown_tables(section):
+        indexes = {
+            "日期": _column_index(headers, ("日期", "星期", "交易日")),
+            "事件": _column_index(headers, ("事件", "主线")),
+            "重要性": _column_index(headers, ("重要性", "重要程度")),
+            "触发条件": _column_index(headers, ("触发", "条件")),
+        }
+        if any(index is None for index in indexes.values()):
+            continue
+        date_index = indexes["日期"]
+        assert date_index is not None
+        missing: list[str] = []
+        for day in ("周一", "周二", "周三", "周四", "周五"):
+            row = next((cells for cells in rows if day in cells[date_index]), None)
+            if row is None or any(
+                index is not None and not re.sub(r"[-—/\s]", "", row[index])
+                for index in indexes.values()
+            ):
+                missing.append(day)
+        if missing:
+            hard_failures.append(f"下周事件表缺少完整事件、重要性或触发条件：{'/'.join(missing)}")
+        return
+    hard_failures.append("下周主线与事件必须使用包含日期、事件、重要性和触发条件的 Markdown 表格")
+
+
+def _require_scenario_table(section: str, kind: str, hard_failures: list[str]) -> None:
+    required_columns = {
+        "情景": ("情景",),
+        "触发": ("触发",),
+        "确认": ("确认",),
+        "动作": ("动作", "应对"),
+        "放弃条件": ("放弃", "失效"),
+    }
+    if kind == "weekend":
+        required_columns["概率"] = ("概率",)
+    scenarios = ("高开", "平开", "低开") if kind == "daily" else ("高开高走", "高开震荡", "高开回落", "低开")
+    for headers, rows in _markdown_tables(section):
+        indexes = {name: _column_index(headers, aliases) for name, aliases in required_columns.items()}
+        if any(index is None for index in indexes.values()):
+            continue
+        scenario_index = indexes["情景"]
+        assert scenario_index is not None
+        missing: list[str] = []
+        for scenario in scenarios:
+            row = next((cells for cells in rows if scenario in cells[scenario_index]), None)
+            if row is None or any(
+                column is not None and not re.sub(r"[-—/\s]", "", row[column])
+                for column in indexes.values()
+            ):
+                missing.append(scenario)
+        if missing:
+            hard_failures.append(f"开盘情景表缺少完整触发→确认→动作→放弃链：{'/'.join(missing)}")
+            return
+        if not ("Y" in section and "OI" in section and any(marker in section for marker in ("同步", "背离", "分化"))):
+            hard_failures.append("开盘情景表未说明 Y/OI 同步或背离对 P 的影响")
+        return
+    suffix = "及概率" if kind == "weekend" else ""
+    hard_failures.append(f"开盘推演必须使用包含情景、触发、确认、动作、放弃条件{suffix}的 Markdown 表格")
+
+
+def _require_source_audit(section: str, hard_failures: list[str]) -> None:
+    required = {
+        "实际 skill": ("实际skill", "实际 skill", "调用skill", "调用 skill"),
+        "数据源": ("数据源", "来源"),
+        "截止时间": ("截止时间", "数据截止", "截至"),
+        "失败项": ("失败项", "失败来源", "不可用"),
+        "替代来源": ("替代来源", "替代数据源", "切换来源"),
+    }
+    compact = re.sub(r"\s+", "", section)
+    missing = [name for name, aliases in required.items() if not any(re.sub(r"\s+", "", alias) in compact for alias in aliases)]
+    if missing:
+        hard_failures.append(f"信息来源与核验说明缺少审计字段：{'/'.join(missing)}")
+
+
 def _future_source_dates(value: Any, report_date: str, prefix: str = "") -> list[str]:
     failures: list[str] = []
     if isinstance(value, dict):
@@ -522,8 +758,8 @@ def audit_report(
         if not check["price_ok"]:
             hard_failures.append(f"抽样数字不一致：{record.name} 应为 {record.price:g}")
     if len(sampled) < 3:
-        warnings.append(f"可复核的非关键数字仅 {len(sampled)} 项，未达到固定抽样 3 项")
-        components["data_accuracy"] = max(0, components["data_accuracy"] - (3 - len(sampled)) * 2)
+        hard_failures.append(f"可复核的非关键数字仅 {len(sampled)} 项，未达到固定抽样 3 项")
+        components["data_accuracy"] = 0
 
     report_date = str(outline.get("report_date") or source.get("date") or "")
     future_dates = _future_source_dates(source, report_date) if report_date else []
@@ -580,9 +816,9 @@ def audit_report(
         )
         components["freshness_source_state"] = 0
     gap_count = core_text.count("需进一步核验")
-    if gap_count > 2:
-        warnings.append(f"核心正文出现 {gap_count} 处“需进一步核验”，应集中到证据缺口说明")
-        components["freshness_source_state"] = max(0, components["freshness_source_state"] - 3)
+    if gap_count:
+        hard_failures.append(f"“需进一步核验”在来源说明之前出现 {gap_count} 次")
+        components["freshness_source_state"] = 0
 
     if kind == "daily":
         if feedback_path is None:
@@ -643,19 +879,19 @@ def audit_report(
             if not _has_markdown_table(_section(text, section_name)):
                 hard_failures.append(f"周报栏目缺少结构化表格：{section_name}")
         trade_plan = _section(text, "交易计划")
-        for symbol in ("P", "Y", "OI"):
-            if re.search(rf"(?:^|\|)\s*{symbol}(?:\d{{4}})?\s*(?:\||$)", trade_plan, re.MULTILINE) is None:
-                hard_failures.append(f"周报交易计划缺少品种：{symbol}")
+        _require_weekly_data_table(_section(text, "核心数据变化"), hard_failures)
+        _require_weekly_events_table(_section(text, "下周主线与事件"), hard_failures)
+        _require_execution_table(trade_plan, "周报交易计划", hard_failures)
+        _require_scenario_table(_section(text, "周一开盘推演"), kind, hard_failures)
         for spread_name in ("豆棕价差", "菜豆油价差"):
             if spread_name not in text:
                 hard_failures.append(f"周报缺少相对价值指标：{spread_name}")
     else:
         trade_signal = _section(text, "今日交易信号")
-        if not _has_markdown_table(trade_signal):
-            hard_failures.append("日报交易信号缺少结构化表格")
-        for symbol in ("P", "Y", "OI"):
-            if re.search(rf"(?:^|\|)\s*{symbol}(?:\d{{4}})?\s*(?:\||$)", trade_signal, re.MULTILINE) is None:
-                hard_failures.append(f"日报交易信号缺少品种：{symbol}")
+        _require_execution_table(trade_signal, "日报交易信号", hard_failures)
+        _require_key_data_table(_section(text, "关键数据与价格"), outline, hard_failures)
+        _require_scenario_table(_section(text, "开盘推演"), kind, hard_failures)
+    _require_source_audit(_section(text, "信息来源与核验说明"), hard_failures)
     if not any(marker in driver_text for marker in ("→", "传导", "因此", "使得")):
         errors.append("核心驱动缺少可识别的因果链")
         components["causal_chain_expectation_gap"] -= 5
@@ -663,7 +899,13 @@ def audit_report(
         errors.append("核心驱动未清楚区分预期与现实/定价")
         components["causal_chain_expectation_gap"] -= 5
     counter_case = str(outline.get("strongest_counter_case") or "")
-    if not counter_case or not any(marker in driver_text + _section(text, "风险提示") for marker in ("反证", "失效", "推翻", "相反")):
+    counter_text = driver_text + _section(text, "风险提示")
+    counter_terms = [term for term in re.split(r"并|且|、|，|；|。", counter_case) if len(term.strip()) >= 4]
+    counter_is_grounded = bool(counter_case) and (
+        counter_case in counter_text
+        or (counter_terms and all(term.strip() in counter_text for term in counter_terms))
+    )
+    if not counter_is_grounded or not any(marker in counter_text for marker in ("反证", "失效", "推翻", "相反")):
         errors.append("正文未明确呈现最强反证")
         components["causal_chain_expectation_gap"] -= 3
         components["risk_invalidation"] -= 3
@@ -703,6 +945,25 @@ def audit_report(
         if undisclosed:
             hard_failures.append(f"来源失败或不可用状态未披露：{', '.join(undisclosed)}")
             components["freshness_source_state"] = 0
+        failed_names = {
+            str(item.get("name"))
+            for item in source_status
+            if item.get("name") and item.get("state") not in {"ready", "degraded"}
+        }
+        for field in ("primary_driver", "secondary_driver"):
+            driver = outline.get(field)
+            driver_source = str(driver.get("source") or "") if isinstance(driver, dict) else ""
+            matched_failure = next(
+                (
+                    name
+                    for name in failed_names
+                    if driver_source and (driver_source in name or name in driver_source)
+                ),
+                None,
+            )
+            if matched_failure:
+                hard_failures.append(f"{field} 使用失败来源：{matched_failure}")
+                components["freshness_source_state"] = 0
 
     if AI_DISCLAIMER not in _section(text, "AI观点风险提示"):
         hard_failures.append("AI观点风险提示未使用完整固定声明")

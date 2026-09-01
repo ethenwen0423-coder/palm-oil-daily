@@ -315,12 +315,28 @@ write_service \
   "$temporary_root/palm-oil-research-agent.service" \
   "Generate governed palm oil research reports on the server" \
   "run_research_agent.py"
-write_timer \
-  "$temporary_root/palm-oil-research-agent.timer" \
-  "Retry governed palm oil report generation every twenty minutes" \
-  "palm-oil-research-agent.service" \
-  "*-*-* *:07/20:00" \
-  "30s"
+cat >"$temporary_root/palm-oil-research-agent.timer" <<EOF
+[Unit]
+Description=Generate governed daily reports after market refresh and Sunday weekly reports
+
+[Timer]
+OnCalendar=Mon..Fri *-*-* 07:07:00 Asia/Shanghai
+OnCalendar=Mon..Fri *-*-* 07:27:00 Asia/Shanghai
+OnCalendar=Mon..Fri *-*-* 07:47:00 Asia/Shanghai
+OnCalendar=Mon..Fri *-*-* 08:07:00 Asia/Shanghai
+OnCalendar=Mon..Fri *-*-* 08:27:00 Asia/Shanghai
+OnCalendar=Mon..Fri *-*-* 08:47:00 Asia/Shanghai
+OnCalendar=Sun *-*-* 21:15:00 Asia/Shanghai
+OnCalendar=Sun *-*-* 21:40:00 Asia/Shanghai
+OnCalendar=Sun *-*-* 22:05:00 Asia/Shanghai
+AccuracySec=30s
+RandomizedDelaySec=30s
+Persistent=true
+Unit=palm-oil-research-agent.service
+
+[Install]
+WantedBy=timers.target
+EOF
 write_service \
   "$temporary_root/palm-oil-prediction-review.service" \
   "Evaluate due palm oil forecasts from server close data" \

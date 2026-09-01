@@ -184,6 +184,27 @@ def load_json(path: Path) -> Any:
         raise ResearchAgentError(f"cannot read governed input: {path}") from exc
 
 
+def load_report_contract(site_root: Path, kind: str) -> str:
+    """Load the repository-owned contract instead of relying on a prompt copy."""
+    contract_name = "daily_automation_prompt.md" if kind == "daily" else "weekly_automation_prompt.md"
+    paths = (
+        site_root / "references" / contract_name,
+        site_root / "skills" / "report_writer_skill" / "SKILL.md",
+        site_root / "skills" / "vinson-research-writing" / "SKILL.md",
+        site_root / "skills" / "vinson-research-writing" / "checklist.md",
+    )
+    parts: list[str] = []
+    for path in paths:
+        try:
+            content = path.read_text(encoding="utf-8").strip()
+        except OSError as exc:
+            raise ResearchAgentError(f"cannot load repository report contract: {path}") from exc
+        if not content:
+            raise ResearchAgentError(f"repository report contract is empty: {path}")
+        parts.append(f"===== {path.relative_to(site_root)} =====\n{content}")
+    return "\n\n".join(parts)
+
+
 def build_prompt(
     *,
     report_date: str,
@@ -191,6 +212,7 @@ def build_prompt(
     source_snapshot: dict[str, Any],
     feedback: dict[str, Any] | None,
     correction: str,
+    contract_text: str,
 ) -> str:
     sections = (
         [
@@ -241,7 +263,9 @@ def build_prompt(
 - “信息来源与核验说明”必须逐项列出 news_and_research_evidence.source_status 中的来源名称与真实状态；失败、不可用或降级不得省略。
 - “今日观点”不能只有口号；Headline 后至少用一段解释为什么、P/Y/OI如何分化、什么证据会改变判断。两个主驱动合计不得少于350个中文可见字符。
 - “缺少数据”“暂无新增驱动”“来源失败”是证据边界，不是基本面驱动；不得用数据缺口支撑方向判断。
-- `## 【今日交易信号】`必须使用 Markdown 表格并分别列出 P、Y、OI 三行，逐品种写触发、确认、失效、行动/仓位与有效期。
+- `## 【今日交易信号】`必须使用 Markdown 表格并分别列出 P、Y、OI 三行，逐品种完整写方向、触发、确认、止损、目标、仓位上限与信号有效期。
+- `## 【关键数据与价格】`必须使用 Markdown 表格，列名至少包含指标、数值、时点、含义；必须包含 P/Y/OI、关键外盘或原油、至少一个价差，以及提纲中的 P 止损或目标关键位。
+- `## 【开盘推演】`必须使用 Markdown 表格，三行分别为高开、平开、低开，列名至少包含情景、触发、确认、动作、放弃条件；每行都要写明 Y/OI 同步或背离时对 P 的处理。
 - score、driver/fundamental/technical 分数、数据条数、采集状态均是内部元数据，不得写成市场驱动或正文结论。
 - `source_error`、抓取失败、官方检查失败只允许出现在“信息来源与核验说明”，不得进入观点、驱动、策略或优先级判断。
 """
@@ -252,7 +276,8 @@ def build_prompt(
 - 必须读取 news_and_research_evidence.today_new_drivers 与 continuing_background，区分本周新增信息和延续背景；至少引用一条可核验研报或事件，并把资讯事实与自己的传导、预期差及反证分析分开。
 - “信息来源与核验说明”必须逐项列出 news_and_research_evidence.source_status 中的来源名称与真实状态；失败、不可用或降级不得省略。
 - 核心数据变化必须优先使用 research_history.market_comparison 与 official_supply_demand.latest_metrics；不得把单日涨跌冒充周度变化，也不得从 score 推导变化。
-- `## 【核心数据变化】`、`## 【下周主线与事件】`、`## 【交易计划】`必须使用 Markdown 表格。交易计划必须分别列出 P、Y、OI 三行，并写触发、确认、失效、仓位/行动和有效期。
+- `## 【核心数据变化】`、`## 【下周主线与事件】`、`## 【交易计划】`必须使用 Markdown 表格。核心数据表列名至少包含指标、数值、统计时间、变化、含义，并含 P/Y/OI、豆棕价差、菜豆油价差。事件表列名至少包含日期、事件、重要性、触发条件，并逐行覆盖周一至周五。交易计划必须分别列出 P、Y、OI 三行，并完整写方向、触发、确认、止损、目标、仓位上限和信号有效期。
+- `## 【周一开盘推演】`必须使用 Markdown 表格，四行分别为高开高走、高开震荡、高开回落、低开，列名至少包含情景、概率、触发、确认、动作、放弃条件；概率只能复制 SOURCE_JSON 中既有模型/规则。
 - 正文必须同时解释豆棕价差与菜豆油价差各自说明什么；两个主驱动至少一个必须来自供给、需求、库存、出口、产量、基差或价差等基本面事实。
 - score、driver/fundamental/technical 分数、数据条数、采集状态均是内部元数据，不得写成市场驱动或正文结论。
 - `source_error`、抓取失败、官方检查失败只允许出现在“信息来源与核验说明”，不得进入观点、驱动、交易计划或下周主线。
@@ -281,8 +306,13 @@ def build_prompt(
 10a. 日报“今日观点”第一段必须包含可机器读取的 `置信度：{confidence_cap}`，outline.research_confidence 也必须精确为 `{confidence_cap}`。
 11. 不得在“信息来源与核验说明”之前使用“需进一步核验”；所有证据缺口只能集中在该栏目、最多写一次。禁止把未核验信息升级为主驱动。场外结构类型库和量化模型规则不可更改。
 12. `## 【AI观点风险提示】`必须逐字写：本报告由AI基于公开信息、已调用数据源和既定研究框架生成，仅代表生成时点的研究判断，不构成投资建议或交易指令。期货价格波动较大，客户应结合自身风险承受能力独立决策。
+13. `## 【信息来源与核验说明】`必须明确列出“实际 skill”“数据源”“截止时间”“失败项”“替代来源”五个审计字段；无失败或无替代时也要明确写“无”，不能省略字段。
 
 {kind_requirements}
+
+以下是当前 GitHub 仓库随代码发布的原始日报/周报合同与写作清单，全部属于硬约束；不得用上方摘要替代。若任何摘要与原始合同表述不一致，以原始合同中更严格的要求为准：
+
+{contract_text}
 
 REQUIRED_DISCLOSURES：
 {disclosure_text}
@@ -426,15 +456,9 @@ def ensure_weekly_previous_validation(
     if has_previous_view:
         updated = f"{match.group(1)}上一期报告日期：{previous_date}。\n\n{body}\n"
         return markdown[: match.start()] + updated + markdown[match.end() :]
-    label = previous_title or f"{previous_date}周报"
-    view = f"，核心判断为“{previous_headline}”" if previous_headline else ""
-    validation = (
-        f"上一期报告（{previous_date}，{label}）{view}。"
-        "本期按相同失效条件复核：该判断尚未被价格突破且驱动、资金同向证伪，"
-        "因此记为部分兑现、仍待确认。"
-    )
-    updated = f"{match.group(1)}{validation}\n\n{body}\n"
-    return markdown[: match.start()] + updated + markdown[match.end() :]
+    # Never manufacture an outcome such as “部分兑现”.  Missing comparison
+    # evidence must remain missing so the deterministic audit blocks/retries.
+    return markdown
 
 
 def normalize_report_punctuation(markdown: str) -> str:
@@ -703,6 +727,7 @@ def main() -> int:
         run_prewrite_data_gate(runtime_root, run_root, min(args.timeout, 300))
         record_skill_stage(run_root, "data_quality_gate_skill", "ok", "data_quality.json")
         source_snapshot = load_json(Path(built["snapshot"]))
+        contract_text = load_report_contract(site_root, kind)
         feedback = None
         if kind == "daily":
             feedback_builder = load_module(
@@ -744,6 +769,7 @@ def main() -> int:
                 source_snapshot=source_snapshot,
                 feedback=feedback,
                 correction="",
+                contract_text=contract_text,
             )
             if args.mock_response:
                 model_payload = load_json(args.mock_response.resolve())
@@ -797,6 +823,7 @@ def main() -> int:
                 source_snapshot=source_snapshot,
                 feedback=feedback,
                 correction=correction,
+                contract_text=contract_text,
             )
             if args.mock_response:
                 model_payload = load_json(args.mock_response.resolve())

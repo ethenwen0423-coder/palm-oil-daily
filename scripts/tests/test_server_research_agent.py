@@ -91,6 +91,7 @@ class ServerResearchAgentTests(unittest.TestCase):
             source_snapshot={},
             feedback=None,
             correction="",
+            contract_text="REPOSITORY CONTRACT SENTINEL",
         )
         self.assertIn("页面 Headline", prompt)
         self.assertIn("不得超过 50 个字符", prompt)
@@ -103,6 +104,9 @@ class ServerResearchAgentTests(unittest.TestCase):
         self.assertIn("分别列出 P、Y、OI 三行", prompt)
         self.assertIn("news_and_research_evidence.today_new_drivers", prompt)
         self.assertIn("两个主驱动合计不得少于350个中文可见字符", prompt)
+        self.assertIn("REPOSITORY CONTRACT SENTINEL", prompt)
+        self.assertIn("指标、数值、时点、含义", prompt)
+        self.assertIn("实际 skill", prompt)
 
     def test_prewrite_gate_requires_market_news_and_freshness_skills(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -166,12 +170,23 @@ class ServerResearchAgentTests(unittest.TestCase):
             source_snapshot={"research_history": {}},
             feedback=None,
             correction="",
+            contract_text="WEEKLY CONTRACT SENTINEL",
         )
         self.assertIn("research_history.previous_report", prompt)
         self.assertIn("本周起建立连续验证基线", prompt)
         self.assertIn("必须使用 Markdown 表格", prompt)
         self.assertIn("分别列出 P、Y、OI 三行", prompt)
         self.assertIn("豆棕价差与菜豆油价差", prompt)
+        self.assertIn("高开高走、高开震荡、高开回落、低开", prompt)
+        self.assertIn("WEEKLY CONTRACT SENTINEL", prompt)
+
+    def test_repository_contract_loader_includes_original_prompts_and_checklist(self) -> None:
+        contract = MODULE.load_report_contract(ROOT, "daily")
+        self.assertIn("references/daily_automation_prompt.md", contract)
+        self.assertIn("skills/report_writer_skill/SKILL.md", contract)
+        self.assertIn("skills/vinson-research-writing/SKILL.md", contract)
+        self.assertIn("skills/vinson-research-writing/checklist.md", contract)
+        self.assertIn("高开、平开、低开三种情景", contract)
 
     def test_persistent_context_restores_previous_source_runs(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -240,7 +255,7 @@ class ServerResearchAgentTests(unittest.TestCase):
         self.assertIn("今日策略：震荡。", updated)
         self.assertIn("可检验失效条件：P跌破观察区间。", updated)
 
-    def test_weekly_audit_contracts_expose_previous_validation(self) -> None:
+    def test_weekly_audit_contracts_never_fabricate_previous_validation(self) -> None:
         markdown = """# 08月24日周报
 
 ## 【本周验证与预期差】
@@ -262,9 +277,8 @@ class ServerResearchAgentTests(unittest.TestCase):
             },
             "weekend",
         )
-        self.assertIn("2026-08-23，08月23日周报", updated)
-        self.assertIn("油脂维持震荡", updated)
-        self.assertIn("部分兑现、仍待确认", updated)
+        self.assertEqual(updated, markdown)
+        self.assertNotIn("部分兑现、仍待确认", updated)
 
     def test_weekly_existing_view_only_gets_missing_iso_date(self) -> None:
         markdown = """# 08月24日周报

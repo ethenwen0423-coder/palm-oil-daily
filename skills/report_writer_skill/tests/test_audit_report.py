@@ -36,6 +36,19 @@ def source_payload() -> dict:
                 "crude_oil": {"name": "WTI 原油", "price": 84.51, "change_pct": -5.37},
             },
         },
+        "news_and_research_evidence": {
+            "today_new_drivers": [
+                {
+                    "source": "BMD",
+                    "title": "FCPO收盘保持韧性",
+                    "mainline_eligible": True,
+                }
+            ],
+            "source_status": [
+                {"name": "BMD", "state": "ready"},
+                {"name": "DCE", "state": "ready"},
+            ],
+        },
     }
 
 
@@ -92,37 +105,51 @@ def valid_report() -> str:
 
 ## 【今日观点】
 
-外盘支撑仍需内盘确认，今日策略偏多但只在触发后执行；若关键支撑失守，基准观点失效。置信度：★★☆☆☆。
+外盘待确认，偏多仅触发后执行；支撑失守则失效。置信度：★★☆☆☆。
 
 ## 【今日交易信号】
 
 今日策略：偏多。P/Y/OI强弱取决于开盘确认。
 
-| 品种 | 触发 | 确认 | 止损 | 目标 | 仓位 | 有效期 |
-|---|---:|---:|---:|---:|---:|---|
-| P | 9510元/吨 | 9520元/吨 | 9480元/吨 | 9600-9650元/吨 | 20% | 2026-07-27 11:30 |
-| Y | 与P同步走强 | 成交确认 | 反向走弱 | 源数据未给出 | 不新开仓 | 日内 |
-| OI | 与P同步走强 | 成交确认 | 反向走弱 | 源数据未给出 | 不新开仓 | 日内 |
+| 品种 | 方向 | 触发 | 确认 | 止损 | 目标 | 仓位上限 | 信号有效期 |
+|---|---|---|---|---|---|---|---|
+| P | 偏多 | 9510元/吨 | 9520元/吨 | 9480元/吨 | 9600-9650元/吨 | 20% | 2026-07-27 11:30 |
+| Y | 观望 | 与P同步走强 | 成交确认 | 反向走弱 | 源数据未给出 | 不新开仓 | 日内 |
+| OI | 观望 | 与P同步走强 | 成交确认 | 反向走弱 | 源数据未给出 | 不新开仓 | 日内 |
 
 ## 【核心驱动与预期差】
 
-主驱动一：截至2026-07-24 17:59，FCPO 4723点保持相对韧性，进口成本→国内盘面支撑→P确认后偏强。它说明产地报价尚未跟随内盘转弱，进口成本对P构成下方约束，但不能直接推出国内需求改善；市场已交易外盘韧性，尚未定价的是开盘后国内买盘是否承接，这需要成交和持仓共同核验。主驱动二：截至2026-07-27 08:22的内盘分化限制单边追价。P、Y、OI没有形成同步确认，意味着资金更可能交易品种相对强弱，而不是油脂板块一致趋势。市场预期供应收紧，现实是内盘尚未确认，当前定价并不充分。只有P触发后Y与OI同步走强，成本支撑才会从预期转化为现实，否则继续按区间而非趋势处理。最强反证是原油急跌并带动外盘油脂回落；原油下行会沿生柴估值链压低植物油需求溢价，若同时出现P跌破关键支撑与Y/OI转弱，该情景会推翻偏多判断。
+主驱动一：截至2026-07-24 17:59，FCPO 4723点保持相对韧性，进口成本→国内盘面支撑→P确认后偏强。它说明产地报价尚未跟随内盘转弱，进口成本对P构成下方约束，但不能直接推出国内需求改善；市场已交易外盘韧性，尚未定价的是开盘后国内买盘是否承接，这需要成交和持仓共同核验。主驱动二：截至2026-07-27 08:22的内盘分化限制单边追价。P、Y、OI没有形成同步确认，意味着资金更可能交易品种相对强弱，而不是油脂板块一致趋势。市场预期供应收紧，现实是内盘尚未确认，当前定价并不充分。只有P触发后Y与OI同步走强，成本支撑才会从预期转化为现实，否则继续按区间而非趋势处理。最强反证是原油急跌并引发外盘油脂回落；原油下行会沿生柴估值链压低植物油需求溢价，若同时出现P跌破关键支撑与Y/OI转弱，该情景会推翻偏多判断。
 
 ## 【关键数据与价格】
 
-截至2026-07-27 08:22，P主力9515元/吨、Y主力8609元/吨、OI主力10191元/吨；豆棕价差-906元/吨，菜豆价差1582元/吨。同期WTI 84.51美元/桶。数据说明外盘支撑与内盘分化并存，必须等待确认。
+| 指标 | 数值 | 时点 | 含义 |
+|---|---:|---|---|
+| P主力 | 9515元/吨 | 2026-07-27 08:22 | 支撑待确认 |
+| Y主力 | 8609元/吨 | 2026-07-27 08:22 | 与P存在分化 |
+| OI主力 | 10191元/吨 | 2026-07-27 08:22 | 与P存在分化 |
+| BMD FCPO | 4723点 | 2026-07-24 17:59 | 成本支撑 |
+| WTI原油 | 84.51美元/桶 | 2026-07-27 08:22 | 生柴承压 |
+| 豆棕价差 | -906元/吨 | 2026-07-27 08:22 | P相对偏强 |
+| 菜豆价差 | 1582元/吨 | 2026-07-27 08:22 | OI相对溢价 |
+| P止损关键位 | 9480元/吨 | 2026-07-27日内 | 失守则放弃偏多 |
+| P目标关键位 | 9600-9650元/吨 | 2026-07-27日内 | 触及后不追价 |
 
 ## 【开盘推演】
 
-高开时等待9520站稳再执行；平开时观察9510触发及成交确认；低开时若9480失守即放弃。Y/OI同步走强才支持P延续，二者背离则压低仓位，不追赶已错过的信号。
+| 情景 | 触发 | 确认 | 动作 | 放弃条件 |
+|---|---|---|---|---|
+| 高开 | P上破9510 | 站稳9520且Y/OI同步 | 按20%上限执行 | Y/OI背离或P回落 |
+| 平开 | P测试9510 | 成交及Y/OI同步确认 | 确认后执行 | 迟迟未确认则观望 |
+| 低开 | P接近9480 | Y/OI同步走弱 | 不新开仓 | P收复且Y/OI转强前放弃 |
 
 ## 【风险提示】
 
-若原油继续急跌，生柴估值链条会削弱；若P跌破9480且Y/OI同步走弱，当前判断失效；若外盘报价口径变化，需先核验再调整结论。
+原油急跌或P跌破9480且Y/OI同步走弱，判断失效；外盘口径变化时先核验。
 
 ## 【信息来源与核验说明】
 
-行情截至2026-07-27 08:22，来自DCE盘前快照、BMD和结构化行情。需进一步核验：开盘资金确认。
+实际 skill：market_data_skill、data_quality_gate_skill、oil_report_freshness。数据源：DCE盘前快照、BMD和结构化行情。截止时间：2026-07-27 08:22。失败项：无。替代来源：无。需进一步核验：开盘资金确认。
 
 {DISCLOSURE}
 
@@ -214,7 +241,7 @@ class AuditReportTest(unittest.TestCase):
 
     def test_critical_price_mismatch_blocks_publication(self) -> None:
         result, report, outline, source, feedback = self.run_audit()
-        report.write_text(report.read_text(encoding="utf-8").replace("P主力9515", "P主力9516"), encoding="utf-8")
+        report.write_text(report.read_text(encoding="utf-8").replace("| P主力 | 9515", "| P主力 | 9516"), encoding="utf-8")
         result = audit.audit_report(report, outline, "daily", source, feedback)
         self.assertFalse(result["can_publish"])
         self.assertTrue(any("关键行情不一致：棕榈油" in item for item in result["hard_failures"]))
@@ -222,8 +249,8 @@ class AuditReportTest(unittest.TestCase):
     def test_reported_spread_and_percentage_are_fully_checked(self) -> None:
         _, report, outline, source, feedback = self.run_audit()
         text = report.read_text(encoding="utf-8")
-        text = text.replace("豆棕价差-906", "豆棕价差-905")
-        text = text.replace("WTI 84.51美元/桶", "WTI 84.51美元/桶，下跌4.37%")
+        text = text.replace("| 豆棕价差 | -906", "| 豆棕价差 | -905")
+        text = text.replace("| WTI原油 | 84.51美元/桶", "| WTI原油 | 84.51美元/桶，下跌4.37%")
         report.write_text(text, encoding="utf-8")
         result = audit.audit_report(report, outline, "daily", source, feedback)
         self.assertFalse(result["can_publish"])
@@ -286,6 +313,41 @@ class AuditReportTest(unittest.TestCase):
 """
         self.assertEqual(audit._duplicate_sentences(text), [])
 
+    def test_weekly_structured_contract_helpers_accept_complete_tables(self) -> None:
+        data = """| 指标 | 数值 | 统计时间 | 变化 | 含义 |
+|---|---|---|---|---|
+| P2701 | 9500 | 周五收盘 | 上涨 | 偏强 |
+| Y2701 | 8600 | 周五收盘 | 持平 | 跟随 |
+| OI2701 | 10100 | 周五收盘 | 下跌 | 分化 |
+| 豆棕价差 | -900 | 周五收盘 | 收窄 | P强 |
+| 菜豆油价差 | 1500 | 周五收盘 | 走阔 | OI强 |
+"""
+        events = """| 日期 | 事件 | 重要性 | 触发条件 |
+|---|---|---|---|
+| 周一 | 开盘验证 | 高 | P确认 |
+| 周二 | 库存观察 | 中 | 数据发布 |
+| 周三 | 出口观察 | 中 | 数据发布 |
+| 周四 | 外盘联动 | 中 | FCPO波动 |
+| 周五 | 周线确认 | 高 | P收盘 |
+"""
+        failures: list[str] = []
+        audit._require_weekly_data_table(data, failures)
+        audit._require_weekly_events_table(events, failures)
+        self.assertEqual(failures, [])
+
+    def test_weekly_data_table_without_change_and_meaning_is_blocked(self) -> None:
+        failures: list[str] = []
+        audit._require_weekly_data_table(
+            """| 指标 | 数值 |
+|---|---|
+| P | 9500 |
+| Y | 8600 |
+| OI | 10100 |
+""",
+            failures,
+        )
+        self.assertTrue(any("指标、数值、统计时间、变化和含义" in item for item in failures))
+
     def test_future_dated_source_record_blocks_publication(self) -> None:
         _, report, outline, source, feedback = self.run_audit()
         payload = json.loads(source.read_text(encoding="utf-8"))
@@ -340,6 +402,23 @@ class AuditReportTest(unittest.TestCase):
         result = audit.audit_report(report, outline, "daily", source, feedback)
         self.assertFalse(result["can_publish"])
         self.assertTrue(any("证据缺口" in item for item in result["hard_failures"]))
+
+    def test_august_31_low_quality_report_is_now_blocked(self) -> None:
+        report = ROOT / "reports" / "2026-08-31.md"
+        run_root = ROOT / "source_runs" / "2026-08-31-daily"
+        result = audit.audit_report(
+            report,
+            run_root / "report_outline.json",
+            "daily",
+            run_root / "raw" / "futures_market_data.json",
+            None,
+        )
+        self.assertFalse(result["can_publish"], result)
+        joined = "\n".join(result["hard_failures"])
+        self.assertIn("日报交易信号必须使用包含品种、方向、触发、确认、止损、目标、仓位上限、信号有效期", joined)
+        self.assertIn("关键数据与价格必须使用包含指标、数值、时点和含义", joined)
+        self.assertIn("开盘推演必须使用包含情景、触发、确认、动作、放弃条件", joined)
+        self.assertIn("信息来源与核验说明缺少审计字段", joined)
 
 
 if __name__ == "__main__":

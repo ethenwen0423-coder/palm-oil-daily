@@ -102,6 +102,11 @@ Common rules:
 - Consolidate `需进一步核验` items in `信息来源与核验说明`; mention them in the core body only when they can change the view.
 - Preserve the complete trade plan: direction, trigger, confirmation, stop, target, position limit, and signal expiry.
 - P/Y/OI coverage is mandatory. Weekly reports also state relative strength and the role of Y/OI in the P thesis.
+- Daily and weekly P/Y/OI execution plans use one Markdown table with the exact contract columns `品种 | 方向 | 触发 | 确认 | 止损 | 目标 | 仓位上限 | 信号有效期`; every product row must be complete. When a deterministic input omits a value, write the governed no-trade fallback instead of leaving a cell blank or inventing a number.
+- Daily key data use a Markdown table with `指标 | 数值 | 时点 | 含义`; include P/Y/OI, one key external or crude-oil value, at least one spread, and a P stop or target level from the outline.
+- Daily opening scenarios use a Markdown table with `情景 | 触发 | 确认 | 动作 | 放弃条件` and complete high/flat/low rows. Weekly scenarios add `概率` and complete high-open-rise/high-open-range/high-open-fall/low-open rows. Each scenario states how Y/OI confirmation or divergence changes the P action.
+- Weekly core data use `指标 | 数值 | 统计时间 | 变化 | 含义` and include P/Y/OI plus both soybean-palm and rapeseed-soybean-oil spreads. The event table uses `日期 | 事件 | 重要性 | 触发条件` and covers Monday through Friday without blank placeholders.
+- `信息来源与核验说明` explicitly labels actual skills, data sources, cutoff time, failed items, and replacement sources. Write `无` when a field is empty; do not omit the field.
 - Copy every daily forecast feedback `required_report_disclosures` sentence exactly into `信息来源与核验说明`.
 - Forecast feedback may only reduce confidence, downgrade a product, or add a counter-scenario. It cannot boost confidence or replace current evidence.
 
@@ -155,6 +160,7 @@ Regardless of total score, publication is blocked by:
 - a missing required report section or invalid outline;
 - a first-screen Top Call that omits the baseline stance, action, invalidation condition, or research confidence;
 - an unranked driver section, incomplete opening scenarios, or (for weekly reports) an event calendar that does not cover Monday through Friday.
+- an incomplete P/Y/OI execution table, unstructured key-data/scenario table, fewer than three auditable auxiliary numeric facts, or a missing source-audit field.
 
 `WARN` is appropriate for an explainable source-method difference. Do not turn a critical numeric error into a tolerance warning.
 
