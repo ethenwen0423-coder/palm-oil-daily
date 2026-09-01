@@ -84,6 +84,51 @@ class ServerResearchAgentTests(unittest.TestCase):
             MODULE.select_due(datetime(2026, 8, 8, 21, 15, tzinfo=timezone))
         )
 
+    def test_acceptance_report_date_uses_rank_one_exchange_trade_date(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "oil_futures.json").write_text(
+                json.dumps(
+                    {
+                        "contracts": [
+                            {
+                                "product": product,
+                                "contract_rank": 1,
+                                "trade_date": "2026-09-02",
+                            }
+                            for product in ("P", "Y", "OI")
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+            self.assertEqual(
+                MODULE.acceptance_report_date(root, "2026-09-01"),
+                "2026-09-02",
+            )
+
+    def test_acceptance_report_date_never_moves_backward(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "oil_futures.json").write_text(
+                json.dumps(
+                    {
+                        "contracts": [
+                            {
+                                "product": "P",
+                                "contract_rank": 1,
+                                "trade_date": "2026-08-31",
+                            }
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+            self.assertEqual(
+                MODULE.acceptance_report_date(root, "2026-09-01"),
+                "2026-09-01",
+            )
+
     def test_prompt_bounds_the_visible_headline(self) -> None:
         prompt = MODULE.build_prompt(
             report_date="2026-08-07",

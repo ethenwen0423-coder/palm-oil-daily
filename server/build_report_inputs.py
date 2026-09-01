@@ -643,10 +643,12 @@ def write_source_run(
     report_date: str,
     kind: str,
     now: datetime,
+    *,
+    allow_date_override: bool = False,
 ) -> dict[str, Any]:
     if not re.fullmatch(r"20\d{2}-\d{2}-\d{2}", report_date):
         raise ReportInputError("report date must be YYYY-MM-DD")
-    if now.date().isoformat() != report_date:
+    if now.date().isoformat() != report_date and not allow_date_override:
         raise ReportInputError("server report inputs may only be built for the current date")
     run_root = runtime_root / "source_runs" / f"{report_date}-{kind}"
     raw_root = run_root / "raw"

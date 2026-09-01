@@ -66,37 +66,6 @@ elif payload.get("acceptance") != "real_model_report_draft_validated":
 PY
 }
 
-research_acceptance_now() {
-  python3 - "$LIVE_DATA_ROOT/oil_futures.json" <<'PY'
-import json
-import sys
-from datetime import datetime, time
-from pathlib import Path
-from zoneinfo import ZoneInfo
-
-zone = ZoneInfo("Asia/Shanghai")
-current = datetime.now(zone)
-acceptance_date = current.date()
-try:
-    payload = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
-except (OSError, json.JSONDecodeError):
-    payload = {}
-for item in payload.get("contracts", []):
-    if not isinstance(item, dict):
-        continue
-    if str(item.get("product") or "").upper() not in {"P", "Y", "OI"}:
-        continue
-    try:
-        rank = int(item.get("contract_rank"))
-        trade_date = datetime.fromisoformat(str(item.get("trade_date") or "")).date()
-    except (TypeError, ValueError):
-        continue
-    if rank == 1 and trade_date > acceptance_date:
-        acceptance_date = trade_date
-print(datetime.combine(acceptance_date, time(current.hour, current.minute), zone).isoformat())
-PY
-}
-
 if [[ "$MODE" == "--status" ]]; then
   api_key_present=false
   provider="missing"
@@ -255,13 +224,11 @@ require_current_acceptance "$ai_acceptance" "ai-brief"
   exit 2
 }
 
-acceptance_now="$(research_acceptance_now)"
 if research_acceptance="$("$VENV_ROOT/bin/python" \
     "$SITE_ROOT/server/run_research_agent.py" \
     --site-root "$SITE_ROOT" \
     --live-data-root "$LIVE_DATA_ROOT" \
     --state-root "$STATE_ROOT" \
-    --now "$acceptance_now" \
     --force-kind weekend \
     --acceptance-only \
     --attempts 1)"; then

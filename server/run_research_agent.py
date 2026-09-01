@@ -82,6 +82,33 @@ def report_id(report_date: str, kind: str) -> str:
     return f"{report_date}-weekend" if kind == "weekend" else report_date
 
 
+def acceptance_report_date(live_data_root: Path, current_date: str) -> str:
+    """Use the exchange trade date for drafts without advancing freshness time."""
+
+    latest = datetime.fromisoformat(current_date).date()
+    try:
+        payload = json.loads(
+            (live_data_root / "oil_futures.json").read_text(encoding="utf-8")
+        )
+    except (OSError, json.JSONDecodeError):
+        return current_date
+    for item in payload.get("contracts", []):
+        if not isinstance(item, dict):
+            continue
+        if str(item.get("product") or "").upper() not in {"P", "Y", "OI"}:
+            continue
+        try:
+            rank = int(item.get("contract_rank"))
+            trade_date = datetime.fromisoformat(
+                str(item.get("trade_date") or "")
+            ).date()
+        except (TypeError, ValueError):
+            continue
+        if rank == 1 and trade_date > latest:
+            latest = trade_date
+    return latest.isoformat()
+
+
 def report_is_ready(path: Path, identity: str) -> bool:
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
@@ -654,12 +681,14 @@ def main() -> int:
     if not kind:
         print(json.dumps({"status": "noop", "reason": "no_report_due", "now": now.isoformat(timespec="seconds")}, ensure_ascii=False))
         return 0
-    report_date = now.date().isoformat()
-    identity = report_id(report_date, kind)
     site_root = args.site_root.resolve()
     runtime_root = args.runtime_root.resolve()
     live_data_root = args.live_data_root.resolve()
     state_root = args.state_root.resolve()
+    report_date = now.date().isoformat()
+    if args.acceptance_only:
+        report_date = acceptance_report_date(live_data_root, report_date)
+    identity = report_id(report_date, kind)
     support = load_module("server_research_support", Path(__file__).with_name("run_market_collector.py"))
     try:
         support.validate_runtime_paths(site_root, runtime_root, live_data_root)
@@ -721,6 +750,7 @@ def main() -> int:
             report_date,
             kind,
             now,
+            allow_date_override=args.acceptance_only,
         )
         run_root = Path(built["run_root"])
         record_skill_stage(run_root, "market_data_skill", "ok", "manifest.json")
