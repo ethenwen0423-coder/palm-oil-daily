@@ -225,7 +225,7 @@ def fetch_margin_book(contracts: list[str], as_of: date, timeout: int = 30) -> d
         "official_shfe_report_date": official_day,
         "qihuo_error": qihuo_error,
         "rates": rates,
-        "validation": "真实PYYMM逐合约；投机多空保证金取较高值；缺失或超过7日不使用默认比例",
+        "validation": "真实PYYMM逐合约；保留多空保证金并按实际持仓方向使用；缺失或超过7日不使用默认比例",
     }
 
 

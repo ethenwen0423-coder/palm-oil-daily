@@ -5,6 +5,7 @@ import unittest
 from datetime import date
 from pathlib import Path
 from types import SimpleNamespace
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -44,6 +45,11 @@ class ExchangeMarginRateTests(unittest.TestCase):
                 "AL2610": {"margin_rate": .11, "source_updated_at": "2026-08-20"}
             }}), encoding="utf-8")
             self.assertIsNone(MARGINS.load_cached_margin_book(path, ["AL2610"], date(2026, 8, 31)))
+
+    def test_margin_book_audit_states_directional_application(self):
+        with mock.patch.object(MARGINS, "_fetch_shfe", return_value=({}, None)):
+            result = MARGINS.fetch_margin_book([], date(2026, 9, 1))
+        self.assertIn("按实际持仓方向使用", result["validation"])
 
     def test_ledger_revalues_existing_position_with_exchange_rate(self):
         ledger_spec = importlib.util.spec_from_file_location(
