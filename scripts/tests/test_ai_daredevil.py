@@ -30,8 +30,8 @@ class AiDaredevilTests(unittest.TestCase):
         self.assertIn('api: "/api/ai-daredevil"', script)
         self.assertIn('api: "/api/ai-daredevil/pure-ai"', script)
         self.assertIn('kind === "skipped"', script)
-        self.assertIn('assets/ai-daredevil.css?v=20260831-3', html)
-        self.assertIn('assets/ai-daredevil.js?v=20260901-1', html)
+        self.assertIn('assets/ai-daredevil.css?v=20260901-2', html)
+        self.assertIn('assets/ai-daredevil.js?v=20260901-3', html)
         self.assertIn("名义金额 / 保证金", html)
         self.assertIn("item.margin_rate", script)
         self.assertIn('item.margin_applied_side === "long"', script)
@@ -53,6 +53,12 @@ class AiDaredevilTests(unittest.TestCase):
         self.assertIn('.position-pnl-positive { color: var(--dd-red); }', stylesheet)
         self.assertIn('.position-pnl-negative { color: var(--dd-green); }', stylesheet)
         self.assertIn("60 * 1000", script)
+        self.assertIn("过去五年逐月回测收益", html)
+        self.assertIn("当前 40 个跨板块品种静态等权基准", html)
+        self.assertIn('backtestApi: "/api/ai-daredevil/monthly-backtest"', script)
+        self.assertIn("monthly-return-table", stylesheet)
+        self.assertIn("不是实时基金动态前八仓位", html)
+        self.assertIn('if (value == null || value === "")', script)
 
     def test_runtime_initializes_persistent_virtual_fund_without_requesting_quotes(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -217,6 +223,13 @@ class AiDaredevilTests(unittest.TestCase):
         self.assertIn("systemctl enable --now palm-oil-ai-daredevil.timer", installer)
         runtime = (ROOT / "server" / "run_ai_daredevil.py").read_text(encoding="utf-8")
         self.assertIn('"run_pure_ai_fund.py"', runtime)
+
+    def test_installer_updates_monthly_backtest_on_first_day(self):
+        installer = (ROOT / "server" / "install_automation.sh").read_text(encoding="utf-8")
+        self.assertIn("palm-oil-ai-daredevil-backtest.timer", installer)
+        self.assertIn("*-*-01 03:20:00 Asia/Shanghai", installer)
+        self.assertIn("build_ai_daredevil_monthly_backtest.py", installer)
+        self.assertIn("systemctl enable --now palm-oil-ai-daredevil-backtest.timer", installer)
 
     def test_close_scan_calls_authoritative_contract_local_model_and_uses_t_minus_1_main(self):
         ledger, model, _signal_model = RUNTIME.load_components(ROOT)

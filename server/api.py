@@ -41,6 +41,7 @@ ROUTES = {
     "/api/assistant/research-watch": "research_watch.json",
     "/api/ai-daredevil": "ai_daredevil.json",
     "/api/ai-daredevil/pure-ai": "ai_daredevil_pure_ai.json",
+    "/api/ai-daredevil/monthly-backtest": "ai_daredevil_monthly_backtest.json",
 }
 
 DATASET_RULES = {
@@ -128,6 +129,11 @@ DATASET_RULES = {
         "label": "AI敢死队纯AI决策虚拟基金账本",
         "stale_after_seconds": 60 * 75,
         "timestamp_fields": ("generated_at", "market_date"),
+    },
+    "/api/ai-daredevil/monthly-backtest": {
+        "label": "AI敢死队五年逐月回测",
+        "stale_after_seconds": 60 * 60 * 24 * 40,
+        "timestamp_fields": ("generated_at", "as_of"),
     },
 }
 

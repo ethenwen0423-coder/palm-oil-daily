@@ -280,6 +280,7 @@ def systemd_status() -> dict[str, Any]:
         "palm-oil-htfc-tianji.timer",
         "palm-oil-ai-daredevil.timer",
         "palm-oil-ai-daredevil-quotes.timer",
+        "palm-oil-ai-daredevil-backtest.timer",
     )
     states: dict[str, dict[str, bool]] = {}
     if available:

@@ -4,6 +4,7 @@
   const STRATEGIES = {
     bollinger: {
       label: "布林带模型", api: "/api/ai-daredevil", fallback: "data/ai_daredevil.json",
+      backtestApi: "/api/ai-daredevil/monthly-backtest", backtestFallback: "data/ai_daredevil_monthly_backtest.json",
       kicker: "Bollinger RSI · Real Contract Fund",
       lead: "独立100万元虚拟基金，按布林带、RSI与MA6既定规则扫描跨板块机会。只使用真实交割月主力合约，收盘确认，下一开盘成交。",
       auditTitle: "布林带模型跨板块全量扫描",
@@ -23,6 +24,8 @@
   const number = new Intl.NumberFormat("zh-CN", { maximumFractionDigits: 2 });
   let selected = "bollinger";
   let requestToken = 0;
+  let monthlyBacktestCache = null;
+  let monthlyBacktestLoadedAt = 0;
 
   function el(id) { return document.getElementById(id); }
   function percent(value) { return Number.isFinite(Number(value)) ? `${(Number(value) * 100).toFixed(2)}%` : "--"; }
@@ -92,6 +95,16 @@
     try { return { payload: await fetchPayload(config.api), transport: "实时 API" }; }
     catch (error) { return { payload: await fetchPayload(config.fallback), transport: "静态备份" }; }
   }
+  async function loadMonthlyBacktest() {
+    if (monthlyBacktestCache && Date.now() - monthlyBacktestLoadedAt < 60 * 60 * 1000) return monthlyBacktestCache;
+    const config = STRATEGIES.bollinger;
+    let result;
+    try { result = { payload: await fetchPayload(config.backtestApi), transport: "实时 API" }; }
+    catch (error) { result = { payload: await fetchPayload(config.backtestFallback), transport: "静态备份" }; }
+    monthlyBacktestCache = result;
+    monthlyBacktestLoadedAt = Date.now();
+    return result;
+  }
 
   function applyStrategyCopy(strategy) {
     const config = STRATEGIES[strategy];
@@ -102,10 +115,41 @@
     el("equity-chart-title").textContent = `${config.label}历史净值曲线`;
     el("risk-notice-copy").textContent = config.notice;
     el("inline-ai-notice").textContent = `AI 生成说明：${config.notice}`;
+    el("monthly-backtest-panel").hidden = strategy !== "bollinger";
     config.disciplines.forEach((row, index) => {
       el(`discipline-${index + 1}-title`).textContent = row[0];
       el(`discipline-${index + 1}-copy`).textContent = row[1];
     });
+  }
+
+  function monthlyReturn(value) {
+    if (value == null || value === "") return { className: "monthly-na", text: "—" };
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) return { className: "monthly-na", text: "—" };
+    if (parsed > 0) return { className: "is-positive", text: `+${(parsed * 100).toFixed(2)}%` };
+    if (parsed < 0) return { className: "is-negative", text: `（${(parsed * 100).toFixed(2)}%）` };
+    return { className: "monthly-zero", text: "0.00%" };
+  }
+
+  function renderMonthlyBacktest(data, transport) {
+    const years = Array.isArray(data.years) ? data.years : [];
+    const coverage = data.coverage || {};
+    const model = data.model || {};
+    const methodology = data.methodology || {};
+    el("monthly-backtest-status").textContent = `${data.status_label || "状态待核验"} · ${transport}`;
+    el("monthly-return-body").innerHTML = years.length ? years.map((row) => {
+      const cells = Array.from({ length: 12 }, (_, index) => monthlyReturn((row.months || {})[String(index + 1)]));
+      const period = monthlyReturn(row.period_return);
+      const label = row.complete_year ? String(row.year) : `${row.year}*`;
+      return `<tr><th scope="row">${escapeHtml(label)}</th>${cells.map((item) => `<td class="${item.className}">${escapeHtml(item.text)}</td>`).join("")}<td class="monthly-period ${period.className}">${escapeHtml(period.text)}</td></tr>`;
+    }).join("") : '<tr><td colspan="14" class="monthly-loading">没有可展示的完整自然月回测数据。</td></tr>';
+    el("monthly-backtest-range").textContent = `区间 ${data.window_start || "--"} 至 ${data.window_end || data.as_of || "--"}（* 为非完整年度）`;
+    el("monthly-backtest-coverage").textContent = `品种覆盖 ${coverage.successful_count ?? "--"} / ${coverage.universe_count ?? "--"} · 月份 ${coverage.populated_months ?? "--"} / ${coverage.expected_months ?? "--"}`;
+    el("monthly-backtest-model").textContent = `${model.name || "布林RSI模型"} · ${model.version || "版本待核验"} · 单边成本 ${model.single_side_cost == null ? "--" : percent(model.single_side_cost)}`;
+    el("monthly-backtest-source").textContent = `${(data.source || {}).name || "来源待核验"} · 截至 ${data.as_of || "--"} · ${data.update_schedule || "每月更新"}`;
+    const limits = Array.isArray(methodology.limitations) ? methodology.limitations.join("；") : "限制待核验";
+    el("monthly-backtest-limit").textContent = `${methodology.not_live_replay || "不是实时基金动态仓位历史回放"}；${methodology.historical_margin || "历史保证金口径待核验"}；${limits}。`;
+    el("monthly-backtest-ai-notice").textContent = `AI 风险提示：${data.ai_notice || "本表由 AI 基于所列行情和既定规则生成，不代表任何来源方官方立场，也不构成投资建议，请自行核验。"}`;
   }
 
   function renderMetrics(data) {
@@ -201,7 +245,14 @@
 
   async function boot() {
     const token = ++requestToken; applyStrategyCopy(selected); el("data-state").textContent = `正在载入${STRATEGIES[selected].label}`;
-    try { const result = await load(selected); if (token === requestToken) render(result.payload, result.transport); }
+    try {
+      const result = await load(selected);
+      if (token === requestToken) render(result.payload, result.transport);
+      if (selected === "bollinger") {
+        const backtest = await loadMonthlyBacktest();
+        if (token === requestToken) renderMonthlyBacktest(backtest.payload, backtest.transport);
+      }
+    }
     catch (error) { if (token === requestToken) { el("data-state").textContent = `${STRATEGIES[selected].label}数据不可用`; el("data-state").className = "data-state is-degraded"; } }
   }
   function initialStrategy() {

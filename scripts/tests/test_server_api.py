@@ -38,6 +38,10 @@ class ServerApiStatusTests(unittest.TestCase):
         self.assertEqual(API.ROUTES["/api/ai-daredevil"], "ai_daredevil.json")
         self.assertEqual(API.ROUTES["/api/ai-daredevil/pure-ai"], "ai_daredevil_pure_ai.json")
         self.assertEqual(
+            API.ROUTES["/api/ai-daredevil/monthly-backtest"],
+            "ai_daredevil_monthly_backtest.json",
+        )
+        self.assertEqual(
             API.ROUTES["/api/forecast/feedback/latest"],
             "forecast/feedback/latest.json",
         )
@@ -61,6 +65,7 @@ class ServerApiStatusTests(unittest.TestCase):
             "data/market_assistant_brief.json",
             "data/research_watch.json",
             "data/ai_daredevil.json",
+            "data/ai_daredevil_monthly_backtest.json",
             "data/ai_daredevil_pure_ai.json",
             "data/forecast/metrics/20d.json",
             "data/forecast/metrics/60d.json",

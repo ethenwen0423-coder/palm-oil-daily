@@ -9,7 +9,7 @@
     <meta name="theme-color" content="#071712" />
     <link rel="icon" href="data:," />
     <link rel="stylesheet" href="assets/styles.css" />
-    <link rel="stylesheet" href="assets/ai-daredevil.css?v=20260831-3" />
+    <link rel="stylesheet" href="assets/ai-daredevil.css?v=20260901-2" />
   </head>
   <body class="daredevil-page">
     <header class="daredevil-topbar">
@@ -139,12 +139,45 @@
         <div class="source-grid" id="source-grid"></div>
       </section>
 
+      <section id="monthly-backtest-panel" class="panel monthly-backtest-panel" aria-labelledby="monthly-backtest-title">
+        <header class="panel-heading">
+          <div><span>5-Year Monthly Backtest</span><h2 id="monthly-backtest-title">过去五年逐月回测收益</h2></div>
+          <span id="monthly-backtest-status" class="panel-count">等待月度回测</span>
+        </header>
+        <p class="monthly-backtest-intro">当前 40 个跨板块品种静态等权基准；仅用真实 PYYMM 合约，T-1 成交量选主力，收盘确认、下一开盘执行。它用于观察模型稳定性，不是实时基金动态前八仓位的历史回放。</p>
+        <div class="monthly-table-scroll">
+          <table class="monthly-return-table" aria-describedby="monthly-backtest-method">
+            <thead>
+              <tr>
+                <th scope="col">年份</th>
+                <th scope="col">1月</th><th scope="col">2月</th><th scope="col">3月</th>
+                <th scope="col">4月</th><th scope="col">5月</th><th scope="col">6月</th>
+                <th scope="col">7月</th><th scope="col">8月</th><th scope="col">9月</th>
+                <th scope="col">10月</th><th scope="col">11月</th><th scope="col">12月</th>
+                <th scope="col">年度 / 区间</th>
+              </tr>
+            </thead>
+            <tbody id="monthly-return-body">
+              <tr><td colspan="14" class="monthly-loading">正在读取逐月回测数据…</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div id="monthly-backtest-method" class="monthly-backtest-meta">
+          <span id="monthly-backtest-range">区间待核验</span>
+          <span id="monthly-backtest-coverage">覆盖待核验</span>
+          <span id="monthly-backtest-model">模型待核验</span>
+          <span id="monthly-backtest-source">来源待核验</span>
+        </div>
+        <p id="monthly-backtest-limit" class="monthly-backtest-limit">回测口径与限制载入中。</p>
+        <p id="monthly-backtest-ai-notice" class="monthly-ai-notice">AI 风险提示：本表由 AI 基于所列真实交割月行情和既定模型规则生成，不代表任何来源方的官方立场，也不构成投资建议；历史收益不保证未来表现，请自行核验。</p>
+      </section>
+
       <section class="risk-notice" aria-label="AI与投资风险提示">
         <strong>AI 风险提示</strong>
         <p id="risk-notice-copy">本页面由 AI 基于所列真实合约行情、布林RSI模型信号和虚拟基金账本生成，不代表 AKShare、同花顺问财、华泰期货或任何来源方的官方立场，也不构成投资建议。虚拟成交不等于真实成交，历史收益不保证未来表现，请自行核验。</p>
       </section>
     </main>
 
-    <script src="assets/ai-daredevil.js?v=20260901-1"></script>
+    <script src="assets/ai-daredevil.js?v=20260901-3"></script>
   </body>
 </html>

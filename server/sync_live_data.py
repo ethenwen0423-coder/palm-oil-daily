@@ -51,6 +51,7 @@ AI_PATHS = (
     "market_assistant_brief.json",
 )
 DAREDEVIL_PATHS = ("ai_daredevil.json",)
+DAREDEVIL_BACKTEST_PATHS = ("ai_daredevil_monthly_backtest.json",)
 PURE_AI_FUND_PATHS = ("ai_daredevil_pure_ai.json",)
 JSON_PATHS = {
     "reports.json",
@@ -69,6 +70,7 @@ JSON_PATHS = {
     "htfc_tianji.json",
     "research_watch.json",
     "ai_daredevil.json",
+    "ai_daredevil_monthly_backtest.json",
     "ai_daredevil_pure_ai.json",
 }
 
@@ -330,6 +332,9 @@ def sync_upstream(source_root: Path, target_root: Path) -> dict[str, object]:
         synchronize_paths(source_root, target_root, DAREDEVIL_PATHS, required=False)
         if not daredevil_owned
         else []
+    )
+    copied_groups["daredevil_backtest"] = synchronize_paths(
+        source_root, target_root, DAREDEVIL_BACKTEST_PATHS, required=False
     )
     copied_groups["pure_ai_fund"] = (
         synchronize_paths(source_root, target_root, PURE_AI_FUND_PATHS, required=False)

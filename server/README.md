@@ -35,6 +35,9 @@ Dynamic datasets:
 - `/api/forecast/feedback/latest`
 - `/api/review/latest`
 - `/api/assistant/brief`
+- `/api/ai-daredevil`
+- `/api/ai-daredevil/pure-ai`
+- `/api/ai-daredevil/monthly-backtest`
 
 Operational endpoints:
 
@@ -100,6 +103,13 @@ positions; it never creates or fills orders and skips when the fund automation
 lock is busy. Durable state lives under `/srv/palm-oil-daily/state/ai-daredevil`,
 while only the read-only `ai_daredevil.json` snapshot is published to the API
 data mount.
+
+`palm-oil-ai-daredevil-backtest.timer` runs on the first day of each month at
+03:20 Asia/Shanghai. It rebuilds the rolling last 60 completed calendar months
+for the current 40-product static equal-weight benchmark from real PYYMM bars,
+using T-1 volume selection and next-open execution. The public payload states
+that this benchmark is not a replay of the live fund's dynamic allocation and
+that historical daily margin schedules are not applied to model returns.
 
 Both fund modes resolve margin by exact PYYMM contract. SHFE/INE use the
 exchange's official daily general-position parameter file; other exchanges use

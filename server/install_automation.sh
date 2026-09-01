@@ -51,6 +51,7 @@ for required in \
   "$SITE_ROOT/server/run_ai_brief.py" \
   "$SITE_ROOT/server/run_ai_daredevil.py" \
   "$SITE_ROOT/server/run_ai_daredevil_quotes.py" \
+  "$SITE_ROOT/server/build_ai_daredevil_monthly_backtest.py" \
   "$SITE_ROOT/server/run_pure_ai_fund.py" \
   "$SITE_ROOT/server/run_research_agent.py" \
   "$SITE_ROOT/server/run_prediction_review.py" \
@@ -107,6 +108,7 @@ print(json.dumps(
         "research_timer": "installed disabled until backend acceptance",
         "prediction_review_timer": "every 15 minutes with after-close gate",
         "daredevil_quote_timer": "every minute during China-futures sessions",
+        "daredevil_backtest_timer": "monthly on day 1 at 03:20 Asia/Shanghai",
         "web_service": "stopped" if sys.argv[-1] == "private" else "running",
     },
     sort_keys=True,
@@ -367,6 +369,10 @@ write_service \
   "$temporary_root/palm-oil-ai-daredevil-quotes.service" \
   "Refresh exact-contract AI Daredevil position marks" \
   "run_ai_daredevil_quotes.py"
+write_service \
+  "$temporary_root/palm-oil-ai-daredevil-backtest.service" \
+  "Build AI Daredevil five-year monthly exact-contract backtest" \
+  "build_ai_daredevil_monthly_backtest.py --site-root $SITE_ROOT --cache-dir $STATE_ROOT/ai-daredevil-backtest/cache --output $LIVE_DATA_ROOT/ai_daredevil_monthly_backtest.json"
 cat >"$temporary_root/palm-oil-ai-daredevil.timer" <<EOF
 [Unit]
 Description=Refresh AI Daredevil at session opens and every hour
@@ -399,6 +405,12 @@ Unit=palm-oil-ai-daredevil-quotes.service
 [Install]
 WantedBy=timers.target
 EOF
+write_timer \
+  "$temporary_root/palm-oil-ai-daredevil-backtest.timer" \
+  "Update AI Daredevil five-year monthly backtest after month end" \
+  "palm-oil-ai-daredevil-backtest.service" \
+  "*-*-01 03:20:00 Asia/Shanghai" \
+  "5min"
 
 systemd-analyze verify \
   "$temporary_root/palm-oil-market-collector.service" \
@@ -420,7 +432,9 @@ systemd-analyze verify \
   "$temporary_root/palm-oil-ai-daredevil.service" \
   "$temporary_root/palm-oil-ai-daredevil.timer" \
   "$temporary_root/palm-oil-ai-daredevil-quotes.service" \
-  "$temporary_root/palm-oil-ai-daredevil-quotes.timer"
+  "$temporary_root/palm-oil-ai-daredevil-quotes.timer" \
+  "$temporary_root/palm-oil-ai-daredevil-backtest.service" \
+  "$temporary_root/palm-oil-ai-daredevil-backtest.timer"
 
 install -m 0644 "$temporary_root/compose.automation.yaml" "$COMPOSE_OVERRIDE"
 for unit in \
@@ -443,7 +457,9 @@ for unit in \
   palm-oil-ai-daredevil.service \
   palm-oil-ai-daredevil.timer \
   palm-oil-ai-daredevil-quotes.service \
-  palm-oil-ai-daredevil-quotes.timer
+  palm-oil-ai-daredevil-quotes.timer \
+  palm-oil-ai-daredevil-backtest.service \
+  palm-oil-ai-daredevil-backtest.timer
 do
   install -m 0644 "$temporary_root/$unit" "$UNIT_ROOT/$unit"
 done
@@ -463,6 +479,7 @@ systemctl enable --now palm-oil-supply-demand.timer
 systemctl enable --now palm-oil-prediction-review.timer
 systemctl enable --now palm-oil-ai-daredevil.timer
 systemctl enable --now palm-oil-ai-daredevil-quotes.timer
+systemctl enable --now palm-oil-ai-daredevil-backtest.timer
 systemctl start palm-oil-market-collector.service
 systemctl start palm-oil-market-refresh.service
 systemctl start palm-oil-event-watch.service
@@ -493,6 +510,7 @@ systemctl --no-pager list-timers palm-oil-supply-demand.timer
 systemctl --no-pager list-timers palm-oil-prediction-review.timer
 systemctl --no-pager list-timers palm-oil-ai-daredevil.timer
 systemctl --no-pager list-timers palm-oil-ai-daredevil-quotes.timer
+systemctl --no-pager list-timers palm-oil-ai-daredevil-backtest.timer
 docker compose -f "$COMPOSE_FILE" -f "$COMPOSE_OVERRIDE" ps
 set +e
 python3 "$SITE_ROOT/server/audit_runtime.py" --access-mode "$PUBLIC_ACCESS_MODE"

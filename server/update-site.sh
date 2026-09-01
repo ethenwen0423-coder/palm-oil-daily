@@ -50,6 +50,7 @@ for payload in \
   data/htfc_tianji.json \
   data/research_watch.json \
   data/ai_daredevil.json \
+  data/ai_daredevil_monthly_backtest.json \
   data/ai_daredevil_pure_ai.json
 do
   python3 -m json.tool "$payload" >/dev/null
