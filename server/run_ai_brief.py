@@ -17,6 +17,7 @@ DEFAULT_SITE_ROOT = Path("/srv/palm-oil-daily/site")
 DEFAULT_RUNTIME_ROOT = Path("/srv/palm-oil-daily/ai-runtime")
 DEFAULT_LIVE_DATA_ROOT = Path("/srv/palm-oil-daily/live-data")
 DEFAULT_STATE_ROOT = Path("/srv/palm-oil-daily/state")
+DEFAULT_TIMEOUT_SECONDS = 600
 
 
 class AiBriefRunnerError(RuntimeError):
@@ -94,7 +95,11 @@ def main() -> int:
         default=Path(os.environ.get("PALM_OIL_SERVER_STATE_ROOT", DEFAULT_STATE_ROOT)),
     )
     parser.add_argument("--mock-response", type=Path)
-    parser.add_argument("--timeout", type=int, default=300)
+    # Subscription-backed Codex structured output can legitimately need more
+    # than five minutes on the small production host.  This is a server-only
+    # execution envelope; the report prompt, schema and publication gate stay
+    # identical to the repository generator.
+    parser.add_argument("--timeout", type=int, default=DEFAULT_TIMEOUT_SECONDS)
     parser.add_argument("--force", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
