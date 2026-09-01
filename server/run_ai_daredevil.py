@@ -693,7 +693,33 @@ def scan_signals(site_root: Path, data_root: Path, state: dict[str, Any], model,
             if previous and previous.get("signal_date") == signal_date.isoformat():
                 audit["candidate_count"] += 1
                 audit["signal_candidates"].append(previous)
-                if previous.get("eligible"):
+                previous_action = str(previous.get("action", "")).upper()
+                position = state.get("positions", {}).get(variety)
+                if previous.get("eligible") and previous_action in {"ENTER_LONG", "ENTER_SHORT"} and not position:
+                    # Rebuild the order-ready signal as well as its audit row.
+                    # The deterministic ledger order id makes this idempotent,
+                    # while a margin outage can be retried without recomputing
+                    # or losing the completed-close candidate.
+                    item = {
+                        "variety": variety, "name": PRODUCTS[variety]["name"],
+                        "sector": PRODUCTS[variety]["sector"], "contract": contract,
+                        "action": previous_action, "signal_date": signal_date.isoformat(),
+                        "execution_date": next_trade_date(signal_date).isoformat(),
+                        "reference_price": execution_close, "atr14": signal_atr,
+                        "multiplier": PRODUCTS[variety]["multiplier"],
+                        "margin_rate": None, "margin_source": None,
+                        "margin_source_url": None, "margin_as_of": None,
+                        "margin_official_direct": None, "margin_applied_side": None,
+                        "fee_rate": fee_rate(variety),
+                        "reason": "同一已完成收盘日候选重放（账本订单号幂等去重）",
+                        "selection_volume_t_minus_1": float(raw_last.volume),
+                        "selection_open_interest_t_minus_1": numeric(raw_last.get("hold")),
+                        "score": previous.get("score"),
+                        "score_components": previous.get("score_components", {}),
+                        "score_basis": str(previous.get("score_basis") or "跨板块实时信号强度与流动性排序")
+                        + "；仅用于订单优先级，不代表预测收益率",
+                    }
+                    signals.append(item)
                     audit["order_count"] += 1
             continue
         position = state.get("positions", {}).get(variety)

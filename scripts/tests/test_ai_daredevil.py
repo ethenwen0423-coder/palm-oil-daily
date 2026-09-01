@@ -316,6 +316,34 @@ class AiDaredevilTests(unittest.TestCase):
             self.assertEqual(audit["candidate_count"], 1)
             self.assertEqual(audit["order_count"], 1)
 
+    def test_same_close_rescan_replays_order_ready_candidate_idempotently(self):
+        _ledger, model, _signal_model = RUNTIME.load_components(ROOT)
+        dates = pd.bdate_range("2026-06-29", periods=40)
+        frame = pd.DataFrame({
+            "date": dates, "open": [100.0] * 39 + [110.0],
+            "high": [102.0] * 39 + [112.0], "low": [98.0] * 39 + [108.0],
+            "close": [100.0] * 39 + [110.0], "volume": [1000.0] * 40,
+            "hold": [2000.0] * 40,
+        })
+        with tempfile.TemporaryDirectory() as temporary:
+            state_dir = Path(temporary)
+            strategy_path = state_dir / "strategy_state.json"
+            state = {"positions": {}, "pending_orders": [], "_strategy_path": str(strategy_path)}
+            with (
+                mock.patch.object(RUNTIME, "current_contracts", return_value={"P": ["P2701"]}),
+                mock.patch.object(RUNTIME, "fetch_daily", return_value=frame),
+                mock.patch.object(RUNTIME, "next_trade_date", return_value=dates[-1].date()),
+            ):
+                first, _skipped, first_audit = RUNTIME.scan_signals(ROOT, ROOT / "data", state, model)
+                RUNTIME.atomic_json(state_dir / RUNTIME.SCAN_AUDIT_FILE, first_audit)
+                second, _skipped, second_audit = RUNTIME.scan_signals(ROOT, ROOT / "data", state, model)
+        self.assertEqual(first["signals"][0]["action"], "ENTER_LONG")
+        self.assertEqual(second["signals"][0]["contract"], "P2701")
+        self.assertEqual(second["signals"][0]["action"], "ENTER_LONG")
+        self.assertIn("幂等去重", second["signals"][0]["reason"])
+        self.assertEqual(second_audit["candidate_count"], 1)
+        self.assertEqual(second_audit["order_count"], 1)
+
 
 if __name__ == "__main__":
     unittest.main()
