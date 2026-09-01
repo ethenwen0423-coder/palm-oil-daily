@@ -42,6 +42,8 @@ WEATHER_MECHANISM_SOURCES = {
 }
 ARTICLE_TEXT_LIMIT = 12_000
 ARTICLE_DOWNLOAD_LIMIT = 1_500_000
+ARTICLE_FETCH_LIMIT = 12
+ARTICLE_FETCH_WORKERS = 6
 ARTICLE_CLASS_RE = re.compile(r"(?:article|post|entry|story|main)[-_ ]?(?:body|content|text)|xeditor_content", re.I)
 
 
@@ -212,6 +214,13 @@ def fetch_article_text(url: str, timeout: int = 10) -> tuple[str, str]:
             return safe_url, ""
         charset = response.headers.get_content_charset() or "utf-8"
     return safe_url, extract_article_text(raw.decode(charset, "replace"))
+
+
+def fetch_article_text_safely(url: str, timeout: int = 10) -> tuple[str, str]:
+    try:
+        return fetch_article_text(url, timeout=timeout)
+    except (urllib.error.URLError, urllib.error.HTTPError, OSError, ValueError, TypeError, json.JSONDecodeError):
+        return url, ""
 
 
 def source_error(name: str, exc: BaseException) -> dict[str, Any]:
@@ -438,7 +447,7 @@ def rss_events(watch: Any, now: datetime, timeout: int = 10) -> tuple[list[dict[
             items = root.findall(".//item")
             included = 0
             enriched = 0
-            article_attempts = 0
+            candidates: list[dict[str, Any]] = []
             for item in items[:40]:
                 observed = normalize_time(item.findtext("pubDate"), now)
                 try:
@@ -451,16 +460,32 @@ def rss_events(watch: Any, now: datetime, timeout: int = 10) -> tuple[list[dict[
                 raw_url = item.findtext("link") or ""
                 if not watch.flash_relevant(f"{watch.clean_source_text(raw_title)} {watch.clean_source_text(raw_summary)}"):
                     continue
-                direct_url = raw_url
-                article_text = ""
-                if article_attempts < 6:
-                    article_attempts += 1
-                    try:
-                        direct_url, article_text = fetch_article_text(raw_url, timeout=min(timeout, 10))
-                        if article_text:
-                            enriched += 1
-                    except (urllib.error.URLError, urllib.error.HTTPError, OSError, ValueError, TypeError, json.JSONDecodeError):
-                        pass
+                candidates.append({
+                    "item": item,
+                    "observed": observed,
+                    "title": raw_title,
+                    "summary": raw_summary,
+                    "url": raw_url,
+                })
+
+            fetch_candidates = candidates[:ARTICLE_FETCH_LIMIT]
+            fetched: list[tuple[str, str]] = []
+            if fetch_candidates:
+                with concurrent.futures.ThreadPoolExecutor(max_workers=min(ARTICLE_FETCH_WORKERS, len(fetch_candidates))) as executor:
+                    fetched = list(executor.map(
+                        lambda candidate: fetch_article_text_safely(candidate["url"], timeout=min(timeout, 10)),
+                        fetch_candidates,
+                    ))
+
+            for index, candidate in enumerate(candidates):
+                item = candidate["item"]
+                raw_title = candidate["title"]
+                raw_summary = candidate["summary"]
+                raw_url = candidate["url"]
+                observed = candidate["observed"]
+                direct_url, article_text = fetched[index] if index < len(fetched) else (raw_url, "")
+                if article_text:
+                    enriched += 1
                 event = normalize_event(
                     watch,
                     prefix="web-news",

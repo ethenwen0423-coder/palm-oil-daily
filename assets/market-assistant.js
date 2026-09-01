@@ -495,7 +495,9 @@
   function eventDetailHtml(item, evidence) {
     const facts = array(item.eventFacts).filter(Boolean);
     const factHtml = facts.length ? `<ul>${facts.map((entry) => `<li>${esc(entry)}</li>`).join("")}</ul>` : `<p>${esc(item.detailSummary)}</p>`;
-    return `<section class="timeline-detail-summary"><span>这条新闻讲了什么</span><p>${esc(item.detailSummary)}</p></section><section><span>关键事实</span>${factHtml}</section><section><span>为什么与油脂有关</span><p>${esc(first(item.marketRelevance, item.detail))}</p></section><section><span>还不能确认什么</span><p>${esc(first(item.uncertainty, "仍需查看原文及后续来源核验。"))}</p><small class="timeline-ai-notice">${esc(item.aiNotice)}</small></section><section><span>来源线索</span>${evidence.length ? `<ul>${evidence.map((entry) => `<li>${esc(entry)}</li>`).join("")}</ul>` : "<p>本轮没有新增可核验证据。</p>"}</section><section><span>下一步检查</span><p>${esc(first(item.nextCheck, "等待下一轮自动检查"))}</p>${item.url ? `<a href="${esc(item.url)}" target="_blank" rel="noopener noreferrer">查看直接来源</a>` : '<small class="timeline-source-note">未提供可直接打开的原文链接；本页仅展示已获取内容的整理摘要。</small>'}</section>`;
+    const watchItems = array(item.whatToWatch).filter(Boolean);
+    const watchHtml = watchItems.length ? `<ul>${watchItems.map((entry) => `<li>${esc(entry)}</li>`).join("")}</ul>` : `<p>${esc(first(item.nextCheck, "等待下一轮自动检查"))}</p>`;
+    return `<section class="timeline-detail-summary"><span>事情经过</span><p>${esc(item.detailSummary)}</p></section><section><span>背景与变化</span><p>${esc(first(item.background, "来源未提供足够背景。"))}</p></section><section><span>关键事实与数字</span>${factHtml}</section><section><span>影响是怎么传导的</span><p>${esc(first(item.transmissionChain, "尚无足够证据建立影响路径。"))}</p></section><section><span>对油脂意味着什么</span><p>${esc(first(item.marketRelevance, item.detail))}</p></section><section><span>接下来要看什么</span>${watchHtml}</section><section><span>证据边界</span><p>${esc(first(item.uncertainty, "仍需查看原文及后续来源核验。"))}</p><small class="timeline-ai-notice">${esc(item.aiNotice)}</small></section><section><span>来源线索</span>${evidence.length ? `<ul>${evidence.map((entry) => `<li>${esc(entry)}</li>`).join("")}</ul>` : "<p>本轮没有新增可核验证据。</p>"}${item.url ? `<a href="${esc(item.url)}" target="_blank" rel="noopener noreferrer">查看直接来源</a>` : '<small class="timeline-source-note">未提供可直接打开的原文链接；本页仅展示已获取内容的整理摘要。</small>'}</section>`;
   }
 
   function buildTimeline(data) {
@@ -505,7 +507,8 @@
       category: first(item.category, "市场扫描"), title: first(item.title, "市场事件"),
       summary: item.kind === "event" ? first(item.summary, completeTimelineSummary(item.title, item.summary)) : first(item.summary, "来源内容待核验"),
       detailSummary: item.kind === "event" ? first(item.detail_summary, item.summary) : "",
-      eventFacts: array(item.event_facts), marketRelevance: first(item.market_relevance, ""), uncertainty: first(item.uncertainty, ""),
+      background: first(item.background, ""), eventFacts: array(item.event_facts), transmissionChain: first(item.transmission_chain, ""),
+      marketRelevance: first(item.market_relevance, ""), whatToWatch: array(item.what_to_watch), uncertainty: first(item.uncertainty, ""),
       detail: first(item.interpretation, "暂无影响研判"), aiNotice: item.kind === "event" ? first(item.ai_notice, "AI 基于来源返回内容整理，非来源方原话，不代表来源方官方立场，不构成投资建议；请自行核验。") : "",
       evidence: eventEvidence(item), source: first(item.source, "市场扫描"), time: eventTime(item),
       scope: first(item.scope, "相关合约"), impact: first(item.impact, "低"), nextCheck: "下一轮5分钟扫描",

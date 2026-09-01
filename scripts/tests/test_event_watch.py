@@ -88,6 +88,7 @@ class EventWatchTests(unittest.TestCase):
             observed_at=self.now.isoformat(),
             source_id="summary-one",
         )
+        event["source_content_level"] = "full_article"
 
         class Backend:
             @staticmethod
@@ -95,10 +96,13 @@ class EventWatchTests(unittest.TestCase):
                 return ({"events": [{
                     "id": event["id"],
                     "headline": "巴克莱警示厄尔尼诺或推高棕榈油价格",
-                    "summary": "巴克莱把潜在厄尔尼诺天气风险与棕榈油价格上涨联系起来，并给出18个月的观察窗口。",
-                    "detail_summary": "巴克莱讨论厄尔尼诺可能影响棕榈油市场，并提出价格在18个月内上涨30%的可能情景。该表述属于机构预测，不是已经发生的涨幅；来源摘要未披露测算依据，仍需查看原文核验。",
-                    "event_facts": ["预测窗口为18个月。", "预测涨幅为30%。"],
+                    "summary": "巴克莱把潜在厄尔尼诺天气风险与棕榈油价格上涨联系起来，并给出18个月的观察窗口。该判断针对未来供应扰动和价格风险情景，不代表产量已经下降或涨幅已经实现，仍需用后续天气和产量数据验证。",
+                    "detail_summary": "巴克莱讨论厄尔尼诺可能影响棕榈油市场，并提出价格在18个月内上涨30%的可能情景。机构把天气异常与东南亚棕榈油产区的降雨风险联系起来。相关判断描述的是未来供应可能受到扰动，并不是已经发生的减产。报告给出的观察窗口为18个月。价格涨幅属于情景预测，不是已经实现的市场事实。来源摘要仍未披露完整模型参数和测算过程，需要查看原文并用后续天气与产量数据核验。",
+                    "background": "报告关注潜在厄尔尼诺从气候变量向农产品供应传导的可能性。巴克莱将东南亚棕榈油产区列为需要观察的区域，并给出中期风险窗口。",
+                    "event_facts": ["预测窗口为18个月。", "预测涨幅为30%。", "判断属于机构情景预测。"],
+                    "transmission_chain": "AI解释：厄尔尼诺可能改变东南亚降雨分布，进而影响油棕单产和棕榈油供应预期；如果产量数据确认供应收紧，风险溢价才可能传导到P。",
                     "market_relevance": "若天气冲击产量，棕榈油供应预期可能收紧。",
+                    "what_to_watch": ["后续降雨与干旱监测。", "MPOB与GAPKI产量数据。"],
                     "uncertainty": "来源摘要未披露测算依据。",
                     "publishable": True,
                 }]}, "mock-model")
@@ -107,14 +111,16 @@ class EventWatchTests(unittest.TestCase):
         self.assertEqual(source["state"], "ready")
         self.assertNotRegex(events[0]["title"], r"[?？…]")
         self.assertEqual(events[0]["summary_method"], "model")
-        self.assertEqual(events[0]["summary_version"], 2)
-        self.assertEqual(len(events[0]["event_facts"]), 2)
+        self.assertEqual(events[0]["summary_version"], 3)
+        self.assertEqual(len(events[0]["event_facts"]), 3)
+        self.assertIn("厄尔尼诺", events[0]["background"])
+        self.assertEqual(len(events[0]["what_to_watch"]), 2)
         self.assertGreater(len(events[0]["detail_summary"]), len(events[0]["summary"]))
         self.assertNotIn("_source_title", events[0])
         self.assertNotIn("_source_summary", events[0])
         self.assertIn("来源标题：", events[0]["evidence"][0])
 
-    def test_sparse_source_fallback_explains_that_details_are_unavailable(self):
+    def test_sparse_cross_source_event_is_withheld_without_model_fallback(self):
         event = EVENTS.normalize_event(
             WATCH,
             prefix="web-news",
@@ -131,7 +137,7 @@ class EventWatchTests(unittest.TestCase):
                 raise RuntimeError("offline")
 
         events, source = RUNNER.summarize_events(Backend, [event], {})
-        self.assertEqual(source["state"], "fallback")
+        self.assertEqual(source["state"], "ready")
         self.assertEqual(events, [])
 
     def test_eastmoney_article_html_exposes_complete_weekly_view(self):
@@ -151,6 +157,7 @@ class EventWatchTests(unittest.TestCase):
             observed_at=self.now.isoformat(),
             source_id="empty-note",
         )
+        event["source_content_level"] = "full_article"
 
         class Backend:
             @staticmethod
@@ -158,12 +165,51 @@ class EventWatchTests(unittest.TestCase):
                 return ({"events": [{
                     "id": event["id"], "headline": "棕榈油每周笔记内容不足",
                     "summary": "来源只显示文章标题。", "detail_summary": "来源未提供可复述的观点或事实。",
-                    "event_facts": [], "market_relevance": "暂无可判断的信息价值。",
+                    "background": "来源未提供足够背景，无法确认此前状态与本次变化。",
+                    "event_facts": [], "transmission_chain": "AI解释：现有信息不足，无法建立事件到油脂市场的传导路径。", "market_relevance": "暂无可判断的信息价值。",
+                    "what_to_watch": ["等待取得正文。", "寻找第二来源。"],
                     "uncertainty": "未取得正文。", "publishable": False,
                 }]}, "mock-model")
 
         events, _source = RUNNER.summarize_events(Backend, [event], {})
         self.assertEqual(events, [])
+
+    def test_cross_source_without_article_is_withheld_before_model_call(self):
+        event = EVENTS.normalize_event(
+            WATCH,
+            prefix="web-news",
+            source="跨站新闻·Google News",
+            title="煤、镍、棕榈油告急：印尼的黑天鹅为何成群起飞？",
+            summary="潮起网发布同名文章",
+            observed_at=self.now.isoformat(),
+            source_id="title-only-google",
+        )
+        event["source_content_level"] = "source_summary"
+
+        class Backend:
+            @staticmethod
+            def request_json(**_kwargs):
+                raise AssertionError("title-only cross-source items must not reach the model")
+
+        events, source = RUNNER.summarize_events(Backend, [event], {})
+        self.assertEqual(events, [])
+        self.assertEqual(source["state"], "ready")
+
+    def test_summary_headline_quality_gate_rejects_clickbait_and_trade_actions(self):
+        base = {
+            "summary": "印尼调整出口管理制度，相关流程和供应预期可能发生变化，需要继续核验执行情况。",
+            "detail_summary": "印尼调整出口管理制度并明确负责主体。新规覆盖合同、报关和结算环节。市场关注执行磨合对出口节奏的影响。来源还列出税费和执行日期。现阶段属于政策落地风险，并非已经确认的供应缺口。后续需要用出口量和港口效率验证。",
+            "background": "此前出口由不同企业分别处理，本次变化将关键流程纳入统一管理。政策目标是提高监管和定价能力。",
+            "event_facts": ["新规覆盖出口合同。", "新规覆盖报关流程。", "新规覆盖结算环节。"],
+            "transmission_chain": "AI解释：统一出口管理可能增加磨合成本并影响装运节奏，只有出口量确认下降后，才可能形成棕榈油供应风险溢价。",
+            "market_relevance": "这是政策执行风险情景，不是已经发生的减产事实。",
+            "what_to_watch": ["出口量。", "港口效率。"],
+            "uncertainty": "政策实际执行效果仍待验证。",
+            "publishable": True,
+        }
+        self.assertFalse(RUNNER.valid_model_summary({**base, "headline": "告急：印尼棕榈油黑天鹅来袭"}))
+        self.assertFalse(RUNNER.valid_model_summary({**base, "headline": "印尼政策变化后建议逢低做多棕榈油"}))
+        self.assertTrue(RUNNER.valid_model_summary({**base, "headline": "印尼统一出口管理抬升棕榈油供应风险"}))
 
     def test_htfc_report_permission_failure_is_not_reported_as_zero(self):
         from urllib.error import HTTPError
@@ -177,12 +223,28 @@ class EventWatchTests(unittest.TestCase):
 
     def test_rss_results_keep_provider_and_original_link(self):
         xml = '''<?xml version="1.0"?><rss><channel><item><title>棕榈油出口增加</title><description>产地数据更新</description><link>https://example.test/a</link><guid>one</guid><pubDate>Wed, 26 Aug 2026 02:04:00 GMT</pubDate></item></channel></rss>'''.encode("utf-8")
-        with patch.object(EVENTS.urllib.request, "urlopen", return_value=Response(xml)):
+        with patch.object(EVENTS.urllib.request, "urlopen", return_value=Response(xml)), patch.object(
+            EVENTS, "fetch_article_text_safely", side_effect=lambda url, timeout=10: (url, "棕榈油出口增加，产地公布新的出口数据和执行时间。" * 5)
+        ):
             events, source = EVENTS.rss_events(WATCH, self.now)
         self.assertEqual(source["state"], "ready")
         self.assertEqual(len(events), 2)
         self.assertTrue(all(item["source"].startswith("跨站新闻·") for item in events))
         self.assertTrue(all(item["url"] == "https://example.test/a" for item in events))
+        self.assertTrue(all(item["source_content_level"] == "full_article" for item in events))
+
+    def test_rss_enriches_relevant_article_beyond_previous_six_item_limit(self):
+        items = "".join(
+            f"<item><title>棕榈油政策更新{i}</title><description>印尼棕榈油政策新闻{i}</description><link>https://example.test/{i}</link><guid>{i}</guid><pubDate>Wed, 26 Aug 2026 02:04:00 GMT</pubDate></item>"
+            for i in range(8)
+        )
+        xml = f"<?xml version='1.0'?><rss><channel>{items}</channel></rss>".encode("utf-8")
+        with patch.object(EVENTS.urllib.request, "urlopen", return_value=Response(xml)), patch.object(
+            EVENTS, "fetch_article_text_safely", side_effect=lambda url, timeout=10: (url, f"这是{url}的完整正文，包含印尼棕榈油政策主体、执行时间、出口流程和影响范围。" * 5)
+        ) as fetch:
+            events, _source = EVENTS.rss_events(WATCH, self.now)
+        self.assertTrue(any(item["url"].endswith("/7") and item["source_content_level"] == "full_article" for item in events))
+        self.assertGreaterEqual(fetch.call_count, 16)
 
     def test_weather_events_publish_direct_forecast_with_ai_notice(self):
         payload = {"daily": {
