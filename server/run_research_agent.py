@@ -268,7 +268,7 @@ def build_prompt(
         ]
     )
     budget = "1000-1400" if kind == "daily" else "1600-2000"
-    draft_target = "1050-1200" if kind == "daily" else "1650-1850"
+    draft_target = "900-1050" if kind == "daily" else "1600-1800"
     title = datetime.fromisoformat(report_date).strftime("%m月%d日") + (
         "晨报" if kind == "daily" else "周报"
     )
@@ -350,7 +350,7 @@ SOURCE_JSON：
 {json.dumps(source_snapshot, ensure_ascii=False, sort_keys=True)}
 {correction_block}
 
-若存在上次门禁反馈，必须重写整份 report_markdown，而不是在旧稿后追加修补；若反馈含正文篇幅超限，优先压缩表格单元格、来源状态和重复解释，初稿仍须落在 {draft_target} 个可见字符内。
+若存在上次门禁反馈，必须把被拒稿当作编辑底稿，逐段重写整份 report_markdown，而不是在旧稿后追加修补；若反馈含正文篇幅超限，至少删去被拒稿约一半的重复字句，优先压缩表格单元格、来源状态和重复解释，初稿仍须落在 {draft_target} 个可见字符内。不得用遗漏必需字段来换取篇幅。
 """.strip()
 
 
@@ -505,6 +505,104 @@ def ensure_daily_audit_contracts(
     return markdown
 
 
+def ensure_daily_external_key_data(
+    markdown: str,
+    source_snapshot: dict[str, Any],
+    kind: str,
+) -> str:
+    """Copy one verified external quote into the key-data table when omitted."""
+    if kind != "daily":
+        return markdown
+    pattern = re.compile(
+        r"(## 【关键数据与价格】\s*\n)(.*?)(?=\n## 【|\Z)",
+        re.DOTALL,
+    )
+    match = pattern.search(markdown)
+    if not match:
+        return markdown
+    body = match.group(2).strip()
+    if any(marker in body for marker in ("FCPO", "BMD", "CBOT", "WTI", "原油", "美豆")):
+        return markdown
+
+    external = source_snapshot.get("external")
+    if not isinstance(external, dict):
+        return markdown
+    candidates = (
+        ("bmd_palm_oil", "FCPO"),
+        ("cbot_bean_oil", "CBOT豆油"),
+        ("cbot_soybean", "CBOT大豆"),
+        ("crude_oil", "WTI原油"),
+        ("indonesia_cpo_spot", "印尼CPO"),
+    )
+    selected: tuple[str, str, str] | None = None
+    for key, fallback_name in candidates:
+        record = external.get(key)
+        if not isinstance(record, dict) or record.get("status") != "ok":
+            continue
+        value = record.get("price")
+        if not isinstance(value, (int, float)) or isinstance(value, bool):
+            continue
+        as_of = str(
+            record.get("fetched_at")
+            or record.get("published_at")
+            or source_snapshot.get("timestamp")
+            or ""
+        ).strip()
+        if not as_of:
+            continue
+        name = str(record.get("name") or fallback_name).strip()
+        if not any(marker in name for marker in ("FCPO", "BMD", "CBOT", "WTI", "原油", "美豆")):
+            name = fallback_name
+        number = str(int(value)) if float(value).is_integer() else format(float(value), ".15g")
+        selected = (name, number, as_of)
+        break
+    if selected is None:
+        return markdown
+
+    lines = body.splitlines()
+    aliases = {
+        "item": ("品种", "指标", "合约"),
+        "value": ("数值", "价格", "关键位"),
+        "time": ("时点", "时间", "日期", "口径"),
+        "meaning": ("含义", "意义", "判断"),
+    }
+    for index in range(len(lines) - 1):
+        header = lines[index].strip()
+        separator = lines[index + 1].strip()
+        if not (
+            header.startswith("|")
+            and header.endswith("|")
+            and re.fullmatch(r"\|[\s:|-]+\|", separator)
+        ):
+            continue
+        headers = [cell.strip() for cell in header.strip("|").split("|")]
+        columns: dict[str, int] = {}
+        for field, names in aliases.items():
+            found = next(
+                (position for position, value in enumerate(headers) if any(name in value for name in names)),
+                None,
+            )
+            if found is None:
+                break
+            columns[field] = found
+        if len(columns) != len(aliases):
+            continue
+        end = index + 2
+        while end < len(lines) and lines[end].strip().startswith("|") and lines[end].strip().endswith("|"):
+            end += 1
+        row = [""] * len(headers)
+        name, value, as_of = selected
+        row[columns["item"]] = name.replace("|", "/")
+        row[columns["value"]] = value
+        row[columns["time"]] = as_of.replace("|", "/")
+        row[columns["meaning"]] = "外盘交叉验证，不替代国内行情"
+        lines.insert(end, "|" + "|".join(row) + "|")
+        updated_body = "\n".join(lines)
+        updated = f"{match.group(1)}{updated_body}\n"
+        return markdown[: match.start()] + updated + markdown[match.end() :]
+    return markdown
+
+
 def ensure_weekly_previous_validation(
     markdown: str,
     source_snapshot: dict[str, Any],
@@ -555,7 +653,7 @@ def run_openai(schema: Path, prompt: str, *, timeout: int) -> dict[str, Any]:
             schema_name="server_research_report",
             prompt=prompt,
             timeout=timeout,
-            verbosity="medium",
+            verbosity="low",
             model=os.environ.get("PALM_OIL_RESEARCH_AI_MODEL", "").strip() or None,
         )
         return output
@@ -924,6 +1022,7 @@ def main() -> int:
             markdown = normalize_visible_headline(markdown, kind)
             markdown = ensure_visible_confidence(markdown, outline, kind)
             markdown = ensure_daily_audit_contracts(markdown, outline, kind)
+            markdown = ensure_daily_external_key_data(markdown, source_snapshot, kind)
             markdown = ensure_weekly_previous_validation(markdown, source_snapshot, kind)
             markdown = normalize_report_punctuation(markdown)
             atomic_write_text(report_path, markdown)
@@ -939,7 +1038,11 @@ def main() -> int:
                 break
             quality = load_json(quality_path) if quality_path.exists() else {}
             correction = json.dumps(
-                {"gate_output": last_gate, "report_quality": quality},
+                {
+                    "gate_output": last_gate,
+                    "report_quality": quality,
+                    "previous_rejected_report": markdown,
+                },
                 ensure_ascii=False,
             )[-9000:]
         if not success:

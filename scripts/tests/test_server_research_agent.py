@@ -149,8 +149,8 @@ class ServerResearchAgentTests(unittest.TestCase):
         self.assertIn("分别列出 P、Y、OI 三行", prompt)
         self.assertIn("news_and_research_evidence.today_new_drivers", prompt)
         self.assertIn("两个主驱动合计不得少于350个中文可见字符", prompt)
-        self.assertIn("模型初稿必须控制在 1050-1200 个可见字符", prompt)
-        self.assertIn("必须重写整份 report_markdown", prompt)
+        self.assertIn("模型初稿必须控制在 900-1050 个可见字符", prompt)
+        self.assertIn("重写整份 report_markdown", prompt)
         self.assertIn("REPOSITORY CONTRACT SENTINEL", prompt)
         self.assertIn("指标、数值、时点、含义", prompt)
         self.assertIn("实际 skill", prompt)
@@ -342,6 +342,50 @@ class ServerResearchAgentTests(unittest.TestCase):
         self.assertIn("传导链：库存变化→基差→P/Y/OI分化。", updated)
         self.assertIn("最强反证：外盘快速反向且库存累积。", updated)
         self.assertNotIn("不新开仓", updated)
+
+    def test_daily_key_data_copies_external_quote_from_source_without_calculation(self) -> None:
+        markdown = """# 08月24日晨报
+
+## 【关键数据与价格】
+
+|指标|数值|时点|含义|
+|---|---|---|---|
+|P2701|10171|2026-08-28|国内行情|
+
+## 【开盘推演】
+"""
+        source = {
+            "timestamp": "2026-09-02T00:05:00+08:00",
+            "external": {
+                "bmd_palm_oil": {
+                    "name": "BMD棕榈油",
+                    "status": "ok",
+                    "price": 4432.5,
+                    "fetched_at": "2026-09-01",
+                }
+            },
+        }
+        updated = MODULE.ensure_daily_external_key_data(markdown, source, "daily")
+        self.assertIn("|BMD棕榈油|4432.5|2026-09-01|外盘交叉验证，不替代国内行情|", updated)
+        self.assertNotIn("涨跌", updated)
+
+    def test_daily_key_data_does_not_duplicate_existing_external_quote(self) -> None:
+        markdown = """# 08月24日晨报
+
+## 【关键数据与价格】
+
+|指标|数值|时点|含义|
+|---|---|---|---|
+|FCPO|4432.5|2026-09-01|外盘|
+
+## 【开盘推演】
+"""
+        updated = MODULE.ensure_daily_external_key_data(
+            markdown,
+            {"external": {"bmd_palm_oil": {"status": "ok", "price": 4432.5}}},
+            "daily",
+        )
+        self.assertEqual(updated, markdown)
 
     def test_weekly_audit_contracts_never_fabricate_previous_validation(self) -> None:
         markdown = """# 08月24日周报
