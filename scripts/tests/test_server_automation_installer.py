@@ -176,6 +176,10 @@ class ServerAutomationInstallerTests(unittest.TestCase):
         script = CODEX_INSTALLER.read_text(encoding="utf-8")
         self.assertIn("npm install --global @openai/codex", script)
         self.assertIn('MODE="${1:---dry-run}"', script)
+        self.assertIn("/usr/local/lib/codex/*/vendor/*/bin/codex", script)
+        self.assertIn('legacy_backup="${existing_codex}.standalone-${legacy_version}"', script)
+        self.assertIn("refusing to overwrite an unrecognized Codex executable", script)
+        self.assertNotIn("npm install --global --force", script)
         self.assertNotIn("OPENAI_API_KEY", script)
 
     def test_runtime_audit_probes_the_server_venv_when_present(self):
