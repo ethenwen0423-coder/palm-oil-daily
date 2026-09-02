@@ -1110,6 +1110,9 @@ def compact_daily_driver_repetition(markdown: str, outline: dict[str, Any], kind
 
             primary = evidence_sentence(primary_text)
             secondary = evidence_sentence(secondary_text).replace(source_name, "同源快讯")
+            timestamp_pattern = r"于?(\d{1,2}月\d{1,2}日)\d{1,2}:\d{2}"
+            primary = re.sub(timestamp_pattern, r"\1", primary)
+            secondary = re.sub(timestamp_pattern, "同日", secondary)
             chain = str(outline.get("transmission_chain") or "").strip().rstrip("。.")
             expectation = str(outline.get("expectation_vs_reality") or "").strip().rstrip("。.")
             invalidation = str(outline.get("invalidation_condition") or "").strip().rstrip("。.")
@@ -1128,6 +1131,8 @@ def compact_daily_driver_repetition(markdown: str, outline: dict[str, Any], kind
                     sentence.strip()
                     for sentence in re.findall(r"[^。]+。", primary_text + secondary_text)
                     if sentence.strip() not in selected
+                    and "主驱动一" not in sentence
+                    and "主驱动二" not in sentence
                     and "最强反证" not in sentence
                     and invalidation not in sentence
                 ]

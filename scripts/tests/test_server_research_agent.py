@@ -650,6 +650,9 @@ P/Y/OI未共振，油脂震荡，若价格突破区间且驱动/资金同向，�
         self.assertGreaterEqual(visible, 350)
         self.assertLessEqual(visible, 380)
         self.assertIn("机构资讯·油脂油料快讯", section)
+        self.assertNotIn("11:03", section)
+        self.assertNotIn("15:28", section)
+        self.assertIn("同日", section)
         self.assertIn("供给收缩→产地库存→FCPO→P，并影响Y/OI", section)
         self.assertIn("最强反证：港口库存上升且产量减幅不能延续", section)
 
