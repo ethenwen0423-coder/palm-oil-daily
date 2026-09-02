@@ -71,3 +71,55 @@
 3. Post-fix: computed styles show `rgb(11, 27, 22)`, a green border, white text, square corners, and working switching between both strategies.
 
 final result: passed
+
+---
+
+# AI敢死队今日动作卡片 Design QA
+
+- Source visual truth: `/Users/ethen/Desktop/截屏2026-09-02 21.19.41.png`
+- Implementation screenshot: `/tmp/ai-daredevil-action-card.YHshoS/implementation-action-cards-compact.png`
+- Combined comparison: `/tmp/ai-daredevil-action-card.YHshoS/design-qa-comparison.png`
+- Source pixels: 908 x 1274.
+- Implementation pixels: 422 x 363, captured from the action panel at a 918 x 1274 CSS viewport and normalized to 908 px width for comparison.
+- Density normalization: both captures use standard raster pixels; implementation was uniformly scaled for the side-by-side comparison without changing its aspect ratio.
+- State: 布林带模型，2026-09-02 三条真实虚拟成交（AU2610、PS2611、TA2701）。另以一条隔离的合成 EXIT_LONG 记录验证平仓收益条件展示，未写入产品数据。
+
+## Full-view comparison evidence
+
+- The implementation preserves the original dark green palette, square panel borders, monospace labels, compact count badge and vertical list rhythm.
+- The original strategy-heavy rows were replaced by transaction-first cards. Each card now exposes product name, exact contract, direction, quantity and fill price without wrapping or overflow.
+- At 1440 px the three dashboard panels remain a balanced three-column grid; at 918 px and below the panels stack to keep trade fields readable.
+
+## Focused region comparison evidence
+
+- Focused comparison was required because the user requested a change to one dense card group rather than a whole-page redesign.
+- The combined comparison shows that the new cards retain the source page's visual language while materially improving the requested field hierarchy.
+- A synthetic close card rendered `平仓收益（含费）` as `（¥450.50）` with the existing negative green token; entry and add cards did not render a zero-profit field.
+
+## Findings and iteration history
+
+1. P1 resolved: the source card made strategy text dominant and showed meaningless `¥0.00` for entries. Fixed by a dedicated trade-card renderer with explicit transaction fields and conditional close P&L.
+2. P2 resolved: the first implementation kept the three-column activity layout at 918 px, leaving each metric only about 41 px wide and forcing prices to wrap. Fixed by stacking the activity panels below 1100 px. Post-fix checks show no horizontal overflow at 390 px and no trade-value overflow at 390 px or 1440 px.
+3. No remaining actionable P0, P1 or P2 findings.
+
+## Required fidelity surfaces
+
+- Fonts and typography: existing Inter/PingFang/monospace hierarchy preserved; contract and numeric values use compact bold monospace weights with no clipping.
+- Spacing and layout rhythm: 16 px card padding, 14 px internal rhythm and one-pixel dividers preserve the source dashboard density; responsive stacking fixes narrow-width crowding.
+- Colors and visual tokens: existing background, line, muted, long/red and short/green tokens reused; close profit/loss follows red-positive and green-parenthesized-negative semantics.
+- Image quality and asset fidelity: the source contains no raster illustrations, logos or non-standard icons inside the target component; no image assets or placeholders were introduced.
+- Copy and content: labels exactly identify 品种/合约、开平仓方向、成交手数、成交价格；only exit actions add 平仓收益（含费）.
+
+## Interaction and runtime checks
+
+- Strategy switch remains present and untouched.
+- Live/fallback loading rendered three current trade cards from the public payload.
+- Browser console errors: none.
+- Desktop 1440 px: three columns, 379.6 px trade card, no value overflow.
+- Mobile 390 px: one column, no page-level horizontal overflow, no value overflow.
+
+## Follow-up polish
+
+- None required for the requested scope.
+
+final result: passed

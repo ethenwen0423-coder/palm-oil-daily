@@ -66,6 +66,21 @@ class AiDaredevilTests(unittest.TestCase):
         self.assertIn("monthly-return-table", stylesheet)
         self.assertIn("不是实时基金动态前八仓位", html)
         self.assertIn('if (value == null || value === "")', script)
+        self.assertIn('class="trade-card ${isExit ? "is-exit" : "is-entry"}"', script)
+        self.assertIn("开平仓方向", script)
+        self.assertIn("成交手数", script)
+        self.assertIn("成交价格", script)
+        self.assertIn("平仓收益（含费）", script)
+        self.assertIn('const pnlCell = isExit ?', script)
+        self.assertIn('.trade-card-stats', stylesheet)
+
+    def test_today_trade_events_are_enriched_with_product_name(self):
+        events = RUNTIME.enrich_trade_events([
+            {"event": "FILL", "variety": "AU", "contract": "AU2610"},
+            {"event": "FILL", "variety": "TA", "name": "自定义PTA"},
+        ])
+        self.assertEqual(events[0]["name"], "黄金")
+        self.assertEqual(events[1]["name"], "自定义PTA")
 
     def test_runtime_initializes_persistent_virtual_fund_without_requesting_quotes(self):
         with tempfile.TemporaryDirectory() as temporary:

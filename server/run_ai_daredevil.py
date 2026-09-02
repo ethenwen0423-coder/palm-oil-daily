@@ -951,6 +951,17 @@ def load_events(state_dir: Path, target: str) -> list[dict[str, Any]]:
     return events
 
 
+def enrich_trade_events(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    enriched = []
+    for event in events:
+        row = dict(event)
+        variety = str(row.get("variety") or "").upper()
+        product = PRODUCTS.get(variety, {})
+        row["name"] = row.get("name") or product.get("name") or variety or "品种待核验"
+        enriched.append(row)
+    return enriched
+
+
 def latest_plan_skips(state_dir: Path, as_of: str | None) -> list[dict[str, Any]]:
     try:
         lines = (state_dir / "trade_ledger.jsonl").read_text(encoding="utf-8").splitlines()
@@ -1080,7 +1091,7 @@ def public_snapshot(state_dir: Path, state: dict[str, Any], sources: list[dict[s
             "quantity": state.get("positions", {}).get(variety, {}).get("quantity", 0),
             "reason": roll.get("reason", "主力换月"),
         })
-    events = load_events(state_dir, now.date().isoformat())
+    events = enrich_trade_events(load_events(state_dir, now.date().isoformat()))
     price_ok = not positions or all(row.get("mark_source") for row in positions)
     margin_ok = not positions or all(row.get("margin_source") and row.get("margin_as_of") for row in positions)
     status = "ready" if price_ok and margin_ok else "degraded"

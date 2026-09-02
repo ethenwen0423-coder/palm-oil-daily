@@ -691,7 +691,7 @@ def public_snapshot(state_dir: Path, state: dict[str, Any], sources: list[dict[s
         row["next_instruction"] = decision.get("next_instruction") or "等待下一次完整日线，由纯AI重新研判"
         positions.append(row)
     pending = [row for row in state.get("pending_orders", []) if row.get("status") == "pending"]
-    events = BASE.load_events(state_dir, now.date().isoformat())
+    events = BASE.enrich_trade_events(BASE.load_events(state_dir, now.date().isoformat()))
     drawdown = float(state["equity"]) / max(float(state["high_water_equity"]), 1) - 1
     backend = audit.get("decision_backend")
     margins_ok = not positions or all(row.get("margin_source") and row.get("margin_as_of") for row in positions)
