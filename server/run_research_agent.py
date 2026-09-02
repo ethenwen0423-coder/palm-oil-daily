@@ -859,6 +859,11 @@ def main() -> int:
         action="store_true",
         help="Run a real model-backed report draft acceptance without publishing it.",
     )
+    parser.add_argument(
+        "--shadow-acceptance",
+        action="store_true",
+        help="Run the complete quality gate for the exchange trade date without publishing it.",
+    )
     parser.add_argument("--mock-response", type=Path)
     parser.add_argument("--timeout", type=int, default=600)
     parser.add_argument("--attempts", type=int, default=2)
@@ -875,7 +880,7 @@ def main() -> int:
     live_data_root = args.live_data_root.resolve()
     state_root = args.state_root.resolve()
     report_date = now.date().isoformat()
-    if args.acceptance_only:
+    if args.acceptance_only or args.shadow_acceptance:
         report_date = acceptance_report_date(live_data_root, report_date)
     identity = report_id(report_date, kind)
     support = load_module("server_research_support", Path(__file__).with_name("run_market_collector.py"))
@@ -939,7 +944,7 @@ def main() -> int:
             report_date,
             kind,
             now,
-            allow_date_override=args.acceptance_only,
+            allow_date_override=args.acceptance_only or args.shadow_acceptance,
         )
         run_root = Path(built["run_root"])
         record_skill_stage(run_root, "market_data_skill", "ok", "manifest.json")
@@ -1092,6 +1097,23 @@ def main() -> int:
             raise ResearchAgentError("internal reports dataset does not contain the new report")
         if kind == "daily" and not (runtime_root / "data" / "forecast" / "daily" / f"{report_date}.json").is_file():
             raise ResearchAgentError("daily report did not freeze its prediction record")
+        if args.shadow_acceptance:
+            accepted = {
+                "status": "ok",
+                "acceptance": "real_model_report_quality_validated",
+                "backend": backend,
+                "report_date": report_date,
+                "kind": kind,
+                "quality_score": quality.get("score"),
+                "can_publish": quality.get("can_publish"),
+                "completed_at": datetime.now(SHANGHAI).isoformat(timespec="seconds"),
+            }
+            support.atomic_state_marker(
+                state_root / "research-quality.accepted.json",
+                accepted,
+            )
+            print(json.dumps(accepted, ensure_ascii=False, sort_keys=True))
+            return 0
         if kind == "daily":
             record_skill_stage(
                 run_root,
