@@ -69,6 +69,10 @@ class ServerMarketCollectorTests(unittest.TestCase):
 
             self.assertIn(download, result["copied"])
             self.assertEqual(
+                result["copied"],
+                [download, *SYNC.REPORT_ASSET_PATHS, "reports.json"],
+            )
+            self.assertEqual(
                 (live / download).read_text(encoding="utf-8"),
                 "# 09月03日晨报\n",
             )

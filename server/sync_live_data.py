@@ -26,7 +26,8 @@ DAREDEVIL_READY_MARKER = ".server-ai-daredevil-ready.json"
 PURE_AI_FUND_READY_MARKER = ".server-pure-ai-fund-ready.json"
 # Backwards-compatible name for callers that only know about market ownership.
 READY_MARKER = MARKET_READY_MARKER
-REPORT_PATHS = ("reports.json", "reports.js", "version.js")
+REPORT_ASSET_PATHS = ("reports.js", "version.js")
+REPORT_PATHS = ("reports.json",) + REPORT_ASSET_PATHS
 REPORT_DOWNLOAD_RE = re.compile(
     r"^downloads/[0-9]{4}-[0-9]{2}-[0-9]{2}(?:-weekend)?\.md$"
 )
@@ -520,16 +521,27 @@ def sync_research(
     *,
     session: str,
 ) -> dict[str, object]:
-    copied = synchronize_paths(
+    # Publish dependencies before the JSON index. Once a client can observe
+    # the new report in reports.json, its fallback assets and download already
+    # exist in live-data.
+    copied = sync_report_downloads(
         source_root,
         target_root,
-        REPORT_PATHS,
         required=True,
     )
     copied.extend(
-        sync_report_downloads(
+        synchronize_paths(
             source_root,
             target_root,
+            REPORT_ASSET_PATHS,
+            required=True,
+        )
+    )
+    copied.extend(
+        synchronize_paths(
+            source_root,
+            target_root,
+            ("reports.json",),
             required=True,
         )
     )
