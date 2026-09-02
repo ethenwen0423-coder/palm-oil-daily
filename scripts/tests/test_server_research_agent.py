@@ -454,8 +454,66 @@ class ServerResearchAgentTests(unittest.TestCase):
         updated = MODULE.ensure_daily_official_key_data(markdown, source, "daily")
         section = updated.split("## 【关键数据与价格】", 1)[1].split("## 【开盘推演】", 1)[0]
         self.assertIn("|MPOB期末库存|2628326吨|2026-07，2026-08-10发布|官方供需背景|", section)
-        self.assertEqual(sum(1 for line in section.splitlines() if line.startswith("|")) - 2, 8)
+        self.assertEqual(sum(1 for line in section.splitlines() if line.startswith("|")) - 2, 7)
         self.assertNotIn("SPPOMA马棕产量", section)
+        self.assertNotIn("印度棕榈油进口", section)
+
+    def test_daily_execution_compactor_keeps_full_p_outline_fields(self) -> None:
+        markdown = """# 09月03日晨报
+
+## 【今日交易信号】
+
+今日策略：震荡。
+
+|品种|方向|触发|确认|止损|目标|仓位上限|信号有效期|
+|---|---|---|---|---|---|---|---|
+|P2701|震荡|现价 10235；区间内等待驱动与资金确认|若价格突破区间且驱动/资金同向，震荡判断失效。|下方观察位 9467.87|上方观察位 10489.31 / 下方观察位 9467.87|源数据未给出，不新开仓|源数据未给出，不新开仓|
+|Y2701|震荡|现价 9142；区间内等待驱动与资金确认|若价格突破区间且驱动/资金同向，震荡判断失效。|下方观察位 8317.96|上方观察位 9245.47 / 下方观察位 8317.96|源数据未给出，不新开仓|源数据未给出，不新开仓|
+|OI2611|震荡|现价 10334；区间内等待驱动与资金确认|若价格突破区间且驱动/资金同向，震荡判断失效。|下方观察位 9874.38|上方观察位 10763.78 / 下方观察位 9874.38|源数据未给出，不新开仓|源数据未给出，不新开仓|
+
+## 【核心驱动与预期差】
+"""
+        updated = MODULE.compact_daily_execution_table(markdown, "daily")
+        self.assertIn("现价 10235；区间内等待驱动与资金确认", updated)
+        self.assertIn("|Y2701|震荡|现价9142|驱动/资金同向|下8317.96|上9245.47/下8317.96|不新开仓|不新开仓|", updated)
+        self.assertIn("|OI2611|震荡|现价10334|驱动/资金同向|下9874.38|上10763.78/下9874.38|不新开仓|不新开仓|", updated)
+
+    def test_daily_source_audit_groups_ready_sources_and_preserves_disclosure(self) -> None:
+        markdown = """# 09月03日晨报
+
+## 【信息来源与核验说明】
+
+实际 skill：market_data_skill、data_quality_gate_skill、forecast_generation_feedback、oil_report_freshness、report_writer_skill、headline_skill、report_quality_gate、forecast_tracking_skill。数据源：AkShare、ICDX官方历史价格接口、机构资讯·油脂油料快讯、MPOB官方检查。截止时间：2026-09-02T21:45:54+08:00。失败项：官方供需检查source_error；替代来源：AkShare。来源状态：来源甲 ready；来源乙 ready。机构资讯仅作交叉验证。需进一步核验：FCPO行情口径。
+
+预测披露原句。
+
+## 【消息来源链接】
+"""
+        source = {
+            "news_and_research_evidence": {
+                "source_status": [
+                    {"name": "来源甲", "state": "ready"},
+                    {"name": "来源乙", "state": "ready"},
+                ]
+            }
+        }
+        updated = MODULE.compact_daily_source_audit(
+            markdown,
+            source,
+            {"required_report_disclosures": ["预测披露原句。"]},
+            "daily",
+        )
+        self.assertIn("来源状态：来源甲、来源乙=ready", updated)
+        self.assertIn("实际 skill（短名）：market_data/data_gate/", updated)
+        self.assertIn("数据源：AkShare、ICDX、机构油脂快讯、MPOB", updated)
+        self.assertEqual(updated.count("预测披露原句。"), 1)
+
+    def test_daily_driver_depth_restores_previous_grounded_section(self) -> None:
+        previous_driver = "主驱动一：" + "供给收缩→P支撑，预期与现实待验证。" * 20 + "主驱动二：需求恢复。最强反证：供应回升。"
+        current = "# 报告\n\n## 【核心驱动与预期差】\n\n主驱动一：过短。主驱动二：过短。\n\n## 【关键数据与价格】\n"
+        previous = f"# 报告\n\n## 【核心驱动与预期差】\n\n{previous_driver}\n\n## 【关键数据与价格】\n"
+        restored = MODULE.preserve_daily_driver_depth(current, previous, "daily")
+        self.assertIn(previous_driver, restored)
 
     def test_daily_key_data_copies_external_quote_from_source_without_calculation(self) -> None:
         markdown = """# 08月24日晨报

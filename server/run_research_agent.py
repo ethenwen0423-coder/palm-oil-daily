@@ -759,10 +759,11 @@ def ensure_daily_official_key_data(
         while end < len(lines) and lines[end].strip().startswith("|") and lines[end].strip().endswith("|"):
             end += 1
         data_indexes = list(range(index + 2, end))
-        if len(data_indexes) >= 8:
+        while len(data_indexes) >= 7:
             external_markers = (
                 "FCPO", "BMD", "CBOT", "WTI", "原油", "美豆", "CPOTR", "ICDX", "印尼CPO"
             )
+            removed = False
             for row_index in data_indexes:
                 cells = [cell.strip() for cell in lines[row_index].strip("|").split("|")]
                 item = cells[columns["item"]] if len(cells) == len(headers) else ""
@@ -774,7 +775,11 @@ def ensure_daily_official_key_data(
                 if not protected:
                     lines.pop(row_index)
                     end -= 1
+                    removed = True
                     break
+            if not removed:
+                break
+            data_indexes = list(range(index + 2, end))
         row = [""] * len(headers)
         name, value, as_of = selected
         row[columns["item"]] = name
@@ -786,6 +791,224 @@ def ensure_daily_official_key_data(
         updated = f"{match.group(1)}{updated_body}\n"
         return markdown[: match.start()] + updated + markdown[match.end() :]
     return markdown
+
+
+def compact_daily_execution_table(markdown: str, kind: str) -> str:
+    """Shorten repeated Y/OI execution cells while preserving the full P plan."""
+    if kind != "daily":
+        return markdown
+    pattern = re.compile(
+        r"(## 【今日交易信号】\s*\n)(.*?)(?=\n## 【|\Z)",
+        re.DOTALL,
+    )
+    match = pattern.search(markdown)
+    if not match:
+        return markdown
+    lines = match.group(2).strip().splitlines()
+    header_index = next(
+        (
+            index
+            for index in range(len(lines) - 1)
+            if lines[index].strip().startswith("|")
+            and re.fullmatch(r"\|[\s:|-]+\|", lines[index + 1].strip())
+        ),
+        None,
+    )
+    if header_index is None:
+        return markdown
+    headers = [cell.strip() for cell in lines[header_index].strip("|").split("|")]
+    required = ("品种", "方向", "触发", "确认", "止损", "目标", "仓位上限", "信号有效期")
+    indexes = {
+        name: next((index for index, value in enumerate(headers) if name in value), None)
+        for name in required
+    }
+    if any(value is None for value in indexes.values()):
+        return markdown
+    assert all(value is not None for value in indexes.values())
+
+    def first_number(value: str) -> str:
+        found = re.search(r"[-+]?\d+(?:\.\d+)?", value)
+        return found.group(0) if found else ""
+
+    row_index = header_index + 2
+    while row_index < len(lines) and lines[row_index].strip().startswith("|"):
+        cells = [cell.strip() for cell in lines[row_index].strip("|").split("|")]
+        if len(cells) != len(headers):
+            row_index += 1
+            continue
+        item = cells[indexes["品种"]]  # type: ignore[index]
+        if re.fullmatch(r"(?:Y|OI)(?:\d{4})?", item, re.I):
+            trigger = cells[indexes["触发"]]  # type: ignore[index]
+            trigger_price = first_number(trigger)
+            if trigger_price:
+                cells[indexes["触发"]] = f"现价{trigger_price}"  # type: ignore[index]
+            confirmation = cells[indexes["确认"]]  # type: ignore[index]
+            if "驱动/资金同向" in confirmation:
+                cells[indexes["确认"]] = "驱动/资金同向"  # type: ignore[index]
+            elif "Y/OI同步" in confirmation:
+                cells[indexes["确认"]] = "Y/OI同步"  # type: ignore[index]
+            stop = cells[indexes["止损"]]  # type: ignore[index]
+            stop_price = first_number(stop)
+            if stop_price:
+                cells[indexes["止损"]] = f"下{stop_price}"  # type: ignore[index]
+            target = cells[indexes["目标"]]  # type: ignore[index]
+            target_prices = re.findall(r"[-+]?\d+(?:\.\d+)?", target)
+            if len(target_prices) >= 2:
+                cells[indexes["目标"]] = f"上{target_prices[0]}/下{target_prices[1]}"  # type: ignore[index]
+            elif target_prices:
+                cells[indexes["目标"]] = target_prices[0]  # type: ignore[index]
+            for field in ("仓位上限", "信号有效期"):
+                if "不新开仓" in cells[indexes[field]]:  # type: ignore[index]
+                    cells[indexes[field]] = "不新开仓"  # type: ignore[index]
+            lines[row_index] = "|" + "|".join(cells) + "|"
+        row_index += 1
+    updated_body = "\n".join(lines)
+    updated = f"{match.group(1)}{updated_body}\n"
+    return markdown[: match.start()] + updated + markdown[match.end() :]
+
+
+def compact_daily_scenario_table(markdown: str, kind: str) -> str:
+    """Compress scenario table wording without changing its decision branches."""
+    if kind != "daily":
+        return markdown
+    pattern = re.compile(r"(## 【开盘推演】\s*\n)(.*?)(?=\n## 【|\Z)", re.DOTALL)
+    match = pattern.search(markdown)
+    if not match:
+        return markdown
+    body = match.group(2).strip()
+    body = re.sub(r"Y/OI同步(?:走强|转强|转弱)?", "Y/OI同步", body)
+    body = re.sub(r"(?:Y/OI)?背离(?:扩大)?(?:时|则)?(?:继续)?(?:不追|不新开仓|放弃P处理)", "背离则放弃", body)
+    body = re.sub(r"(?:区间内)?等待(?:驱动与资金)?确认", "等待确认", body)
+    body = re.sub(r"维持震荡观察", "震荡观察", body)
+    updated = f"{match.group(1)}{body}\n"
+    return markdown[: match.start()] + updated + markdown[match.end() :]
+
+
+def compact_daily_source_audit(
+    markdown: str,
+    source_snapshot: dict[str, Any],
+    feedback: dict[str, Any] | None,
+    kind: str,
+) -> str:
+    """Render the source audit once, grouping identical states without omission."""
+    if kind != "daily":
+        return markdown
+    pattern = re.compile(
+        r"(## 【信息来源与核验说明】\s*\n)(.*?)(?=\n## 【|\Z)",
+        re.DOTALL,
+    )
+    match = pattern.search(markdown)
+    if not match:
+        return markdown
+    body = match.group(2).strip()
+    disclosures = [
+        value.strip()
+        for value in (feedback or {}).get("required_report_disclosures", [])
+        if isinstance(value, str) and value.strip()
+    ]
+    audit_body = body
+    for disclosure in disclosures:
+        audit_body = audit_body.replace(disclosure, "")
+
+    def field(start: str, end: str | None) -> str:
+        suffix = rf"(?=[。；]\s*{end}\s*[：:])" if end else r"(?=[。；]|\Z)"
+        found = re.search(rf"{start}\s*[：:]\s*(.*?){suffix}", audit_body, re.DOTALL | re.I)
+        return re.sub(r"\s+", "", found.group(1)).strip("。；") if found else ""
+
+    skills = field(r"实际\s*skill", "数据源")
+    sources = field("数据源", "截止时间")
+    cutoff = field("截止时间", "失败项")
+    failures = field("失败项", "替代来源")
+    replacements = field("替代来源", None)
+    if not all((skills, sources, cutoff, failures, replacements)):
+        return markdown
+    skill_names = [part for part in re.split(r"[、,，]", skills) if part]
+    skill_short = {
+        "market_data_skill": "market_data",
+        "data_quality_gate_skill": "data_gate",
+        "forecast_generation_feedback": "forecast_feedback",
+        "oil_report_freshness": "freshness",
+        "report_writer_skill": "report_writer",
+        "headline_skill": "headline",
+        "report_quality_gate": "report_gate",
+        "forecast_tracking_skill": "forecast_tracking",
+    }
+    skills = "/".join(skill_short.get(name, name) for name in skill_names)
+    source_short = {
+        "ICDX官方历史价格接口": "ICDX",
+        "机构资讯·油脂油料快讯": "机构油脂快讯",
+        "MPOB官方检查": "MPOB",
+    }
+    sources = "、".join(
+        source_short.get(name, name)
+        for name in re.split(r"[、,，]", sources)
+        if name
+    )
+
+    research = source_snapshot.get("news_and_research_evidence")
+    statuses = research.get("source_status") if isinstance(research, dict) else None
+    grouped: dict[str, list[str]] = {}
+    if isinstance(statuses, list):
+        for item in statuses:
+            if not isinstance(item, dict):
+                continue
+            name = str(item.get("name") or "").strip()
+            state = str(item.get("state") or "").strip()
+            if name and state:
+                grouped.setdefault(state, []).append(name)
+    status_parts = [
+        f"{'、'.join(names)}={state}"
+        for state, names in grouped.items()
+        if names
+    ]
+    needs_match = re.search(
+        r"需进一步核验\s*[：:]\s*(.*?)(?=预测校准\s*[：:]|\Z)",
+        audit_body,
+        re.DOTALL,
+    )
+    needs = re.sub(r"\s+", "", needs_match.group(1)).strip("。；") if needs_match else ""
+    parts = [
+        f"实际 skill（短名）：{skills}",
+        f"数据源：{sources}",
+        f"截止时间：{cutoff}",
+        f"失败项：{failures}",
+        f"替代来源：{replacements}",
+    ]
+    if status_parts:
+        parts.append(f"来源状态：{'；'.join(status_parts)}")
+    if "机构" in body:
+        parts.append("机构资讯仅作交叉验证")
+    if needs:
+        parts.append(f"需进一步核验：{needs}")
+    compact = "。".join(parts) + "。"
+    if disclosures:
+        compact += "\n\n" + "\n".join(disclosures)
+    updated = f"{match.group(1)}{compact}\n"
+    return markdown[: match.start()] + updated + markdown[match.end() :]
+
+
+def preserve_daily_driver_depth(
+    markdown: str,
+    previous_markdown: str,
+    kind: str,
+) -> str:
+    """Restore the prior grounded driver section if an editor cuts it below 350."""
+    if kind != "daily" or not previous_markdown:
+        return markdown
+    pattern = re.compile(
+        r"(## 【核心驱动与预期差】\s*\n)(.*?)(?=\n## 【|\Z)",
+        re.DOTALL,
+    )
+    current = pattern.search(markdown)
+    previous = pattern.search(previous_markdown)
+    if not current or not previous:
+        return markdown
+    current_chars = len(re.sub(r"\s+", "", current.group(2)))
+    previous_chars = len(re.sub(r"\s+", "", previous.group(2)))
+    if current_chars >= 350 or previous_chars < 350:
+        return markdown
+    restored = f"{current.group(1)}{previous.group(2).strip()}\n"
+    return markdown[: current.start()] + restored + markdown[current.end() :]
 
 
 def ensure_weekly_previous_validation(
@@ -1225,6 +1448,10 @@ def main() -> int:
             markdown = ensure_daily_audit_contracts(markdown, outline, kind)
             markdown = ensure_daily_external_key_data(markdown, source_snapshot, kind)
             markdown = ensure_daily_official_key_data(markdown, source_snapshot, kind)
+            markdown = preserve_daily_driver_depth(markdown, previous_markdown, kind)
+            markdown = compact_daily_execution_table(markdown, kind)
+            markdown = compact_daily_scenario_table(markdown, kind)
+            markdown = compact_daily_source_audit(markdown, source_snapshot, feedback, kind)
             markdown = ensure_weekly_previous_validation(markdown, source_snapshot, kind)
             markdown = normalize_visible_headline(markdown, kind)
             markdown = normalize_report_punctuation(markdown)
