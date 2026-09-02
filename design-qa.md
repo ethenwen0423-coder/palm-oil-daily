@@ -71,3 +71,46 @@
 3. Post-fix: computed styles show `rgb(11, 27, 22)`, a green border, white text, square corners, and working switching between both strategies.
 
 final result: passed
+
+---
+
+# Design QA — AI敢死队交易卡片溢出与内部字段
+
+**Evidence**
+
+- Source visual truth: `/var/folders/xx/r68yfq7n04n256vjslj6z3r00000gn/T/TemporaryItems/NSIRD_screencaptureui_xInE1b/截屏2026-09-02 21.15.02.png`
+- Browser-rendered implementation: `/tmp/ai-daredevil-cards-fixed-974x486.png`
+- Side-by-side comparison: `/tmp/ai-daredevil-cards-comparison.png`
+- Viewport: 974 × 486 CSS px, device scale factor 1 for implementation. The 1948 × 972 Retina source was normalized to 974 × 486 without distortion.
+- State: desktop, `纯AI决策` selected, 6 条今日动作、40 条下一步指令、0 条未执行信号，使用同一批线上数据。
+
+**Findings**
+
+- No actionable P0, P1, or P2 findings remain.
+- Fonts and typography: headings, timestamps, strategy copy, realized P&L, and confidence keep the existing type scale and weights; long text wraps at Chinese and identifier boundaries without clipping.
+- Spacing and layout rhythm: all three panels stay inside the 3-column grid. Each activity record now uses a contained top summary row followed by vertically flowing detail copy.
+- Colors and visual tokens: existing dark panel, muted copy, green strategy text, and red/green Chinese-market P&L semantics are unchanged.
+- Image quality and asset fidelity: this component contains no raster or icon assets; no source asset was replaced or approximated.
+- Copy and content: internal keys such as `INPUT.local_strategy_backtests`, `current_bias`, `EXIT_LONG`, and `trend_vs_ma60` are converted to readable Chinese labels while preserving strategy name, return, rules, action, date, confidence, and realized P&L.
+- Accessibility and responsiveness: the information order remains semantic in the DOM, both strategy modes switch successfully, and the browser console reports no warnings or errors.
+
+**Comparison History**
+
+1. Earlier P1: long strategy text forced the trailing amount or confidence column outside its panel, leaving isolated numbers across the gap between cards.
+2. Earlier P2: raw backend identifiers and missing decision dates appeared as garbled or implementation-facing copy.
+3. Fix: replaced the three-track activity row with a contained summary header plus vertical detail flow; added width and overflow guards; translated known strategy/action fields; used the backtest close date when a decision has no independent timestamp.
+4. Post-fix evidence: the normalized side-by-side comparison shows all three cards contained in the viewport, no isolated numbers between panels, and readable strategy labels. Both mode switches pass and browser console errors are 0.
+
+**Implementation Checklist**
+
+- [x] Keep realized P&L and confidence inside each record header.
+- [x] Prevent long strategy/rule text from expanding grid tracks.
+- [x] Replace backend identifiers with reader-facing Chinese labels.
+- [x] Preserve all strategy, action, return, time, and P&L facts.
+- [x] Verify both decision modes and console state in the browser.
+
+**Follow-up Polish**
+
+- None required for this scope.
+
+final result: passed

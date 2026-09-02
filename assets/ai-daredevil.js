@@ -60,6 +60,7 @@
   }
   function tradeTime(item) {
     const value = item.timestamp || item.time || item.execution_date || item.signal_date || item.date;
+    if (!value && item.backtest_summary && item.backtest_summary.sample_end) return `依据 ${item.backtest_summary.sample_end} 收盘`;
     if (!value) return "时间待核验";
     return /^\d{4}-\d{2}-\d{2}$/.test(String(value)) ? String(value) : formatTime(value);
   }
@@ -84,19 +85,43 @@
   function strategyName(item) {
     return item.strategy_name || (selected === "bollinger" ? "布林带 + RSI + MA6" : "AI策略待记录");
   }
+  function friendlyStrategyText(value) {
+    return String(value == null ? "" : value)
+      .replace(/INPUT\.local_strategy_backtests\[([^\]]+)\]\./g, "本地Python回测（$1） · ")
+      .replace(/INPUT\.local_strategy_backtests\./g, "本地Python回测 · ")
+      .replace(/INPUT\.local_strategy_backtests/g, "本地Python回测")
+      .replace(/channel20_breakout/g, "20日通道突破")
+      .replace(/bollinger_reversion/g, "布林带均值回归")
+      .replace(/rsi_reversion/g, "RSI均值回归")
+      .replace(/macd_momentum/g, "MACD动量")
+      .replace(/ma20_60_trend/g, "MA20\/MA60趋势")
+      .replace(/trend_vs_ma60/g, "相对MA60趋势")
+      .replace(/current_bias/g, "当前方向")
+      .replace(/target_quantity/g, "目标手数")
+      .replace(/\bENTER_LONG\b/g, "开多")
+      .replace(/\bENTER_SHORT\b/g, "开空")
+      .replace(/\bEXIT_LONG\b/g, "平多")
+      .replace(/\bEXIT_SHORT\b/g, "平空")
+      .replace(/\bLOCAL_BACKTEST\b/g, "本地回测")
+      .replace(/\bLONG\b/g, "多头")
+      .replace(/\bSHORT\b/g, "空头")
+      .replace(/\bFLAT\b/g, "空仓");
+  }
   function strategyMeta(item) {
     const summary = item.backtest_summary && typeof item.backtest_summary === "object" ? item.backtest_summary : null;
-    const parts = [item.strategy_source || item.strategy_type];
-    if (summary && summary.total_return != null) parts.push(`本地回测 ${percent(summary.total_return)}`);
+    const strategy = friendlyStrategyText(strategyName(item));
+    const source = friendlyStrategyText(item.strategy_source || item.strategy_type).replace(`本地Python回测 · ${strategy}`, "本地Python回测");
+    const parts = [source];
+    if (summary && summary.total_return != null) parts.push(`回测收益 ${percent(summary.total_return)}`);
     if (summary && summary.sample_start && summary.sample_end) parts.push(`${summary.sample_start} 至 ${summary.sample_end}`);
     return parts.filter(Boolean).join(" · ") || "策略来源待核验";
   }
   function strategyRules(item) {
     const parts = [];
-    if (item.strategy_rationale) parts.push(`选择依据：${item.strategy_rationale}`);
-    if (item.strategy_entry_rule) parts.push(`开仓：${item.strategy_entry_rule}`);
-    if (item.strategy_exit_rule) parts.push(`平仓：${item.strategy_exit_rule}`);
-    if (item.quantity_reason) parts.push(`手数：${item.quantity_reason}`);
+    if (item.strategy_rationale) parts.push(`选择依据：${friendlyStrategyText(item.strategy_rationale)}`);
+    if (item.strategy_entry_rule) parts.push(`开仓：${friendlyStrategyText(item.strategy_entry_rule)}`);
+    if (item.strategy_exit_rule) parts.push(`平仓：${friendlyStrategyText(item.strategy_exit_rule)}`);
+    if (item.quantity_reason) parts.push(`手数：${friendlyStrategyText(item.quantity_reason)}`);
     return parts.join("；") || "策略规则待核验";
   }
   function marginMeta(item) {
@@ -233,7 +258,7 @@
       : (trades.length ? "表内“今日动作”列显示今日开仓或加仓；平仓完成后该品种会从当前持仓移除并保留在下方“今日动作”。" : "今日尚无已落账开平仓；当前持仓继续按最新价盯市。");
     el("positions-body").innerHTML = positions.map((position) => {
       const pnl = formatPositionPnl(position.unrealized_pnl || 0);
-      return `<tr><td><strong>${escapeHtml(position.name || position.variety)}</strong><span>${escapeHtml(position.contract)}</span></td><td>${escapeHtml(position.entry_date || "--")}</td><td class="strategy-cell"><strong>${escapeHtml(strategyName(position))}</strong><span>${escapeHtml(strategyMeta(position))}</span><span>${escapeHtml(strategyRules(position))}</span></td><td class="reason-cell">${escapeHtml(position.model_reason || "开仓依据待核验")}</td><td><em class="side-badge ${Number(position.side) === 1 ? "side-long" : "side-short"}">${Number(position.side) === 1 ? "多" : "空"}</em></td><td>${escapeHtml(position.quantity)} / ${escapeHtml(position.layers || 1)}</td><td>${number.format(position.average_price)}</td><td>${number.format(position.last_price)}</td><td title="${escapeHtml(position.margin_source || "保证金来源待核验")}"><strong>${money.format(position.notional || 0)}</strong><span>${escapeHtml(marginMeta(position) || "保证金待核验")} · ${money.format(position.used_margin || 0)}</span></td><td class="${pnl.className}">${escapeHtml(pnl.text)}</td><td>${percent(position.weight || 0)}</td><td><strong>${escapeHtml(position.price_source || "待核验")}</strong><span>${escapeHtml(formatTime(position.price_time))}</span></td><td class="today-action-cell">${todayActionMarkup(position, trades)}</td><td class="instruction-cell">${escapeHtml(position.next_instruction || "等待下一次完整日线确认")}</td></tr>`;
+      return `<tr><td><strong>${escapeHtml(position.name || position.variety)}</strong><span>${escapeHtml(position.contract)}</span></td><td>${escapeHtml(position.entry_date || "--")}</td><td class="strategy-cell"><strong>${escapeHtml(strategyName(position))}</strong><span>${escapeHtml(strategyMeta(position))}</span><span>${escapeHtml(strategyRules(position))}</span></td><td class="reason-cell">${escapeHtml(friendlyStrategyText(position.model_reason || "开仓依据待核验"))}</td><td><em class="side-badge ${Number(position.side) === 1 ? "side-long" : "side-short"}">${Number(position.side) === 1 ? "多" : "空"}</em></td><td>${escapeHtml(position.quantity)} / ${escapeHtml(position.layers || 1)}</td><td>${number.format(position.average_price)}</td><td>${number.format(position.last_price)}</td><td title="${escapeHtml(position.margin_source || "保证金来源待核验")}"><strong>${money.format(position.notional || 0)}</strong><span>${escapeHtml(marginMeta(position) || "保证金待核验")} · ${money.format(position.used_margin || 0)}</span></td><td class="${pnl.className}">${escapeHtml(pnl.text)}</td><td>${percent(position.weight || 0)}</td><td><strong>${escapeHtml(position.price_source || "待核验")}</strong><span>${escapeHtml(formatTime(position.price_time))}</span></td><td class="today-action-cell">${todayActionMarkup(position, trades)}</td><td class="instruction-cell">${escapeHtml(friendlyStrategyText(position.next_instruction || "等待下一次完整日线确认"))}</td></tr>`;
     }).join("");
   }
 
@@ -253,9 +278,10 @@
       const actionDetail = detail && detail !== action ? `${action} · ${detail}` : action;
       const pnl = Number(item.pnl ?? item.realized_pnl ?? 0);
       const pnlClass = kind === "trade" ? (pnl > 0 ? "is-positive" : (pnl < 0 ? "is-negative" : "")) : "";
-      const tail = kind === "trade" ? money.format(pnl) : (item.confidence != null ? `置信 ${percent(item.confidence)}` : `${item.quantity || 0} 手`);
+      const quantity = Number(item.requested_quantity ?? item.target_quantity ?? item.quantity ?? 0);
+      const tail = kind === "trade" ? `已实现 ${signedMoney(pnl)}` : (kind === "skipped" ? "未执行" : (item.confidence != null ? `置信度 ${percent(item.confidence)}` : (quantity > 0 ? `计划 ${quantity} 手` : "等待")));
       const margin = marginMeta(item);
-      return `<article class="activity-item"><span>${escapeHtml(tradeTime(item))}</span><div><strong>${escapeHtml(item.name || item.variety || "--")} · ${escapeHtml(item.contract || action)}</strong><small class="strategy-line">策略：${escapeHtml(strategyName(item))} · ${escapeHtml(strategyMeta(item))}</small><small>${escapeHtml(strategyRules(item))}</small>${margin ? `<small>保证金：${escapeHtml(margin)}</small>` : ""}<small>${escapeHtml(actionDetail || "--")}</small></div><b class="${pnlClass}">${escapeHtml(tail)}</b></article>`;
+      return `<article class="activity-item"><div class="activity-item-meta"><span>${escapeHtml(tradeTime(item))}</span><b class="${pnlClass}">${escapeHtml(tail)}</b></div><div class="activity-item-copy"><strong>${escapeHtml(item.name || item.variety || "--")} · ${escapeHtml(item.contract || action)}</strong><small class="strategy-line">策略：${escapeHtml(strategyName(item))} · ${escapeHtml(strategyMeta(item))}</small><small>${escapeHtml(strategyRules(item))}</small>${margin ? `<small>保证金：${escapeHtml(margin)}</small>` : ""}<small>${escapeHtml(friendlyStrategyText(actionDetail || "--"))}</small></div></article>`;
     }).join("");
   }
 
