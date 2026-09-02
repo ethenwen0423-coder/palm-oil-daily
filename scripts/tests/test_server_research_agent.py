@@ -475,7 +475,7 @@ class ServerResearchAgentTests(unittest.TestCase):
 """
         updated = MODULE.compact_daily_execution_table(markdown, "daily")
         self.assertIn("|品种|方向|触发|确认|止损|目标|仓位|有效期|", updated)
-        self.assertIn("|P2701|震荡|现价10235；待驱动/资金确认|突破区间且驱动/资金同向则失效|下9467.87|上10489.31/下9467.87|未给出，不开仓|未给出，不开仓|", updated)
+        self.assertIn("|P2701|震荡|现价10235；待确认|突破区间且驱动/资金同向则失效|下9467.87|上10489.31/下9467.87|未给出，不开仓|未给出，不开仓|", updated)
         self.assertIn("|Y2701|震荡|现价9142|驱动/资金同向|下8317.96|上9245.47/下8317.96|不开仓|不开仓|", updated)
         self.assertIn("|OI2611|震荡|现价10334|驱动/资金同向|下9874.38|上10763.78/下9874.38|不开仓|不开仓|", updated)
 
@@ -505,9 +505,18 @@ class ServerResearchAgentTests(unittest.TestCase):
             "daily",
         )
         self.assertIn("来源状态：来源甲、来源乙=ready", updated)
-        self.assertIn("实际 skill（短名）：market/gate/", updated)
+        self.assertIn("实际 skill（短名）：mkt/gate/", updated)
         self.assertIn("数据源：AkShare、ICDX、机构油脂快讯、MPOB", updated)
         self.assertEqual(updated.count("预测披露原句。"), 1)
+        self.assertEqual(
+            MODULE.compact_daily_source_audit(
+                updated,
+                source,
+                {"required_report_disclosures": ["预测披露原句。"]},
+                "daily",
+            ),
+            updated,
+        )
 
     def test_daily_key_data_compactor_only_shortens_explanatory_meanings(self) -> None:
         markdown = """# 09月03日晨报
@@ -524,8 +533,8 @@ class ServerResearchAgentTests(unittest.TestCase):
 """
         updated = MODULE.compact_daily_key_data_table(markdown, "daily")
         self.assertIn("|P2701|10235|2026-09-03|P|", updated)
-        self.assertIn("|ICDX CPOTR|16580|2026-09-01|外盘验证|", updated)
-        self.assertIn("|MPOB期末库存|2628326吨|2026-07|官方|", updated)
+        self.assertIn("|ICDX CPOTR|16580|2026-09-01|外盘|", updated)
+        self.assertIn("|MPOB期末库存|2628326吨|2026-07|供|", updated)
 
     def test_daily_risk_compactor_keeps_exact_outline_invalidation(self) -> None:
         markdown = """# 09月03日晨报
@@ -543,6 +552,55 @@ class ServerResearchAgentTests(unittest.TestCase):
         )
         self.assertIn("## 【风险提示】\n\n若P跌破区间，判断失效。", updated)
         self.assertNotIn("供应恢复是反证", updated)
+
+    def test_daily_compactors_are_idempotent_on_short_headers(self) -> None:
+        markdown = """# 09月03日晨报
+
+## 【今日交易信号】
+
+今日策略：震荡。
+重复解释。
+|品种|方向|触发|确认|止损|目标|仓位|有效期|
+|---|---|---|---|---|---|---|---|
+|P2701|震荡|现价10235；待确认|驱动/资金同向|下9467.87|上10489.31/下9467.87|未给出，不开仓|未给出，不开仓|
+|Y2701|震荡|现价9142|驱动/资金同向|下8317.96|上9245.47/下8317.96|不开仓|不开仓|
+|OI2611|震荡|现价10334|驱动/资金同向|下9874.38|上10763.78/下9874.38|不开仓|不开仓|
+
+## 【核心驱动与预期差】
+"""
+        once = MODULE.compact_daily_execution_table(markdown, "daily")
+        twice = MODULE.compact_daily_execution_table(once, "daily")
+        self.assertEqual(once, twice)
+        self.assertNotIn("重复解释", once)
+        self.assertIn("突破区间且驱动/资金同向则失效", once)
+
+    def test_daily_top_call_and_driver_remove_only_cross_section_repetition(self) -> None:
+        outline = {
+            "market_stance": "震荡",
+            "research_confidence": "★★☆☆☆",
+            "invalidation_condition": "若价格突破区间且驱动/资金同向，震荡判断失效。",
+        }
+        markdown = """# 09月03日晨报
+
+## 【今日观点】
+
+P/Y/OI未共振，油脂震荡。
+
+行动：按交易信号表执行；失效：若价格突破区间且驱动/资金同向，震荡判断失效。置信度：★★☆☆☆。
+
+## 【核心驱动与预期差】
+
+主驱动一：机构资讯·油脂油料快讯给出供给证据。主驱动二：机构资讯·油脂油料快讯给出需求证据。最强反证：供应恢复。若价格突破区间且驱动/资金同向，震荡判断失效。
+
+## 【风险提示】
+"""
+        updated = MODULE.compact_daily_top_call(markdown, outline, "daily")
+        updated = MODULE.compact_daily_driver_repetition(updated, outline, "daily")
+        self.assertIn("行动：交易表；失效：突破区间且驱动/资金同向；置信度：★★☆☆☆。", updated)
+        self.assertIn("主驱动一", updated)
+        self.assertIn("主驱动二：同源快讯", updated)
+        self.assertIn("最强反证", updated)
+        self.assertEqual(updated.count("震荡判断失效"), 0)
 
     def test_daily_driver_depth_restores_previous_grounded_section(self) -> None:
         previous_driver = "主驱动一：" + "供给收缩→P支撑，预期与现实待验证。" * 20 + "主驱动二：需求恢复。最强反证：供应回升。"
