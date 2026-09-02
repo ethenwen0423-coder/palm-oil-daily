@@ -1285,8 +1285,8 @@ def compact_daily_source_audit(
     feedback: dict[str, Any] | None,
     kind: str,
 ) -> str:
-    """Render the source audit once, grouping identical states without omission."""
-    if kind != "daily":
+    """Render either source audit once, grouping identical states without omission."""
+    if kind not in {"daily", "weekend"}:
         return markdown
     pattern = re.compile(
         r"(## 【信息来源与核验说明】\s*\n)(.*?)(?=\n## 【|\Z)",

@@ -517,6 +517,9 @@ class ServerResearchAgentTests(unittest.TestCase):
             ),
             updated,
         )
+        weekly = MODULE.compact_daily_source_audit(markdown, source, None, "weekend")
+        self.assertIn("来源状态：来源甲、来源乙=ready", weekly)
+        self.assertIn("实际 skill（短名）：mkt/gate/", weekly)
 
     def test_daily_key_data_compactor_only_shortens_explanatory_meanings(self) -> None:
         markdown = """# 09月03日晨报
