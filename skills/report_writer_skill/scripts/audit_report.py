@@ -62,11 +62,15 @@ ALIASES = {
     "external.cbot_soybean": ("CBOT大豆", "CBOT 大豆", "美豆"),
     "external.bmd_palm_oil": ("FCPO", "BMD棕油", "BMD 棕油", "马棕"),
     "external.india_cpo_spot": ("NCDEX", "印度CPO"),
+    "external.indonesia_cpo_spot": ("ICDX", "CPOTR", "印尼CPO", "印尼棕榈油"),
     "fundamental.inventory.soybean_oil_inventory": ("豆油库存",),
     "fundamental.inventory.palm_oil_inventory": ("棕榈油库存", "棕油库存"),
     "fundamental.inventory.rapeseed_oil_inventory": ("菜油库存",),
     "fundamental.spread.soybean_palm_spread": ("豆棕价差",),
     "fundamental.spread.rapeseed_soybean_spread": ("菜豆油价差", "菜豆价差"),
+    "fundamental.official_supply_demand.latest_metrics.production": ("MPOB产量", "CPO产量"),
+    "fundamental.official_supply_demand.latest_metrics.exports": ("MPOB出口", "棕榈油出口"),
+    "fundamental.official_supply_demand.latest_metrics.stocks": ("MPOB期末库存", "期末库存"),
     "fundamental.cross_drivers.crude_oil": ("WTI", "原油"),
 }
 
@@ -193,6 +197,7 @@ def visible_body_chars(text: str) -> int:
     cut = re.sub(r"!\[[^\]]*]\([^)]*\)", "", cut)
     cut = re.sub(r"\[([^\]]+)]\([^)]*\)", r"\1", cut)
     cut = re.sub(r"^\s*#{1,6}\s*", "", cut, flags=re.MULTILINE)
+    cut = re.sub(r"^\s*\|(?:\s*:?-+:?\s*\|)+\s*$", "", cut, flags=re.MULTILINE)
     cut = re.sub(r"[*_`>|]", "", cut)
     return len(re.sub(r"\s+", "", cut))
 
@@ -497,7 +502,10 @@ def _require_key_data_table(
         if missing:
             hard_failures.append(f"关键数据表缺少品种：{'/'.join(missing)}")
             return
-        if not any(marker in all_text for marker in ("FCPO", "BMD", "CBOT", "WTI", "原油", "美豆")):
+        if not any(
+            marker in all_text
+            for marker in ("FCPO", "BMD", "CBOT", "WTI", "原油", "美豆", "CPOTR", "ICDX", "印尼CPO")
+        ):
             hard_failures.append("关键数据表缺少可核验的关键外盘或原油数据")
             return
         if not any(marker in all_text for marker in ("价差", "基差")):

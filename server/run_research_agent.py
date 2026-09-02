@@ -268,7 +268,7 @@ def build_prompt(
         ]
     )
     budget = "1000-1400" if kind == "daily" else "1600-2000"
-    draft_target = "900-1050" if kind == "daily" else "1600-1800"
+    draft_target = "1200-1280" if kind == "daily" else "1600-1800"
     title = datetime.fromisoformat(report_date).strftime("%m月%d日") + (
         "晨报" if kind == "daily" else "周报"
     )
@@ -296,6 +296,9 @@ def build_prompt(
 - `## 【开盘推演】`必须使用 Markdown 表格，三行分别为高开、平开、低开，列名至少包含情景、触发、确认、动作、放弃条件；每行都要写明 Y/OI 同步或背离时对 P 的处理。
 - score、driver/fundamental/technical 分数、数据条数、采集状态均是内部元数据，不得写成市场驱动或正文结论。
 - `source_error`、抓取失败、官方检查失败只允许出现在“信息来源与核验说明”，不得进入观点、驱动、策略或优先级判断。
+- 日报初稿按仓库中已通过门禁的紧凑版式分配篇幅：今日观点约30-50字，今日交易信号不超过190字，核心驱动与预期差350-380字，关键数据与价格约300字，开盘推演不超过140字，风险提示不超过50字，信息来源与核验说明约270字。表格分隔线不计入这些栏目预算。
+- 交易表中相同确认/失效条件不得逐行长篇复述；每行仍须完整，但应使用 SOURCE_JSON 已有的最短完整短语。关键数据表只保留满足合同所需的6-8行，不得在表后复述。
+- 信息来源与核验说明使用单段紧凑审计句：五个审计字段、来源状态及 REQUIRED_DISCLOSURES 各出现一次；不得解释 skill 名称，不得复述正文观点。
 """
         if kind == "daily"
         else """
@@ -463,23 +466,18 @@ def ensure_daily_audit_contracts(
         re.DOTALL,
     )
     view_match = view_pattern.search(markdown)
-    if (
-        view_match
-        and stance in {"偏多", "偏空", "震荡", "观望"}
-        and top_call
-        and invalidation
-    ):
+    if view_match and stance in {"偏多", "偏空", "震荡", "观望"}:
         body = view_match.group(2).strip()
-        has_top_call = (
-            stance in body
-            and top_call in body
-            and invalidation in body
-            and any(marker in body for marker in ("策略", "执行", "观望", "空仓", "交易", "不追"))
-            and any(marker in body for marker in ("失效", "推翻", "放弃", "反证"))
-        )
-        if not has_top_call:
+        missing_parts: list[str] = []
+        if stance not in body:
+            missing_parts.append(f"基准方向：{stance}")
+        if not any(marker in body for marker in ("策略", "执行", "观望", "空仓", "交易", "不追")):
+            missing_parts.append("行动：按交易信号表执行")
+        if invalidation and not any(marker in body for marker in ("失效", "推翻", "放弃", "反证")):
+            missing_parts.append(f"失效：{invalidation}")
+        if missing_parts:
             lines = body.splitlines()
-            audit_line = f"基准方向：{stance}；策略：{top_call}；失效条件：{invalidation}。"
+            audit_line = "；".join(missing_parts) + "。"
             body = "\n".join([lines[0], "", audit_line, *lines[1:]]).strip()
             updated = f"{view_match.group(1)}{body}\n"
             markdown = markdown[: view_match.start()] + updated + markdown[view_match.end() :]
@@ -492,7 +490,7 @@ def ensure_daily_audit_contracts(
     if driver_match:
         body = driver_match.group(2).strip()
         audit_lines: list[str] = []
-        if transmission and transmission not in body:
+        if transmission and not any(marker in body for marker in ("→", "传导", "因此", "使得")):
             audit_lines.append(f"传导链：{transmission}。")
         risk_match_for_counter = re.search(
             r"## 【风险提示】\s*\n(.*?)(?=\n## 【|\Z)",
@@ -500,7 +498,16 @@ def ensure_daily_audit_contracts(
             re.DOTALL,
         )
         counter_scope = body + (risk_match_for_counter.group(1) if risk_match_for_counter else "")
-        if counter_case and counter_case not in counter_scope:
+        counter_terms = [
+            term.strip()
+            for term in re.split(r"并|且|、|，|；|。", counter_case)
+            if len(term.strip()) >= 4
+        ]
+        counter_is_grounded = bool(counter_case) and (
+            counter_case in counter_scope
+            or (counter_terms and all(term in counter_scope for term in counter_terms))
+        )
+        if counter_case and not counter_is_grounded:
             audit_lines.append(f"最强反证：{counter_case}。")
         if audit_lines:
             body = f"{body}\n\n{' '.join(audit_lines)}"
@@ -525,7 +532,7 @@ def ensure_daily_audit_contracts(
     risk_match = risk_pattern.search(markdown)
     if risk_match and invalidation:
         body = risk_match.group(2).strip()
-        if "失效条件" not in body:
+        if not any(marker in body for marker in ("失效", "若", "一旦", "推翻")):
             body = f"{body}\n\n可检验失效条件：{invalidation}。"
         updated = f"{risk_match.group(1)}{body}\n"
         markdown = markdown[: risk_match.start()] + updated + markdown[risk_match.end() :]
@@ -548,7 +555,8 @@ def ensure_daily_external_key_data(
     if not match:
         return markdown
     body = match.group(2).strip()
-    if any(marker in body for marker in ("FCPO", "BMD", "CBOT", "WTI", "原油", "美豆")):
+    external_markers = ("FCPO", "BMD", "CBOT", "WTI", "原油", "美豆", "CPOTR", "ICDX", "印尼CPO")
+    if any(marker in body for marker in external_markers):
         return markdown
 
     external = source_snapshot.get("external")
@@ -559,7 +567,7 @@ def ensure_daily_external_key_data(
         ("cbot_bean_oil", "CBOT豆油"),
         ("cbot_soybean", "CBOT大豆"),
         ("crude_oil", "WTI原油"),
-        ("indonesia_cpo_spot", "印尼CPO"),
+        ("indonesia_cpo_spot", "ICDX CPOTR"),
     )
     selected: tuple[str, str, str] | None = None
     for key, fallback_name in candidates:
@@ -578,7 +586,7 @@ def ensure_daily_external_key_data(
         if not as_of:
             continue
         name = str(record.get("name") or fallback_name).strip()
-        if not any(marker in name for marker in ("FCPO", "BMD", "CBOT", "WTI", "原油", "美豆")):
+        if not any(marker in name for marker in external_markers):
             name = fallback_name
         number = str(int(value)) if float(value).is_integer() else format(float(value), ".15g")
         selected = (name, number, as_of)
