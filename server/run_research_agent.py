@@ -1041,7 +1041,11 @@ def compact_daily_top_call(markdown: str, outline: dict[str, Any], kind: str) ->
     invalidation = re.sub(r"^若(?:价格)?", "", invalidation)
     invalidation = re.sub(r"[，,]?(?:震荡)?判断失效$", "", invalidation)
     rating = str(outline.get("research_confidence") or "")
-    audit = "行动：交易表"
+    support = next((line for line in lines[1:] if "P/Y/OI" in line), "")
+    if support:
+        support = re.split(r"[，,；;](?=若|一旦|失效|行动)", support, maxsplit=1)[0].rstrip("。.")
+    audit = f"{support}；" if support else ""
+    audit += "行动：交易表"
     if invalidation:
         audit += f"；失效：{invalidation}"
     if re.fullmatch(r"[★☆]{5}", rating):
@@ -1062,6 +1066,9 @@ def compact_daily_driver_repetition(markdown: str, outline: dict[str, Any], kind
     if not match:
         return markdown
     body = match.group(2).strip()
+    duplicate_counter = body.count("最强反证") - 1
+    if duplicate_counter > 0:
+        body = re.sub(r"最强反证(?:是|：)[^。]*。", "", body, count=duplicate_counter)
     invalidation = str(outline.get("invalidation_condition") or "").strip().rstrip("。.")
     if invalidation:
         body = re.sub(rf"(?:^|(?<=。)|(?<=；))\s*{re.escape(invalidation)}[。.]?", "", body)
@@ -1652,10 +1659,10 @@ def main() -> int:
             markdown = compact_daily_scenario_table(markdown, kind)
             markdown = compact_daily_key_data_table(markdown, kind)
             markdown = compact_daily_risk(markdown, outline, kind)
-            markdown = compact_daily_top_call(markdown, outline, kind)
             markdown = compact_daily_source_audit(markdown, source_snapshot, feedback, kind)
             markdown = ensure_weekly_previous_validation(markdown, source_snapshot, kind)
             markdown = normalize_visible_headline(markdown, kind)
+            markdown = compact_daily_top_call(markdown, outline, kind)
             markdown = normalize_report_punctuation(markdown)
             atomic_write_text(report_path, markdown)
             atomic_write_json(outline_path, outline)

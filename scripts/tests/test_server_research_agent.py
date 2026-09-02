@@ -584,7 +584,9 @@ class ServerResearchAgentTests(unittest.TestCase):
 
 ## 【今日观点】
 
-P/Y/OI未共振，油脂震荡。
+油脂维持震荡。
+
+P/Y/OI未共振，油脂震荡，若价格突破区间且驱动/资金同向，震荡判断失效。
 
 行动：按交易信号表执行；失效：若价格突破区间且驱动/资金同向，震荡判断失效。置信度：★★☆☆☆。
 
@@ -596,11 +598,26 @@ P/Y/OI未共振，油脂震荡。
 """
         updated = MODULE.compact_daily_top_call(markdown, outline, "daily")
         updated = MODULE.compact_daily_driver_repetition(updated, outline, "daily")
-        self.assertIn("行动：交易表；失效：突破区间且驱动/资金同向；置信度：★★☆☆☆。", updated)
+        self.assertIn("P/Y/OI未共振，油脂震荡；行动：交易表；失效：突破区间且驱动/资金同向；置信度：★★☆☆☆。", updated)
         self.assertIn("主驱动一", updated)
         self.assertIn("主驱动二：同源快讯", updated)
         self.assertIn("最强反证", updated)
         self.assertEqual(updated.count("震荡判断失效"), 0)
+
+    def test_daily_driver_keeps_only_final_grounded_counter_case(self) -> None:
+        outline = {"invalidation_condition": "若价格突破区间，判断失效。"}
+        markdown = """# 09月03日晨报
+
+## 【核心驱动与预期差】
+
+主驱动一：供给预期传导P。主驱动二：需求现实影响Y/OI。最强反证是早期概括；若价格突破区间，判断失效。最强反证：库存与需求同时逆转。
+
+## 【关键数据与价格】
+"""
+        updated = MODULE.compact_daily_driver_repetition(markdown, outline, "daily")
+        self.assertEqual(updated.count("最强反证"), 1)
+        self.assertIn("最强反证：库存与需求同时逆转。", updated)
+        self.assertNotIn("早期概括", updated)
 
     def test_daily_driver_depth_restores_previous_grounded_section(self) -> None:
         previous_driver = "主驱动一：" + "供给收缩→P支撑，预期与现实待验证。" * 20 + "主驱动二：需求恢复。最强反证：供应回升。"
