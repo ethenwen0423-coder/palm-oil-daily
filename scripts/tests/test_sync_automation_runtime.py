@@ -108,6 +108,71 @@ class AutomationRuntimeSyncTests(unittest.TestCase):
             self.assertEqual(git(runtime, "rev-parse", "HEAD"), local_head)
             self.assertFalse((runtime / ".git" / "rebase-merge").exists())
 
+    def test_dirty_generated_worktree_is_preserved_while_source_fast_forwards(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            _, runtime, actor = self.make_repositories(Path(temporary))
+            (runtime / "data" / "generated.json").write_text('{"version": 2}\n')
+            (runtime / "data" / "new.json").write_text('{"new": true}\n')
+            (actor / "source.txt").write_text("source-v2\n")
+            git(actor, "add", "--", "source.txt")
+            git(actor, "commit", "-m", "source update")
+            git(actor, "push", "origin", "main")
+
+            result = self.invoke(runtime)
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            payload = json.loads(result.stdout)
+            self.assertEqual(payload["action"], "fast_forwarded")
+            self.assertEqual(
+                payload["preserved_worktree_paths"],
+                ["data/generated.json", "data/new.json"],
+            )
+            self.assertEqual((runtime / "source.txt").read_text(), "source-v2\n")
+            self.assertEqual(
+                (runtime / "data" / "generated.json").read_text(),
+                '{"version": 2}\n',
+            )
+            self.assertEqual(
+                (runtime / "data" / "new.json").read_text(),
+                '{"new": true}\n',
+            )
+            self.assertEqual(git(runtime, "stash", "list"), "")
+
+    def test_dirty_source_worktree_is_rejected_without_stashing_it(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            _, runtime, _ = self.make_repositories(Path(temporary))
+            (runtime / "source.txt").write_text("unsafe\n")
+
+            result = self.invoke(runtime)
+
+            self.assertEqual(result.returncode, 2)
+            payload = json.loads(result.stdout)
+            self.assertIn("source.txt", payload["reason"])
+            self.assertEqual((runtime / "source.txt").read_text(), "unsafe\n")
+            self.assertEqual(git(runtime, "stash", "list"), "")
+
+    def test_dirty_generated_overlap_is_restored_without_fast_forward(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            _, runtime, actor = self.make_repositories(Path(temporary))
+            local_head = git(runtime, "rev-parse", "HEAD")
+            (runtime / "data" / "generated.json").write_text('{"local": true}\n')
+            (actor / "data" / "generated.json").write_text('{"remote": true}\n')
+            git(actor, "add", "--", "data/generated.json")
+            git(actor, "commit", "-m", "remote data update")
+            git(actor, "push", "origin", "main")
+
+            result = self.invoke(runtime)
+
+            self.assertEqual(result.returncode, 2)
+            payload = json.loads(result.stdout)
+            self.assertIn("overlaps upstream changes", payload["reason"])
+            self.assertEqual(git(runtime, "rev-parse", "HEAD"), local_head)
+            self.assertEqual(
+                (runtime / "data" / "generated.json").read_text(),
+                '{"local": true}\n',
+            )
+            self.assertEqual(git(runtime, "stash", "list"), "")
+
 
 if __name__ == "__main__":
     unittest.main()
