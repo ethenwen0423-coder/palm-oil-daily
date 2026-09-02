@@ -355,22 +355,49 @@ SOURCE_JSON：
 
 
 def normalize_visible_headline(markdown: str, kind: str) -> str:
-    """Keep an otherwise valid model report inside the deterministic title length limit."""
+    """Put the visible headline on its own bounded line without dropping prose."""
     section = "今日观点" if kind == "daily" else "一句话核心观点"
     limit = 50 if kind == "daily" else 100
-    pattern = re.compile(rf"(## 【{section}】\s*\n\s*)([^\n]+)")
+    lines = markdown.splitlines()
+    heading_index = next(
+        (index for index, line in enumerate(lines) if line.strip() == f"## 【{section}】"),
+        None,
+    )
+    if heading_index is None:
+        return markdown
+    headline_index = next(
+        (index for index in range(heading_index + 1, len(lines)) if lines[index].strip()),
+        None,
+    )
+    if headline_index is None or lines[headline_index].lstrip().startswith("## 【"):
+        return markdown
+    original = lines[headline_index].strip()
+    sentence_match = re.match(r".*?[。！？]", original)
+    if (
+        len(re.sub(r"\s+", "", original)) <= limit
+        and (sentence_match is None or sentence_match.end() == len(original))
+    ):
+        return markdown
 
-    def replace(match: re.Match[str]) -> str:
-        headline = match.group(2).strip()
-        compact = re.sub(r"\s+", "", headline)
-        if len(compact) <= limit:
-            return match.group(0)
-        sentence = re.split(r"(?<=[。！？])", compact, maxsplit=1)[0]
-        if len(sentence) > limit:
-            sentence = sentence[:limit]
-        return match.group(1) + sentence
+    headline = sentence_match.group(0).strip() if sentence_match else ""
+    remainder = original[len(headline) :].strip() if headline else original
+    if not headline or len(re.sub(r"\s+", "", headline)) > limit:
+        visible = 0
+        split_at = 0
+        for split_at, character in enumerate(original, start=1):
+            if not character.isspace():
+                visible += 1
+            if visible >= limit:
+                break
+        headline = original[:split_at].strip()
+        remainder = original[split_at:].strip()
 
-    return pattern.sub(replace, markdown, count=1)
+    replacement = [headline]
+    if remainder:
+        replacement.extend(["", remainder])
+    lines[headline_index : headline_index + 1] = replacement
+    suffix = "\n" if markdown.endswith("\n") else ""
+    return "\n".join(lines) + suffix
 
 
 def enforce_confidence_cap(markdown: str, outline: dict[str, Any], feedback: dict[str, Any] | None, kind: str) -> tuple[str, dict[str, Any]]:
@@ -1019,11 +1046,11 @@ def main() -> int:
                 kind=kind,
             )
             markdown, outline = enforce_confidence_cap(markdown, outline, feedback, kind)
-            markdown = normalize_visible_headline(markdown, kind)
             markdown = ensure_visible_confidence(markdown, outline, kind)
             markdown = ensure_daily_audit_contracts(markdown, outline, kind)
             markdown = ensure_daily_external_key_data(markdown, source_snapshot, kind)
             markdown = ensure_weekly_previous_validation(markdown, source_snapshot, kind)
+            markdown = normalize_visible_headline(markdown, kind)
             markdown = normalize_report_punctuation(markdown)
             atomic_write_text(report_path, markdown)
             atomic_write_json(outline_path, outline)

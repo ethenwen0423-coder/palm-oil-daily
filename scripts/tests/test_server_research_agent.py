@@ -255,8 +255,18 @@ class ServerResearchAgentTests(unittest.TestCase):
     def test_visible_headline_is_bounded_before_title_gate(self) -> None:
         markdown = "# 08月07日晨报\n\n## 【今日观点】\n" + ("震荡延续但需要多维证据共同验证" * 8)
         bounded = MODULE.normalize_visible_headline(markdown, "daily")
-        headline = bounded.splitlines()[-1]
+        lines = bounded.splitlines()
+        heading_index = lines.index("## 【今日观点】")
+        headline = next(line for line in lines[heading_index + 1 :] if line.strip())
         self.assertLessEqual(len("".join(headline.split())), 50)
+
+    def test_visible_headline_splits_explanation_without_dropping_it(self) -> None:
+        explanation = "今日策略：震荡。P偏强位置、Y回落、OI未共振，等待供需进一步确认。"
+        markdown = f"# 09月02日晨报\n\n## 【今日观点】\n\n供需相抵，油脂维持震荡。{explanation}\n"
+        bounded = MODULE.normalize_visible_headline(markdown, "daily")
+        self.assertIn("\n供需相抵，油脂维持震荡。\n\n", bounded)
+        self.assertIn(explanation, bounded)
+        self.assertEqual(bounded.count(explanation), 1)
 
     def test_daily_confidence_cap_is_written_when_model_omits_it(self) -> None:
         markdown = "# 08月07日晨报\n\n## 【今日观点】\n\n震荡，等待更多证据。\n\n## 【今日交易信号】\n"
