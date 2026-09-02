@@ -172,11 +172,6 @@
       .filter((section) => section.body);
   }
 
-  function sectionMatches(section, module) {
-    if (module.match) return module.match(section.title);
-    return module.keywords.some((keyword) => section.title.includes(keyword));
-  }
-
   function renderSectionBody(markdown) {
     const lines = String(markdown || "").split(/\r?\n/);
     const html = [];
@@ -252,77 +247,41 @@
 
   function renderResearchModules(report) {
     const sections = parseMarkdownSections(report.content || "");
-    const used = new Set();
-    const modules = [
-      {
-        title: "今日观点",
-        label: "观点",
-        keywords: ["今日观点", "一句话核心观点"],
-        fallback: report.headline || report.summary || "",
-      },
-      {
-        title: "交易信号",
-        label: "信号",
-        keywords: ["今日交易信号", "交易信号", "市场一致预期"],
-      },
-      {
-        title: "核心逻辑",
-        label: "逻辑",
-        keywords: ["今日交易重点", "昨夜发生了什么", "市场复盘", "本周三大变化", "核心逻辑", "核心驱动与预期差", "本周验证与预期差"],
-      },
-      {
-        title: "关键数据",
-        label: "数据",
-        keywords: ["今日关键数据", "关键价格", "观察指标", "核心数据变化", "下周重要事件"],
-      },
-      {
-        title: "交易计划",
-        label: "计划",
-        keywords: ["开盘推演", "交易计划", "周一开盘推演"],
-      },
-      {
-        title: "风险提示",
-        label: "风控",
-        keywords: ["风险提示"],
-        match: (title) => title === "风险提示",
-      },
-      {
-        title: "消息来源链接",
-        label: "来源",
-        keywords: ["消息来源链接"],
-        match: (title) => title === "消息来源链接",
-      },
-      {
-        title: "AI观点风险提示",
-        label: "声明",
-        keywords: ["AI观点风险提示"],
-        match: (title) => title === "AI观点风险提示",
-      },
-      {
-        title: "信息来源与核验说明",
-        label: "核验",
-        keywords: ["信息来源与核验说明"],
-        match: (title) => title === "信息来源与核验说明",
-      },
-    ];
+    const labels = new Map([
+      ["摘要", "摘要"],
+      ["今日观点", "观点"],
+      ["一句话核心观点", "观点"],
+      ["今日交易信号", "信号"],
+      ["交易信号", "信号"],
+      ["核心驱动与预期差", "逻辑"],
+      ["本周验证与预期差", "验证"],
+      ["关键数据与价格", "数据"],
+      ["核心数据变化", "数据"],
+      ["下周主线与事件", "主线"],
+      ["开盘推演", "推演"],
+      ["周一开盘推演", "推演"],
+      ["交易计划", "计划"],
+      ["风险提示", "风控"],
+      ["信息来源与核验说明", "核验"],
+      ["消息来源链接", "来源"],
+      ["AI观点风险提示", "声明"],
+    ]);
+    const visibleSections = sections.length
+      ? sections
+      : [{ title: "今日观点", body: report.headline || report.summary || "" }];
 
-    const cards = modules
-      .map((module) => {
-        const matched = [];
-        sections.forEach((section, index) => {
-          if (!used.has(index) && sectionMatches(section, module)) {
-            matched.push(section);
-            used.add(index);
-          }
-        });
-        const body = matched.map((section) => section.body).join("\n\n");
-        const content = body || module.fallback;
+    const cards = visibleSections
+      .map((section, index) => {
+        const content = section.body;
         if (!content) return "";
+        const title = section.title || "报告内容";
+        const label = labels.get(title) || "报告";
+        const headingId = `module-${index}-${title}`;
         return `
-          <section class="research-card" aria-labelledby="module-${escapeHtml(module.title)}">
+          <section class="research-card" aria-labelledby="${escapeHtml(headingId)}">
             <div class="research-card-heading">
-              <span>${escapeHtml(module.label)}</span>
-              <h2 id="module-${escapeHtml(module.title)}">${escapeHtml(module.title)}</h2>
+              <span>${escapeHtml(label)}</span>
+              <h2 id="${escapeHtml(headingId)}">${escapeHtml(title)}</h2>
             </div>
             <div class="research-card-body">
               ${renderSectionBody(content)}
