@@ -1055,7 +1055,7 @@ def compact_daily_top_call(markdown: str, outline: dict[str, Any], kind: str) ->
 
 
 def compact_daily_driver_repetition(markdown: str, outline: dict[str, Any], kind: str) -> str:
-    """Remove driver sentences already carried verbatim by the top call and risk section."""
+    """Render two evidence-led drivers from the audited outline within a stable budget."""
     if kind != "daily":
         return markdown
     pattern = re.compile(
@@ -1067,17 +1067,15 @@ def compact_daily_driver_repetition(markdown: str, outline: dict[str, Any], kind
         return markdown
     body = match.group(2).strip()
     duplicate_counter = body.count("最强反证") - 1
-    if duplicate_counter > 0:
-        def keep_distinct_invalidation(found: re.Match[str]) -> str:
-            sentence = found.group(0)
-            return sentence.split("；", 1)[1] if "；" in sentence else ""
-
-        body = re.sub(
-            r"最强反证(?:是|：)[^。]*。",
-            keep_distinct_invalidation,
-            body,
-            count=duplicate_counter,
-        )
+    while duplicate_counter > 0:
+        last_counter = body.rfind("最强反证")
+        previous_counter = body.rfind("最强反证", 0, last_counter)
+        if previous_counter < 0:
+            break
+        repeated = body[previous_counter:last_counter]
+        tail = repeated.split("；", 1)[1] if "；" in repeated else ""
+        body = body[:previous_counter] + tail + body[last_counter:]
+        duplicate_counter -= 1
     invalidation = str(outline.get("invalidation_condition") or "").strip().rstrip("。.")
     if invalidation:
         body = re.sub(rf"(?:^|(?<=。)|(?<=；))\s*{re.escape(invalidation)}[。.]?", "", body)
@@ -1086,6 +1084,63 @@ def compact_daily_driver_repetition(markdown: str, outline: dict[str, Any], kind
     if first >= 0:
         body = body[: first + len(source_name)] + body[first + len(source_name) :].replace(source_name, "同源快讯")
     body = re.sub(r"结论为[^。]{2,20}。", "", body)
+
+    counter_case = str(outline.get("strongest_counter_case") or "").strip().rstrip("。.")
+    counter_terms = [
+        term.strip()
+        for term in re.split(r"并|且|、|，|；|。", counter_case)
+        if len(term.strip()) >= 4
+    ]
+    counter_grounded = bool(counter_case) and (
+        counter_case in body or (counter_terms and all(term in body for term in counter_terms))
+    )
+    visible = len(re.sub(r"\s+", "", body))
+    if visible > 380 or (counter_case and not counter_grounded):
+        secondary_at = body.find("主驱动二")
+        if secondary_at >= 0:
+            primary_text = body[:secondary_at].strip()
+            secondary_text = body[secondary_at:].strip()
+            counter_at = secondary_text.find("最强反证")
+            if counter_at >= 0:
+                secondary_text = secondary_text[:counter_at].strip()
+
+            def evidence_sentence(value: str) -> str:
+                sentence = re.split(r"(?<=。)", value, maxsplit=1)[0].strip()
+                return re.sub(r"（Level\s*1(?:，基本面)?）", "", sentence)
+
+            primary = evidence_sentence(primary_text)
+            secondary = evidence_sentence(secondary_text).replace(source_name, "同源快讯")
+            chain = str(outline.get("transmission_chain") or "").strip().rstrip("。.")
+            expectation = str(outline.get("expectation_vs_reality") or "").strip().rstrip("。.")
+            invalidation = str(outline.get("invalidation_condition") or "").strip().rstrip("。.")
+            conclusion_parts = [
+                f"传导：{chain}" if chain else "",
+                f"预期/现实：{expectation}" if expectation else "",
+                f"最强反证：{counter_case}" if counter_case else "",
+                f"失效：{invalidation}" if invalidation else "",
+            ]
+            conclusion = "；".join(part for part in conclusion_parts if part) + "。"
+            candidate = "\n\n".join(part for part in (primary, secondary, conclusion) if part)
+            candidate_visible = len(re.sub(r"\s+", "", candidate))
+            if candidate_visible < 350:
+                selected = {primary, secondary}
+                extras = [
+                    sentence.strip()
+                    for sentence in re.findall(r"[^。]+。", primary_text + secondary_text)
+                    if sentence.strip() not in selected
+                    and "最强反证" not in sentence
+                    and invalidation not in sentence
+                ]
+                extra_selected: list[str] = []
+                for extra in extras:
+                    trial = "\n\n".join((primary, secondary, *extra_selected, extra, conclusion))
+                    if len(re.sub(r"\s+", "", trial)) <= 380:
+                        candidate = trial
+                        extra_selected.append(extra)
+                        candidate_visible = len(re.sub(r"\s+", "", candidate))
+                    if candidate_visible >= 350:
+                        break
+            body = candidate
     updated = f"{match.group(1)}{body}\n"
     return markdown[: match.start()] + updated + markdown[match.end() :]
 
@@ -1155,9 +1210,11 @@ def compact_daily_source_audit(
         for name in re.split(r"[、,，]", sources)
         if name
     )
-    failures = failures.replace("官方检查source_error", "检查失败")
+    failures = re.sub(r"官方检查(?:为|=)?source_error", "检查失败", failures)
     failures = failures.replace("官方供需检查source_error", "供需检查失败")
+    failures = failures.replace("行情skill返回非JSON", "行情skill非JSON")
     replacements = replacements.replace("官方历史价格接口", "历史接口")
+    replacements = replacements.replace("国内行情", "").replace("产地价格", "").replace("，其他无", "")
 
     research = source_snapshot.get("news_and_research_evidence")
     statuses = research.get("source_status") if isinstance(research, dict) else None
@@ -1181,6 +1238,7 @@ def compact_daily_source_audit(
         re.DOTALL,
     )
     needs = re.sub(r"\s+", "", needs_match.group(1)).strip("。；") if needs_match else ""
+    needs = re.sub(r"[；;]机构资讯仅作交叉验证.*$", "", needs).strip("。；")
     parts = [
         f"实际 skill（短名）：{skills}",
         f"数据源：{sources}",

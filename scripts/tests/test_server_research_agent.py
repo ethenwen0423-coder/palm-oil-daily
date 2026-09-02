@@ -633,6 +633,26 @@ P/Y/OI未共振，油脂震荡，若价格突破区间且驱动/资金同向，�
         self.assertEqual(updated.count("最强反证"), 1)
         self.assertIn("若供需共同转弱，基准失效。", updated)
 
+    def test_daily_driver_outline_renderer_keeps_audited_contracts_in_budget(self) -> None:
+        primary = "主驱动一（Level 1，基本面）：机构资讯·油脂油料快讯于9月2日11:03称，供给数据下降3.74%、单产下降4.53%。"
+        secondary = "主驱动二（Level 1）：机构资讯·油脂油料快讯于9月2日15:28称，需求增长7%至78万吨。"
+        filler = "市场已经交易部分预期，但仍有大量重复解释需要压缩。" * 8
+        markdown = f"# 报告\n\n## 【核心驱动与预期差】\n\n{primary}{filler}\n\n{secondary}{filler}\n\n## 【关键数据与价格】\n"
+        outline = {
+            "transmission_chain": "供给收缩→产地库存→FCPO→P，并影响Y/OI",
+            "expectation_vs_reality": "预期供应收紧，现实价格尚未共振",
+            "strongest_counter_case": "港口库存上升且产量减幅不能延续",
+            "invalidation_condition": "若价格突破区间且驱动/资金同向，震荡判断失效",
+        }
+        updated = MODULE.compact_daily_driver_repetition(markdown, outline, "daily")
+        section = updated.split("## 【核心驱动与预期差】", 1)[1].split("## 【关键数据与价格】", 1)[0]
+        visible = len("".join(section.split()))
+        self.assertGreaterEqual(visible, 350)
+        self.assertLessEqual(visible, 380)
+        self.assertIn("机构资讯·油脂油料快讯", section)
+        self.assertIn("供给收缩→产地库存→FCPO→P，并影响Y/OI", section)
+        self.assertIn("最强反证：港口库存上升且产量减幅不能延续", section)
+
     def test_daily_driver_depth_restores_previous_grounded_section(self) -> None:
         previous_driver = "主驱动一：" + "供给收缩→P支撑，预期与现实待验证。" * 20 + "主驱动二：需求恢复。最强反证：供应回升。"
         current = "# 报告\n\n## 【核心驱动与预期差】\n\n主驱动一：过短。主驱动二：过短。\n\n## 【关键数据与价格】\n"
