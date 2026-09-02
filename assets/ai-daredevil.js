@@ -50,6 +50,13 @@
     if (amount < 0) return { className: "position-pnl-negative", text: `（${money.format(Math.abs(amount))}）` };
     return { className: amount > 0 ? "position-pnl-positive" : "position-pnl-zero", text: money.format(amount) };
   }
+  function formatTradePnl(value) {
+    const amount = Number(value);
+    if (!Number.isFinite(amount)) return { className: "position-pnl-zero", text: "--" };
+    if (amount < 0) return { className: "is-negative", text: `（${money.format(Math.abs(amount))}）` };
+    if (amount > 0) return { className: "is-positive", text: `+${money.format(amount)}` };
+    return { className: "position-pnl-zero", text: money.format(0) };
+  }
   function formatTime(value) {
     if (!value) return "--";
     const parsed = new Date(value);
@@ -285,6 +292,21 @@
     }).join("");
   }
 
+  function renderTrades(items) {
+    const trades = Array.isArray(items) ? items : [];
+    el("trades-empty").hidden = trades.length > 0;
+    el("trades-list").innerHTML = trades.map((item) => {
+      const action = actionLabel(item.action);
+      const isExit = item.action === "EXIT_LONG" || item.action === "EXIT_SHORT";
+      const actionClass = String(item.action || "").endsWith("_LONG") ? "trade-action-long" : (String(item.action || "").endsWith("_SHORT") ? "trade-action-short" : "trade-action-neutral");
+      const pnl = formatTradePnl(item.pnl ?? item.realized_pnl);
+      const price = Number(item.price ?? item.fill_price);
+      const priceText = Number.isFinite(price) ? number.format(price) : "--";
+      const pnlCell = isExit ? `<div class="trade-stat trade-pnl"><span>平仓收益（含费）</span><strong class="${pnl.className}">${escapeHtml(pnl.text)}</strong></div>` : "";
+      return `<article class="trade-card ${isExit ? "is-exit" : "is-entry"}"><header><div><span class="trade-variety">${escapeHtml(item.name || item.variety || "--")}</span><strong>${escapeHtml(item.contract || "合约待核验")}</strong></div><em class="trade-action-badge ${actionClass}">${escapeHtml(action)}</em></header><div class="trade-card-stats"><div class="trade-stat"><span>开平仓方向</span><strong>${escapeHtml(action)}</strong></div><div class="trade-stat"><span>成交手数</span><strong>${escapeHtml(item.quantity ?? "--")} 手</strong></div><div class="trade-stat"><span>成交价格</span><strong>${escapeHtml(priceText)}</strong></div>${pnlCell}</div><details class="trade-card-strategy"><summary>使用策略：${escapeHtml(strategyName(item))}</summary><span>${escapeHtml(strategyMeta(item))}</span><p>${escapeHtml(strategyRules(item))}</p></details><footer><span>虚拟成交</span><time datetime="${escapeHtml(item.timestamp || item.date || "")}">${escapeHtml(tradeTime(item))}</time></footer></article>`;
+    }).join("");
+  }
+
   function renderSources(data) {
     const schedule = Array.isArray(data.refresh_schedule) ? data.refresh_schedule : [];
     el("refresh-timeline").innerHTML = schedule.map((item) => `<div class="refresh-slot"><span>${escapeHtml(item.label)}</span><strong>${escapeHtml(item.time)}</strong><small>${escapeHtml(item.purpose)}</small></div>`).join("");
@@ -297,7 +319,7 @@
     el("updated-at").textContent = formatTime(data.generated_at); el("refresh-session").textContent = `${data.refresh_reason || "定时刷新"} · ${data.market_date || "交易日待核验"}`; el("primary-source").textContent = data.price_source || "--"; el("source-state").textContent = transport; el("data-state").textContent = data.status_label || "状态待核验"; el("data-state").className = `data-state is-${data.status || "degraded"}`;
     renderMetrics(data); renderScanAudit(data); renderChart(data.equity_curve); renderPositions(data);
     const trades = Array.isArray(data.today_trades) ? data.today_trades : []; const pending = Array.isArray(data.pending_orders) ? data.pending_orders : []; const decisions = Array.isArray(data.latest_decisions) ? data.latest_decisions : []; const instructions = pending.length ? pending : decisions;
-    el("trade-count").textContent = `${trades.length} 条`; el("pending-count").textContent = `${instructions.length} 条`; renderActivity("trades-list", "trades-empty", trades, "trade"); renderActivity("pending-list", "pending-empty", instructions, "instruction");
+    el("trade-count").textContent = `${trades.length} 条`; el("pending-count").textContent = `${instructions.length} 条`; renderTrades(trades); renderActivity("pending-list", "pending-empty", instructions, "instruction");
     const skipped = Array.isArray(data.skipped_signals) ? data.skipped_signals : []; el("skipped-count").textContent = `${skipped.length} 条`; renderActivity("skipped-list", "skipped-empty", skipped, "skipped"); renderSources(data);
   }
 

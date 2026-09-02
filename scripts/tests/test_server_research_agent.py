@@ -129,6 +129,14 @@ class ServerResearchAgentTests(unittest.TestCase):
                 "2026-09-01",
             )
 
+    def test_shadow_acceptance_runs_before_publication_sync(self) -> None:
+        source = (ROOT / "server" / "run_research_agent.py").read_text(encoding="utf-8")
+        self.assertIn('"--shadow-acceptance"', source)
+        quality_branch = source.index("if args.shadow_acceptance:")
+        publication_sync = source.index("synced = sync_module.sync_research(")
+        self.assertLess(quality_branch, publication_sync)
+        self.assertIn('"acceptance": "real_model_report_quality_validated"', source)
+
     def test_prompt_bounds_the_visible_headline(self) -> None:
         prompt = MODULE.build_prompt(
             report_date="2026-08-07",
@@ -149,7 +157,8 @@ class ServerResearchAgentTests(unittest.TestCase):
         self.assertIn("分别列出 P、Y、OI 三行", prompt)
         self.assertIn("news_and_research_evidence.today_new_drivers", prompt)
         self.assertIn("两个主驱动合计不得少于350个中文可见字符", prompt)
-        self.assertIn("模型初稿必须控制在 900-1050 个可见字符", prompt)
+        self.assertIn("模型初稿必须控制在 1200-1280 个可见字符", prompt)
+        self.assertIn("今日交易信号不超过190字", prompt)
         self.assertIn("重写整份 report_markdown", prompt)
         self.assertIn("REPOSITORY CONTRACT SENTINEL", prompt)
         self.assertIn("指标、数值、时点、含义", prompt)
@@ -345,13 +354,55 @@ class ServerResearchAgentTests(unittest.TestCase):
             "invalidation_condition": "P跌破观察区间",
         }
         updated = MODULE.ensure_daily_audit_contracts(markdown, outline, "daily")
-        self.assertIn(
-            "基准方向：震荡；策略：等待库存与外盘形成共振；失效条件：P跌破观察区间。",
-            updated,
-        )
+        self.assertIn("基准方向：震荡；行动：按交易信号表执行；失效：P跌破观察区间。", updated)
         self.assertIn("传导链：库存变化→基差→P/Y/OI分化。", updated)
         self.assertIn("最强反证：外盘快速反向且库存累积。", updated)
         self.assertNotIn("不新开仓", updated)
+
+    def test_daily_audit_contracts_do_not_repeat_grounded_chain_or_invalidation(self) -> None:
+        markdown = """# 09月02日晨报
+
+## 【今日观点】
+
+油脂维持震荡，按交易信号表执行；突破区间则失效。
+
+## 【核心驱动与预期差】
+
+主驱动一经成本传导至P；主驱动二影响Y/OI。最强反证：外盘反向且库存累积。
+
+## 【风险提示】
+
+若P跌破区间，判断失效。
+"""
+        outline = {
+            "market_stance": "震荡",
+            "top_call": "等待供需共振",
+            "transmission_chain": "库存变化→基差→P/Y/OI分化",
+            "strongest_counter_case": "外盘反向且库存累积",
+            "invalidation_condition": "P跌破区间",
+        }
+        updated = MODULE.ensure_daily_audit_contracts(markdown, outline, "daily")
+        self.assertNotIn("传导链：库存变化", updated)
+        self.assertEqual(updated.count("最强反证"), 1)
+        self.assertNotIn("可检验失效条件", updated)
+
+    def test_daily_key_data_recognizes_existing_icdx_quote(self) -> None:
+        markdown = """# 09月02日晨报
+
+## 【关键数据与价格】
+
+|指标|数值|时点|含义|
+|---|---|---|---|
+|印尼ICDX CPOTR|16580|2026-09-01|产地外盘|
+
+## 【开盘推演】
+"""
+        updated = MODULE.ensure_daily_external_key_data(
+            markdown,
+            {"external": {"indonesia_cpo_spot": {"status": "ok", "price": 16580}}},
+            "daily",
+        )
+        self.assertEqual(updated, markdown)
 
     def test_daily_key_data_copies_external_quote_from_source_without_calculation(self) -> None:
         markdown = """# 08月24日晨报

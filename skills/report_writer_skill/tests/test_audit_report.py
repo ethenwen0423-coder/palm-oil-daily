@@ -205,6 +205,30 @@ class AuditReportTest(unittest.TestCase):
         self.assertIsNotNone(pattern.search("豆油 8,819.00"))
         self.assertIsNone(pattern.search("豆油 8819.5"))
 
+    def test_indonesia_and_mpob_records_have_report_aliases(self) -> None:
+        records = audit._flatten_records(
+            {
+                "external": {"indonesia_cpo_spot": {"name": "印尼棕榈油", "price": 16580}},
+                "fundamental": {
+                    "official_supply_demand": {
+                        "latest_metrics": {
+                            "production": {"label": "CPO产量", "value": 1792979},
+                            "exports": {"label": "棕榈油出口", "value": 1392178},
+                            "stocks": {"label": "期末库存", "value": 2628326},
+                        }
+                    }
+                },
+            }
+        )
+        aliases = {record.key: record.aliases for record in records}
+        self.assertIn("ICDX", aliases["external.indonesia_cpo_spot"])
+        self.assertIn("MPOB产量", aliases["fundamental.official_supply_demand.latest_metrics.production"])
+        self.assertIn("MPOB出口", aliases["fundamental.official_supply_demand.latest_metrics.exports"])
+        self.assertIn("MPOB期末库存", aliases["fundamental.official_supply_demand.latest_metrics.stocks"])
+
+    def test_visible_body_count_ignores_markdown_table_separators(self) -> None:
+        self.assertEqual(audit.visible_body_chars("# 标题\n\n|指标|数值|\n|---|---:|\n|P|9500|"), 11)
+
     def environment(self) -> tuple[Path, Path, Path, Path]:
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
