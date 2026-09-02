@@ -81,8 +81,9 @@ body.daredevil-page { margin: 0; background: radial-gradient(circle at 75% -10%,
 .discipline-list strong { display: block; font-size: 14px; }
 .discipline-list span { display: block; margin-top: 5px; color: var(--dd-muted); font-size: 11px; line-height: 1.5; }
 .positions-panel { margin-bottom: 18px; }
+.position-trade-note { margin: -5px 0 18px; color: var(--dd-muted); font-size: 11px; line-height: 1.7; }
 .table-scroll { overflow-x: auto; }
-table { width: 100%; border-collapse: collapse; min-width: 1880px; }
+table { width: 100%; border-collapse: collapse; min-width: 2040px; }
 th { padding: 0 12px 12px; color: var(--dd-muted); font-size: 10px; text-align: right; font-weight: 500; border-bottom: 1px solid var(--dd-line); }
 th:first-child, td:first-child { text-align: left; padding-left: 0; }
 td { padding: 17px 12px; font: 500 12px/1.4 monospace; text-align: right; border-bottom: 1px solid var(--dd-line); }
@@ -91,6 +92,12 @@ td span { color: var(--dd-muted); font: 400 10px/1.5 sans-serif; }
 .reason-cell, .instruction-cell { min-width: 220px; max-width: 300px; white-space: normal; text-align: left; font: 400 11px/1.65 sans-serif; color: var(--dd-muted); }
 .strategy-cell { min-width: 190px; max-width: 240px; white-space: normal; text-align: left; }
 .strategy-cell strong { color: var(--dd-green); font: 700 11px/1.45 sans-serif; }
+.today-action-cell { min-width: 150px; max-width: 190px; white-space: normal; text-align: left; }
+.today-action-cell > span + span { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--dd-line); }
+.today-action-cell strong { font: 700 11px/1.45 sans-serif; }
+.today-action-cell .position-action-long { color: var(--dd-red); }
+.today-action-cell .position-action-short { color: var(--dd-green); }
+.today-action-cell .position-action-neutral, .today-action-cell .position-action-none { color: var(--dd-muted); }
 .side-badge { display: inline-flex; padding: 5px 8px; border-radius: 3px; }
 .side-long { color: var(--dd-red); background: rgba(255, 119, 109, .1); }
 .side-short { color: var(--dd-green); background: rgba(94, 224, 163, .1); }

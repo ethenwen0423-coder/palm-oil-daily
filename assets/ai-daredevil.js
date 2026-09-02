@@ -58,6 +58,29 @@
   function actionLabel(value) {
     return ({ WAIT: "等待", ENTER_LONG: "开多", ENTER_SHORT: "开空", EXIT_LONG: "平多", EXIT_SHORT: "平空", ADD_LONG: "加多", ADD_SHORT: "加空", ROLL: "换月" })[value] || value || "待核验";
   }
+  function tradeTime(item) {
+    const value = item.timestamp || item.time || item.execution_date || item.signal_date || item.date;
+    if (!value) return "时间待核验";
+    return /^\d{4}-\d{2}-\d{2}$/.test(String(value)) ? String(value) : formatTime(value);
+  }
+  function positionActionClass(action) {
+    if (String(action).endsWith("LONG")) return "position-action-long";
+    if (String(action).endsWith("SHORT")) return "position-action-short";
+    return "position-action-neutral";
+  }
+  function todayTradesForPosition(position, trades) {
+    return trades.filter((trade) => String(trade.variety || "").toUpperCase() === String(position.variety || "").toUpperCase()
+      && String(trade.contract || "").toUpperCase() === String(position.contract || "").toUpperCase());
+  }
+  function todayActionMarkup(position, trades) {
+    const matched = todayTradesForPosition(position, trades);
+    if (!matched.length) return '<span class="position-action-none">今日无开平仓</span>';
+    return matched.map((trade) => {
+      const price = Number(trade.price);
+      const detail = [Number.isFinite(price) ? `成交 ${number.format(price)}` : "成交价待核验", tradeTime(trade)].join(" · ");
+      return `<span class="position-action-record"><strong class="${positionActionClass(trade.action)}">${escapeHtml(actionLabel(trade.action))} ${escapeHtml(trade.quantity || 0)} 手</strong><span>${escapeHtml(detail)}</span></span>`;
+    }).join("");
+  }
   function strategyName(item) {
     return item.strategy_name || (selected === "bollinger" ? "布林带 + RSI + MA6" : "AI策略待记录");
   }
@@ -199,10 +222,18 @@
 
   function renderPositions(data) {
     const positions = Array.isArray(data.positions) ? data.positions : [];
+    const trades = Array.isArray(data.today_trades) ? data.today_trades : [];
+    const positionKeys = new Set(positions.map((position) => `${String(position.variety || "").toUpperCase()}|${String(position.contract || "").toUpperCase()}`));
+    const exited = trades.filter((trade) => String(trade.action || "").startsWith("EXIT")
+      && !positionKeys.has(`${String(trade.variety || "").toUpperCase()}|${String(trade.contract || "").toUpperCase()}`));
+    const exitedNames = [...new Set(exited.map((trade) => trade.name || trade.variety).filter(Boolean))];
     el("position-count").textContent = `${positions.length} 个品种`; el("positions-empty").hidden = positions.length > 0;
+    el("position-trade-note").textContent = exited.length
+      ? `当前持仓只显示未平仓合约；今日已平仓 ${exitedNames.length} 个品种（${exitedNames.join("、")}）已移至下方“今日动作”。表内“今日动作”列显示仍在持有的今日成交。`
+      : (trades.length ? "表内“今日动作”列显示今日开仓或加仓；平仓完成后该品种会从当前持仓移除并保留在下方“今日动作”。" : "今日尚无已落账开平仓；当前持仓继续按最新价盯市。");
     el("positions-body").innerHTML = positions.map((position) => {
       const pnl = formatPositionPnl(position.unrealized_pnl || 0);
-      return `<tr><td><strong>${escapeHtml(position.name || position.variety)}</strong><span>${escapeHtml(position.contract)}</span></td><td>${escapeHtml(position.entry_date || "--")}</td><td class="strategy-cell"><strong>${escapeHtml(strategyName(position))}</strong><span>${escapeHtml(strategyMeta(position))}</span><span>${escapeHtml(strategyRules(position))}</span></td><td class="reason-cell">${escapeHtml(position.model_reason || "开仓依据待核验")}</td><td><em class="side-badge ${Number(position.side) === 1 ? "side-long" : "side-short"}">${Number(position.side) === 1 ? "多" : "空"}</em></td><td>${escapeHtml(position.quantity)} / ${escapeHtml(position.layers || 1)}</td><td>${number.format(position.average_price)}</td><td>${number.format(position.last_price)}</td><td title="${escapeHtml(position.margin_source || "保证金来源待核验")}"><strong>${money.format(position.notional || 0)}</strong><span>${escapeHtml(marginMeta(position) || "保证金待核验")} · ${money.format(position.used_margin || 0)}</span></td><td class="${pnl.className}">${escapeHtml(pnl.text)}</td><td>${percent(position.weight || 0)}</td><td><strong>${escapeHtml(position.price_source || "待核验")}</strong><span>${escapeHtml(formatTime(position.price_time))}</span></td><td class="instruction-cell">${escapeHtml(position.next_instruction || "等待下一次完整日线确认")}</td></tr>`;
+      return `<tr><td><strong>${escapeHtml(position.name || position.variety)}</strong><span>${escapeHtml(position.contract)}</span></td><td>${escapeHtml(position.entry_date || "--")}</td><td class="strategy-cell"><strong>${escapeHtml(strategyName(position))}</strong><span>${escapeHtml(strategyMeta(position))}</span><span>${escapeHtml(strategyRules(position))}</span></td><td class="reason-cell">${escapeHtml(position.model_reason || "开仓依据待核验")}</td><td><em class="side-badge ${Number(position.side) === 1 ? "side-long" : "side-short"}">${Number(position.side) === 1 ? "多" : "空"}</em></td><td>${escapeHtml(position.quantity)} / ${escapeHtml(position.layers || 1)}</td><td>${number.format(position.average_price)}</td><td>${number.format(position.last_price)}</td><td title="${escapeHtml(position.margin_source || "保证金来源待核验")}"><strong>${money.format(position.notional || 0)}</strong><span>${escapeHtml(marginMeta(position) || "保证金待核验")} · ${money.format(position.used_margin || 0)}</span></td><td class="${pnl.className}">${escapeHtml(pnl.text)}</td><td>${percent(position.weight || 0)}</td><td><strong>${escapeHtml(position.price_source || "待核验")}</strong><span>${escapeHtml(formatTime(position.price_time))}</span></td><td class="today-action-cell">${todayActionMarkup(position, trades)}</td><td class="instruction-cell">${escapeHtml(position.next_instruction || "等待下一次完整日线确认")}</td></tr>`;
     }).join("");
   }
 
@@ -219,11 +250,12 @@
     const list = Array.isArray(items) ? items : []; el(emptyId).hidden = list.length > 0;
     el(containerId).innerHTML = list.map((item) => {
       const action = actionLabel(item.action); const detail = kind === "skipped" ? (item.reason || item.next_instruction || item.open_reason || action || "--") : (item.next_instruction || item.reason || item.open_reason || action || "--");
+      const actionDetail = detail && detail !== action ? `${action} · ${detail}` : action;
       const pnl = Number(item.pnl ?? item.realized_pnl ?? 0);
       const pnlClass = kind === "trade" ? (pnl > 0 ? "is-positive" : (pnl < 0 ? "is-negative" : "")) : "";
       const tail = kind === "trade" ? money.format(pnl) : (item.confidence != null ? `置信 ${percent(item.confidence)}` : `${item.quantity || 0} 手`);
       const margin = marginMeta(item);
-      return `<article class="activity-item"><span>${escapeHtml(item.time || item.execution_date || item.signal_date || "--")}</span><div><strong>${escapeHtml(item.name || item.variety || "--")} · ${escapeHtml(item.contract || action)}</strong><small class="strategy-line">策略：${escapeHtml(strategyName(item))} · ${escapeHtml(strategyMeta(item))}</small><small>${escapeHtml(strategyRules(item))}</small>${margin ? `<small>保证金：${escapeHtml(margin)}</small>` : ""}<small>${escapeHtml(detail)}</small></div><b class="${pnlClass}">${escapeHtml(tail)}</b></article>`;
+      return `<article class="activity-item"><span>${escapeHtml(tradeTime(item))}</span><div><strong>${escapeHtml(item.name || item.variety || "--")} · ${escapeHtml(item.contract || action)}</strong><small class="strategy-line">策略：${escapeHtml(strategyName(item))} · ${escapeHtml(strategyMeta(item))}</small><small>${escapeHtml(strategyRules(item))}</small>${margin ? `<small>保证金：${escapeHtml(margin)}</small>` : ""}<small>${escapeHtml(actionDetail || "--")}</small></div><b class="${pnlClass}">${escapeHtml(tail)}</b></article>`;
     }).join("");
   }
 

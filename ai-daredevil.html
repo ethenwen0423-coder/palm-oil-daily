@@ -9,7 +9,7 @@
     <meta name="theme-color" content="#071712" />
     <link rel="icon" href="data:," />
     <link rel="stylesheet" href="assets/styles.css" />
-    <link rel="stylesheet" href="assets/ai-daredevil.css?v=20260901-2" />
+    <link rel="stylesheet" href="assets/ai-daredevil.css?v=20260902-1" />
   </head>
   <body class="daredevil-page">
     <header class="daredevil-topbar">
@@ -106,9 +106,10 @@
           <div><span>Open Positions</span><h2>当前持仓</h2></div>
           <span id="position-count" class="panel-count">0 个品种</span>
         </header>
+        <p id="position-trade-note" class="position-trade-note">当前持仓中的今日开仓与加仓会在表内标注；今日已平仓品种移至下方“今日动作”。</p>
         <div class="table-scroll">
           <table>
-            <thead><tr><th>品种 / 合约</th><th>开仓日期</th><th>使用策略</th><th>开仓原因</th><th>方向</th><th>手数 / 层数</th><th>持仓均价</th><th>最新价</th><th>名义金额 / 保证金</th><th>浮动盈亏</th><th>组合权重</th><th>行情来源</th><th>下一步指令</th></tr></thead>
+            <thead><tr><th>品种 / 合约</th><th>开仓日期</th><th>使用策略</th><th>开仓原因</th><th>方向</th><th>手数 / 层数</th><th>持仓均价</th><th>最新价</th><th>名义金额 / 保证金</th><th>浮动盈亏</th><th>组合权重</th><th>行情来源</th><th>今日动作</th><th>下一步指令</th></tr></thead>
             <tbody id="positions-body"></tbody>
           </table>
         </div>
@@ -178,6 +179,6 @@
       </section>
     </main>
 
-    <script src="assets/ai-daredevil.js?v=20260901-3"></script>
+    <script src="assets/ai-daredevil.js?v=20260902-1"></script>
   </body>
 </html>
