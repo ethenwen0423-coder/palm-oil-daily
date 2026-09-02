@@ -48,6 +48,43 @@ def write_all_datasets(root: Path, marker: str) -> None:
 
 
 class ServerMarketCollectorTests(unittest.TestCase):
+    def test_research_sync_publishes_declared_markdown_download(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            runtime = base / "runtime"
+            data = runtime / "data"
+            live = base / "live"
+            data.mkdir(parents=True)
+            download = "downloads/2026-09-03.md"
+            (data / "reports.json").write_text(
+                json.dumps([{"date": "2026-09-03", "download": download}]),
+                encoding="utf-8",
+            )
+            (runtime / download).parent.mkdir(parents=True)
+            (runtime / download).write_text("# 09月03日晨报\n", encoding="utf-8")
+
+            result = SYNC.sync_research(data, live, session="daily")
+
+            self.assertIn(download, result["copied"])
+            self.assertEqual(
+                (live / download).read_text(encoding="utf-8"),
+                "# 09月03日晨报\n",
+            )
+            self.assertTrue((live / SYNC.RESEARCH_READY_MARKER).exists())
+
+    def test_research_sync_rejects_missing_declared_download(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            data = base / "runtime" / "data"
+            data.mkdir(parents=True)
+            (data / "reports.json").write_text(
+                json.dumps([{"date": "2026-09-03", "download": "downloads/2026-09-03.md"}]),
+                encoding="utf-8",
+            )
+
+            with self.assertRaises(SYNC.SyncError):
+                SYNC.sync_research(data, base / "live", session="daily")
+
     def test_morning_fundamental_readiness_requires_same_day_frozen_snapshot(self):
         with tempfile.TemporaryDirectory() as temporary:
             path = Path(temporary) / "oil_futures.js"

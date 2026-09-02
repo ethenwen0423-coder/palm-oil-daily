@@ -16,6 +16,9 @@ palm.vinsontesla.com {
     @api path /api/*
     reverse_proxy @api api:8000
 
+    @reportDownloads path_regexp reportDownload ^/downloads/[0-9]{4}-[0-9]{2}-[0-9]{2}(-weekend)?\.md$
+    reverse_proxy @reportDownloads api:8000
+
     @private path /.git* /.github* /scripts* /skills* /source_runs* /references* /server*
     respond @private 404
 

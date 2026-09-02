@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import os
 import importlib.util
+import re
 import threading
 import time as monotonic_time
 from datetime import date, datetime, time, timezone
@@ -17,6 +18,9 @@ from zoneinfo import ZoneInfo
 DATA_ROOT = Path(os.environ.get("PALM_OIL_DATA_ROOT", "/site/data"))
 HOST = os.environ.get("PALM_OIL_API_HOST", "0.0.0.0")
 PORT = int(os.environ.get("PALM_OIL_API_PORT", "8000"))
+REPORT_DOWNLOAD_RE = re.compile(
+    r"^/downloads/([0-9]{4}-[0-9]{2}-[0-9]{2}(?:-weekend)?\.md)$"
+)
 SHANGHAI = ZoneInfo("Asia/Shanghai")
 CONTRACT_ANALYSIS_CACHE_SECONDS = int(os.environ.get("PALM_OIL_CONTRACT_ANALYSIS_CACHE_SECONDS", "60"))
 _CONTRACT_ANALYSIS_CACHE: dict[str, tuple[float, dict[str, Any]]] = {}
@@ -435,9 +439,34 @@ class Handler(BaseHTTPRequestHandler):
         if include_body:
             self.wfile.write(raw)
 
+    def _send_markdown(self, path: Path, *, include_body: bool = True) -> None:
+        try:
+            raw = path.read_bytes()
+        except FileNotFoundError:
+            self._send_json(404, {"error": "report_download_not_found"}, include_body=include_body)
+            return
+        except OSError:
+            self._send_json(503, {"error": "report_download_unavailable"}, include_body=include_body)
+            return
+        self.send_response(200)
+        self.send_header("Content-Type", "text/markdown; charset=utf-8")
+        self.send_header("Cache-Control", "no-store, max-age=0")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Content-Length", str(len(raw)))
+        self.end_headers()
+        if include_body:
+            self.wfile.write(raw)
+
     def _serve(self, *, include_body: bool) -> None:
         request = urlsplit(self.path)
         path = request.path.rstrip("/") or "/"
+        download_match = REPORT_DOWNLOAD_RE.fullmatch(path)
+        if download_match:
+            self._send_markdown(
+                DATA_ROOT / "downloads" / download_match.group(1),
+                include_body=include_body,
+            )
+            return
         if path in {"/healthz", "/api/health"}:
             payload = build_status(DATA_ROOT)
             unavailable = {

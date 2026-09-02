@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import shutil
 import tempfile
 from datetime import datetime
@@ -26,6 +27,9 @@ PURE_AI_FUND_READY_MARKER = ".server-pure-ai-fund-ready.json"
 # Backwards-compatible name for callers that only know about market ownership.
 READY_MARKER = MARKET_READY_MARKER
 REPORT_PATHS = ("reports.json",)
+REPORT_DOWNLOAD_RE = re.compile(
+    r"^downloads/[0-9]{4}-[0-9]{2}-[0-9]{2}(?:-weekend)?\.md$"
+)
 REVIEW_PATHS = (
     "forecast/metrics/latest.json",
     "forecast/metrics/20d.json",
@@ -140,6 +144,42 @@ def atomic_write_json(target: Path, payload: object) -> None:
     finally:
         if temporary and temporary.exists():
             temporary.unlink()
+
+
+def sync_report_downloads(
+    source_root: Path,
+    target_root: Path,
+    *,
+    required: bool,
+) -> list[str]:
+    """Copy report downloads declared by reports.json into live-data."""
+
+    reports_path = source_root / "reports.json"
+    if not reports_path.is_file():
+        if required:
+            raise SyncError("missing required source: reports.json")
+        return []
+    validate_payload(reports_path, "reports.json")
+    reports = json.loads(reports_path.read_text(encoding="utf-8"))
+    copied: list[str] = []
+    seen: set[str] = set()
+    for item in reports:
+        if not isinstance(item, dict) or not item.get("download"):
+            continue
+        relative = str(item["download"]).strip()
+        if not REPORT_DOWNLOAD_RE.fullmatch(relative):
+            raise SyncError(f"unsafe report download path: {relative}")
+        if relative in seen:
+            continue
+        seen.add(relative)
+        source = source_root.parent / relative
+        if not source.is_file():
+            if required:
+                raise SyncError(f"missing required report download: {relative}")
+            continue
+        atomic_copy(source, target_root / relative)
+        copied.append(relative)
+    return copied
 
 
 def merge_new_upstream_reports(source_root: Path, target_root: Path) -> list[str]:
@@ -375,6 +415,11 @@ def sync_upstream(source_root: Path, target_root: Path) -> dict[str, object]:
     )
     if research_owned:
         copied_groups["reports"] = merge_new_upstream_reports(source_root, target_root)
+    copied_groups["report_downloads"] = sync_report_downloads(
+        source_root,
+        target_root,
+        required=not research_owned,
+    )
     if supply_owned:
         copied_groups["supply"] = copy_newer_json(
             source_root,
@@ -396,6 +441,7 @@ def sync_upstream(source_root: Path, target_root: Path) -> dict[str, object]:
         "mode": "upstream",
         "copied": copied_groups.get("reports", []) + copied_groups.get("review", []),
         "reports_copied": copied_groups.get("reports", []),
+        "report_downloads_copied": copied_groups.get("report_downloads", []),
         "review_copied": copied_groups.get("review", []),
         "supply_copied": copied_groups.get("supply", []),
         "htfc_copied": copied_groups.get("htfc", []),
@@ -479,6 +525,13 @@ def sync_research(
         target_root,
         REPORT_PATHS,
         required=True,
+    )
+    copied.extend(
+        sync_report_downloads(
+            source_root,
+            target_root,
+            required=True,
+        )
     )
     write_marker(
         target_root,

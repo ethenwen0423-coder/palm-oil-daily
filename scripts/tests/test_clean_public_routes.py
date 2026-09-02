@@ -9,6 +9,8 @@ ROOT = Path(__file__).resolve().parents[2]
 class CleanPublicRoutesTests(unittest.TestCase):
     def test_caddy_serves_clean_routes_and_redirects_legacy_html(self):
         caddy = (ROOT / "server" / "Caddyfile").read_text(encoding="utf-8")
+        self.assertIn("@reportDownloads path_regexp reportDownload", caddy)
+        self.assertIn("reverse_proxy @reportDownloads api:8000", caddy)
         mappings = {
             "/assistant.html": "/assistant",
             "/reports.html": "/reports",

@@ -46,6 +46,9 @@ class ServerApiStatusTests(unittest.TestCase):
             "forecast/feedback/latest.json",
         )
         self.assertEqual(API.ROUTES["/api/review/latest"], "review/latest_review.json")
+        self.assertIsNotNone(API.REPORT_DOWNLOAD_RE.fullmatch("/downloads/2026-09-03.md"))
+        self.assertIsNotNone(API.REPORT_DOWNLOAD_RE.fullmatch("/downloads/2026-09-06-weekend.md"))
+        self.assertIsNone(API.REPORT_DOWNLOAD_RE.fullmatch("/downloads/../../etc/passwd"))
 
     def test_market_watch_freshness_uses_event_scan_during_closed_market(self):
         self.assertEqual(
