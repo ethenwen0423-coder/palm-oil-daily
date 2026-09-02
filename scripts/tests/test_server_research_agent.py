@@ -619,6 +619,20 @@ P/Y/OI未共振，油脂震荡，若价格突破区间且驱动/资金同向，�
         self.assertIn("最强反证：库存与需求同时逆转。", updated)
         self.assertNotIn("早期概括", updated)
 
+    def test_daily_driver_preserves_distinct_invalidation_after_duplicate_counter(self) -> None:
+        outline = {"invalidation_condition": "若价格突破区间，判断失效。"}
+        markdown = """# 09月03日晨报
+
+## 【核心驱动与预期差】
+
+主驱动一：供给传导P。主驱动二：需求影响Y/OI。最强反证是早期概括；若供需共同转弱，基准失效。最强反证：库存与需求同时逆转。
+
+## 【关键数据与价格】
+"""
+        updated = MODULE.compact_daily_driver_repetition(markdown, outline, "daily")
+        self.assertEqual(updated.count("最强反证"), 1)
+        self.assertIn("若供需共同转弱，基准失效。", updated)
+
     def test_daily_driver_depth_restores_previous_grounded_section(self) -> None:
         previous_driver = "主驱动一：" + "供给收缩→P支撑，预期与现实待验证。" * 20 + "主驱动二：需求恢复。最强反证：供应回升。"
         current = "# 报告\n\n## 【核心驱动与预期差】\n\n主驱动一：过短。主驱动二：过短。\n\n## 【关键数据与价格】\n"

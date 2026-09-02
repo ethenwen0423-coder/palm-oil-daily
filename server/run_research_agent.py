@@ -1068,7 +1068,16 @@ def compact_daily_driver_repetition(markdown: str, outline: dict[str, Any], kind
     body = match.group(2).strip()
     duplicate_counter = body.count("最强反证") - 1
     if duplicate_counter > 0:
-        body = re.sub(r"最强反证(?:是|：)[^。]*。", "", body, count=duplicate_counter)
+        def keep_distinct_invalidation(found: re.Match[str]) -> str:
+            sentence = found.group(0)
+            return sentence.split("；", 1)[1] if "；" in sentence else ""
+
+        body = re.sub(
+            r"最强反证(?:是|：)[^。]*。",
+            keep_distinct_invalidation,
+            body,
+            count=duplicate_counter,
+        )
     invalidation = str(outline.get("invalidation_condition") or "").strip().rstrip("。.")
     if invalidation:
         body = re.sub(rf"(?:^|(?<=。)|(?<=；))\s*{re.escape(invalidation)}[。.]?", "", body)
