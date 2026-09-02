@@ -475,9 +475,9 @@ class ServerResearchAgentTests(unittest.TestCase):
 """
         updated = MODULE.compact_daily_execution_table(markdown, "daily")
         self.assertIn("|品种|方向|触发|确认|止损|目标|仓位|有效期|", updated)
-        self.assertIn("|P2701|震荡|现价10235；待确认|突破区间且驱动/资金同向则失效|下9467.87|上10489.31/下9467.87|未给出，不开仓|未给出，不开仓|", updated)
-        self.assertIn("|Y2701|震荡|现价9142|驱动/资金同向|下8317.96|上9245.47/下8317.96|不开仓|不开仓|", updated)
-        self.assertIn("|OI2611|震荡|现价10334|驱动/资金同向|下9874.38|上10763.78/下9874.38|不开仓|不开仓|", updated)
+        self.assertIn("|P2701|震荡|10235，待确认|同向则失效|9467.87|10489.31/9467.87|不开仓|未给出|", updated)
+        self.assertIn("|Y2701|震荡|9142|同向|8317.96|9245.47/8317.96|不开仓|未给出|", updated)
+        self.assertIn("|OI2611|震荡|10334|同向|9874.38|10763.78/9874.38|不开仓|未给出|", updated)
 
     def test_daily_source_audit_groups_ready_sources_and_preserves_disclosure(self) -> None:
         markdown = """# 09月03日晨报
@@ -572,7 +572,7 @@ class ServerResearchAgentTests(unittest.TestCase):
         twice = MODULE.compact_daily_execution_table(once, "daily")
         self.assertEqual(once, twice)
         self.assertNotIn("重复解释", once)
-        self.assertIn("突破区间且驱动/资金同向则失效", once)
+        self.assertIn("|P2701|震荡|10235，待确认|同向则失效|", once)
 
     def test_daily_top_call_and_driver_remove_only_cross_section_repetition(self) -> None:
         outline = {

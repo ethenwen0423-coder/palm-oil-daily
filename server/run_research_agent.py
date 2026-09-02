@@ -855,28 +855,28 @@ def compact_daily_execution_table(markdown: str, kind: str) -> str:
             trigger = cells[indexes["触发"]]  # type: ignore[index]
             trigger_price = first_number(trigger)
             if trigger_price:
-                suffix = "；待确认" if item.upper().startswith("P") else ""
-                cells[indexes["触发"]] = f"现价{trigger_price}{suffix}"  # type: ignore[index]
+                suffix = "，待确认" if item.upper().startswith("P") else ""
+                cells[indexes["触发"]] = f"{trigger_price}{suffix}"  # type: ignore[index]
             confirmation = cells[indexes["确认"]]  # type: ignore[index]
             if item.upper().startswith("P") and "驱动/资金同向" in confirmation:
-                cells[indexes["确认"]] = "突破区间且驱动/资金同向则失效"  # type: ignore[index]
+                cells[indexes["确认"]] = "同向则失效"  # type: ignore[index]
             elif "驱动/资金同向" in confirmation:
-                cells[indexes["确认"]] = "驱动/资金同向"  # type: ignore[index]
+                cells[indexes["确认"]] = "同向"  # type: ignore[index]
             elif "Y/OI同步" in confirmation:
-                cells[indexes["确认"]] = "Y/OI同步"  # type: ignore[index]
+                cells[indexes["确认"]] = "同步"  # type: ignore[index]
             stop = cells[indexes["止损"]]  # type: ignore[index]
             stop_price = first_number(stop)
             if stop_price:
-                cells[indexes["止损"]] = f"下{stop_price}"  # type: ignore[index]
+                cells[indexes["止损"]] = stop_price  # type: ignore[index]
             target = cells[indexes["目标"]]  # type: ignore[index]
             target_prices = re.findall(r"[-+]?\d+(?:\.\d+)?", target)
             if len(target_prices) >= 2:
-                cells[indexes["目标"]] = f"上{target_prices[0]}/下{target_prices[1]}"  # type: ignore[index]
+                cells[indexes["目标"]] = f"{target_prices[0]}/{target_prices[1]}"  # type: ignore[index]
             elif target_prices:
                 cells[indexes["目标"]] = target_prices[0]  # type: ignore[index]
             for field in ("仓位上限", "信号有效期"):
                 if "不新开仓" in cells[indexes[field]]:  # type: ignore[index]
-                    cells[indexes[field]] = "未给出，不开仓" if item.upper().startswith("P") else "不开仓"  # type: ignore[index]
+                    cells[indexes[field]] = "不开仓" if field == "仓位上限" else "未给出"  # type: ignore[index]
             lines[row_index] = "|" + "|".join(cells) + "|"
         row_index += 1
     strategy = re.search(r"今日策略[：:]\s*(偏多|偏空|震荡|观望)", match.group(2))
