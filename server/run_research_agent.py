@@ -357,6 +357,47 @@ SOURCE_JSON：
 """.strip()
 
 
+def build_compaction_prompt(
+    report_date: str,
+    kind: str,
+    rejected_markdown: str,
+    outline: dict[str, Any],
+    feedback: dict[str, Any] | None,
+    gate_feedback: str,
+) -> str:
+    """Build a small editing prompt when a complete draft only needs compression."""
+    disclosure_text = json.dumps(
+        (feedback or {}).get("required_report_disclosures", []),
+        ensure_ascii=False,
+    )
+    return f"""
+你是油脂研究日报的资深压缩编辑。只输出符合 JSON Schema 的 JSON 对象。
+report_markdown 是压缩后的完整 Markdown；outline 必须逐字段保持为 OUTLINE_JSON；fixed_logic 必须原样为 {json.dumps(FIXED_LOGIC, ensure_ascii=False)}。
+
+编辑边界：
+1. 报告日期仍为 {report_date}，类型仍为 {kind}。不得新增或更改任何数字、日期、时间、合约、方向、来源状态、策略参数或事实；只能删除重复内容、合并同义句并缩短已有短语。
+2. 正文可见字符必须为 1050-1320，为服务器的确定性审计补句预留空间。栏目顺序和标题保持不变；消息来源链接与固定 AI 免责声明不计入预算。
+3. 今日观点30-50字；今日交易信号不超过190字；核心驱动与预期差350-380字；关键数据与价格不超过290字；开盘推演不超过130字；风险提示不超过45字；信息来源与核验说明不超过270字。
+4. 完整保留八列 P/Y/OI 交易表、四列关键数据表、五列高开/平开/低开推演表。相同确认或失效条件用已有最短短语，不逐行长篇复述；各单元格仍不得为空。
+5. 核心驱动仍须明确“主驱动一/主驱动二”，合计不少于350字，并保留事实→机制→P/Y/OI→预期与现实/定价→结论、最强反证和可检验失效条件。
+6. 关键数据保留 P/Y/OI、一个外盘、一个价差、一个 P 关键位，并确保至少三项可复核辅助数字；只保留满足合同所需的6-8行。
+7. 信息来源与核验说明必须保留“实际 skill、数据源、截止时间、失败项、替代来源”五字段和每个来源的真实状态。相同状态可合并为“甲、乙均ready”，但不得遗漏失败/不可用/降级来源。
+8. REQUIRED_DISCLOSURES 中每句必须逐字保留。Headline、置信度和固定 AI 风险提示必须保留。不得用省略号、“同上”或空单元格压缩。
+
+REQUIRED_DISCLOSURES：
+{disclosure_text}
+
+OUTLINE_JSON：
+{json.dumps(outline, ensure_ascii=False, sort_keys=True)}
+
+门禁反馈：
+{gate_feedback[-4000:]}
+
+被拒稿：
+{rejected_markdown}
+""".strip()
+
+
 def normalize_visible_headline(markdown: str, kind: str) -> str:
     """Put the visible headline on its own bounded line without dropping prose."""
     section = "今日观点" if kind == "daily" else "一句话核心观点"
@@ -631,6 +672,115 @@ def ensure_daily_external_key_data(
         row[columns["value"]] = value
         row[columns["time"]] = as_of.replace("|", "/")
         row[columns["meaning"]] = "外盘交叉验证，不替代国内行情"
+        lines.insert(end, "|" + "|".join(row) + "|")
+        updated_body = "\n".join(lines)
+        updated = f"{match.group(1)}{updated_body}\n"
+        return markdown[: match.start()] + updated + markdown[match.end() :]
+    return markdown
+
+
+def ensure_daily_official_key_data(
+    markdown: str,
+    source_snapshot: dict[str, Any],
+    kind: str,
+) -> str:
+    """Copy one exact official metric into the daily table for the third audit fact."""
+    if kind != "daily":
+        return markdown
+    pattern = re.compile(
+        r"(## 【关键数据与价格】\s*\n)(.*?)(?=\n## 【|\Z)",
+        re.DOTALL,
+    )
+    match = pattern.search(markdown)
+    if not match:
+        return markdown
+    body = match.group(2).strip()
+    if any(marker in body for marker in ("MPOB产量", "MPOB出口", "MPOB期末库存")):
+        return markdown
+    fundamental = source_snapshot.get("fundamental")
+    official = fundamental.get("official_supply_demand") if isinstance(fundamental, dict) else None
+    metrics = official.get("latest_metrics") if isinstance(official, dict) else None
+    if not isinstance(metrics, dict):
+        return markdown
+    choices = (
+        ("stocks", "MPOB期末库存"),
+        ("exports", "MPOB出口"),
+        ("production", "MPOB产量"),
+    )
+    selected: tuple[str, str, str] | None = None
+    for key, name in choices:
+        record = metrics.get(key)
+        if not isinstance(record, dict):
+            continue
+        value = record.get("value")
+        if not isinstance(value, (int, float)) or isinstance(value, bool):
+            continue
+        period = str(record.get("period") or "").strip()
+        published = str(record.get("published_at") or "").strip()
+        if not period and not published:
+            continue
+        number = str(int(value)) if float(value).is_integer() else format(float(value), ".15g")
+        unit = "吨" if str(record.get("unit") or "") == "tonnes" else str(record.get("unit") or "")
+        as_of = "，".join(part for part in (period, f"{published}发布" if published else "") if part)
+        selected = (name, f"{number}{unit}", as_of)
+        break
+    if selected is None:
+        return markdown
+
+    lines = body.splitlines()
+    for index in range(len(lines) - 1):
+        header = lines[index].strip()
+        separator = lines[index + 1].strip()
+        if not (
+            header.startswith("|")
+            and header.endswith("|")
+            and re.fullmatch(r"\|[\s:|-]+\|", separator)
+        ):
+            continue
+        headers = [cell.strip() for cell in header.strip("|").split("|")]
+        aliases = {
+            "item": ("品种", "指标", "合约"),
+            "value": ("数值", "价格", "关键位"),
+            "time": ("时点", "时间", "日期", "口径"),
+            "meaning": ("含义", "意义", "判断"),
+        }
+        columns: dict[str, int] = {}
+        for field, names in aliases.items():
+            found = next(
+                (position for position, value in enumerate(headers) if any(name in value for name in names)),
+                None,
+            )
+            if found is None:
+                break
+            columns[field] = found
+        if len(columns) != len(aliases):
+            continue
+        end = index + 2
+        while end < len(lines) and lines[end].strip().startswith("|") and lines[end].strip().endswith("|"):
+            end += 1
+        data_indexes = list(range(index + 2, end))
+        if len(data_indexes) >= 8:
+            external_markers = (
+                "FCPO", "BMD", "CBOT", "WTI", "原油", "美豆", "CPOTR", "ICDX", "印尼CPO"
+            )
+            for row_index in data_indexes:
+                cells = [cell.strip() for cell in lines[row_index].strip("|").split("|")]
+                item = cells[columns["item"]] if len(cells) == len(headers) else ""
+                protected = (
+                    re.fullmatch(r"(?:P|Y|OI)(?:\d{4})?", item, re.I) is not None
+                    or any(marker in item for marker in external_markers)
+                    or any(marker in item for marker in ("价差", "基差", "观察位", "止损", "目标", "关键位"))
+                )
+                if not protected:
+                    lines.pop(row_index)
+                    end -= 1
+                    break
+        row = [""] * len(headers)
+        name, value, as_of = selected
+        row[columns["item"]] = name
+        row[columns["value"]] = value
+        row[columns["time"]] = as_of
+        row[columns["meaning"]] = "官方供需背景"
         lines.insert(end, "|" + "|".join(row) + "|")
         updated_body = "\n".join(lines)
         updated = f"{match.group(1)}{updated_body}\n"
@@ -1037,18 +1187,30 @@ def main() -> int:
             "PYTHONUNBUFFERED": "1",
         }
         correction = ""
+        previous_markdown = ""
+        previous_outline: dict[str, Any] = {}
         attempts = 1 if args.mock_response else args.attempts
         success = False
         last_gate = ""
         for attempt in range(1, attempts + 1):
-            prompt = build_prompt(
-                report_date=report_date,
-                kind=kind,
-                source_snapshot=source_snapshot,
-                feedback=feedback,
-                correction=correction,
-                contract_text=contract_text,
-            )
+            if previous_markdown and kind == "daily" and "正文篇幅" in correction:
+                prompt = build_compaction_prompt(
+                    report_date=report_date,
+                    kind=kind,
+                    rejected_markdown=previous_markdown,
+                    outline=previous_outline,
+                    feedback=feedback,
+                    gate_feedback=correction,
+                )
+            else:
+                prompt = build_prompt(
+                    report_date=report_date,
+                    kind=kind,
+                    source_snapshot=source_snapshot,
+                    feedback=feedback,
+                    correction=correction,
+                    contract_text=contract_text,
+                )
             if args.mock_response:
                 model_payload = load_json(args.mock_response.resolve())
             else:
@@ -1062,6 +1224,7 @@ def main() -> int:
             markdown = ensure_visible_confidence(markdown, outline, kind)
             markdown = ensure_daily_audit_contracts(markdown, outline, kind)
             markdown = ensure_daily_external_key_data(markdown, source_snapshot, kind)
+            markdown = ensure_daily_official_key_data(markdown, source_snapshot, kind)
             markdown = ensure_weekly_previous_validation(markdown, source_snapshot, kind)
             markdown = normalize_visible_headline(markdown, kind)
             markdown = normalize_report_punctuation(markdown)
@@ -1077,6 +1240,8 @@ def main() -> int:
             if success:
                 break
             quality = load_json(quality_path) if quality_path.exists() else {}
+            previous_markdown = markdown
+            previous_outline = outline
             correction = json.dumps(
                 {
                     "gate_output": last_gate,

@@ -164,6 +164,21 @@ class ServerResearchAgentTests(unittest.TestCase):
         self.assertIn("指标、数值、时点、含义", prompt)
         self.assertIn("实际 skill", prompt)
 
+    def test_compaction_prompt_preserves_outline_and_daily_contracts(self) -> None:
+        prompt = MODULE.build_compaction_prompt(
+            report_date="2026-09-03",
+            kind="daily",
+            rejected_markdown="# 09月03日晨报",
+            outline={"market_stance": "震荡"},
+            feedback={"required_report_disclosures": ["预测披露原句。"]},
+            gate_feedback="正文篇幅 1855 字，不在 1000-1400 字预算内",
+        )
+        self.assertIn("1050-1320", prompt)
+        self.assertIn("核心驱动与预期差350-380字", prompt)
+        self.assertIn("至少三项可复核辅助数字", prompt)
+        self.assertIn("预测披露原句。", prompt)
+        self.assertIn('"market_stance": "震荡"', prompt)
+
     def test_prewrite_gate_requires_market_news_and_freshness_skills(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             runtime = Path(temporary)
@@ -403,6 +418,44 @@ class ServerResearchAgentTests(unittest.TestCase):
             "daily",
         )
         self.assertEqual(updated, markdown)
+
+    def test_daily_key_data_adds_official_fact_without_exceeding_eight_rows(self) -> None:
+        markdown = """# 09月03日晨报
+
+## 【关键数据与价格】
+
+|指标|数值|时点|含义|
+|---|---|---|---|
+|P2701|10235|2026-09-03|主线|
+|Y2701|9142|2026-09-03|共振|
+|OI2611|10334|2026-09-02|轮动|
+|印尼ICDX CPOTR|16580|2026-09-01|外盘|
+|豆棕价差|-1093|2026-09-02|估值|
+|SPPOMA马棕产量|-3.74%|2026-08|供给|
+|印度棕榈油进口|78万吨|2026-08|需求|
+|P上方观察位|10489.31|2026-09-03|关键位|
+
+## 【开盘推演】
+"""
+        source = {
+            "fundamental": {
+                "official_supply_demand": {
+                    "latest_metrics": {
+                        "stocks": {
+                            "value": 2628326,
+                            "unit": "tonnes",
+                            "period": "2026-07",
+                            "published_at": "2026-08-10",
+                        }
+                    }
+                }
+            }
+        }
+        updated = MODULE.ensure_daily_official_key_data(markdown, source, "daily")
+        section = updated.split("## 【关键数据与价格】", 1)[1].split("## 【开盘推演】", 1)[0]
+        self.assertIn("|MPOB期末库存|2628326吨|2026-07，2026-08-10发布|官方供需背景|", section)
+        self.assertEqual(sum(1 for line in section.splitlines() if line.startswith("|")) - 2, 8)
+        self.assertNotIn("SPPOMA马棕产量", section)
 
     def test_daily_key_data_copies_external_quote_from_source_without_calculation(self) -> None:
         markdown = """# 08月24日晨报
