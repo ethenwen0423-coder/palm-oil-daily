@@ -467,13 +467,14 @@ def ensure_visible_confidence(
     kind: str,
 ) -> str:
     """Make the audited outline rating visible even if the model omits it."""
-    if kind != "daily":
+    if kind not in {"daily", "weekend"}:
         return markdown
     rating = str(outline.get("research_confidence") or "")
     if re.fullmatch(r"[★☆]{5}", rating) is None:
         return markdown
+    section_name = "今日观点" if kind == "daily" else "一句话核心观点"
     section_pattern = re.compile(
-        r"(## 【今日观点】\s*\n)(.*?)(?=\n## 【|\Z)",
+        rf"(## 【{section_name}】\s*\n)(.*?)(?=\n## 【|\Z)",
         re.DOTALL,
     )
     match = section_pattern.search(markdown)
@@ -485,6 +486,134 @@ def ensure_visible_confidence(
         return markdown
     body = "\n".join([lines[0], "", f"置信度：{rating}。", *lines[1:]]).strip()
     updated = f"{match.group(1)}{body}\n"
+    return markdown[: match.start()] + updated + markdown[match.end() :]
+
+
+def visible_report_body_chars(markdown: str) -> int:
+    """Count report body characters using the publication gate boundary."""
+    body = re.split(r"^##\s*【消息来源链接】", markdown, maxsplit=1, flags=re.MULTILINE)[0]
+    return len(re.sub(r"\s+", "", body))
+
+
+def compact_weekly_top_call(markdown: str, outline: dict[str, Any], kind: str) -> str:
+    """Render the weekly first screen from audited fields without changing its view."""
+    if kind != "weekend":
+        return markdown
+    pattern = re.compile(
+        r"(## 【一句话核心观点】\s*\n)(.*?)(?=\n## 【|\Z)",
+        re.DOTALL,
+    )
+    match = pattern.search(markdown)
+    if not match:
+        return markdown
+    lines = [line.strip() for line in match.group(2).splitlines() if line.strip()]
+    if not lines:
+        return markdown
+    headline = lines[0]
+    stance = str(outline.get("market_stance") or "").strip()
+    rating = str(outline.get("research_confidence") or "").strip()
+    invalidation = str(outline.get("invalidation_condition") or "").strip().rstrip("。.")
+    parts = [f"基准方向：{stance}" if stance else "", "行动：按交易计划执行"]
+    if invalidation:
+        parts.append(f"失效：{invalidation}")
+    if re.fullmatch(r"[★☆]{5}", rating):
+        parts.append(f"研究置信度：{rating}")
+    audit_line = "；".join(part for part in parts if part) + "。"
+    updated = f"{match.group(1)}{headline}\n\n{audit_line}\n"
+    return markdown[: match.start()] + updated + markdown[match.end() :]
+
+
+def compact_weekly_risk(markdown: str, outline: dict[str, Any], kind: str) -> str:
+    """Keep the exact audited counter-case and invalidation in the weekly risk section."""
+    if kind != "weekend":
+        return markdown
+    counter = str(outline.get("strongest_counter_case") or "").strip().rstrip("。.")
+    invalidation = str(outline.get("invalidation_condition") or "").strip().rstrip("。.")
+    if not counter or not invalidation:
+        return markdown
+    pattern = re.compile(r"(## 【风险提示】\s*\n)(.*?)(?=\n## 【|\Z)", re.DOTALL)
+    match = pattern.search(markdown)
+    if not match:
+        return markdown
+    body = f"最强反证：{counter}。\n\n失效条件：{invalidation}。"
+    updated = f"{match.group(1)}{body}\n"
+    return markdown[: match.start()] + updated + markdown[match.end() :]
+
+
+def compact_weekly_execution_table(markdown: str, kind: str) -> str:
+    """Shorten an over-budget weekly execution table without dropping its contract."""
+    if kind != "weekend" or visible_report_body_chars(markdown) <= 2000:
+        return markdown
+    pattern = re.compile(r"(## 【交易计划】\s*\n)(.*?)(?=\n## 【|\Z)", re.DOTALL)
+    match = pattern.search(markdown)
+    if not match:
+        return markdown
+    lines = match.group(2).strip().splitlines()
+    header_index = next(
+        (
+            index
+            for index in range(len(lines) - 1)
+            if lines[index].strip().startswith("|")
+            and re.fullmatch(r"\|[\s:|-]+\|", lines[index + 1].strip())
+        ),
+        None,
+    )
+    if header_index is None:
+        return markdown
+    headers = [cell.strip() for cell in lines[header_index].strip("|").split("|")]
+    aliases = {
+        "品种": ("品种", "合约"),
+        "方向": ("方向",),
+        "触发": ("触发",),
+        "确认": ("确认",),
+        "止损": ("止损", "失效"),
+        "目标": ("目标",),
+        "仓位": ("仓位", "行动"),
+        "有效期": ("有效期", "到期"),
+    }
+    indexes = {
+        name: next(
+            (index for index, value in enumerate(headers) if any(alias in value for alias in names)),
+            None,
+        )
+        for name, names in aliases.items()
+    }
+    if any(value is None for value in indexes.values()):
+        return markdown
+
+    def numbers(value: str) -> list[str]:
+        return re.findall(r"[-+]?\d+(?:\.\d+)?", value)
+
+    row_index = header_index + 2
+    while row_index < len(lines) and lines[row_index].strip().startswith("|"):
+        cells = [cell.strip() for cell in lines[row_index].strip("|").split("|")]
+        if len(cells) != len(headers):
+            row_index += 1
+            continue
+        item = cells[indexes["品种"]]  # type: ignore[index]
+        if re.fullmatch(r"(?:P|Y|OI)(?:\d{4})?", item, re.I):
+            direction = cells[indexes["方向"]]  # type: ignore[index]
+            cells[indexes["方向"]] = direction.replace("，不新开仓", "/不开仓")  # type: ignore[index]
+            trigger_numbers = numbers(cells[indexes["触发"]])  # type: ignore[index]
+            if trigger_numbers:
+                cells[indexes["触发"]] = f"{trigger_numbers[0]}待确认"  # type: ignore[index]
+            confirmation = cells[indexes["确认"]]  # type: ignore[index]
+            if "驱动" in confirmation and "资金" in confirmation:
+                cells[indexes["确认"]] = "驱动/资金确认"  # type: ignore[index]
+            stop_numbers = numbers(cells[indexes["止损"]])  # type: ignore[index]
+            if stop_numbers:
+                cells[indexes["止损"]] = stop_numbers[0]  # type: ignore[index]
+            target_numbers = numbers(cells[indexes["目标"]])  # type: ignore[index]
+            if target_numbers:
+                cells[indexes["目标"]] = "/".join(target_numbers[:2])  # type: ignore[index]
+            if "不新开仓" in cells[indexes["仓位"]]:  # type: ignore[index]
+                cells[indexes["仓位"]] = "不开仓"  # type: ignore[index]
+            if "未给出" in cells[indexes["有效期"]]:  # type: ignore[index]
+                cells[indexes["有效期"]] = "未给出"  # type: ignore[index]
+            lines[row_index] = "|" + "|".join(cells) + "|"
+        row_index += 1
+    updated_body = "\n".join(lines)
+    updated = f"{match.group(1)}{updated_body}\n"
     return markdown[: match.start()] + updated + markdown[match.end() :]
 
 
@@ -1302,7 +1431,7 @@ def ensure_weekly_previous_validation(
         return markdown
     previous_date = str(previous.get("date") or "").removesuffix("-weekend")
     previous_title = str(previous.get("title") or "").strip()
-    previous_headline = str(previous.get("headline") or "").strip().rstrip("。")
+    previous_headline = str(previous.get("headline") or "").strip()
     if not previous_date or not (previous_title or previous_headline):
         return markdown
 
@@ -1314,17 +1443,21 @@ def ensure_weekly_previous_validation(
     if not match:
         return markdown
     body = match.group(2).strip()
+    has_validation = "上一期" in body and any(
+        marker in body for marker in ("兑现", "验证", "落空", "符合", "偏离")
+    )
+    if not has_validation:
+        # Do not manufacture a validation result.  The quality gate must keep
+        # rejecting a draft that never compared the old view with new facts.
+        return markdown
     has_previous_view = any(
         value and value in body for value in (previous_title, previous_headline)
     )
     if previous_date in body and has_previous_view:
         return markdown
-    if has_previous_view:
-        updated = f"{match.group(1)}上一期报告日期：{previous_date}。\n\n{body}\n"
-        return markdown[: match.start()] + updated + markdown[match.end() :]
-    # Never manufacture an outcome such as “部分兑现”.  Missing comparison
-    # evidence must remain missing so the deterministic audit blocks/retries.
-    return markdown
+    reference = previous_title or previous_headline
+    updated = f"{match.group(1)}上一期报告：{previous_date}，{reference}。\n\n{body}\n"
+    return markdown[: match.start()] + updated + markdown[match.end() :]
 
 
 def normalize_report_punctuation(markdown: str) -> str:
@@ -1735,6 +1868,9 @@ def main() -> int:
             markdown = ensure_weekly_previous_validation(markdown, source_snapshot, kind)
             markdown = normalize_visible_headline(markdown, kind)
             markdown = compact_daily_top_call(markdown, outline, kind)
+            markdown = compact_weekly_top_call(markdown, outline, kind)
+            markdown = compact_weekly_risk(markdown, outline, kind)
+            markdown = compact_weekly_execution_table(markdown, kind)
             markdown = normalize_report_punctuation(markdown)
             atomic_write_text(report_path, markdown)
             atomic_write_json(outline_path, outline)

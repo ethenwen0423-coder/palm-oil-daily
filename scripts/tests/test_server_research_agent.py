@@ -754,8 +754,77 @@ P/Y/OI未共振，油脂震荡，若价格突破区间且驱动/资金同向，�
             },
             "weekend",
         )
-        self.assertIn("上一期报告日期：2026-08-23。", updated)
+        self.assertIn("上一期报告：2026-08-23，08月23日周报。", updated)
         self.assertEqual(updated.count("油脂维持震荡"), 1)
+
+    def test_weekly_previous_reference_uses_exact_audited_title(self) -> None:
+        markdown = """# 09月03日周报
+
+## 【本周验证与预期差】
+
+上一期2026-08-02周报判断油脂偏弱，本期部分兑现。
+
+## 【核心数据变化】
+"""
+        updated = MODULE.ensure_weekly_previous_validation(
+            markdown,
+            {
+                "research_history": {
+                    "previous_report": {
+                        "date": "2026-08-02-weekend",
+                        "title": "08月02日周报",
+                        "headline": "油脂偏弱。",
+                    }
+                }
+            },
+            "weekend",
+        )
+        self.assertIn("上一期报告：2026-08-02，08月02日周报。", updated)
+        self.assertIn("本期部分兑现", updated)
+
+    def test_weekly_postprocessors_restore_audited_contracts_and_budget(self) -> None:
+        markdown = """# 09月03日周报
+
+## 【一句话核心观点】
+
+出口走弱与油脂分化下维持震荡判断。
+
+基准方向：震荡；区间内等待确认；研究置信度：中。
+
+## 【本周验证与预期差】
+
+上一期2026-08-02周报判断油脂偏弱，本期部分兑现。""" + ("补足正文。" * 360) + """
+
+## 【交易计划】
+
+|品种|方向|触发|确认|止损|目标|仓位上限|信号有效期|
+|---|---|---|---|---|---|---|---|
+|P2701|震荡，不新开仓|现价10289；区间内等待驱动与资金确认|区间内等待驱动与资金确认|下方观察位9467.87|上方观察位10499.32 / 下方观察位9467.87|源数据未给出，不新开仓|源数据未给出，不新开仓|
+|Y2701|震荡，不新开仓|现价9113；区间内等待驱动与资金确认|区间内等待驱动与资金确认|下方观察位8317.96|上方观察位9240.04 / 下方观察位8317.96|源数据未给出，不新开仓|源数据未给出，不新开仓|
+|OI2611|震荡，不新开仓|现价10370；区间内等待驱动与资金确认|区间内等待驱动与资金确认|下方观察位10144.76|上方观察位10595.24 / 下方观察位10144.76|源数据未给出，不新开仓|源数据未给出，不新开仓|
+
+## 【风险提示】
+
+旧的泛化风险提示。
+
+## 【消息来源链接】
+"""
+        outline = {
+            "market_stance": "震荡",
+            "research_confidence": "★★★☆☆",
+            "strongest_counter_case": "印度棕榈油进口持续增强并带动三油同向。",
+            "invalidation_condition": "若价格突破区间且驱动/资金同向，震荡判断失效。",
+        }
+        updated = MODULE.ensure_visible_confidence(markdown, outline, "weekend")
+        updated = MODULE.compact_weekly_top_call(updated, outline, "weekend")
+        updated = MODULE.compact_weekly_risk(updated, outline, "weekend")
+        before = MODULE.visible_report_body_chars(updated)
+        updated = MODULE.compact_weekly_execution_table(updated, "weekend")
+        self.assertIn("研究置信度：★★★☆☆", updated)
+        self.assertIn("最强反证：印度棕榈油进口持续增强并带动三油同向。", updated)
+        self.assertIn("失效条件：若价格突破区间且驱动/资金同向，震荡判断失效。", updated)
+        self.assertIn("|P2701|震荡/不开仓|10289待确认|驱动/资金确认|9467.87|10499.32/9467.87|不开仓|未给出|", updated)
+        self.assertLess(MODULE.visible_report_body_chars(updated), before)
 
     def test_report_punctuation_is_normalized(self) -> None:
         self.assertEqual(MODULE.normalize_report_punctuation("失效。；等待。。"), "失效；等待。")
