@@ -4,7 +4,6 @@ from __future__ import annotations
 import json
 import os
 import importlib.util
-import re
 import threading
 import time as monotonic_time
 from datetime import date, datetime, time, timezone
@@ -205,24 +204,9 @@ def load_json(path: Path) -> Any:
     return json.loads(path.read_bytes())
 
 
-PUBLIC_TEXT_REPLACEMENTS = (
-    (re.compile(r"https?://(?:www\.)?htfc\.com/?", re.IGNORECASE), ""),
-    (re.compile(r"htfc[-_ ]news", re.IGNORECASE), "institutional-news"),
-    (re.compile(r"htfc[-_ ]kline", re.IGNORECASE), "institutional-kline"),
-    (re.compile(r"HTFC\s*Tianji", re.IGNORECASE), "机构资讯数据"),
-    (re.compile(r"htfc[-_ ]tianji", re.IGNORECASE), "institutional-feed"),
-    (re.compile(r"华泰天玑"), "机构资讯"),
-    (re.compile(r"华泰期货"), "机构研究"),
-    (re.compile(r"天玑", re.IGNORECASE), "机构资讯"),
-    (re.compile(r"HTFC", re.IGNORECASE), "机构资讯"),
-)
-
-
 def public_text(value: str) -> str:
-    text = value
-    for pattern, replacement in PUBLIC_TEXT_REPLACEMENTS:
-        text = pattern.sub(replacement, text)
-    return text
+    """Preserve source-provided brand names, links and attribution verbatim."""
+    return value
 
 
 def public_payload(value: Any) -> Any:

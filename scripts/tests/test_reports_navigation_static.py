@@ -8,6 +8,8 @@ ROOT = Path(__file__).resolve().parents[2]
 class ReportsNavigationStaticTests(unittest.TestCase):
     def test_report_detail_renders_every_markdown_section_in_source_order(self):
         script = (ROOT / "assets" / "app.js").read_text(encoding="utf-8")
+        self.assertIn('return String(value == null ? "" : value);', script)
+        self.assertNotIn(".replace(/华泰期货/g", script)
         self.assertIn("const visibleSections = sections.length", script)
         self.assertIn("visibleSections\n      .map((section, index)", script)
         self.assertNotIn("const used = new Set()", script)

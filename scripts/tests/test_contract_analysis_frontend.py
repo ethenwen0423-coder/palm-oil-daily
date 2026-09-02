@@ -25,7 +25,7 @@ class ContractAnalysisFrontendTests(unittest.TestCase):
     def test_asset_version_was_bumped(self):
         html = (ROOT / "assistant.html").read_text(encoding="utf-8")
         self.assertIn("market-assistant.css?v=20260901-event-summary-v4", html)
-        self.assertIn("market-assistant.js?v=20260901-event-summary-v4", html)
+        self.assertIn("market-assistant.js?v=20260903-attribution", html)
 
     def test_timeline_uses_full_width_with_readable_desktop_type(self):
         style = (ROOT / "assets" / "market-assistant.css").read_text(encoding="utf-8")

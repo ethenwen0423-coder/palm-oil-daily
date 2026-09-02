@@ -48,7 +48,8 @@ class MarketAssistantStaticTests(unittest.TestCase):
         self.assertIn("renderPulse(data.oil || {}, data.watch || {})", script)
         self.assertIn('live ? "盘中行情" : "行情快照"', script)
         self.assertIn("const publicText", script)
-        self.assertIn("institutional-feed", script)
+        self.assertIn('const publicText = (value) => String(value == null ? "" : value);', script)
+        self.assertNotIn(".replace(/华泰期货/g", script)
 
     def test_data_chain_status_expands_specific_abnormal_datasets(self):
         html = (ROOT / "assistant.html").read_text(encoding="utf-8")
@@ -98,7 +99,7 @@ class MarketAssistantStaticTests(unittest.TestCase):
         self.assertIn("function eventTimelineType(item)", script)
         self.assertIn('weather: "天气"', script)
         self.assertIn('class="timeline-ai-notice"', script)
-        self.assertIn("market-assistant.js?v=20260901-event-summary-v4", html)
+        self.assertIn("market-assistant.js?v=20260903-attribution", html)
         self.assertIn("market-assistant.css?v=20260901-event-summary-v4", html)
         self.assertIn("function weatherDetailHtml", script)
         self.assertIn("产量因果链", script)

@@ -50,7 +50,7 @@ class ApiDataLoaderStaticTests(unittest.TestCase):
                 for value in expected_values:
                     self.assertIn(f'"{value}"', html)
                 if "assets/app.js" in expected_values:
-                    self.assertIn("-20260903-sections", html)
+                    self.assertIn("-20260903-attribution", html)
 
     def test_market_pages_no_longer_document_write_data_scripts(self):
         pattern = re.compile(
