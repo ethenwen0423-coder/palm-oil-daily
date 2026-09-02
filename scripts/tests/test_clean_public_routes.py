@@ -11,6 +11,8 @@ class CleanPublicRoutesTests(unittest.TestCase):
         caddy = (ROOT / "server" / "Caddyfile").read_text(encoding="utf-8")
         self.assertIn("@reportDownloads path_regexp reportDownload", caddy)
         self.assertIn("reverse_proxy @reportDownloads api:8000", caddy)
+        self.assertIn("@reportAssets path /data/reports.js /data/version.js", caddy)
+        self.assertIn("reverse_proxy @reportAssets api:8000", caddy)
         mappings = {
             "/assistant.html": "/assistant",
             "/reports.html": "/reports",

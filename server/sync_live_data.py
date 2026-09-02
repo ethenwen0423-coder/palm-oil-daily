@@ -26,7 +26,7 @@ DAREDEVIL_READY_MARKER = ".server-ai-daredevil-ready.json"
 PURE_AI_FUND_READY_MARKER = ".server-pure-ai-fund-ready.json"
 # Backwards-compatible name for callers that only know about market ownership.
 READY_MARKER = MARKET_READY_MARKER
-REPORT_PATHS = ("reports.json",)
+REPORT_PATHS = ("reports.json", "reports.js", "version.js")
 REPORT_DOWNLOAD_RE = re.compile(
     r"^downloads/[0-9]{4}-[0-9]{2}-[0-9]{2}(?:-weekend)?\.md$"
 )

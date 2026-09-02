@@ -60,6 +60,8 @@ class ServerMarketCollectorTests(unittest.TestCase):
                 json.dumps([{"date": "2026-09-03", "download": download}]),
                 encoding="utf-8",
             )
+            (data / "reports.js").write_text("window.PALM_OIL_REPORTS = [];\n", encoding="utf-8")
+            (data / "version.js").write_text("window.PALM_OIL_DATA_VERSION = '1';\n", encoding="utf-8")
             (runtime / download).parent.mkdir(parents=True)
             (runtime / download).write_text("# 09月03日晨报\n", encoding="utf-8")
 
@@ -81,6 +83,8 @@ class ServerMarketCollectorTests(unittest.TestCase):
                 json.dumps([{"date": "2026-09-03", "download": "downloads/2026-09-03.md"}]),
                 encoding="utf-8",
             )
+            (data / "reports.js").write_text("window.PALM_OIL_REPORTS = [];\n", encoding="utf-8")
+            (data / "version.js").write_text("window.PALM_OIL_DATA_VERSION = '1';\n", encoding="utf-8")
 
             with self.assertRaises(SYNC.SyncError):
                 SYNC.sync_research(data, base / "live", session="daily")
@@ -372,7 +376,7 @@ class ServerMarketCollectorTests(unittest.TestCase):
 
             result = SYNC.sync_upstream(upstream, live)
             self.assertFalse(result["server_research_owned"])
-            self.assertEqual(result["reports_copied"], ["reports.json"])
+            self.assertEqual(result["reports_copied"], list(SYNC.REPORT_PATHS))
             self.assertFalse((live / SYNC.RESEARCH_READY_MARKER).exists())
 
     def test_owned_supply_accepts_only_newer_checked_payload(self):
