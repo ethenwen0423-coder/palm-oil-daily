@@ -474,9 +474,10 @@ class ServerResearchAgentTests(unittest.TestCase):
 ## 【核心驱动与预期差】
 """
         updated = MODULE.compact_daily_execution_table(markdown, "daily")
-        self.assertIn("现价 10235；区间内等待驱动与资金确认", updated)
-        self.assertIn("|Y2701|震荡|现价9142|驱动/资金同向|下8317.96|上9245.47/下8317.96|不新开仓|不新开仓|", updated)
-        self.assertIn("|OI2611|震荡|现价10334|驱动/资金同向|下9874.38|上10763.78/下9874.38|不新开仓|不新开仓|", updated)
+        self.assertIn("|品种|方向|触发|确认|止损|目标|仓位|有效期|", updated)
+        self.assertIn("|P2701|震荡|现价10235；待驱动/资金确认|突破区间且驱动/资金同向则失效|下9467.87|上10489.31/下9467.87|未给出，不开仓|未给出，不开仓|", updated)
+        self.assertIn("|Y2701|震荡|现价9142|驱动/资金同向|下8317.96|上9245.47/下8317.96|不开仓|不开仓|", updated)
+        self.assertIn("|OI2611|震荡|现价10334|驱动/资金同向|下9874.38|上10763.78/下9874.38|不开仓|不开仓|", updated)
 
     def test_daily_source_audit_groups_ready_sources_and_preserves_disclosure(self) -> None:
         markdown = """# 09月03日晨报
@@ -504,9 +505,44 @@ class ServerResearchAgentTests(unittest.TestCase):
             "daily",
         )
         self.assertIn("来源状态：来源甲、来源乙=ready", updated)
-        self.assertIn("实际 skill（短名）：market_data/data_gate/", updated)
+        self.assertIn("实际 skill（短名）：market/gate/", updated)
         self.assertIn("数据源：AkShare、ICDX、机构油脂快讯、MPOB", updated)
         self.assertEqual(updated.count("预测披露原句。"), 1)
+
+    def test_daily_key_data_compactor_only_shortens_explanatory_meanings(self) -> None:
+        markdown = """# 09月03日晨报
+
+## 【关键数据与价格】
+
+|指标|数值|时点|含义|
+|---|---|---|---|
+|P2701|10235|2026-09-03|P主叙事|
+|ICDX CPOTR|16580|2026-09-01|外盘交叉验证，不替代国内行情|
+|MPOB期末库存|2628326吨|2026-07|官方供需背景|
+
+## 【开盘推演】
+"""
+        updated = MODULE.compact_daily_key_data_table(markdown, "daily")
+        self.assertIn("|P2701|10235|2026-09-03|P|", updated)
+        self.assertIn("|ICDX CPOTR|16580|2026-09-01|外盘验证|", updated)
+        self.assertIn("|MPOB期末库存|2628326吨|2026-07|官方|", updated)
+
+    def test_daily_risk_compactor_keeps_exact_outline_invalidation(self) -> None:
+        markdown = """# 09月03日晨报
+
+## 【风险提示】
+
+供应恢复是反证。可检验失效条件：若P跌破区间，判断失效。
+
+## 【信息来源与核验说明】
+"""
+        updated = MODULE.compact_daily_risk(
+            markdown,
+            {"invalidation_condition": "若P跌破区间，判断失效。"},
+            "daily",
+        )
+        self.assertIn("## 【风险提示】\n\n若P跌破区间，判断失效。", updated)
+        self.assertNotIn("供应恢复是反证", updated)
 
     def test_daily_driver_depth_restores_previous_grounded_section(self) -> None:
         previous_driver = "主驱动一：" + "供给收缩→P支撑，预期与现实待验证。" * 20 + "主驱动二：需求恢复。最强反证：供应回升。"
