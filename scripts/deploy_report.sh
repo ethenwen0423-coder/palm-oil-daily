@@ -6,10 +6,18 @@ cd "$(dirname "$0")/.."
 PUBLISH_MODE="${PALM_OIL_PUBLISH_MODE:-git}"
 REPORT_DATA_MODE="${PALM_OIL_REPORT_DATA_MODE:-refresh}"
 TARGET_REPORT="${PALM_OIL_TARGET_REPORT:-}"
+SHADOW_ACCEPTANCE="${PALM_OIL_SHADOW_ACCEPTANCE:-0}"
 case "$PUBLISH_MODE" in
   git|files) ;;
   *)
     echo "PALM_OIL_PUBLISH_MODE must be git or files" >&2
+    exit 2
+    ;;
+esac
+case "$SHADOW_ACCEPTANCE" in
+  0|1) ;;
+  *)
+    echo "PALM_OIL_SHADOW_ACCEPTANCE must be 0 or 1" >&2
     exit 2
     ;;
 esac
@@ -122,6 +130,11 @@ for report_path in "${changed_reports[@]}"; do
   fi
   "${report_audit[@]}"
 done
+
+if [[ "$SHADOW_ACCEPTANCE" == "1" ]]; then
+  echo '{"status":"ok","acceptance":"report_quality_gate_only"}'
+  exit 0
+fi
 
 update_oil_futures_tab=false
 for report_path in "${changed_reports[@]}"; do

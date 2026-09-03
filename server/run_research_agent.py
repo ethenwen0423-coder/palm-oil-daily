@@ -1893,6 +1893,7 @@ def main() -> int:
             "PALM_OIL_PUBLISH_MODE": "files",
             "PALM_OIL_REPORT_DATA_MODE": "prepared",
             "PALM_OIL_TARGET_REPORT": f"reports/{identity}.md",
+            "PALM_OIL_SHADOW_ACCEPTANCE": "1" if args.shadow_acceptance else "0",
             "PYTHONUNBUFFERED": "1",
         }
         correction = ""
@@ -1978,10 +1979,6 @@ def main() -> int:
             raise ResearchAgentError("report quality gate did not produce can_publish=true")
         record_skill_stage(run_root, "headline_skill", "ok", report_path.name)
         record_skill_stage(run_root, "report_quality_gate", "ok", "report_quality.json")
-        if not report_is_ready(runtime_root / "data" / "reports.json", identity):
-            raise ResearchAgentError("internal reports dataset does not contain the new report")
-        if kind == "daily" and not (runtime_root / "data" / "forecast" / "daily" / f"{report_date}.json").is_file():
-            raise ResearchAgentError("daily report did not freeze its prediction record")
         if args.shadow_acceptance:
             accepted = {
                 "status": "ok",
@@ -1999,6 +1996,10 @@ def main() -> int:
             )
             print(json.dumps(accepted, ensure_ascii=False, sort_keys=True))
             return 0
+        if not report_is_ready(runtime_root / "data" / "reports.json", identity):
+            raise ResearchAgentError("internal reports dataset does not contain the new report")
+        if kind == "daily" and not (runtime_root / "data" / "forecast" / "daily" / f"{report_date}.json").is_file():
+            raise ResearchAgentError("daily report did not freeze its prediction record")
         if kind == "daily":
             record_skill_stage(
                 run_root,

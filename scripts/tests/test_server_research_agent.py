@@ -131,12 +131,21 @@ class ServerResearchAgentTests(unittest.TestCase):
 
     def test_shadow_acceptance_runs_before_publication_sync(self) -> None:
         source = (ROOT / "server" / "run_research_agent.py").read_text(encoding="utf-8")
+        deploy = (ROOT / "scripts" / "deploy_report.sh").read_text(encoding="utf-8")
         self.assertIn('"--shadow-acceptance"', source)
         quality_branch = source.index("if args.shadow_acceptance:")
+        report_dataset_check = source.index(
+            'if not report_is_ready(runtime_root / "data" / "reports.json", identity):'
+        )
         publication_sync = source.index("synced = sync_module.sync_research(")
+        self.assertLess(quality_branch, report_dataset_check)
         self.assertLess(quality_branch, publication_sync)
         self.assertIn('"acceptance": "real_model_report_quality_validated"', source)
         self.assertIn("and not args.shadow_acceptance", source)
+        self.assertIn('"PALM_OIL_SHADOW_ACCEPTANCE": "1" if args.shadow_acceptance else "0"', source)
+        shadow_exit = deploy.index('if [[ "$SHADOW_ACCEPTANCE" == "1" ]]')
+        self.assertLess(shadow_exit, deploy.index("server/freeze_prepared_forecast.py"))
+        self.assertLess(shadow_exit, deploy.index("python3 scripts/publish_report.py"))
 
     def test_prompt_bounds_the_visible_headline(self) -> None:
         prompt = MODULE.build_prompt(
