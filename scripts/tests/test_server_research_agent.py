@@ -494,7 +494,7 @@ class ServerResearchAgentTests(unittest.TestCase):
 
 ## 【信息来源与核验说明】
 
-实际 skill：market_data_skill、data_quality_gate_skill、forecast_generation_feedback、oil_report_freshness、report_writer_skill、headline_skill、report_quality_gate、forecast_tracking_skill。数据源：AkShare、ICDX官方历史价格接口、机构资讯·油脂油料快讯、MPOB官方检查。截止时间：2026-09-02T21:45:54+08:00。失败项：官方供需检查source_error；替代来源：AkShare。来源状态：来源甲 ready；来源乙 ready。机构资讯仅作交叉验证。需进一步核验：FCPO行情口径。
+实际 skill：market_data_skill、data_quality_gate_skill、forecast_generation_feedback、oil_report_freshness、report_writer_skill、headline_skill、report_quality_gate、forecast_tracking_skill。数据源：AkShare、ICDX官方历史价格接口、机构资讯·油脂油料快讯、MPOB/GAPKI/USDAofficialchecks、跨站新闻·GoogleNews。截止时间：2026-09-02T21:45:54+08:00。失败项：MPOB/GAPKI/USDAofficialchecks为source_error；替代来源：AkShare。来源状态：来源甲 ready；来源乙 ready。机构资讯仅作交叉验证。需进一步核验：FCPO行情口径。
 
 预测披露原句。
 
@@ -516,7 +516,11 @@ class ServerResearchAgentTests(unittest.TestCase):
         )
         self.assertIn("来源状态：来源甲、来源乙=可用", updated)
         self.assertIn("实际 skill：行情采集→数据门禁→预测反馈→新鲜度治理→正文写作→标题门→报告审计→预测冻结", updated)
-        self.assertIn("数据源：AkShare、ICDX官方历史、机构油脂快讯、MPOB官方检查", updated)
+        self.assertIn(
+            "数据源：AkShare、ICDX官方历史、机构油脂快讯、官方供需检查、跨站新闻",
+            updated,
+        )
+        self.assertIn("失败项：供需检查失败", updated)
         self.assertEqual(updated.count("预测披露原句。"), 1)
         self.assertEqual(
             MODULE.compact_daily_source_audit(

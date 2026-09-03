@@ -1416,9 +1416,21 @@ def compact_daily_source_audit(
     }
     for verbose, concise in source_short.items():
         sources = sources.replace(verbose, concise)
-    sources = sources.replace("MPOB/GAPKI/USDA官方检查", "官方供需检查")
+    sources = re.sub(
+        r"MPOB/GAPKI/USDA(?:官方检查|officialchecks)",
+        "官方供需检查",
+        sources,
+        flags=re.I,
+    )
+    sources = sources.replace("跨站新闻·GoogleNews", "跨站新闻")
     failures = re.sub(r"官方检查(?:为|=)?source_error", "检查失败", failures)
     failures = failures.replace("官方供需检查source_error", "供需检查失败")
+    failures = re.sub(
+        r"MPOB/GAPKI/USDA(?:官方检查|officialchecks)(?:为|=)?source_error",
+        "供需检查失败",
+        failures,
+        flags=re.I,
+    )
     failures = failures.replace("行情skill返回非JSON", "行情skill非JSON")
     failures = failures.replace("机构资讯·研报unavailable", "机构研报不可用")
     replacements = replacements.replace("官方历史价格接口", "历史接口")
