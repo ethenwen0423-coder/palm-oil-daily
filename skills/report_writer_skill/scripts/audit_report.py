@@ -73,6 +73,12 @@ ALIASES = {
     "fundamental.official_supply_demand.latest_metrics.stocks": ("MPOB期末库存", "期末库存"),
     "fundamental.cross_drivers.crude_oil": ("WTI", "原油"),
 }
+EVIDENCE_SOURCE_ALIASES = {
+    "机构资讯·油脂油料快讯": ("机构油脂快讯",),
+    "Open-Meteo 直接预报数据": ("Open-Meteo直接预报",),
+    "东方财富7x24快讯": ("东方财富7×24",),
+    "跨站新闻·Google News": ("跨站新闻",),
+}
 
 
 @dataclass(frozen=True)
@@ -89,6 +95,14 @@ def _read_object(path: Path) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise ValueError(f"{path} 顶层必须是对象")
     return value
+
+
+def _fresh_event_used(item: dict[str, Any], text: str) -> bool:
+    """Match a governed event by exact title/source or an approved display alias."""
+    source = str(item.get("source") or "").strip()
+    title = str(item.get("title") or "").strip()
+    candidates = [source, title, *EVIDENCE_SOURCE_ALIASES.get(source, ())]
+    return any(candidate and candidate in text for candidate in candidates)
 
 
 def _outline_errors(outline: dict[str, Any], kind: str) -> list[str]:
@@ -949,11 +963,7 @@ def audit_report(
             hard_failures.append("当期没有通过 freshness 治理的 Level 1 快讯或研报证据")
             components["freshness_source_state"] = 0
         else:
-            evidence_used = any(
-                str(item.get("source") or "") in text
-                or str(item.get("title") or "") in text
-                for item in fresh_events
-            )
+            evidence_used = any(_fresh_event_used(item, text) for item in fresh_events)
             if not evidence_used:
                 hard_failures.append("正文未使用任何已通过 freshness 治理的快讯或研报证据")
                 components["freshness_source_state"] = 0

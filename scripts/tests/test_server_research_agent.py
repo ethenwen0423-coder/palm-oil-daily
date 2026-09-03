@@ -540,6 +540,26 @@ class ServerResearchAgentTests(unittest.TestCase):
         self.assertIn("|ICDX CPOTR|16580|2026-09-01|外盘参照|", updated)
         self.assertIn("|MPOB期末库存|2628326吨|2026-07|供应背景|", updated)
 
+    def test_daily_key_data_compactor_removes_repeated_year_not_date_context(self) -> None:
+        markdown = """# 09月03日晨报
+
+## 【关键数据与价格】
+
+|指标|数值|时点|含义|
+|---|---|---|---|
+|P2701|10186|2026-09-02最近完整收盘|P主线|
+|印尼CPOTR SEP26|16650|2026-09-02|外盘参照|
+|MPOB期末库存|2628326吨|2026-07，2026-08-10发布|供应背景|
+|P关键位|下方观察位9467.87|2026-09-03策略结果|失效观察|
+
+## 【开盘推演】
+"""
+        updated = MODULE.compact_daily_key_data_table(markdown, "daily")
+        self.assertIn("|P2701|10186|09-02收盘|P主线|", updated)
+        self.assertIn("|印尼CPOTR|16650|2026-09-02|外盘参照|", updated)
+        self.assertIn("|MPOB期末库存|2628326吨|2026-07，08-10发布|供应背景|", updated)
+        self.assertIn("|P关键位|观察位9467.87|09-03策略|失效观察|", updated)
+
     def test_daily_scenario_compactor_restores_contract_header(self) -> None:
         markdown = """# 09月03日晨报
 

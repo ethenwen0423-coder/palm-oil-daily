@@ -1119,6 +1119,12 @@ def compact_daily_key_data_table(markdown: str, kind: str) -> str:
         if len(cells) != 4 or cells[0] in {"指标", "品种", "合约"}:
             continue
         item = cells[0].upper()
+        # The report title already fixes the year.  Remove repeated year
+        # prefixes only from self-explanatory table timestamps; keep the month,
+        # day and close/strategy/publication qualifier visible.
+        cells[2] = re.sub(r"^20\d{2}-(\d{2}-\d{2})(?=\s|最近完整收盘|策略结果$)", r"\1", cells[2])
+        cells[2] = re.sub(r"，20\d{2}-(\d{2}-\d{2})(?=发布)", r"，\1", cells[2])
+        cells[2] = cells[2].replace("最近完整收盘", "收盘").replace("策略结果", "策略")
         if re.fullmatch(r"P\d{4}", item):
             cells[3] = "P主线"
         elif re.fullmatch(r"Y\d{4}", item):
@@ -1126,6 +1132,7 @@ def compact_daily_key_data_table(markdown: str, kind: str) -> str:
         elif re.fullmatch(r"OI\d{4}", item):
             cells[3] = "OI联动"
         elif "CPOTR" in item or "ICDX" in item:
+            cells[0] = re.sub(r"\s+(?:JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)\d{2}$", "", cells[0], flags=re.I)
             cells[3] = "外盘参照"
         elif "价差" in cells[0]:
             cells[3] = "价差结构"
@@ -1133,6 +1140,8 @@ def compact_daily_key_data_table(markdown: str, kind: str) -> str:
             cells[3] = "供应背景"
         elif "出口" in cells[0]:
             cells[3] = "出口需求"
+        if cells[0].startswith("P关键位"):
+            cells[1] = cells[1].replace("下方观察位", "观察位").replace("上方观察位", "观察位")
         lines[index] = "|" + "|".join(cells) + "|"
     body = "\n".join(lines)
     updated = f"{match.group(1)}{body}\n"
@@ -1352,9 +1361,11 @@ def compact_daily_source_audit(
     }
     for verbose, concise in source_short.items():
         sources = sources.replace(verbose, concise)
+    sources = sources.replace("MPOB/GAPKI/USDA官方检查", "官方供需检查")
     failures = re.sub(r"官方检查(?:为|=)?source_error", "检查失败", failures)
     failures = failures.replace("官方供需检查source_error", "供需检查失败")
     failures = failures.replace("行情skill返回非JSON", "行情skill非JSON")
+    failures = failures.replace("机构资讯·研报unavailable", "机构研报不可用")
     replacements = replacements.replace("官方历史价格接口", "历史接口")
     replacements = replacements.replace("国内行情", "").replace("产地价格", "").replace("，其他无", "")
 

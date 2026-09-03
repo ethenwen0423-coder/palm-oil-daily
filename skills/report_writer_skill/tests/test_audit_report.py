@@ -171,6 +171,15 @@ def valid_report() -> str:
 
 
 class AuditReportTest(unittest.TestCase):
+    def test_fresh_event_display_alias_is_auditable_but_empty_value_is_not(self) -> None:
+        item = {
+            "source": "机构资讯·油脂油料快讯",
+            "title": "9月3日国内棕榈油现货报价再度上涨",
+        }
+        self.assertTrue(audit._fresh_event_used(item, "主驱动二：机构油脂快讯称现货走强。"))
+        self.assertFalse(audit._fresh_event_used(item, "主驱动二：某机构称现货走强。"))
+        self.assertFalse(audit._fresh_event_used({"source": "", "title": ""}, "任意正文"))
+
     def test_concrete_contract_is_added_as_numeric_alias(self) -> None:
         payload = {
             "domestic": {
