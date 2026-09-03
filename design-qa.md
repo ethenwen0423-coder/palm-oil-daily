@@ -74,6 +74,47 @@ final result: passed
 
 ---
 
+# AI敢死队今日动作字段层级 Design QA（2026-09-03）
+
+## Evidence
+
+- Existing-site visual baseline: `/tmp/ai-daredevil-cards-final-974x486.png`
+- Browser-rendered implementation: `/tmp/ai-daredevil-today-actions-v2-1280.png`
+- Combined side-by-side comparison: `/tmp/ai-daredevil-trade-card-comparison.png`
+- Browser viewport: 1280 × 720 CSS px, device scale factor 2; `纯AI决策` selected with one isolated entry fixture and one isolated exit fixture. Fixtures were served only by the local preview and were not written to production data.
+- Narrow-layout evidence: each rendered trade card is 330.53 CSS px wide, with `scrollWidth` 329 px and no value overflow. This is narrower than the mobile content slot and therefore exercises the same card-level constraint.
+
+## Findings
+
+- No actionable P0, P1, or P2 findings remain.
+- The card now leads with an explicit `品种` label, Chinese product name, variety code and exact contract.
+- Every card exposes `开平仓方向`、`手数`、`价格` as scannable labeled values. Entry cards use a full-width price row; exit cards use a balanced 2 × 2 metric grid.
+- `平仓收益（含费）` is rendered only for `EXIT_LONG` and `EXIT_SHORT`; entry cards do not display a meaningless zero-profit field.
+- Positive/negative P&L continues to use the site’s Chinese-market convention. The checked negative fixture renders in green and parentheses.
+- The existing expandable `使用策略` control, virtual-fill timestamp, palette, typography, square borders and spacing rhythm are preserved.
+- Browser console errors: 0.
+
+## Comparison History
+
+1. Baseline: product and contract were visible, but the product field was not explicitly labeled and transaction metrics used mixed labels such as `成交手数` and `成交价格`.
+2. First implementation: introduced semantic `dl/dt/dd` fields and conditional close P&L while retaining the source card shell.
+3. Post-fix evidence: entry and exit cards stay contained at 330.53 px; the exact requested labels are present; the entry has no P&L cell; the exit shows its after-fee P&L; strategy expansion remains available.
+
+## Interaction and Verification
+
+- Entry fixture: `沪镍 / 开空 / 1 手 / 126,940`; no P&L row.
+- Exit fixture: `燃料油 / 平空 / 1 手 / 3,860 / （¥2,615.44）`.
+- Static and runtime test suite: 321 tests passed.
+- Focused browser check found no horizontal overflow or console warnings/errors.
+
+## Follow-up Polish
+
+- None required for this scope.
+
+final result: passed
+
+---
+
 # Design QA — AI敢死队交易卡片溢出与内部字段
 
 **Evidence**
