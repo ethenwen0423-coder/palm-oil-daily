@@ -1,5 +1,6 @@
 import unittest
 from pathlib import Path
+from urllib.parse import urljoin
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -147,6 +148,24 @@ class MarketAssistantStaticTests(unittest.TestCase):
     def test_home_page_links_to_assistant(self):
         html = (ROOT / "index.html").read_text(encoding="utf-8")
         self.assertGreaterEqual(html.count('href="/assistant"'), 2)
+
+    def test_assistant_fragment_links_resolve_on_the_assistant_route(self):
+        html = (ROOT / "assistant.html").read_text(encoding="utf-8")
+        self.assertIn('<base href="/assistant" />', html)
+        for fragment in (
+            "#assistant-overview",
+            "#oil-desk",
+            "#supply-desk",
+            "#all-contracts",
+            "#intelligence-workspace",
+            "#system-status",
+        ):
+            with self.subTest(fragment=fragment):
+                self.assertIn(f'href="{fragment}"', html)
+                self.assertEqual(
+                    urljoin("https://palm.vinsontesla.com/assistant", fragment),
+                    f"https://palm.vinsontesla.com/assistant{fragment}",
+                )
 
 
 if __name__ == "__main__":
