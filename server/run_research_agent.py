@@ -987,6 +987,8 @@ def compact_daily_execution_table(markdown: str, kind: str) -> str:
             trigger_price = first_number(trigger)
             if trigger_price:
                 cells[indexes["触发"]] = f"{trigger_price}，待确认"  # type: ignore[index]
+            elif "等待" in trigger and "确认" in trigger:
+                cells[indexes["触发"]] = "区间待确认"  # type: ignore[index]
             confirmation = cells[indexes["确认"]]  # type: ignore[index]
             if "驱动" in confirmation and "资金" in confirmation:
                 cells[indexes["确认"]] = "驱动/资金同向"  # type: ignore[index]
@@ -1005,7 +1007,7 @@ def compact_daily_execution_table(markdown: str, kind: str) -> str:
             if "不新开仓" in cells[indexes["仓位上限"]]:  # type: ignore[index]
                 cells[indexes["仓位上限"]] = "不新开仓"  # type: ignore[index]
             if "未给出" in cells[indexes["信号有效期"]]:  # type: ignore[index]
-                cells[indexes["信号有效期"]] = "未给出，不新开仓"  # type: ignore[index]
+                cells[indexes["信号有效期"]] = "未给出/不开仓"  # type: ignore[index]
             lines[row_index] = "|" + "|".join(cells) + "|"
         row_index += 1
     strategy = re.search(r"今日策略[：:]\s*(偏多|偏空|震荡|观望)", match.group(2))
@@ -1163,7 +1165,7 @@ def compact_daily_top_call(markdown: str, outline: dict[str, Any], kind: str) ->
     lines = [line.strip() for line in match.group(2).splitlines() if line.strip()]
     if not lines:
         return markdown
-    headline = lines[0]
+    headline = str(outline.get("top_call") or lines[0]).strip().rstrip("。.")
     stance = str(outline.get("market_stance") or "")
     if stance and stance not in headline:
         headline = f"{headline.rstrip('。')}，{stance}。"
@@ -1171,20 +1173,16 @@ def compact_daily_top_call(markdown: str, outline: dict[str, Any], kind: str) ->
     invalidation = re.sub(r"^若(?:价格)?", "", invalidation)
     invalidation = re.sub(r"[，,]?(?:震荡)?判断失效$", "", invalidation)
     rating = str(outline.get("research_confidence") or "")
-    support = next((line for line in lines[1:] if "P/Y/OI" in line), "")
-    if support:
-        support = re.split(r"[，,；;](?=若|一旦|失效|行动)", support, maxsplit=1)[0].rstrip("。.")
-    audit = f"{support}；" if support else ""
     no_trade = any(
         marker in str(outline.get("position_limit") or "")
         for marker in ("不新开仓", "不开仓", "观望", "空仓")
     )
-    audit += "行动：不新开仓，按交易信号表观察" if no_trade else "行动：按交易信号表执行"
+    audit = "行动：不新开仓，按信号表观察" if no_trade else "行动：按信号表执行"
     if invalidation:
         audit += f"；失效：{invalidation}"
     if re.fullmatch(r"[★☆]{5}", rating):
         audit += f"；置信度：{rating}"
-    updated = f"{match.group(1)}{headline}\n\n{audit}。\n"
+    updated = f"{match.group(1)}{headline}；{audit}。\n"
     return markdown[: match.start()] + updated + markdown[match.end() :]
 
 
@@ -1327,6 +1325,18 @@ def compact_daily_source_audit(
         if kind == "daily"
         else "行情采集→数据门禁→新鲜度治理→正文写作→标题门→报告审计"
     )
+    source_short = {
+        "akshare:futures_zh_daily_sina": "AkShare日线",
+        "ICDX官方历史价格接口": "ICDX官方历史",
+        "东方财富7x24快讯": "东方财富7×24",
+        "东方财富妙想资讯": "东方财富妙想",
+        "跨站新闻搜索": "跨站搜索",
+        "机构资讯·油脂油料快讯": "机构油脂快讯",
+        "机构资讯·研报": "机构研报",
+        "全球农产品产区天气": "产区天气",
+    }
+    for verbose, concise in source_short.items():
+        sources = sources.replace(verbose, concise)
     failures = re.sub(r"官方检查(?:为|=)?source_error", "检查失败", failures)
     failures = failures.replace("官方供需检查source_error", "供需检查失败")
     failures = failures.replace("行情skill返回非JSON", "行情skill非JSON")
@@ -1343,7 +1353,7 @@ def compact_daily_source_audit(
             name = str(item.get("name") or "").strip()
             state = str(item.get("state") or "").strip()
             if name and state:
-                grouped.setdefault(state, []).append(name)
+                grouped.setdefault(state, []).append(source_short.get(name, name))
     status_parts = [
         f"{'、'.join(names)}={state}"
         for state, names in grouped.items()
@@ -1357,7 +1367,7 @@ def compact_daily_source_audit(
     needs = re.sub(r"\s+", "", needs_match.group(1)).strip("。；") if needs_match else ""
     needs = re.sub(r"[；;]机构资讯仅作交叉验证.*$", "", needs).strip("。；")
     parts = [
-        f"实际 skill（执行链）：{skills}",
+        f"实际 skill：{skills}",
         f"数据源：{sources}",
         f"截止时间：{cutoff}",
         f"失败项：{failures}",

@@ -158,7 +158,7 @@ def _require_top_call(text: str, outline: dict[str, Any], kind: str, errors: lis
         missing.append("研究置信度")
     if not any(marker in section for marker in ("失效", "推翻", "放弃", "反证")):
         missing.append("失效条件")
-    if not any(marker in section for marker in ("执行", "观望", "空仓", "不开仓", "不追")):
+    if not any(marker in section for marker in ("执行", "观望", "空仓", "不开仓", "不新开仓", "不追")):
         missing.append("行动含义")
     if missing:
         errors.append(f"{name} 未形成可执行 Top Call：缺少{'、'.join(missing)}")

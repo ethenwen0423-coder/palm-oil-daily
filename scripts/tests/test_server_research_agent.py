@@ -476,9 +476,9 @@ class ServerResearchAgentTests(unittest.TestCase):
 """
         updated = MODULE.compact_daily_execution_table(markdown, "daily")
         self.assertIn("|品种|方向|触发|确认|止损|目标|仓位上限|信号有效期|", updated)
-        self.assertIn("|P2701|震荡|10235，待确认|驱动/资金同向|9467.87|10489.31/9467.87|不新开仓|未给出，不新开仓|", updated)
-        self.assertIn("|Y2701|震荡|9142，待确认|驱动/资金同向|8317.96|9245.47/8317.96|不新开仓|未给出，不新开仓|", updated)
-        self.assertIn("|OI2611|震荡|10334，待确认|驱动/资金同向|9874.38|10763.78/9874.38|不新开仓|未给出，不新开仓|", updated)
+        self.assertIn("|P2701|震荡|10235，待确认|驱动/资金同向|9467.87|10489.31/9467.87|不新开仓|未给出/不开仓|", updated)
+        self.assertIn("|Y2701|震荡|9142，待确认|驱动/资金同向|8317.96|9245.47/8317.96|不新开仓|未给出/不开仓|", updated)
+        self.assertIn("|OI2611|震荡|10334，待确认|驱动/资金同向|9874.38|10763.78/9874.38|不新开仓|未给出/不开仓|", updated)
 
     def test_daily_source_audit_groups_ready_sources_and_preserves_disclosure(self) -> None:
         markdown = """# 09月03日晨报
@@ -506,8 +506,8 @@ class ServerResearchAgentTests(unittest.TestCase):
             "daily",
         )
         self.assertIn("来源状态：来源甲、来源乙=ready", updated)
-        self.assertIn("实际 skill（执行链）：行情采集→数据门禁→预测反馈→新鲜度治理→正文写作→标题门→报告审计→预测冻结", updated)
-        self.assertIn("数据源：AkShare、ICDX官方历史价格接口、机构资讯·油脂油料快讯、MPOB官方检查", updated)
+        self.assertIn("实际 skill：行情采集→数据门禁→预测反馈→新鲜度治理→正文写作→标题门→报告审计→预测冻结", updated)
+        self.assertIn("数据源：AkShare、ICDX官方历史、机构油脂快讯、MPOB官方检查", updated)
         self.assertEqual(updated.count("预测披露原句。"), 1)
         self.assertEqual(
             MODULE.compact_daily_source_audit(
@@ -520,7 +520,7 @@ class ServerResearchAgentTests(unittest.TestCase):
         )
         weekly = MODULE.compact_daily_source_audit(markdown, source, None, "weekend")
         self.assertIn("来源状态：来源甲、来源乙=ready", weekly)
-        self.assertIn("实际 skill（执行链）：行情采集→数据门禁→新鲜度治理→正文写作→标题门→报告审计", weekly)
+        self.assertIn("实际 skill：行情采集→数据门禁→新鲜度治理→正文写作→标题门→报告审计", weekly)
 
     def test_daily_key_data_compactor_only_shortens_explanatory_meanings(self) -> None:
         markdown = """# 09月03日晨报
@@ -598,6 +598,7 @@ class ServerResearchAgentTests(unittest.TestCase):
 
     def test_daily_top_call_and_driver_remove_only_cross_section_repetition(self) -> None:
         outline = {
+            "top_call": "油脂供需线索偏多，但盘面仍以震荡应对。",
             "market_stance": "震荡",
             "research_confidence": "★★☆☆☆",
             "invalidation_condition": "若价格突破区间且驱动/资金同向，震荡判断失效。",
@@ -620,7 +621,7 @@ P/Y/OI未共振，油脂震荡，若价格突破区间且驱动/资金同向，�
 """
         updated = MODULE.compact_daily_top_call(markdown, outline, "daily")
         updated = MODULE.compact_daily_driver_repetition(updated, outline, "daily")
-        self.assertIn("P/Y/OI未共振，油脂震荡；行动：按交易信号表执行；失效：突破区间且驱动/资金同向；置信度：★★☆☆☆。", updated)
+        self.assertIn("油脂供需线索偏多，但盘面仍以震荡应对；行动：按信号表执行；失效：突破区间且驱动/资金同向；置信度：★★☆☆☆。", updated)
         self.assertIn("主驱动一", updated)
         self.assertIn("主驱动二：同源快讯", updated)
         self.assertIn("最强反证", updated)
