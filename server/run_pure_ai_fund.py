@@ -454,6 +454,7 @@ def request_decisions(context: list[dict[str, Any]], state: dict[str, Any], time
                     timeout=timeout,
                     verbosity="medium",
                     model=DECISION_MODEL,
+                    serialize=False,
                 )
             except Exception as exc:
                 last_error = exc

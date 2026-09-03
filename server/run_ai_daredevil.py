@@ -1282,7 +1282,7 @@ def main() -> int:
         try:
             completed = subprocess.run(
                 command, text=True, capture_output=True, check=False,
-                timeout=max(int(os.environ.get("PURE_AI_FUND_TIMEOUT", "300")) + 120, 180),
+                timeout=max(int(os.environ.get("PURE_AI_FUND_PROCESS_TIMEOUT", "1800")), 180),
             )
             pure_ai_status = "ok" if completed.returncode == 0 else "error"
             if completed.returncode != 0:

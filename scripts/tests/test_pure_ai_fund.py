@@ -185,6 +185,7 @@ class PureAiFundTests(unittest.TestCase):
 
         def request_json(**kwargs):
             self.assertEqual(kwargs["model"], PURE.DECISION_MODEL)
+            self.assertFalse(kwargs["serialize"])
             batch = __import__("json").loads(kwargs["prompt"].split("INPUT:\n", 1)[1])
             return {
                 "market_summary": f"覆盖{len(batch)}个品种",

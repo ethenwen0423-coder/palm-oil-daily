@@ -294,21 +294,22 @@ def request_json(
     timeout: int,
     verbosity: str = "medium",
     model: str | None = None,
+    serialize: bool = True,
 ) -> tuple[dict[str, Any], str]:
     config = resolve_config(require_key=True)
     if model:
         config["model"] = model.strip()
     if config["style"] == "codex-cli":
-        with _model_execution_slot():
+        def run_codex() -> tuple[dict[str, Any], str]:
             return (
-                _request_codex(
-                    config=config,
-                    schema=schema,
-                    prompt=prompt,
-                    timeout=timeout,
-                ),
+                _request_codex(config=config, schema=schema, prompt=prompt, timeout=timeout),
                 config["backend"],
             )
+
+        if serialize:
+            with _model_execution_slot():
+                return run_codex()
+        return run_codex()
     if config["style"] == "responses":
         body: dict[str, Any] = {
             "model": config["model"],
@@ -343,10 +344,10 @@ def request_json(
         },
         method="POST",
     )
-    with _model_execution_slot():
+    def perform_request() -> str:
         try:
             with urllib.request.urlopen(request, timeout=timeout) as response:
-                raw = response.read().decode("utf-8")
+                return response.read().decode("utf-8")
         except urllib.error.HTTPError as exc:
             raise ModelBackendError(
                 f"{config['provider']} API request failed (HTTP {exc.code})"
@@ -355,6 +356,11 @@ def request_json(
             raise ModelBackendError(
                 f"{config['provider']} API request timed out or network failed"
             ) from exc
+    if serialize:
+        with _model_execution_slot():
+            raw = perform_request()
+    else:
+        raw = perform_request()
     try:
         response_payload = json.loads(raw)
         text = (
