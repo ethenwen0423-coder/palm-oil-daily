@@ -1122,9 +1122,14 @@ def compact_daily_key_data_table(markdown: str, kind: str) -> str:
         # The report title already fixes the year.  Remove repeated year
         # prefixes only from self-explanatory table timestamps; keep the month,
         # day and close/strategy/publication qualifier visible.
-        cells[2] = re.sub(r"^20\d{2}-(\d{2}-\d{2})(?=\s|最近完整收盘|策略结果$)", r"\1", cells[2])
+        cells[2] = re.sub(
+            r"^20\d{2}-(\d{2}-\d{2})(?=\s|最近完整收盘|策略(?:结果|输出)$|$)",
+            r"\1",
+            cells[2],
+        )
         cells[2] = re.sub(r"，20\d{2}-(\d{2}-\d{2})(?=发布)", r"，\1", cells[2])
-        cells[2] = cells[2].replace("最近完整收盘", "收盘").replace("策略结果", "策略")
+        cells[2] = cells[2].replace("最近完整收盘", "收盘")
+        cells[2] = cells[2].replace("策略结果", "策略").replace("策略输出", "策略")
         if re.fullmatch(r"P\d{4}", item):
             cells[3] = "P主线"
         elif re.fullmatch(r"Y\d{4}", item):
@@ -1140,7 +1145,10 @@ def compact_daily_key_data_table(markdown: str, kind: str) -> str:
             cells[3] = "供应背景"
         elif "出口" in cells[0]:
             cells[3] = "出口需求"
-        if cells[0].startswith("P关键位"):
+        if cells[0].startswith("P") and (
+            "观察位" in cells[0] or cells[0] == "P关键位"
+        ):
+            cells[0] = "P关键位"
             cells[1] = cells[1].replace("下方观察位", "观察位").replace("上方观察位", "观察位")
         lines[index] = "|" + "|".join(cells) + "|"
     body = "\n".join(lines)
@@ -1302,6 +1310,36 @@ def compact_daily_driver_repetition(markdown: str, outline: dict[str, Any], kind
                     if candidate_visible >= 350:
                         break
             body = candidate
+    visible = len(re.sub(r"\s+", "", body))
+    if visible < 350:
+        extension_values = (
+            ("传导", str(outline.get("transmission_chain") or "").strip().rstrip("。.")),
+            ("预期/现实", str(outline.get("expectation_vs_reality") or "").strip().rstrip("。.")),
+            ("最强反证", counter_case),
+            ("失效", invalidation),
+        )
+        extensions = [
+            f"{label}：{value}"
+            for label, value in extension_values
+            if value and value not in body
+        ]
+        while visible < 350 and extensions:
+            candidates = []
+            for extension in extensions:
+                trial = f"{body.rstrip()}\n\n{extension}。"
+                trial_visible = len(re.sub(r"\s+", "", trial))
+                if trial_visible <= 380:
+                    candidates.append((trial_visible, extension, trial))
+            if not candidates:
+                break
+            crossing = [item for item in candidates if item[0] >= 350]
+            chosen = (
+                min(crossing, key=lambda item: item[0])
+                if crossing
+                else max(candidates, key=lambda item: item[0])
+            )
+            visible, used, body = chosen
+            extensions.remove(used)
     updated = f"{match.group(1)}{body}\n"
     return markdown[: match.start()] + updated + markdown[match.end() :]
 
@@ -1380,8 +1418,9 @@ def compact_daily_source_audit(
             state = str(item.get("state") or "").strip()
             if name and state:
                 grouped.setdefault(state, []).append(source_short.get(name, name))
+    state_labels = {"ready": "可用", "degraded": "降级", "unavailable": "不可用"}
     status_parts = [
-        f"{'、'.join(names)}={state}"
+        f"{'、'.join(names)}={state_labels.get(state, state)}"
         for state, names in grouped.items()
         if names
     ]

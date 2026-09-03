@@ -505,7 +505,7 @@ class ServerResearchAgentTests(unittest.TestCase):
             {"required_report_disclosures": ["预测披露原句。"]},
             "daily",
         )
-        self.assertIn("来源状态：来源甲、来源乙=ready", updated)
+        self.assertIn("来源状态：来源甲、来源乙=可用", updated)
         self.assertIn("实际 skill：行情采集→数据门禁→预测反馈→新鲜度治理→正文写作→标题门→报告审计→预测冻结", updated)
         self.assertIn("数据源：AkShare、ICDX官方历史、机构油脂快讯、MPOB官方检查", updated)
         self.assertEqual(updated.count("预测披露原句。"), 1)
@@ -519,7 +519,7 @@ class ServerResearchAgentTests(unittest.TestCase):
             updated,
         )
         weekly = MODULE.compact_daily_source_audit(markdown, source, None, "weekend")
-        self.assertIn("来源状态：来源甲、来源乙=ready", weekly)
+        self.assertIn("来源状态：来源甲、来源乙=可用", weekly)
         self.assertIn("实际 skill：行情采集→数据门禁→新鲜度治理→正文写作→标题门→报告审计", weekly)
 
     def test_daily_key_data_compactor_only_shortens_explanatory_meanings(self) -> None:
@@ -536,8 +536,8 @@ class ServerResearchAgentTests(unittest.TestCase):
 ## 【开盘推演】
 """
         updated = MODULE.compact_daily_key_data_table(markdown, "daily")
-        self.assertIn("|P2701|10235|2026-09-03|P主线|", updated)
-        self.assertIn("|ICDX CPOTR|16580|2026-09-01|外盘参照|", updated)
+        self.assertIn("|P2701|10235|09-03|P主线|", updated)
+        self.assertIn("|ICDX CPOTR|16580|09-01|外盘参照|", updated)
         self.assertIn("|MPOB期末库存|2628326吨|2026-07|供应背景|", updated)
 
     def test_daily_key_data_compactor_removes_repeated_year_not_date_context(self) -> None:
@@ -556,7 +556,7 @@ class ServerResearchAgentTests(unittest.TestCase):
 """
         updated = MODULE.compact_daily_key_data_table(markdown, "daily")
         self.assertIn("|P2701|10186|09-02收盘|P主线|", updated)
-        self.assertIn("|印尼CPOTR|16650|2026-09-02|外盘参照|", updated)
+        self.assertIn("|印尼CPOTR|16650|09-02|外盘参照|", updated)
         self.assertIn("|MPOB期末库存|2628326吨|2026-07，08-10发布|供应背景|", updated)
         self.assertIn("|P关键位|观察位9467.87|09-03策略|失效观察|", updated)
 
@@ -653,7 +653,7 @@ P/Y/OI未共振，油脂震荡，若价格突破区间且驱动/资金同向，�
         self.assertIn("主驱动一", updated)
         self.assertIn("主驱动二：同源快讯", updated)
         self.assertIn("最强反证", updated)
-        self.assertEqual(updated.count("震荡判断失效"), 0)
+        self.assertEqual(updated.count("震荡判断失效"), 1)
 
     def test_daily_driver_keeps_only_final_grounded_counter_case(self) -> None:
         outline = {"invalidation_condition": "若价格突破区间，判断失效。"}
@@ -729,6 +729,31 @@ P/Y/OI未共振，油脂震荡，若价格突破区间且驱动/资金同向，�
         self.assertIn("同日", section)
         self.assertIn("供给收缩→产地库存→FCPO→P，并影响Y/OI", section)
         self.assertIn("最强反证：港口库存上升且产量减幅不能延续", section)
+
+    def test_daily_driver_compactor_fills_short_section_from_audited_outline(self) -> None:
+        short_driver = (
+            "主驱动一：天气变化影响美豆单产预期并传导Y。"
+            "主驱动二：产区供应稳定限制P上行，OI跟随替代关系。"
+            + "已核验事实与市场现实仍有分化，需等待盘面共同确认。" * 11
+        )
+        markdown = (
+            f"# 报告\n\n## 【核心驱动与预期差】\n\n{short_driver}"
+            "\n\n## 【关键数据与价格】\n"
+        )
+        outline = {
+            "transmission_chain": "天气→美豆单产→CBOT豆油→Y→P/OI",
+            "expectation_vs_reality": "市场预期风险升温，现实是三油仍未共振",
+            "strongest_counter_case": "产区天气转稳且供应恢复",
+            "invalidation_condition": "若三油与资金同向突破则震荡判断失效",
+        }
+        updated = MODULE.compact_daily_driver_repetition(markdown, outline, "daily")
+        section = updated.split("## 【核心驱动与预期差】", 1)[1].split(
+            "## 【关键数据与价格】", 1
+        )[0]
+        visible = len("".join(section.split()))
+        self.assertGreaterEqual(visible, 350)
+        self.assertLessEqual(visible, 380)
+        self.assertTrue(any(value in section for value in outline.values()))
 
     def test_daily_driver_depth_restores_previous_grounded_section(self) -> None:
         previous_driver = "主驱动一：" + "供给收缩→P支撑，预期与现实待验证。" * 20 + "主驱动二：需求恢复。最强反证：供应回升。"
