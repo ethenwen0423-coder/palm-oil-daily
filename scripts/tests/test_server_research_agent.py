@@ -136,6 +136,7 @@ class ServerResearchAgentTests(unittest.TestCase):
         publication_sync = source.index("synced = sync_module.sync_research(")
         self.assertLess(quality_branch, publication_sync)
         self.assertIn('"acceptance": "real_model_report_quality_validated"', source)
+        self.assertIn("and not args.shadow_acceptance", source)
 
     def test_prompt_bounds_the_visible_headline(self) -> None:
         prompt = MODULE.build_prompt(

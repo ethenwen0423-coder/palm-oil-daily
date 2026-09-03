@@ -1693,6 +1693,7 @@ def main() -> int:
             report_is_ready(live_data_root / "reports.json", identity)
             and not args.force
             and not args.acceptance_only
+            and not args.shadow_acceptance
         ):
             print(json.dumps({"status": "noop", "reason": "report_already_ready", "report_id": identity}, ensure_ascii=False))
             return 0
