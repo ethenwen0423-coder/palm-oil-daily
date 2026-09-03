@@ -1,4 +1,5 @@
 import importlib.util
+import json
 import tempfile
 import threading
 import unittest
@@ -238,6 +239,24 @@ class PureAiFundTests(unittest.TestCase):
             **audit, "decision_failed_batch_count": 1,
         }))
         self.assertFalse(PURE.scan_ready_for_publish(None, decisions, audit))
+
+    def test_failed_audit_date_does_not_count_as_a_successful_scan(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            state_dir = Path(temporary)
+            (state_dir / PURE.SCAN_AUDIT_FILE).write_text(json.dumps({
+                "generated_at": "2026-09-03T18:44:15+08:00",
+                "decision_backend": "unavailable",
+            }), encoding="utf-8")
+            (state_dir / "latest_signals.json").write_text(json.dumps({
+                "as_of": "2026-09-01",
+            }), encoding="utf-8")
+
+            self.assertEqual(PURE.last_successful_scan_day(state_dir), "2026-09-01")
+
+            (state_dir / PURE.SUCCESSFUL_SCAN_FILE).write_text(json.dumps({
+                "generated_at": "2026-09-03T18:58:00+08:00",
+            }), encoding="utf-8")
+            self.assertEqual(PURE.last_successful_scan_day(state_dir), "2026-09-03")
 
     def test_public_snapshot_distinguishes_fixed_and_latest_decision_model(self):
         state = {

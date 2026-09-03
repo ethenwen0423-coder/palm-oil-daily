@@ -30,6 +30,7 @@ INITIAL_CAPITAL = 1_000_000.0
 FUND_FILE = "ai_daredevil_pure_ai.json"
 READY_MARKER = ".server-pure-ai-fund-ready.json"
 SCAN_AUDIT_FILE = "latest_scan_audit.json"
+SUCCESSFUL_SCAN_FILE = "last_successful_scan.json"
 POLICY = {
     "enforce_caps": False,
     "position_sizing": "ai_requested_integer_quantity",
@@ -707,6 +708,15 @@ def scan_ready_for_publish(
     )
 
 
+def last_successful_scan_day(state_dir: Path) -> str:
+    marker = BASE.read_json(state_dir / SUCCESSFUL_SCAN_FILE, {})
+    generated_at = str(marker.get("generated_at", "")) if isinstance(marker, dict) else ""
+    if generated_at:
+        return generated_at[:10]
+    signals = BASE.read_json(state_dir / "latest_signals.json", {})
+    return str(signals.get("as_of", ""))[:10] if isinstance(signals, dict) else ""
+
+
 def public_snapshot(state_dir: Path, state: dict[str, Any], sources: list[dict[str, Any]], reason: str,
                     skipped: list[dict[str, Any]], audit: dict[str, Any], decisions: list[dict[str, Any]], now: datetime):
     curve = BASE.equity_curve(state_dir, state, now.date().isoformat())
@@ -818,8 +828,8 @@ def main() -> int:
         skipped = list(audit.get("issues", [])) if isinstance(audit, dict) else []
         decisions = BASE.read_json(state_dir / "latest_decisions.json", [])
         automatic = now.weekday() < 5 and time(15, 25) <= now.time().replace(tzinfo=None) <= time(15, 55)
-        last_scan_day = str(audit.get("generated_at", ""))[:10] if isinstance(audit, dict) else ""
-        catch_up = not args.now and now.weekday() < 5 and time(15, 25) <= now.time().replace(tzinfo=None) <= time(20, 55) and last_scan_day != now.date().isoformat()
+        last_success_day = last_successful_scan_day(state_dir)
+        catch_up = not args.now and now.weekday() < 5 and time(15, 25) <= now.time().replace(tzinfo=None) <= time(20, 55) and last_success_day != now.date().isoformat()
         should_scan = args.close_scan or automatic or catch_up
         stored_decisions = BASE.read_json(state_dir / "latest_decisions.json", {})
         decisions = stored_decisions.get("items", decisions) if isinstance(stored_decisions, dict) else decisions
@@ -886,6 +896,13 @@ def main() -> int:
             if scan_ready_for_publish(snapshot, scanned_decisions, audit):
                 decisions = scanned_decisions
                 BASE.atomic_json(state_dir / "latest_decisions.json", {"items": decisions})
+                BASE.atomic_json(state_dir / SUCCESSFUL_SCAN_FILE, {
+                    "schema_version": 1,
+                    "generated_at": now.isoformat(timespec="seconds"),
+                    "as_of": audit.get("as_of"),
+                    "decision_backend": audit.get("decision_backend"),
+                    "decision_model": DECISION_MODEL,
+                })
                 signal_path = state_dir / "latest_signals.json"
                 BASE.atomic_json(signal_path, snapshot)
                 plan_result = ledger.command_plan(SimpleNamespace(state_dir=state_dir, signals=signal_path))
@@ -905,7 +922,7 @@ def main() -> int:
                       "positions": len(payload["positions"]), "pending": len(payload["pending_orders"]),
                       "decision_backend": audit.get("decision_backend"), "decision_model": DECISION_MODEL},
                      ensure_ascii=False, sort_keys=True))
-    if should_scan and payload["status"] != "ready":
+    if payload["status"] != "ready" and not args.now:
         print(json.dumps({
             "status": "error",
             "reason": "pure-AI close scan was not accepted for publication",
