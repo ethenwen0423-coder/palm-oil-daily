@@ -1155,7 +1155,7 @@ def compact_daily_risk(markdown: str, outline: dict[str, Any], kind: str) -> str
 
 
 def compact_daily_top_call(markdown: str, outline: dict[str, Any], kind: str) -> str:
-    """Keep a concise first-screen action while retaining stance and invalidation."""
+    """Keep a concise Headline plus a separate auditable action line."""
     if kind != "daily":
         return markdown
     pattern = re.compile(r"(## 【今日观点】\s*\n)(.*?)(?=\n## 【|\Z)", re.DOTALL)
@@ -1166,9 +1166,18 @@ def compact_daily_top_call(markdown: str, outline: dict[str, Any], kind: str) ->
     if not lines:
         return markdown
     headline = str(outline.get("top_call") or lines[0]).strip().rstrip("。.")
+    if len(re.sub(r"\s+", "", headline)) > 50:
+        # The model-visible row was already normalized before this compactor.
+        # Prefer it to copying an overlong outline field back into the title.
+        headline = lines[0].strip().rstrip("。.")
     stance = str(outline.get("market_stance") or "")
+    stance_audit = ""
     if stance and stance not in headline:
-        headline = f"{headline.rstrip('。')}，{stance}。"
+        candidate = f"{headline.rstrip('。')}，{stance}"
+        if len(re.sub(r"\s+", "", candidate)) <= 50:
+            headline = candidate
+        else:
+            stance_audit = f"基准方向：{stance}"
     invalidation = str(outline.get("invalidation_condition") or "").strip().rstrip("。.")
     invalidation = re.sub(r"^若(?:价格)?", "", invalidation)
     invalidation = re.sub(r"[，,]?(?:震荡)?判断失效$", "", invalidation)
@@ -1178,11 +1187,17 @@ def compact_daily_top_call(markdown: str, outline: dict[str, Any], kind: str) ->
         for marker in ("不新开仓", "不开仓", "观望", "空仓")
     )
     audit = "行动：不新开仓，按信号表观察" if no_trade else "行动：按信号表执行"
+    if stance_audit:
+        audit = f"{stance_audit}；{audit}"
     if invalidation:
         audit += f"；失效：{invalidation}"
     if re.fullmatch(r"[★☆]{5}", rating):
         audit += f"；置信度：{rating}"
-    updated = f"{match.group(1)}{headline}；{audit}。\n"
+    # ``check_title_quality.py`` deliberately treats the first non-empty row in
+    # this section as the page Headline.  Keep execution, invalidation and
+    # confidence on the following row so those required audit fields cannot
+    # accidentally turn the full action sentence into an overlong Headline.
+    updated = f"{match.group(1)}{headline}。\n\n{audit}。\n"
     return markdown[: match.start()] + updated + markdown[match.end() :]
 
 

@@ -621,7 +621,15 @@ P/Y/OI未共振，油脂震荡，若价格突破区间且驱动/资金同向，�
 """
         updated = MODULE.compact_daily_top_call(markdown, outline, "daily")
         updated = MODULE.compact_daily_driver_repetition(updated, outline, "daily")
-        self.assertIn("油脂供需线索偏多，但盘面仍以震荡应对；行动：按信号表执行；失效：突破区间且驱动/资金同向；置信度：★★☆☆☆。", updated)
+        self.assertIn(
+            "油脂供需线索偏多，但盘面仍以震荡应对。\n\n"
+            "行动：按信号表执行；失效：突破区间且驱动/资金同向；置信度：★★☆☆☆。",
+            updated,
+        )
+        top_call = updated.split("## 【今日观点】", 1)[1].split("## 【核心驱动与预期差】", 1)[0]
+        first_row = next(line.strip() for line in top_call.splitlines() if line.strip())
+        self.assertLessEqual(len("".join(first_row.split())), 50)
+        self.assertNotIn("行动：", first_row)
         self.assertIn("主驱动一", updated)
         self.assertIn("主驱动二：同源快讯", updated)
         self.assertIn("最强反证", updated)
@@ -641,6 +649,29 @@ P/Y/OI未共振，油脂震荡，若价格突破区间且驱动/资金同向，�
         self.assertEqual(updated.count("最强反证"), 1)
         self.assertIn("最强反证：库存与需求同时逆转。", updated)
         self.assertNotIn("早期概括", updated)
+
+    def test_daily_top_call_does_not_restore_overlong_outline_headline(self) -> None:
+        markdown = """# 09月03日晨报
+
+## 【今日观点】
+
+油脂分化等待供需验证。
+
+## 【今日交易信号】
+"""
+        outline = {
+            "top_call": "油脂市场供需线索仍待连续数据与跨市场价格结构共同确认" * 2,
+            "market_stance": "观望",
+            "position_limit": "不新开仓",
+            "research_confidence": "★★☆☆☆",
+            "invalidation_condition": "若驱动与资金同向则判断失效",
+        }
+        updated = MODULE.compact_daily_top_call(markdown, outline, "daily")
+        section = updated.split("## 【今日观点】", 1)[1].split("## 【今日交易信号】", 1)[0]
+        rows = [line.strip() for line in section.splitlines() if line.strip()]
+        self.assertEqual(rows[0], "油脂分化等待供需验证，观望。")
+        self.assertLessEqual(len("".join(rows[0].split())), 50)
+        self.assertIn("行动：不新开仓", rows[1])
 
     def test_daily_driver_preserves_distinct_invalidation_after_duplicate_counter(self) -> None:
         outline = {"invalidation_condition": "若价格突破区间，判断失效。"}
