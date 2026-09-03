@@ -1323,6 +1323,23 @@ def compact_daily_driver_repetition(markdown: str, outline: dict[str, Any], kind
             for label, value in extension_values
             if value and value not in body
         ]
+        evidence_status = outline.get("evidence_status")
+        if isinstance(evidence_status, dict):
+            for key, label in (("limited", "证据边界"), ("needs_verification", "待核验")):
+                values = evidence_status.get(key)
+                if not isinstance(values, list):
+                    continue
+                for value in values:
+                    clean = str(value or "").strip().rstrip("。.")
+                    if (
+                        clean
+                        and clean not in body
+                        and not any(
+                            marker in clean
+                            for marker in ("source_error", "抓取失败", "官方检查失败", "官方来源不可访问")
+                        )
+                    ):
+                        extensions.append(f"{label}：{clean}")
         while visible < 350 and extensions:
             candidates = []
             for extension in extensions:

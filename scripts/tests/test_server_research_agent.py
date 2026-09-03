@@ -755,6 +755,38 @@ P/Y/OI未共振，油脂震荡，若价格突破区间且驱动/资金同向，�
         self.assertLessEqual(visible, 380)
         self.assertTrue(any(value in section for value in outline.values()))
 
+    def test_daily_driver_uses_safe_evidence_boundary_when_core_fields_are_present(self) -> None:
+        outline = {
+            "transmission_chain": "天气→单产→CBOT豆油→Y→P/OI",
+            "expectation_vs_reality": "天气预期升温但三油现实仍未共振",
+            "strongest_counter_case": "天气恢复且作物评级未下修",
+            "invalidation_condition": "若价格与资金同向突破则震荡失效",
+            "evidence_status": {
+                "limited": ["官方供需检查source_error"],
+                "needs_verification": ["FCPO价格", "天气覆盖与土壤墒情"],
+            },
+        }
+        body = (
+            "主驱动一：天气变化影响单产。主驱动二：现货报价影响近端预期。"
+            f"传导：{outline['transmission_chain']}。"
+            f"预期/现实：{outline['expectation_vs_reality']}。"
+            f"最强反证：{outline['strongest_counter_case']}。"
+            f"失效：{outline['invalidation_condition']}。"
+        )
+        filler = "盘面分化说明预期尚未转化为一致定价。"
+        while len("".join(body.split())) < 330:
+            body += filler
+        markdown = f"# 报告\n\n## 【核心驱动与预期差】\n\n{body}\n\n## 【关键数据与价格】\n"
+        updated = MODULE.compact_daily_driver_repetition(markdown, outline, "daily")
+        section = updated.split("## 【核心驱动与预期差】", 1)[1].split(
+            "## 【关键数据与价格】", 1
+        )[0]
+        visible = len("".join(section.split()))
+        self.assertGreaterEqual(visible, 350)
+        self.assertLessEqual(visible, 380)
+        self.assertIn("待核验：", section)
+        self.assertNotIn("source_error", section)
+
     def test_daily_driver_depth_restores_previous_grounded_section(self) -> None:
         previous_driver = "主驱动一：" + "供给收缩→P支撑，预期与现实待验证。" * 20 + "主驱动二：需求恢复。最强反证：供应回升。"
         current = "# 报告\n\n## 【核心驱动与预期差】\n\n主驱动一：过短。主驱动二：过短。\n\n## 【关键数据与价格】\n"
