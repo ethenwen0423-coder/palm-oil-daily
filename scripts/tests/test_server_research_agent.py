@@ -535,6 +535,29 @@ class ServerResearchAgentTests(unittest.TestCase):
         self.assertIn("来源状态：来源甲、来源乙=可用", weekly)
         self.assertIn("实际 skill：行情采集→数据门禁→新鲜度治理→正文写作→标题门→报告审计", weekly)
 
+    def test_weekly_source_audit_removes_duplicate_status_tail_from_verification_note(self) -> None:
+        markdown = """# 09月03日周报
+
+## 【信息来源与核验说明】
+
+实际 skill：market_data_skill、data_quality_gate_skill、oil_report_freshness、report_writer_skill、headline_skill、report_quality_gate。数据源：AkShare、ICDX官方历史价格接口、MPOB历史数据、Open-Meteo、HTFCTianji。截止时间：2026-09-03T17:36:21+08:00。失败项：官方供需检查为source_error、FCPO行情缺失、行情skill非JSON。替代来源：官方供需沿用上次成功MPOB数据。来源状态：来源甲 ready；来源乙 ready。机构资讯仅作交叉验证。需进一步核验：上述缺口仅降低置信度并增加反证，不提升结论。来源状态：来源甲=ready（扫描100条、纳入0条）；来源乙=ready（检索1条、纳入0条）。HTFC研报模块=unavailable。
+
+## 【消息来源链接】
+"""
+        source = {
+            "news_and_research_evidence": {
+                "source_status": [
+                    {"name": "来源甲", "state": "ready"},
+                    {"name": "来源乙", "state": "ready"},
+                ]
+            }
+        }
+        updated = MODULE.compact_daily_source_audit(markdown, source, None, "weekend")
+        self.assertEqual(updated.count("来源状态："), 1)
+        self.assertIn("需进一步核验：上述缺口仅降低置信度并增加反证，不提升结论", updated)
+        self.assertNotIn("扫描100条", updated)
+        self.assertNotIn("HTFC研报模块=unavailable", updated)
+
     def test_daily_key_data_compactor_only_shortens_explanatory_meanings(self) -> None:
         markdown = """# 09月03日晨报
 

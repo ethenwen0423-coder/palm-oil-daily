@@ -1459,6 +1459,12 @@ def compact_daily_source_audit(
         re.DOTALL,
     )
     needs = re.sub(r"\s+", "", needs_match.group(1)).strip("。；") if needs_match else ""
+    # Models sometimes repeat the full per-source status ledger after the
+    # concise verification boundary.  ``status_parts`` below is rebuilt from
+    # the governed source snapshot, so retaining that model-written tail both
+    # duplicates evidence and can push an otherwise valid weekly report above
+    # its 2,000-character publication budget.
+    needs = re.split(r"[。；;]来源状态\s*[：:]", needs, maxsplit=1)[0].strip("。；")
     needs = re.sub(r"[；;]机构资讯仅作交叉验证.*$", "", needs).strip("。；")
     parts = [
         f"实际 skill：{skills}",
