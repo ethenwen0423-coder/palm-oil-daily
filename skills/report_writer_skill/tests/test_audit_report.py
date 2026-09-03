@@ -482,16 +482,15 @@ class AuditReportTest(unittest.TestCase):
         self.assertFalse(result["can_publish"])
         self.assertTrue(any("证据缺口" in item for item in result["hard_failures"]))
 
-    def test_august_31_low_quality_report_is_now_blocked(self) -> None:
-        report = ROOT / "reports" / "2026-08-31.md"
-        run_root = ROOT / "source_runs" / "2026-08-31-daily"
-        result = audit.audit_report(
-            report,
-            run_root / "report_outline.json",
-            "daily",
-            run_root / "raw" / "futures_market_data.json",
-            None,
-        )
+    def test_legacy_low_quality_contract_is_blocked_without_external_fixtures(self) -> None:
+        _, report, outline, source, feedback = self.run_audit()
+        legacy = report.read_text(encoding="utf-8")
+        legacy = legacy.replace("仓位上限 | 信号有效期", "仓位 | 有效期")
+        legacy = legacy.replace("指标 | 数值 | 时点 | 含义", "指标 | 数值 | 时点 | 备注")
+        legacy = legacy.replace("动作 | 放弃条件", "动作 | 放弃")
+        legacy = legacy.replace("替代来源：无。", "")
+        report.write_text(legacy, encoding="utf-8")
+        result = audit.audit_report(report, outline, "daily", source, feedback)
         self.assertFalse(result["can_publish"], result)
         joined = "\n".join(result["hard_failures"])
         self.assertIn("日报交易信号必须使用包含品种、方向、触发、确认、止损、目标、仓位上限、信号有效期", joined)
