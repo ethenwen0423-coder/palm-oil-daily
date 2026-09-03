@@ -79,6 +79,20 @@ EVIDENCE_SOURCE_ALIASES = {
     "东方财富7x24快讯": ("东方财富7×24",),
     "跨站新闻·Google News": ("跨站新闻",),
 }
+FUNDAMENTAL_OR_RELATIVE_VALUE_MARKERS = (
+    "供给",
+    "供应",
+    "需求",
+    "库存",
+    "出口",
+    "产量",
+    "单产",
+    "现货",
+    "基差",
+    "价差",
+    "进口",
+    "压榨",
+)
 
 
 @dataclass(frozen=True)
@@ -103,6 +117,10 @@ def _fresh_event_used(item: dict[str, Any], text: str) -> bool:
     title = str(item.get("title") or "").strip()
     candidates = [source, title, *EVIDENCE_SOURCE_ALIASES.get(source, ())]
     return any(candidate and candidate in text for candidate in candidates)
+
+
+def _has_fundamental_or_relative_value(text: str) -> bool:
+    return any(marker in text for marker in FUNDAMENTAL_OR_RELATIVE_VALUE_MARKERS)
 
 
 def _outline_errors(outline: dict[str, Any], kind: str) -> list[str]:
@@ -893,10 +911,7 @@ def audit_report(
     ):
         hard_failures.append("证据缺口被用作市场主驱动")
         components["causal_chain_expectation_gap"] = 0
-    if not any(
-        marker in driver_text + driver_names
-        for marker in ("供给", "供应", "需求", "库存", "出口", "产量", "基差", "价差", "进口", "压榨")
-    ):
+    if not _has_fundamental_or_relative_value(driver_text + driver_names):
         hard_failures.append("核心驱动缺少基本面或相对价值证据")
         components["causal_chain_expectation_gap"] = 0
 

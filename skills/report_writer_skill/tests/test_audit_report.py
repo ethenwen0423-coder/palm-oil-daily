@@ -180,6 +180,11 @@ class AuditReportTest(unittest.TestCase):
         self.assertFalse(audit._fresh_event_used(item, "主驱动二：某机构称现货走强。"))
         self.assertFalse(audit._fresh_event_used({"source": "", "title": ""}, "任意正文"))
 
+    def test_crop_yield_and_spot_price_are_fundamental_evidence(self) -> None:
+        self.assertTrue(audit._has_fundamental_or_relative_value("高温压低单产预期"))
+        self.assertTrue(audit._has_fundamental_or_relative_value("棕榈油现货报价上涨"))
+        self.assertFalse(audit._has_fundamental_or_relative_value("均线形成金叉"))
+
     def test_concrete_contract_is_added_as_numeric_alias(self) -> None:
         payload = {
             "domestic": {
