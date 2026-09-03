@@ -1285,13 +1285,17 @@ def main() -> int:
                 timeout=max(int(os.environ.get("PURE_AI_FUND_TIMEOUT", "300")) + 120, 180),
             )
             pure_ai_status = "ok" if completed.returncode == 0 else "error"
-        except (OSError, subprocess.TimeoutExpired, ValueError):
+            if completed.returncode != 0:
+                detail = (completed.stderr or completed.stdout or "pure-AI child exited without output").strip()
+                print(detail[-2000:], file=sys.stderr)
+        except (OSError, subprocess.TimeoutExpired, ValueError) as exc:
             pure_ai_status = "error"
+            print(f"pure-AI child failed to run: {type(exc).__name__}: {exc}", file=sys.stderr)
     print(json.dumps({"status": payload["status"], "generated_at": payload["generated_at"],
                       "positions": len(payload["positions"]), "pending": len(payload["pending_orders"]),
                       "skipped": len(payload["skipped_signals"]), "pure_ai_status": pure_ai_status},
                      ensure_ascii=False, sort_keys=True))
-    return 0
+    return 2 if pure_ai_status == "error" else 0
 
 
 if __name__ == "__main__":

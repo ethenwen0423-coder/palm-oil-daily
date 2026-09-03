@@ -17,6 +17,8 @@ import math
 import os
 from pathlib import Path
 import re
+import sys
+import time as time_module
 from types import SimpleNamespace
 from typing import Any
 
@@ -440,14 +442,24 @@ def request_decisions(context: list[dict[str, Any]], state: dict[str, Any], time
         return {"market_summary": "本次没有可研判的真实合约", "decisions": []}, "no-input"
 
     def request_batch(batch: list[dict[str, Any]]) -> tuple[dict[str, Any], str]:
-        return MODEL_BACKEND.request_json(
-            schema=DECISION_SCHEMA,
-            schema_name="pure_ai_fund_decisions",
-            prompt=decision_prompt(batch),
-            timeout=timeout,
-            verbosity="medium",
-            model=DECISION_MODEL,
-        )
+        attempts = max(1, int(os.environ.get("PURE_AI_DECISION_ATTEMPTS", "2")))
+        last_error: Exception | None = None
+        for attempt in range(attempts):
+            try:
+                return MODEL_BACKEND.request_json(
+                    schema=DECISION_SCHEMA,
+                    schema_name="pure_ai_fund_decisions",
+                    prompt=decision_prompt(batch),
+                    timeout=timeout,
+                    verbosity="medium",
+                    model=DECISION_MODEL,
+                )
+            except Exception as exc:
+                last_error = exc
+                if attempt + 1 < attempts:
+                    time_module.sleep(min(2 ** attempt, 4))
+        assert last_error is not None
+        raise last_error
 
     # One 40-variety structured response can exceed the backend hard timeout.
     # Bound each response and use a small concurrent pool, then apply the same
@@ -465,10 +477,15 @@ def request_decisions(context: list[dict[str, Any]], state: dict[str, Any], time
                 errors.append({
                     "batch": index + 1,
                     "varieties": [row["variety"] for row in batches[index]],
-                    "reason": type(exc).__name__,
+                    "reason": clean_text(str(exc), 700) or type(exc).__name__,
                 })
     if not results:
-        raise MODEL_BACKEND.ModelBackendError("all bounded pure-AI decision batches failed")
+        detail = "; ".join(
+            f"batch {row['batch']}: {row['reason']}" for row in sorted(errors, key=lambda row: row["batch"])
+        )
+        raise MODEL_BACKEND.ModelBackendError(
+            clean_text(f"all bounded pure-AI decision batches failed; {detail}", 1800)
+        )
 
     decisions: list[dict[str, Any]] = []
     summaries: list[str] = []
@@ -670,9 +687,24 @@ def scan_ai(data_root: Path, state_dir: Path, state: dict[str, Any], timeout: in
         })
         return snapshot, decision_rows, issues, audit, margin_book
     except Exception as exc:
-        issues.append({"variety": "AI", "reason": f"本次研判不可用：{type(exc).__name__}"})
+        detail = clean_text(str(exc), 900) or type(exc).__name__
+        issues.append({"variety": "AI", "reason": f"本次研判不可用：{detail}"})
         audit["issues"] = issues
+        audit["decision_backend_error"] = detail
         return None, [], issues, audit, margin_book
+
+
+def scan_ready_for_publish(
+    snapshot: dict[str, Any] | None,
+    decisions: list[dict[str, Any]],
+    audit: dict[str, Any],
+) -> bool:
+    return bool(
+        snapshot
+        and audit.get("decision_backend") not in {None, "", "unavailable"}
+        and not audit.get("decision_failed_batch_count")
+        and len(decisions) == int(audit.get("evaluated_count", 0) or 0)
+    )
 
 
 def public_snapshot(state_dir: Path, state: dict[str, Any], sources: list[dict[str, Any]], reason: str,
@@ -846,13 +878,14 @@ def main() -> int:
         # Mark and execute already-authorized orders before the close decision,
         # so the AI sees the current portfolio truth before choosing strategies.
         if should_scan:
-            snapshot, decisions, skipped, audit, margin_book = scan_ai(
+            snapshot, scanned_decisions, skipped, audit, margin_book = scan_ai(
                 live_data_root, state_dir, state, args.timeout, now
             )
             state = BASE.update_ledger_margins(ledger, state_dir, margin_book)
             BASE.atomic_json(audit_path, audit)
-            BASE.atomic_json(state_dir / "latest_decisions.json", {"items": decisions})
-            if snapshot:
+            if scan_ready_for_publish(snapshot, scanned_decisions, audit):
+                decisions = scanned_decisions
+                BASE.atomic_json(state_dir / "latest_decisions.json", {"items": decisions})
                 signal_path = state_dir / "latest_signals.json"
                 BASE.atomic_json(signal_path, snapshot)
                 plan_result = ledger.command_plan(SimpleNamespace(state_dir=state_dir, signals=signal_path))
@@ -872,6 +905,13 @@ def main() -> int:
                       "positions": len(payload["positions"]), "pending": len(payload["pending_orders"]),
                       "decision_backend": audit.get("decision_backend"), "decision_model": DECISION_MODEL},
                      ensure_ascii=False, sort_keys=True))
+    if should_scan and payload["status"] != "ready":
+        print(json.dumps({
+            "status": "error",
+            "reason": "pure-AI close scan was not accepted for publication",
+            "decision_backend_error": audit.get("decision_backend_error"),
+        }, ensure_ascii=False, sort_keys=True), file=sys.stderr)
+        return 2
     return 0
 
 

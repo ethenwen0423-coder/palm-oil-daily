@@ -205,6 +205,40 @@ class PureAiFundTests(unittest.TestCase):
         self.assertEqual(len(output["decisions"]), 18)
         self.assertEqual(backend, "test-backend")
 
+    def test_failed_batch_is_retried_before_the_scan_is_rejected(self):
+        context = [{"variety": "P"}]
+        success = ({"market_summary": "ok", "decisions": [{"variety": "P"}]}, "test-backend")
+        with (
+            patch.dict(PURE.os.environ, {"PURE_AI_DECISION_ATTEMPTS": "2"}),
+            patch.object(
+                PURE.MODEL_BACKEND,
+                "request_json",
+                side_effect=[PURE.MODEL_BACKEND.ModelBackendError("temporary backend failure"), success],
+            ) as mocked,
+            patch.object(PURE.time_module, "sleep") as sleep,
+        ):
+            output, backend = PURE.request_decisions(context, {}, 30)
+
+        self.assertEqual(mocked.call_count, 2)
+        sleep.assert_called_once_with(1)
+        self.assertEqual(output["decisions"], [{"variety": "P"}])
+        self.assertEqual(backend, "test-backend")
+
+    def test_scan_publication_requires_every_decision_and_no_failed_batch(self):
+        snapshot = {"signals": []}
+        audit = {
+            "decision_backend": "codex-chatgpt-cli",
+            "decision_failed_batch_count": 0,
+            "evaluated_count": 2,
+        }
+        decisions = [{"variety": "P"}, {"variety": "Y"}]
+        self.assertTrue(PURE.scan_ready_for_publish(snapshot, decisions, audit))
+        self.assertFalse(PURE.scan_ready_for_publish(snapshot, decisions[:1], audit))
+        self.assertFalse(PURE.scan_ready_for_publish(snapshot, decisions, {
+            **audit, "decision_failed_batch_count": 1,
+        }))
+        self.assertFalse(PURE.scan_ready_for_publish(None, decisions, audit))
+
     def test_public_snapshot_distinguishes_fixed_and_latest_decision_model(self):
         state = {
             "equity": 1_000_000.0, "cash": 1_000_000.0, "used_margin": 0.0,

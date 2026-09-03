@@ -348,6 +348,8 @@ class AiDaredevilTests(unittest.TestCase):
         self.assertIn("systemctl enable --now palm-oil-ai-daredevil.timer", installer)
         runtime = (ROOT / "server" / "run_ai_daredevil.py").read_text(encoding="utf-8")
         self.assertIn('"run_pure_ai_fund.py"', runtime)
+        self.assertIn('return 2 if pure_ai_status == "error" else 0', runtime)
+        self.assertIn('print(detail[-2000:], file=sys.stderr)', runtime)
 
     def test_installer_updates_monthly_backtest_on_first_day(self):
         installer = (ROOT / "server" / "install_automation.sh").read_text(encoding="utf-8")
