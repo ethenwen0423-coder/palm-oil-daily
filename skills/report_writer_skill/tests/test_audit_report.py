@@ -149,7 +149,7 @@ def valid_report() -> str:
 
 ## 【信息来源与核验说明】
 
-实际 skill：market_data_skill、data_quality_gate_skill、oil_report_freshness。数据源：DCE盘前快照、BMD和结构化行情。截止时间：2026-07-27 08:22。失败项：无。替代来源：无。需进一步核验：开盘资金确认。
+实际 skill（执行链）：行情采集→数据门禁→预测反馈→新鲜度治理→正文写作→标题门→报告审计→预测冻结。数据源：DCE盘前快照、BMD和结构化行情。截止时间：2026-07-27 08:22。失败项：无。替代来源：无。需进一步核验：开盘资金确认。
 
 {DISCLOSURE}
 
@@ -262,6 +262,47 @@ class AuditReportTest(unittest.TestCase):
             result["numeric_audit"]["sampled_noncritical"],
             second["numeric_audit"]["sampled_noncritical"],
         )
+
+    def test_shortened_execution_headers_are_blocked(self) -> None:
+        _, report, outline, source, feedback = self.run_audit()
+        report.write_text(
+            report.read_text(encoding="utf-8")
+            .replace("仓位上限 | 信号有效期", "仓位 | 有效期"),
+            encoding="utf-8",
+        )
+        result = audit.audit_report(report, outline, "daily", source, feedback)
+        self.assertFalse(result["can_publish"], result)
+        self.assertTrue(any("仓位上限、信号有效期" in item for item in result["hard_failures"]))
+
+    def test_shortened_scenario_header_is_blocked(self) -> None:
+        _, report, outline, source, feedback = self.run_audit()
+        report.write_text(
+            report.read_text(encoding="utf-8").replace("动作 | 放弃条件", "动作 | 放弃"),
+            encoding="utf-8",
+        )
+        result = audit.audit_report(report, outline, "daily", source, feedback)
+        self.assertFalse(result["can_publish"], result)
+        self.assertTrue(any("放弃条件" in item for item in result["hard_failures"]))
+
+    def test_cryptic_key_data_meaning_is_blocked(self) -> None:
+        _, report, outline, source, feedback = self.run_audit()
+        report.write_text(
+            report.read_text(encoding="utf-8").replace("| 支撑待确认 |", "| P |"),
+            encoding="utf-8",
+        )
+        result = audit.audit_report(report, outline, "daily", source, feedback)
+        self.assertFalse(result["can_publish"], result)
+        self.assertTrue(any("关键数据表含义过度压缩" in item for item in result["hard_failures"]))
+
+    def test_incomplete_visible_skill_chain_is_blocked(self) -> None:
+        _, report, outline, source, feedback = self.run_audit()
+        report.write_text(
+            report.read_text(encoding="utf-8").replace("→预测冻结", ""),
+            encoding="utf-8",
+        )
+        result = audit.audit_report(report, outline, "daily", source, feedback)
+        self.assertFalse(result["can_publish"], result)
+        self.assertTrue(any("缺少执行链阶段：预测冻结" in item for item in result["hard_failures"]))
 
     def test_critical_price_mismatch_blocks_publication(self) -> None:
         result, report, outline, source, feedback = self.run_audit()

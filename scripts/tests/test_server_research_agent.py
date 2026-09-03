@@ -474,10 +474,10 @@ class ServerResearchAgentTests(unittest.TestCase):
 ## 【核心驱动与预期差】
 """
         updated = MODULE.compact_daily_execution_table(markdown, "daily")
-        self.assertIn("|品种|方向|触发|确认|止损|目标|仓位|有效期|", updated)
-        self.assertIn("|P2701|震荡|10235，待确认|同向则失效|9467.87|10489.31/9467.87|不开仓|未给出|", updated)
-        self.assertIn("|Y2701|震荡|9142|同向|8317.96|9245.47/8317.96|不开仓|未给出|", updated)
-        self.assertIn("|OI2611|震荡|10334|同向|9874.38|10763.78/9874.38|不开仓|未给出|", updated)
+        self.assertIn("|品种|方向|触发|确认|止损|目标|仓位上限|信号有效期|", updated)
+        self.assertIn("|P2701|震荡|10235，待确认|驱动/资金同向|9467.87|10489.31/9467.87|不新开仓|未给出，不新开仓|", updated)
+        self.assertIn("|Y2701|震荡|9142，待确认|驱动/资金同向|8317.96|9245.47/8317.96|不新开仓|未给出，不新开仓|", updated)
+        self.assertIn("|OI2611|震荡|10334，待确认|驱动/资金同向|9874.38|10763.78/9874.38|不新开仓|未给出，不新开仓|", updated)
 
     def test_daily_source_audit_groups_ready_sources_and_preserves_disclosure(self) -> None:
         markdown = """# 09月03日晨报
@@ -505,8 +505,8 @@ class ServerResearchAgentTests(unittest.TestCase):
             "daily",
         )
         self.assertIn("来源状态：来源甲、来源乙=ready", updated)
-        self.assertIn("实际 skill（短名）：mkt/gate/", updated)
-        self.assertIn("数据源：AkShare、ICDX、机构油脂快讯、MPOB", updated)
+        self.assertIn("实际 skill（执行链）：行情采集→数据门禁→预测反馈→新鲜度治理→正文写作→标题门→报告审计→预测冻结", updated)
+        self.assertIn("数据源：AkShare、ICDX官方历史价格接口、机构资讯·油脂油料快讯、MPOB官方检查", updated)
         self.assertEqual(updated.count("预测披露原句。"), 1)
         self.assertEqual(
             MODULE.compact_daily_source_audit(
@@ -519,7 +519,7 @@ class ServerResearchAgentTests(unittest.TestCase):
         )
         weekly = MODULE.compact_daily_source_audit(markdown, source, None, "weekend")
         self.assertIn("来源状态：来源甲、来源乙=ready", weekly)
-        self.assertIn("实际 skill（短名）：mkt/gate/", weekly)
+        self.assertIn("实际 skill（执行链）：行情采集→数据门禁→新鲜度治理→正文写作→标题门→报告审计", weekly)
 
     def test_daily_key_data_compactor_only_shortens_explanatory_meanings(self) -> None:
         markdown = """# 09月03日晨报
@@ -535,9 +535,26 @@ class ServerResearchAgentTests(unittest.TestCase):
 ## 【开盘推演】
 """
         updated = MODULE.compact_daily_key_data_table(markdown, "daily")
-        self.assertIn("|P2701|10235|2026-09-03|P|", updated)
-        self.assertIn("|ICDX CPOTR|16580|2026-09-01|外盘|", updated)
-        self.assertIn("|MPOB期末库存|2628326吨|2026-07|供|", updated)
+        self.assertIn("|P2701|10235|2026-09-03|P主线|", updated)
+        self.assertIn("|ICDX CPOTR|16580|2026-09-01|外盘参照|", updated)
+        self.assertIn("|MPOB期末库存|2628326吨|2026-07|供应背景|", updated)
+
+    def test_daily_scenario_compactor_restores_contract_header(self) -> None:
+        markdown = """# 09月03日晨报
+
+## 【开盘推演】
+
+|情景|触发|确认|动作|放弃|
+|---|---|---|---|---|
+|高开|P高开|Y/OI同步|等待确认|背离|
+|平开|P平开|Y/OI同步|震荡观察|背离|
+|低开|P低开|Y/OI同步|不新开仓|背离|
+
+## 【风险提示】
+"""
+        updated = MODULE.compact_daily_scenario_table(markdown, "daily")
+        self.assertIn("|情景|触发|确认|动作|放弃条件|", updated)
+        self.assertIn("|高开|P高开|Y/OI同步|P等确认|Y/OI背离|", updated)
 
     def test_daily_risk_compactor_keeps_exact_outline_invalidation(self) -> None:
         markdown = """# 09月03日晨报
@@ -575,7 +592,8 @@ class ServerResearchAgentTests(unittest.TestCase):
         twice = MODULE.compact_daily_execution_table(once, "daily")
         self.assertEqual(once, twice)
         self.assertNotIn("重复解释", once)
-        self.assertIn("|P2701|震荡|10235，待确认|同向则失效|", once)
+        self.assertIn("|品种|方向|触发|确认|止损|目标|仓位上限|信号有效期|", once)
+        self.assertIn("|P2701|震荡|10235，待确认|驱动/资金同向|", once)
 
     def test_daily_top_call_and_driver_remove_only_cross_section_repetition(self) -> None:
         outline = {
@@ -601,7 +619,7 @@ P/Y/OI未共振，油脂震荡，若价格突破区间且驱动/资金同向，�
 """
         updated = MODULE.compact_daily_top_call(markdown, outline, "daily")
         updated = MODULE.compact_daily_driver_repetition(updated, outline, "daily")
-        self.assertIn("P/Y/OI未共振，油脂震荡；行动：交易表；失效：突破区间且驱动/资金同向；置信度：★★☆☆☆。", updated)
+        self.assertIn("P/Y/OI未共振，油脂震荡；行动：按交易信号表执行；失效：突破区间且驱动/资金同向；置信度：★★☆☆☆。", updated)
         self.assertIn("主驱动一", updated)
         self.assertIn("主驱动二：同源快讯", updated)
         self.assertIn("最强反证", updated)

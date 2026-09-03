@@ -158,7 +158,7 @@ def _require_top_call(text: str, outline: dict[str, Any], kind: str, errors: lis
         missing.append("研究置信度")
     if not any(marker in section for marker in ("失效", "推翻", "放弃", "反证")):
         missing.append("失效条件")
-    if not any(marker in section for marker in ("策略", "执行", "观望", "空仓", "交易", "不追")):
+    if not any(marker in section for marker in ("执行", "观望", "空仓", "不开仓", "不追")):
         missing.append("行动含义")
     if missing:
         errors.append(f"{name} 未形成可执行 Top Call：缺少{'、'.join(missing)}")
@@ -434,8 +434,8 @@ def _require_execution_table(
         "确认": ("确认",),
         "止损": ("止损", "失效"),
         "目标": ("目标",),
-        "仓位上限": ("仓位", "行动"),
-        "信号有效期": ("有效期", "到期"),
+        "仓位上限": ("仓位上限",),
+        "信号有效期": ("信号有效期",),
     }
     for headers, rows in _markdown_tables(section):
         indexes = {name: _column_index(headers, aliases) for name, aliases in required.items()}
@@ -496,6 +496,14 @@ def _require_key_data_table(
             for row in rows
             if all(re.sub(r"[-—/\s]", "", row[index]) for index in (item_index, value_index, time_index, meaning_index))
         ]
+        shallow_meanings = [
+            row[item_index]
+            for row in complete
+            if len(re.sub(r"[^0-9A-Za-z\u4e00-\u9fff]", "", row[meaning_index])) < 3
+        ]
+        if shallow_meanings:
+            hard_failures.append(f"关键数据表含义过度压缩：{'/'.join(shallow_meanings)}")
+            return
         item_text = "\n".join(row[item_index] for row in complete)
         all_text = "\n".join("|".join(row) for row in complete)
         missing = [symbol for symbol in ("P", "Y", "OI") if re.search(rf"(?:^|[^A-Z]){symbol}(?:\d{{4}})?(?:[^A-Z]|$)", item_text, re.I) is None]
@@ -583,7 +591,7 @@ def _require_scenario_table(section: str, kind: str, hard_failures: list[str]) -
         "触发": ("触发",),
         "确认": ("确认",),
         "动作": ("动作", "应对"),
-        "放弃条件": ("放弃", "失效"),
+        "放弃条件": ("放弃条件",),
     }
     if kind == "weekend":
         required_columns["概率"] = ("概率",)
@@ -612,7 +620,7 @@ def _require_scenario_table(section: str, kind: str, hard_failures: list[str]) -
     hard_failures.append(f"开盘推演必须使用包含情景、触发、确认、动作、放弃条件{suffix}的 Markdown 表格")
 
 
-def _require_source_audit(section: str, hard_failures: list[str]) -> None:
+def _require_source_audit(section: str, kind: str, hard_failures: list[str]) -> None:
     required = {
         "实际 skill": ("实际skill", "实际 skill", "调用skill", "调用 skill"),
         "数据源": ("数据源", "来源"),
@@ -624,6 +632,15 @@ def _require_source_audit(section: str, hard_failures: list[str]) -> None:
     missing = [name for name, aliases in required.items() if not any(re.sub(r"\s+", "", alias) in compact for alias in aliases)]
     if missing:
         hard_failures.append(f"信息来源与核验说明缺少审计字段：{'/'.join(missing)}")
+        return
+    required_stages = (
+        ("行情采集", "数据门禁", "预测反馈", "新鲜度治理", "正文写作", "标题门", "报告审计", "预测冻结")
+        if kind == "daily"
+        else ("行情采集", "数据门禁", "新鲜度治理", "正文写作", "标题门", "报告审计")
+    )
+    missing_stages = [stage for stage in required_stages if stage not in section]
+    if missing_stages:
+        hard_failures.append(f"信息来源与核验说明缺少执行链阶段：{'/'.join(missing_stages)}")
 
 
 def _future_source_dates(value: Any, report_date: str, prefix: str = "") -> list[str]:
@@ -899,7 +916,7 @@ def audit_report(
         _require_execution_table(trade_signal, "日报交易信号", hard_failures)
         _require_key_data_table(_section(text, "关键数据与价格"), outline, hard_failures)
         _require_scenario_table(_section(text, "开盘推演"), kind, hard_failures)
-    _require_source_audit(_section(text, "信息来源与核验说明"), hard_failures)
+    _require_source_audit(_section(text, "信息来源与核验说明"), kind, hard_failures)
     if not any(marker in driver_text for marker in ("→", "传导", "因此", "使得")):
         errors.append("核心驱动缺少可识别的因果链")
         components["causal_chain_expectation_gap"] -= 5

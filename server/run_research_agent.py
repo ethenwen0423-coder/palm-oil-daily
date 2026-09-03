@@ -966,8 +966,10 @@ def compact_daily_execution_table(markdown: str, kind: str) -> str:
     if any(value is None for value in indexes.values()):
         return markdown
     assert all(value is not None for value in indexes.values())
-
-    lines[header_index] = lines[header_index].replace("仓位上限", "仓位").replace("信号有效期", "有效期")
+    canonical_headers = list(headers)
+    for name in aliases:
+        canonical_headers[indexes[name]] = name  # type: ignore[index]
+    lines[header_index] = "|" + "|".join(canonical_headers) + "|"
 
     def first_number(value: str) -> str:
         found = re.search(r"[-+]?\d+(?:\.\d+)?", value)
@@ -984,15 +986,12 @@ def compact_daily_execution_table(markdown: str, kind: str) -> str:
             trigger = cells[indexes["触发"]]  # type: ignore[index]
             trigger_price = first_number(trigger)
             if trigger_price:
-                suffix = "，待确认" if item.upper().startswith("P") else ""
-                cells[indexes["触发"]] = f"{trigger_price}{suffix}"  # type: ignore[index]
+                cells[indexes["触发"]] = f"{trigger_price}，待确认"  # type: ignore[index]
             confirmation = cells[indexes["确认"]]  # type: ignore[index]
-            if item.upper().startswith("P") and "驱动/资金同向" in confirmation:
-                cells[indexes["确认"]] = "同向则失效"  # type: ignore[index]
-            elif "驱动/资金同向" in confirmation:
-                cells[indexes["确认"]] = "同向"  # type: ignore[index]
+            if "驱动" in confirmation and "资金" in confirmation:
+                cells[indexes["确认"]] = "驱动/资金同向"  # type: ignore[index]
             elif "Y/OI同步" in confirmation:
-                cells[indexes["确认"]] = "同步"  # type: ignore[index]
+                cells[indexes["确认"]] = "Y/OI同步"  # type: ignore[index]
             stop = cells[indexes["止损"]]  # type: ignore[index]
             stop_price = first_number(stop)
             if stop_price:
@@ -1003,9 +1002,10 @@ def compact_daily_execution_table(markdown: str, kind: str) -> str:
                 cells[indexes["目标"]] = f"{target_prices[0]}/{target_prices[1]}"  # type: ignore[index]
             elif target_prices:
                 cells[indexes["目标"]] = target_prices[0]  # type: ignore[index]
-            for field in ("仓位上限", "信号有效期"):
-                if "不新开仓" in cells[indexes[field]]:  # type: ignore[index]
-                    cells[indexes[field]] = "不开仓" if field == "仓位上限" else "未给出"  # type: ignore[index]
+            if "不新开仓" in cells[indexes["仓位上限"]]:  # type: ignore[index]
+                cells[indexes["仓位上限"]] = "不新开仓"  # type: ignore[index]
+            if "未给出" in cells[indexes["信号有效期"]]:  # type: ignore[index]
+                cells[indexes["信号有效期"]] = "未给出，不新开仓"  # type: ignore[index]
             lines[row_index] = "|" + "|".join(cells) + "|"
         row_index += 1
     strategy = re.search(r"今日策略[：:]\s*(偏多|偏空|震荡|观望)", match.group(2))
@@ -1029,7 +1029,6 @@ def compact_daily_scenario_table(markdown: str, kind: str) -> str:
     body = re.sub(r"(?:Y/OI)?背离(?:扩大)?(?:时|则)?(?:继续)?(?:不追|不新开仓|放弃P处理)", "背离则放弃", body)
     body = re.sub(r"(?:区间内)?等待(?:驱动与资金)?确认", "等待确认", body)
     body = re.sub(r"维持震荡观察", "震荡观察", body)
-    body = body.replace("放弃条件", "放弃")
     body = body.replace("P等待确认", "P等确认").replace("等待区间确认", "P等确认")
     body = body.replace("震荡观察", "P观望")
     body = body.replace("Y/OI背离则放弃判断", "背离").replace("背离则放弃", "背离")
@@ -1050,7 +1049,7 @@ def compact_daily_scenario_table(markdown: str, kind: str) -> str:
             "触发": ("触发",),
             "确认": ("确认",),
             "动作": ("动作", "应对"),
-            "放弃": ("放弃", "失效"),
+            "放弃条件": ("放弃条件", "放弃", "失效"),
         }
         indexes = {
             name: next(
@@ -1060,7 +1059,10 @@ def compact_daily_scenario_table(markdown: str, kind: str) -> str:
             for name, names in aliases.items()
         }
         if all(index is not None for index in indexes.values()):
-            lines[header_index] = lines[header_index].replace("放弃条件", "放弃")
+            canonical_headers = list(headers)
+            for name in aliases:
+                canonical_headers[indexes[name]] = name  # type: ignore[index]
+            lines[header_index] = "|" + "|".join(canonical_headers) + "|"
             row_index = header_index + 2
             while row_index < len(lines) and lines[row_index].strip().startswith("|"):
                 cells = [cell.strip() for cell in lines[row_index].strip("|").split("|")]
@@ -1076,7 +1078,7 @@ def compact_daily_scenario_table(markdown: str, kind: str) -> str:
                         "平开": "P观望",
                         "低开": "P不开仓",
                     }[scenario]
-                    cells[indexes["放弃"]] = "背离"  # type: ignore[index]
+                    cells[indexes["放弃条件"]] = "Y/OI背离"  # type: ignore[index]
                     lines[row_index] = "|" + "|".join(cells) + "|"
                 row_index += 1
             body = "\n".join(lines)
@@ -1097,14 +1099,13 @@ def compact_daily_key_data_table(markdown: str, kind: str) -> str:
         return markdown
     body = match.group(2).strip()
     replacements = {
-        "P主叙事": "P",
-        "豆系共振": "Y",
-        "轮动观察": "OI",
-        "产地参照": "产地",
-        "相对强弱": "价差",
-        "区间边界": "区间",
-        "官方供需背景": "官方",
-        "外盘交叉验证，不替代国内行情": "外盘验证",
+        "豆系共振": "Y联动",
+        "轮动观察": "OI联动",
+        "产地参照": "外盘参照",
+        "相对强弱": "价差结构",
+        "区间边界": "关键区间",
+        "官方供需背景": "官方供需",
+        "外盘交叉验证，不替代国内行情": "外盘参照",
     }
     for verbose, compact in replacements.items():
         body = body.replace(verbose, compact)
@@ -1117,19 +1118,19 @@ def compact_daily_key_data_table(markdown: str, kind: str) -> str:
             continue
         item = cells[0].upper()
         if re.fullmatch(r"P\d{4}", item):
-            cells[3] = "P"
+            cells[3] = "P主线"
         elif re.fullmatch(r"Y\d{4}", item):
-            cells[3] = "Y"
+            cells[3] = "Y联动"
         elif re.fullmatch(r"OI\d{4}", item):
-            cells[3] = "OI"
+            cells[3] = "OI联动"
         elif "CPOTR" in item or "ICDX" in item:
-            cells[3] = "外盘"
+            cells[3] = "外盘参照"
         elif "价差" in cells[0]:
-            cells[3] = "价差"
+            cells[3] = "价差结构"
         elif any(marker in cells[0] for marker in ("产量", "库存")):
-            cells[3] = "供"
+            cells[3] = "供应背景"
         elif "出口" in cells[0]:
-            cells[3] = "需"
+            cells[3] = "出口需求"
         lines[index] = "|" + "|".join(cells) + "|"
     body = "\n".join(lines)
     updated = f"{match.group(1)}{body}\n"
@@ -1174,7 +1175,11 @@ def compact_daily_top_call(markdown: str, outline: dict[str, Any], kind: str) ->
     if support:
         support = re.split(r"[，,；;](?=若|一旦|失效|行动)", support, maxsplit=1)[0].rstrip("。.")
     audit = f"{support}；" if support else ""
-    audit += "行动：交易表"
+    no_trade = any(
+        marker in str(outline.get("position_limit") or "")
+        for marker in ("不新开仓", "不开仓", "观望", "空仓")
+    )
+    audit += "行动：不新开仓，按交易信号表观察" if no_trade else "行动：按交易信号表执行"
     if invalidation:
         audit += f"；失效：{invalidation}"
     if re.fullmatch(r"[★☆]{5}", rating):
@@ -1310,39 +1315,17 @@ def compact_daily_source_audit(
         found = re.search(rf"{start}\s*[：:]\s*(.*?){suffix}", audit_body, re.DOTALL | re.I)
         return re.sub(r"\s+", "", found.group(1)).strip("。；") if found else ""
 
-    skills = field(r"实际\s*skill(?:（短名）|\(短名\))?", "数据源")
+    skills = field(r"实际\s*skill(?:（[^）]+）|\([^)]*\))?", "数据源")
     sources = field("数据源", "截止时间")
     cutoff = field("截止时间", "失败项")
     failures = field("失败项", "替代来源")
     replacements = field("替代来源", None)
     if not all((skills, sources, cutoff, failures, replacements)):
         return markdown
-    skill_names = [part for part in re.split(r"[、,，/]", skills) if part]
-    skill_short = {
-        "market_data_skill": "mkt",
-        "market": "mkt",
-        "data_quality_gate_skill": "gate",
-        "forecast_generation_feedback": "fb",
-        "feedback": "fb",
-        "oil_report_freshness": "fresh",
-        "report_writer_skill": "writer",
-        "headline_skill": "title",
-        "headline": "title",
-        "report_quality_gate": "audit",
-        "report_gate": "audit",
-        "forecast_tracking_skill": "track",
-        "tracking": "track",
-    }
-    skills = "/".join(skill_short.get(name, name) for name in skill_names)
-    source_short = {
-        "ICDX官方历史价格接口": "ICDX",
-        "机构资讯·油脂油料快讯": "机构油脂快讯",
-        "MPOB官方检查": "MPOB",
-    }
-    sources = "、".join(
-        source_short.get(name, name)
-        for name in re.split(r"[、,，]", sources)
-        if name
+    skills = (
+        "行情采集→数据门禁→预测反馈→新鲜度治理→正文写作→标题门→报告审计→预测冻结"
+        if kind == "daily"
+        else "行情采集→数据门禁→新鲜度治理→正文写作→标题门→报告审计"
     )
     failures = re.sub(r"官方检查(?:为|=)?source_error", "检查失败", failures)
     failures = failures.replace("官方供需检查source_error", "供需检查失败")
@@ -1374,7 +1357,7 @@ def compact_daily_source_audit(
     needs = re.sub(r"\s+", "", needs_match.group(1)).strip("。；") if needs_match else ""
     needs = re.sub(r"[；;]机构资讯仅作交叉验证.*$", "", needs).strip("。；")
     parts = [
-        f"实际 skill（短名）：{skills}",
+        f"实际 skill（执行链）：{skills}",
         f"数据源：{sources}",
         f"截止时间：{cutoff}",
         f"失败项：{failures}",
