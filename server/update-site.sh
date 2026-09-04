@@ -76,6 +76,27 @@ do
   fi
 done
 
+# The base Compose file historically mounted only api.py. Keep the runtime
+# overlay self-healing so every module used by the on-demand contract endpoint
+# is present inside /app after an ordinary site sync.
+COMPOSE_OVERRIDE_CANDIDATE="${COMPOSE_OVERRIDE}.new"
+cat >"$COMPOSE_OVERRIDE_CANDIDATE" <<EOF
+services:
+  api:
+    volumes:
+      - $LIVE_DATA_ROOT:/site/data:ro
+      - $DEPLOY_ROOT/api.py:/app/api.py:ro
+      - $DEPLOY_ROOT/contract_analysis.py:/app/contract_analysis.py:ro
+      - $DEPLOY_ROOT/all_futures_technical_skill.py:/app/all_futures_technical_skill.py:ro
+      - $DEPLOY_ROOT/all_futures_fundamental_skill.py:/app/all_futures_fundamental_skill.py:ro
+EOF
+if ! cmp -s "$COMPOSE_OVERRIDE_CANDIDATE" "$COMPOSE_OVERRIDE"; then
+  mv -f "$COMPOSE_OVERRIDE_CANDIDATE" "$COMPOSE_OVERRIDE"
+  api_changed=true
+else
+  rm -f "$COMPOSE_OVERRIDE_CANDIDATE"
+fi
+
 web_changed=false
 if ! cmp -s server/Caddyfile "$DEPLOY_ROOT/Caddyfile"; then
   cp server/Caddyfile "$DEPLOY_ROOT/Caddyfile"

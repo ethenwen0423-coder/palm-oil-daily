@@ -82,6 +82,12 @@ class ServerApiStatusTests(unittest.TestCase):
         self.assertIn('"server/contract_analysis.py:contract_analysis.py"', runner)
         self.assertIn('"skills/all_futures_technical_analysis_skill/scripts/analyze.py:all_futures_technical_skill.py"', runner)
         self.assertIn('"skills/all_futures_fundamental_analysis_skill/scripts/analyze.py:all_futures_fundamental_skill.py"', runner)
+        for mount in (
+            "$DEPLOY_ROOT/contract_analysis.py:/app/contract_analysis.py:ro",
+            "$DEPLOY_ROOT/all_futures_technical_skill.py:/app/all_futures_technical_skill.py:ro",
+            "$DEPLOY_ROOT/all_futures_fundamental_skill.py:/app/all_futures_fundamental_skill.py:ro",
+        ):
+            self.assertIn(mount, runner)
         self.assertIn('cmp -s server/Caddyfile "$DEPLOY_ROOT/Caddyfile"', runner)
         self.assertIn('compose up -d api web', runner)
         self.assertIn('cmp -s "$api_source" "$DEPLOY_ROOT/$api_name"', runner)

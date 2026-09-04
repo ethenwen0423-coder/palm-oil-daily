@@ -188,6 +188,10 @@ services:
   api:
     volumes:
       - $LIVE_DATA_ROOT:/site/data:ro
+      - $DEPLOY_ROOT/api.py:/app/api.py:ro
+      - $DEPLOY_ROOT/contract_analysis.py:/app/contract_analysis.py:ro
+      - $DEPLOY_ROOT/all_futures_technical_skill.py:/app/all_futures_technical_skill.py:ro
+      - $DEPLOY_ROOT/all_futures_fundamental_skill.py:/app/all_futures_fundamental_skill.py:ro
 EOF
 docker compose \
   -f "$COMPOSE_FILE" \
