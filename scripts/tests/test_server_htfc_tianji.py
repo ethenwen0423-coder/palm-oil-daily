@@ -30,6 +30,12 @@ class ServerHtfcTianjiTests(unittest.TestCase):
         self.assertEqual(MODULE.failure_status("调用次数已达到上限"), "quota_exhausted")
         self.assertEqual(MODULE.failure_status("timeout"), "request_failed")
 
+    def test_force_refresh_retries_an_already_attempted_slot(self):
+        slot = "2026-09-04T10"
+        self.assertFalse(MODULE.should_attempt_supplemental(True, slot, slot, False))
+        self.assertTrue(MODULE.should_attempt_supplemental(True, slot, slot, True))
+        self.assertFalse(MODULE.should_attempt_supplemental(False, slot, slot, True))
+
     def test_cached_public_search_inputs_are_restored_for_every_scan(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

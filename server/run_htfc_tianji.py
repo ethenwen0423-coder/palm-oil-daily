@@ -38,6 +38,10 @@ def supplemental_refresh_slot(now: datetime) -> str | None:
     return f"{local.date().isoformat()}T{max(eligible):02d}"
 
 
+def should_attempt_supplemental(configured: bool, slot: str | None, previous_slot: object, force: bool) -> bool:
+    return configured and slot is not None and (force or previous_slot != slot)
+
+
 def load_previous_source_status(path: Path) -> dict[str, object]:
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
@@ -95,6 +99,7 @@ def main() -> int:
     parser.add_argument("--site-root", type=Path, default=Path(os.environ.get("PALM_OIL_SITE_ROOT", DEFAULT_SITE_ROOT)))
     parser.add_argument("--live-data-root", type=Path, default=Path(os.environ.get("PALM_OIL_LIVE_DATA_ROOT", DEFAULT_LIVE_DATA_ROOT)))
     parser.add_argument("--timeout", type=int, default=60)
+    parser.add_argument("--force-supplemental-refresh", action="store_true", help="refresh paid public research sources even when the current slot was already attempted")
     args = parser.parse_args()
     site_root = args.site_root.resolve()
     live_data_root = args.live_data_root.resolve()
@@ -165,7 +170,12 @@ def main() -> int:
                 ),
             }
             previous_iwencai = previous_status.get("report-search", {}) if isinstance(previous_status.get("report-search"), dict) else {}
-            attempt_iwencai = iwencai_configured and refresh_slot is not None and previous_iwencai.get("attempt_slot") != refresh_slot
+            attempt_iwencai = should_attempt_supplemental(
+                iwencai_configured,
+                refresh_slot,
+                previous_iwencai.get("attempt_slot"),
+                args.force_supplemental_refresh,
+            )
             if attempt_iwencai:
                 source_status["report-search"] = {
                     "configured": True,
@@ -227,7 +237,12 @@ def main() -> int:
             mx_search_inputs = [value for path in mx_cache_inputs for value in ("--mx-search", path)]
             mx_search_count = 0
             previous_mx = previous_status.get("mx-search", {}) if isinstance(previous_status.get("mx-search"), dict) else {}
-            attempt_mx = mx_configured and refresh_slot is not None and previous_mx.get("attempt_slot") != refresh_slot
+            attempt_mx = should_attempt_supplemental(
+                mx_configured,
+                refresh_slot,
+                previous_mx.get("attempt_slot"),
+                args.force_supplemental_refresh,
+            )
             if attempt_mx:
                 source_status["mx-search"] = {
                     "configured": True,
