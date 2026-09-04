@@ -19,6 +19,7 @@ SHANGHAI = ZoneInfo("Asia/Shanghai")
 OIL_KEYS = {"P", "Y", "OI"}
 CROSS_KEYS = {"SC", "MACRO"}
 READING_NOTICE = "以下分类与选择由AI基于所列来源摘要生成，所列文字来自来源摘要；不代表任何来源方官方立场，也不构成投资建议，请自行核验。"
+SELF_SUMMARY_NOTICE = "AI自我总结：基于研报服务返回的来源字段和内容片段生成，非来源方原话，不代表任何来源方官方立场，也不构成投资建议；原文链接不可用，请自行核验。"
 SECTION_MARKERS = (
     ("core", re.compile(r"核心观点|核心结论|主要观点|观点摘要|关键结论|结论")),
     ("strategy", re.compile(r"策略建议|投资建议|操作建议|交易建议|后市展望")),
@@ -144,7 +145,81 @@ def attach_reading_view(item: dict[str, Any]) -> dict[str, Any]:
 
 
 def dedupe_key(item: dict[str, Any]) -> str:
-    return re.sub(r"[^0-9a-z\u4e00-\u9fff]", "", str(item.get("title", "")).lower())
+    organization = re.sub(r"[^0-9a-z\u4e00-\u9fff]", "", str(item.get("organization", "")).lower())
+    title = re.sub(r"[^0-9a-z\u4e00-\u9fff]", "", str(item.get("title", "")).lower())
+    return f"{organization}:{title}"
+
+
+def organization_name(value: Any, title: str, fallback: str) -> str:
+    organization = public_text(value)
+    if organization:
+        return organization
+    match = re.match(r"^(.{2,12}?(?:期货|证券|研究院|研究所))", title)
+    return match.group(1) if match else fallback
+
+
+def report_family_key(item: dict[str, Any]) -> str:
+    """Group recurring daily/weekly reports without merging different institutions."""
+    title = str(item.get("title") or "").lower()
+    title = re.sub(r"(?:20)?\d{2}[-/.年]\d{1,2}[-/.月]\d{1,2}日?", "", title)
+    title = re.sub(r"(?<!\d)20\d{6}(?!\d)", "", title)
+    title = re.split(r"[:：|｜]", title, maxsplit=1)[0]
+    title = re.sub(r"[^0-9a-z\u4e00-\u9fff]", "", title)
+    organization = re.sub(r"[^0-9a-z\u4e00-\u9fff]", "", str(item.get("organization") or "").lower())
+    return f"{organization}:{title}"
+
+
+def self_summary(title: str, organization: str, topics: list[str], source_text: str) -> str:
+    """Create a bounded summary when the source report itself cannot be opened."""
+    if source_text:
+        view = build_reading_view(source_text, "source_summary")
+        points = {str(point.get("label")): str(point.get("text")) for point in view["quick_points"]}
+        return " ".join(
+            f"{label}：{points[label]}"
+            for label in ("核心结论", "主要驱动", "关键风险")
+            if points.get(label)
+        )
+    topic_text = "、".join(topics) if topics else "相关市场"
+    return f"{organization}发布《{title}》，主题涉及{topic_text}；来源未返回可核验正文或摘要，具体观点与风险需进一步核验。"
+
+
+def summarize_if_unlinked(item: dict[str, Any], source_text: str, source_notice: str) -> dict[str, Any]:
+    if item.get("url"):
+        return attach_reading_view(item)
+    item["source_summary"] = source_text
+    item["source_summary_notice"] = source_notice
+    item["summary"] = self_summary(
+        str(item.get("title") or "公开研报"),
+        str(item.get("organization") or "公开研究机构"),
+        [str(topic) for topic in item.get("topics", [])],
+        source_text,
+    )
+    item["summary_type"] = "ai_generated_summary"
+    item["summary_notice"] = SELF_SUMMARY_NOTICE
+    item = attach_reading_view(item)
+    item["reading_view"]["reading_notice"] = SELF_SUMMARY_NOTICE
+    return item
+
+
+def diversified_top(items: list[dict[str, Any]], limit: int, per_organization: int = 2) -> list[dict[str, Any]]:
+    """Select score-ranked reports while preventing one institution from filling a section."""
+    selected: list[dict[str, Any]] = []
+    deferred: list[dict[str, Any]] = []
+    counts: dict[str, int] = {}
+    for item in items:
+        organization = str(item.get("organization") or "来源待核验")
+        if counts.get(organization, 0) >= per_organization:
+            deferred.append(item)
+            continue
+        selected.append(item)
+        counts[organization] = counts.get(organization, 0) + 1
+        if len(selected) == limit:
+            return selected
+    for item in deferred:
+        if len(selected) == limit:
+            break
+        selected.append(item)
+    return selected
 
 
 def load_object(path: Path) -> dict[str, Any]:
@@ -189,7 +264,7 @@ def normalize_item(row: dict[str, Any], sector: str, product: str) -> dict[str, 
             if source_summary else
             "AI基于来源字段生成信息缺失提示，不代表来源方官方立场，也不构成投资建议；请自行核验。"
         ),
-        "organization": public_text(row.get("author") or "机构研究"),
+        "organization": organization_name(row.get("author"), title, "华泰期货"),
         "published_at": published,
         "sector": sector,
         "topics": topics[:4],
@@ -199,7 +274,8 @@ def normalize_item(row: dict[str, Any], sector: str, product: str) -> dict[str, 
     url = source_url(row)
     if url:
         item["url"] = url
-    return attach_reading_view(item)
+    source_notice = str(item["summary_notice"])
+    return summarize_if_unlinked(item, summary, source_notice)
 
 
 def public_search_rows(paths: list[Path]) -> list[dict[str, Any]]:
@@ -231,7 +307,7 @@ def normalize_public_search_item(row: dict[str, Any]) -> dict[str, Any]:
             if summary else
             "AI基于来源字段生成信息缺失提示，不代表来源方官方立场，也不构成投资建议；请自行核验。"
         ),
-        "organization": public_text(extra.get("organization") or "公开研究机构"),
+        "organization": organization_name(extra.get("organization"), title, "公开研究机构"),
         "published_at": published,
         "sector": sector,
         "topics": [str(topic) for topic in topics[:4]],
@@ -241,7 +317,8 @@ def normalize_public_search_item(row: dict[str, Any]) -> dict[str, Any]:
     url = source_url(row)
     if url:
         item["url"] = url
-    return attach_reading_view(item)
+    source_notice = str(item["summary_notice"])
+    return summarize_if_unlinked(item, summary, source_notice)
 
 
 def mx_search_rows(paths: list[Path]) -> list[dict[str, Any]]:
@@ -277,14 +354,15 @@ def normalize_mx_search_item(row: dict[str, Any]) -> dict[str, Any]:
             if summary else
             "AI基于来源字段生成信息缺失提示，不代表来源方官方立场，也不构成投资建议；请自行核验。"
         ),
-        "organization": public_text(row.get("insName") or row.get("author") or "公开研究机构"),
+        "organization": organization_name(row.get("insName") or row.get("author"), title, "公开研究机构"),
         "published_at": published,
         "sector": sector,
         "topics": topics,
         "source": "东方财富妙想资讯搜索（研究报告）",
         "source_channel": "mx-search",
     }
-    return attach_reading_view(item)
+    source_notice = str(item["summary_notice"])
+    return summarize_if_unlinked(item, summary, source_notice)
 
 
 def score_quality(item: dict[str, Any], report_date: date) -> tuple[int, list[str]]:
@@ -387,15 +465,18 @@ def select(
         item["ai_notice"] = "推荐分、筛选和推荐依据由AI基于所列来源字段生成，不代表任何来源方官方立场，也不构成投资建议；请自行核验。"
     candidates.sort(key=lambda item: (item["recommendation_score"], item["published_at"], item["title"]), reverse=True)
     seen: set[str] = set()
+    seen_families: set[str] = set()
     for item in candidates:
         key = dedupe_key(item)
-        if not key or key in seen:
+        family = report_family_key(item)
+        if not key or key in seen or family in seen_families:
             continue
         seen.add(key)
+        seen_families.add(family)
         (oil if item["sector"] == "油脂油料" else cross).append(item)
     oil.sort(key=lambda item: (item["recommendation_score"], item["published_at"]), reverse=True)
     cross.sort(key=lambda item: (item["recommendation_score"], item["published_at"]), reverse=True)
-    selected = oil[:7] + cross[:3]
+    selected = diversified_top(oil, 7) + diversified_top(cross, 3)
     selected_counts: dict[str, int] = {}
     for item in selected:
         selected_counts[item["source_channel"]] = selected_counts.get(item["source_channel"], 0) + 1
@@ -425,14 +506,14 @@ def build(
         supplemental_candidates = candidate_source_counts["report-search"] + candidate_source_counts["mx-search"]
         if (
             previous.get("items")
-            and int(previous.get("schema_version") or 0) >= 5
+            and int(previous.get("schema_version") or 0) >= 6
             and previous_date
             and latest_date
             and previous_date >= latest_date
             and supplemental_candidates == 0
         ):
             previous.update({
-                "schema_version": 5,
+                "schema_version": 6,
                 "status": "ready" if previous_date == today else "stale",
                 "last_scanned_at": now.astimezone(SHANGHAI).isoformat(timespec="seconds"),
                 "source_status": source_status,
@@ -444,7 +525,7 @@ def build(
         oil_count = sum(item["sector"] == "油脂油料" for item in items)
         cross_count = sum(item["sector"] == "跨板块" for item in items)
         return {
-            "schema_version": 5,
+            "schema_version": 6,
             "status": "ready" if fresh_item_count else "stale",
             "report_date": latest_date.isoformat() if latest_date else None,
             "generated_at": now.astimezone(SHANGHAI).isoformat(timespec="seconds"),
@@ -458,13 +539,13 @@ def build(
             "allocation": {"油脂油料": oil_count, "跨板块": cross_count, "target": "70% / 30%"},
             "source_counts": source_counts,
             "source_status": source_status,
-            "source_policy": "机构研报、问财公开研报搜索与东方财富妙想来源平权；仅按质量评分择优；跨源标题去重",
+            "source_policy": "华泰研报、问财公开研报搜索与东方财富妙想来源统一评分；按机构和报告系列去重；同一板块单一机构优先最多2篇，其余名额按评分回补",
             "items": items,
             "notice": "推荐分、筛选和推荐依据由AI基于所列来源字段生成，不代表任何来源方官方立场，也不构成投资建议；请自行核验。",
         }
     if previous and previous.get("items"):
         previous.update({
-            "schema_version": 5,
+            "schema_version": 6,
             "status": "stale",
             "generated_at": now.astimezone(SHANGHAI).isoformat(timespec="seconds"),
             "last_scanned_at": now.astimezone(SHANGHAI).isoformat(timespec="seconds"),
@@ -474,7 +555,7 @@ def build(
         })
         return previous
     return {
-        "schema_version": 5,
+        "schema_version": 6,
         "status": "pending",
         "report_date": None,
         "generated_at": now.astimezone(SHANGHAI).isoformat(timespec="seconds"),

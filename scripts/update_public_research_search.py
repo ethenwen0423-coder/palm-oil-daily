@@ -16,9 +16,9 @@ from pathlib import Path
 API_URL = "https://openapi.iwencai.com/v1/comprehensive/search"
 
 
-def request_body(query: str, api_key: str, timeout: int) -> bytes:
+def request_body(query: str, api_key: str, timeout: int, size: int = 20) -> bytes:
     body = json.dumps(
-        {"channels": ["report"], "app_id": "AIME_SKILL", "query": query},
+        {"query": query, "channels": ["report"], "app_id": "AIME_SKILL", "size": size},
         ensure_ascii=False,
         separators=(",", ":"),
     ).encode("utf-8")
@@ -31,7 +31,7 @@ def request_body(query: str, api_key: str, timeout: int) -> bytes:
             "Authorization": f"Bearer {api_key}",
             "X-Claw-Call-Type": "normal",
             "X-Claw-Skill-Id": "report-search",
-            "X-Claw-Skill-Version": "2.0.0",
+            "X-Claw-Skill-Version": "1.0.0",
             "X-Claw-Plugin-Id": "none",
             "X-Claw-Plugin-Version": "none",
             "X-Claw-Trace-Id": secrets.token_hex(32),
@@ -54,13 +54,14 @@ def main() -> int:
     parser.add_argument("--query", required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--timeout", type=int, default=60)
+    parser.add_argument("--size", type=int, default=20)
     args = parser.parse_args()
     api_key = os.environ.get("IWENCAI_API_KEY", "").strip()
     if not api_key:
         print("IWENCAI_API_KEY is not configured")
         return 2
     try:
-        atomic_write(args.output, request_body(args.query, api_key, args.timeout))
+        atomic_write(args.output, request_body(args.query, api_key, args.timeout, args.size))
         print(f"raw_response={args.output}")
         return 0
     except urllib.error.HTTPError as exc:

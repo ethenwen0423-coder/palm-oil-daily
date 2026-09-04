@@ -472,8 +472,9 @@
 
   function researchDetailHtml(item) {
     const sections = item.researchSections || {};
-    const sourceControl = item.url ? `<a href="${esc(item.url)}" target="_blank" rel="noopener noreferrer">查看原始研报</a>` : item.sourceSummaryAvailable ? '<small class="timeline-source-note">来源未提供可直接打开的原始研报链接；可在下方核验未按字数截断的完整来源摘要。</small>' : '<small class="timeline-source-note">来源未提供可直接打开的原始研报链接或可核验摘要，本站不补写内容性结论。</small>';
-    const fullSummary = item.sourceSummaryAvailable ? `<details class="research-source-summary"><summary>查看完整来源摘要</summary><p>${esc(item.sourceSummary)}</p>${item.summaryNotice ? `<small class="timeline-source-note">${esc(item.summaryNotice)}</small>` : ""}</details>` : "";
+    const sourceControl = item.url ? `<a href="${esc(item.url)}" target="_blank" rel="noopener noreferrer">查看原始研报</a>` : item.selfSummary ? '<small class="timeline-source-note">原始研报链接不可用；本站已根据来源返回字段生成 AI 自我总结，并在下方保留未按字数截断、用于核验的来源片段。</small>' : '<small class="timeline-source-note">来源未提供可直接打开的原始研报链接或可核验摘要；当前仅显示信息缺失说明。</small>';
+    const sourceLabel = item.selfSummary ? "查看用于总结的来源片段" : "查看完整来源摘要";
+    const fullSummary = item.sourceSummaryAvailable ? `<details class="research-source-summary"><summary>${sourceLabel}</summary><p>${esc(item.sourceSummary)}</p>${item.sourceSummaryNotice ? `<small class="timeline-source-note">${esc(item.sourceSummaryNotice)}</small>` : ""}</details>` : "";
     return `<section class="research-reading-detail"><div class="research-section-grid">${researchSectionHtml("核心观点", sections.core, "来源摘要未提供可独立提取的核心观点。")}${researchSectionHtml("策略建议", sections.strategy, "来源摘要未单列策略建议。")}${researchSectionHtml("风险提示", sections.risk, "来源摘要未单列风险，需进一步核验。")}</div><small class="timeline-ai-notice">${esc(item.readingNotice)}</small></section><section class="research-recommendation"><span>推荐与来源</span><p>${esc(item.detail)}</p><div class="research-evidence">${array(item.evidence).filter(Boolean).map((entry) => `<b>${esc(entry)}</b>`).join("")}</div>${sourceControl}</section>${fullSummary}`;
   }
 
@@ -523,13 +524,13 @@
         const reading = researchReading(item);
         events.push({
           type: "report", category: first(item.sector, "公开研报"), title: first(item.title, "公开研报"),
-          summary: first(item.summary, "机构公开晨报已更新"), sourceSummary: first(item.summary, ""), summaryNotice: first(item.summary_notice, ""),
+          summary: first(item.summary, "机构公开晨报已更新"), sourceSummary: first(item.source_summary, item.summary), summaryNotice: first(item.summary_notice, ""), sourceSummaryNotice: first(item.source_summary_notice, item.summary_notice),
           quickPoints: array(reading.quick_points), researchSections: reading.sections || {}, readingNotice: first(reading.reading_notice, item.ai_notice),
           detail: `推荐依据：${first(item.recommendation_reason, "与市场研究相关")}。${first(item.ai_notice, "推荐分、筛选和推荐依据由AI基于所列来源字段生成，不代表任何来源方官方立场，也不构成投资建议；请自行核验。")}`,
           evidence: [first(item.organization, "机构研究"), `推荐分 ${first(item.recommendation_score, "--")}`, ...array(item.topics)],
           source: first(item.source, "公开研报搜索"), time: item.published_at || data.researchWatch.generated_at,
           scope: array(item.topics).join(" · ") || first(item.sector, "跨板块"), impact: "中", nextCheck: "下一轮5分钟研报扫描", url: item.url,
-          isPublicResearch: true, sourceSummaryAvailable: item.summary_type !== "missing_source_content"
+          isPublicResearch: true, selfSummary: item.summary_type === "ai_generated_summary", sourceSummaryAvailable: Boolean(item.source_summary || item.summary_type !== "missing_source_content")
         });
       });
     }

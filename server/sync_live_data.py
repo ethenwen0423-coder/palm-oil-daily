@@ -42,6 +42,12 @@ REVIEW_PATHS = (
 UPSTREAM_PATHS = REPORT_PATHS + REVIEW_PATHS
 SUPPLY_PATHS = ("supply-demand.json",)
 HTFC_PATHS = ("htfc_tianji.json", "research_watch.json")
+HTFC_CACHE_PATHS = (
+    "research_cache/report_search_oil.json",
+    "research_cache/report_search_cross.json",
+    "research_cache/mx_search_oil.json",
+    "research_cache/mx_search_cross.json",
+)
 MARKET_PATHS = (
     "oil_futures.js",
     "oil_futures.json",
@@ -75,6 +81,7 @@ JSON_PATHS = {
     "market_assistant_brief.json",
     "htfc_tianji.json",
     "research_watch.json",
+    *HTFC_CACHE_PATHS,
     "ai_daredevil.json",
     "ai_daredevil_monthly_backtest.json",
     "ai_daredevil_pure_ai.json",
@@ -621,6 +628,7 @@ def sync_htfc(
     session: str,
 ) -> dict[str, object]:
     copied = synchronize_paths(source_root, target_root, HTFC_PATHS, required=True)
+    copied.extend(synchronize_paths(source_root, target_root, HTFC_CACHE_PATHS, required=False))
     write_marker(
         target_root,
         HTFC_READY_MARKER,

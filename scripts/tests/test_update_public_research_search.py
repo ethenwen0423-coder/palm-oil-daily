@@ -43,9 +43,9 @@ class PublicResearchSearchTests(unittest.TestCase):
         request = captured["request"]
         payload = json.loads(request.data)
         self.assertEqual(result, raw)
-        self.assertEqual(payload, {"channels": ["report"], "app_id": "AIME_SKILL", "query": "棕榈油 研报"})
+        self.assertEqual(payload, {"query": "棕榈油 研报", "channels": ["report"], "app_id": "AIME_SKILL", "size": 20})
         self.assertEqual(request.get_header("X-claw-skill-id"), "report-search")
-        self.assertEqual(request.get_header("X-claw-skill-version"), "2.0.0")
+        self.assertEqual(request.get_header("X-claw-skill-version"), "1.0.0")
         self.assertEqual(len(request.get_header("X-claw-trace-id")), 64)
         self.assertEqual(request.get_header("Authorization"), "Bearer secret")
 

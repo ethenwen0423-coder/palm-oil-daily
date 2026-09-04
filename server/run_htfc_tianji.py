@@ -19,6 +19,14 @@ from zoneinfo import ZoneInfo
 DEFAULT_SITE_ROOT = Path("/srv/palm-oil-daily/site")
 DEFAULT_LIVE_DATA_ROOT = Path("/srv/palm-oil-daily/live-data")
 SUPPLEMENTAL_REFRESH_HOURS = (7, 10, 14, 18)
+PUBLIC_CACHE_PATHS = {
+    "oil": Path("research_cache/report_search_oil.json"),
+    "cross": Path("research_cache/report_search_cross.json"),
+}
+MX_CACHE_PATHS = {
+    "oil": Path("research_cache/mx_search_oil.json"),
+    "cross": Path("research_cache/mx_search_cross.json"),
+}
 
 
 def supplemental_refresh_slot(now: datetime) -> str | None:
@@ -67,6 +75,19 @@ def load_sync(site_root: Path):
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+def restore_cached_inputs(output_root: Path, live_data_root: Path, cache_paths: dict[str, Path]) -> list[str]:
+    inputs: list[str] = []
+    for relative in cache_paths.values():
+        source = live_data_root / relative
+        target = output_root / relative
+        if not source.is_file():
+            continue
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, target)
+        inputs.append(str(target))
+    return inputs
 
 
 def main() -> int:
@@ -122,7 +143,8 @@ def main() -> int:
                         "available_modules": [],
                     }
                     output.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
-            public_search_inputs = []
+            public_cache_inputs = restore_cached_inputs(output_root, live_data_root, PUBLIC_CACHE_PATHS)
+            public_search_inputs = [value for path in public_cache_inputs for value in ("--public-search", path)]
             public_search_count = 0
             scan_now = datetime.now(ZoneInfo("Asia/Shanghai"))
             refresh_slot = supplemental_refresh_slot(scan_now)
@@ -152,11 +174,18 @@ def main() -> int:
                     "last_attempt_at": scan_now.isoformat(timespec="seconds"),
                 }
                 public_failures: list[str] = []
+                today = scan_now.date()
+                yesterday = today - timedelta(days=1)
+                date_window = (
+                    f"{yesterday.year}年{yesterday.month}月{yesterday.day}日"
+                    f"至{today.year}年{today.month}月{today.day}日"
+                )
                 for name, query in (
-                    ("oil", "棕榈油 豆油 菜油 油脂油料 研报"),
-                    ("cross", "原油 宏观 农产品 研报"),
+                    ("oil", f"{date_window} 棕榈油 豆油 菜油 油脂油料 期货研报 研究报告"),
+                    ("cross", f"{date_window} 原油 宏观 农产品 期货研报 研究报告"),
                 ):
-                    public_output = output_root / f"public_research_{name}.json"
+                    public_output = output_root / PUBLIC_CACHE_PATHS[name]
+                    public_output.parent.mkdir(parents=True, exist_ok=True)
                     try:
                         public_result = subprocess.run(
                             [
@@ -181,7 +210,6 @@ def main() -> int:
                         public_failures.append("request_failed")
                         continue
                     if public_result.returncode == 0 and public_output.is_file():
-                        public_search_inputs.extend(["--public-search", str(public_output)])
                         public_search_count += 1
                     else:
                         public_failures.append(failure_status(public_result.stdout or ""))
@@ -189,7 +217,14 @@ def main() -> int:
                     source_status["report-search"]["status"] = "ready"
                 elif "quota_exhausted" in public_failures:
                     source_status["report-search"]["status"] = "quota_exhausted"
-            mx_search_inputs = []
+            public_search_inputs = [
+                value
+                for relative in PUBLIC_CACHE_PATHS.values()
+                if (output_root / relative).is_file()
+                for value in ("--public-search", str(output_root / relative))
+            ]
+            mx_cache_inputs = restore_cached_inputs(output_root, live_data_root, MX_CACHE_PATHS)
+            mx_search_inputs = [value for path in mx_cache_inputs for value in ("--mx-search", path)]
             mx_search_count = 0
             previous_mx = previous_status.get("mx-search", {}) if isinstance(previous_status.get("mx-search"), dict) else {}
             attempt_mx = mx_configured and refresh_slot is not None and previous_mx.get("attempt_slot") != refresh_slot
@@ -211,7 +246,8 @@ def main() -> int:
                     ("oil", f"{date_window} 棕榈油 豆油 菜油 油脂油料 券商研报 研究报告"),
                     ("cross", f"{date_window} 原油 宏观 农产品 券商研报 研究报告"),
                 ):
-                    mx_output = output_root / f"mx_research_{name}.json"
+                    mx_output = output_root / MX_CACHE_PATHS[name]
+                    mx_output.parent.mkdir(parents=True, exist_ok=True)
                     try:
                         mx_result = subprocess.run(
                             [
@@ -236,7 +272,6 @@ def main() -> int:
                         mx_failures.append("request_failed")
                         continue
                     if mx_result.returncode == 0 and mx_output.is_file():
-                        mx_search_inputs.extend(["--mx-search", str(mx_output)])
                         mx_search_count += 1
                     else:
                         mx_failures.append(failure_status(mx_result.stdout or ""))
@@ -244,6 +279,12 @@ def main() -> int:
                     source_status["mx-search"]["status"] = "ready"
                 elif "quota_exhausted" in mx_failures:
                     source_status["mx-search"]["status"] = "quota_exhausted"
+            mx_search_inputs = [
+                value
+                for relative in MX_CACHE_PATHS.values()
+                if (output_root / relative).is_file()
+                for value in ("--mx-search", str(output_root / relative))
+            ]
             source_status_output = output_root / "research_source_status.json"
             source_status_output.write_text(json.dumps(source_status, ensure_ascii=False), encoding="utf-8")
             research_output = output_root / "research_watch.json"

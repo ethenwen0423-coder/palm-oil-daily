@@ -40,7 +40,7 @@ class ResearchWatchTests(unittest.TestCase):
         self.assertEqual(payload["status"], "ready")
         self.assertEqual(payload["allocation"], {"油脂油料": 7, "跨板块": 3, "target": "70% / 30%"})
         self.assertEqual(len(payload["items"]), 10)
-        self.assertEqual(payload["schema_version"], 5)
+        self.assertEqual(payload["schema_version"], 6)
         self.assertNotIn("<", json.dumps(payload, ensure_ascii=False))
 
     def test_merges_public_search_and_preserves_source_content(self):
@@ -69,7 +69,8 @@ class ResearchWatchTests(unittest.TestCase):
         self.assertIn("institution-report-skill", result["source_counts"])
         self.assertIn("report-search", result["source_counts"])
         self.assertEqual(result["candidate_source_counts"]["report-search"], 1)
-        self.assertEqual(result["source_policy"], "机构研报、问财公开研报搜索与东方财富妙想来源平权；仅按质量评分择优；跨源标题去重")
+        self.assertIn("统一评分", result["source_policy"])
+        self.assertIn("报告系列去重", result["source_policy"])
 
     def test_merges_mx_reports_and_refreshes_weekend_snapshot(self):
         now = datetime(2026, 8, 31, 10, 5, tzinfo=SHANGHAI)
@@ -97,7 +98,9 @@ class ResearchWatchTests(unittest.TestCase):
         self.assertIn("mx-search", result["source_counts"])
         mx_item = next(item for item in result["items"] if item["source_channel"] == "mx-search")
         self.assertEqual(mx_item["organization"], "公开期货机构")
-        self.assertIn("保持来源内容完整展示", mx_item["summary_notice"])
+        self.assertEqual(mx_item["summary_type"], "ai_generated_summary")
+        self.assertIn("AI自我总结", mx_item["summary_notice"])
+        self.assertIn("保持来源内容完整展示", mx_item["source_summary_notice"])
 
     def test_mx_original_crude_title_is_cross_sector_even_if_body_mentions_oilseeds(self):
         item = MODULE.normalize_mx_search_item({
@@ -169,6 +172,7 @@ class ResearchWatchTests(unittest.TestCase):
             "subclassCodeName": "宏观",
             "publishDateTime": "2026-08-27 08:00:00",
             "aiContent": summary,
+            "link_url": "https://example.test/structured-report",
         }, "跨板块", "MACRO")
         view = item["reading_view"]
         self.assertEqual(item["summary"], summary)
@@ -190,7 +194,7 @@ class ResearchWatchTests(unittest.TestCase):
         ])
         self.assertTrue(all(point["text"].endswith("。") for point in view["quick_points"]))
 
-    def test_missing_link_uses_full_source_summary_without_fabricating_url(self):
+    def test_missing_link_generates_summary_and_preserves_source_material_without_fabricating_url(self):
         item = MODULE.normalize_item({
             "id": "institution-no-link",
             "title": "机构晨报",
@@ -198,9 +202,43 @@ class ResearchWatchTests(unittest.TestCase):
             "publishDateTime": "2026-08-27 08:00:00",
             "brief": "核心信息一。核心信息二。风险信息三。",
         }, "跨板块", "MACRO")
-        self.assertEqual(item["summary"], "核心信息一。核心信息二。风险信息三。")
-        self.assertEqual(item["summary_type"], "source_summary")
+        self.assertIn("核心结论：核心信息一。", item["summary"])
+        self.assertEqual(item["source_summary"], "核心信息一。核心信息二。风险信息三。")
+        self.assertEqual(item["summary_type"], "ai_generated_summary")
+        self.assertIn("AI自我总结", item["summary_notice"])
         self.assertNotIn("url", item)
+
+    def test_report_family_dedup_and_institution_diversity_allow_other_sources(self):
+        report_date = datetime(2026, 9, 4, 13, 20, tzinfo=SHANGHAI).date()
+        products = {
+            "P": {"response": {"data": {"resultList": [
+                report(f"ht-{day}", f"华泰期货油脂日报202609{day:02d}：每日观点", "棕榈油", f"2026-09-{day:02d} 08:00:00")
+                for day in range(1, 5)
+            ]}}},
+            "Y": {"response": {"data": {"resultList": []}}},
+            "OI": {"response": {"data": {"resultList": []}}},
+            "SC": {"response": {"data": {"resultList": []}}},
+            "MACRO": {"response": {"data": {"resultList": []}}},
+        }
+        payload = {"modules": {"research_reports": {"products": products}}}
+        with tempfile.TemporaryDirectory() as temporary:
+            public = Path(temporary) / "public.json"
+            public.write_text(json.dumps({"data": [
+                {
+                    "uid": f"public-{index}",
+                    "title": f"机构{index}棕榈油深度报告：供需跟踪",
+                    "summary": "库存、产量、出口与基差均有量化数据，风险来自政策变化。价格10000，库存20，出口30。",
+                    "publish_date": "2026-09-04 07:30:00",
+                    "extra": {"organization": f"机构{index}", "cat_names": ["农产品"]},
+                    "url": f"https://example.test/{index}",
+                }
+                for index in range(1, 5)
+            ]}, ensure_ascii=False), encoding="utf-8")
+            selected, *_ = MODULE.select(payload, report_date, [public])
+        titles = [item["title"] for item in selected]
+        self.assertEqual(sum(title.startswith("华泰期货油脂日报") for title in titles), 1)
+        self.assertTrue(any(item["source_channel"] == "report-search" for item in selected))
+        self.assertEqual(len({MODULE.report_family_key(item) for item in selected}), len(selected))
 
     def test_ai_generated_recommendation_warning_is_complete(self):
         report_date = datetime(2026, 8, 27, 8, 35, tzinfo=SHANGHAI).date()
@@ -243,7 +281,7 @@ class ResearchWatchTests(unittest.TestCase):
         self.assertNotEqual(payload["items"], [{"id": "frozen"}])
         self.assertEqual(payload["report_date"], "2026-08-27")
         self.assertEqual(payload["refresh_policy"], "机构研报每5分钟扫描；公开搜索每日07/10/14/18时段各刷新一次；按质量重新择优")
-        self.assertEqual(payload["schema_version"], 5)
+        self.assertEqual(payload["schema_version"], 6)
 
     def test_does_not_regress_newer_snapshot_when_supplemental_search_is_unavailable(self):
         now = datetime(2026, 8, 31, 10, 40, tzinfo=SHANGHAI)
@@ -253,7 +291,7 @@ class ResearchWatchTests(unittest.TestCase):
             source.write_text(json.dumps(source_payload(), ensure_ascii=False), encoding="utf-8")
             existing = root / "existing.json"
             existing.write_text(json.dumps({
-                "schema_version": 5,
+                "schema_version": 6,
                 "status": "ready",
                 "report_date": "2026-08-31",
                 "generated_at": "2026-08-31T09:59:05+08:00",
