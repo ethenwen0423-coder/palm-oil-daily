@@ -17,7 +17,9 @@ DAILY_SECTIONS = (
     "今日观点",
     "今日交易信号",
     "核心驱动与预期差",
+    "盘前市场全景",
     "关键数据与价格",
+    "价格预测与验证",
     "开盘推演",
     "风险提示",
     "信息来源与核验说明",
@@ -53,6 +55,10 @@ WEEKEND_STAGES = (
     "正文写作",
     "标题门",
     "报告审计",
+)
+FORECAST_AI_DISCLAIMER = (
+    "以上价格预测由AI基于所列来源和既定模型生成，不代表任何来源方的官方立场，"
+    "不构成投资建议，用户须自行核验。"
 )
 
 
@@ -160,6 +166,14 @@ def validate_report_record(record: dict[str, Any], download_markdown: str) -> di
             errors.append(f"{plan_section}存在空白执行字段")
 
     if kind == "daily":
+        panorama_rows = require_table(
+            markdown,
+            "盘前市场全景",
+            ("维度", "已验证事实", "对P/Y/OI影响", "盘中验证信号"),
+            errors,
+        )
+        if len(panorama_rows) < 4:
+            errors.append("盘前市场全景少于四个完整维度")
         data_rows = require_table(
             markdown,
             "关键数据与价格",
@@ -173,6 +187,28 @@ def validate_report_record(record: dict[str, Any], download_markdown: str) -> di
         ]
         if shallow:
             errors.append(f"关键数据含义过度压缩：{'/'.join(shallow)}")
+        forecast_rows = require_table(
+            markdown,
+            "价格预测与验证",
+            ("品种", "参考价", "基准判断", "下沿观察", "上沿观察", "上修触发", "下修/失效", "置信度"),
+            errors,
+        )
+        if forecast_rows:
+            forecast_symbols = {
+                re.sub(r"\d{4}$", "", row[0].upper()) for row in forecast_rows if row
+            }
+            missing_forecasts = [symbol for symbol in ("P", "Y", "OI") if symbol not in forecast_symbols]
+            if missing_forecasts:
+                errors.append(f"价格预测与验证缺少品种：{'/'.join(missing_forecasts)}")
+            if any(
+                len(row) != 8
+                or any(not re.sub(r"[-—/\s]", "", cell) for cell in row)
+                or re.fullmatch(r"[★☆]{5}", row[7]) is None
+                for row in forecast_rows
+            ):
+                errors.append("价格预测与验证存在空白字段或无效置信度")
+        if FORECAST_AI_DISCLAIMER not in section(markdown, "价格预测与验证"):
+            errors.append("价格预测与验证缺少紧邻的 AI 风险提示")
         require_table(
             markdown,
             "开盘推演",

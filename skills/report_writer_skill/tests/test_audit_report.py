@@ -20,9 +20,21 @@ def source_payload() -> dict:
         "date": "2026-07-27",
         "timestamp": "2026-07-27T08:22:31",
         "domestic": {
-            "soybean_oil": {"name": "豆油", "price": 8609.0, "change_pct": -0.13},
-            "palm_oil": {"name": "棕榈油", "price": 9515.0, "change_pct": -0.57},
-            "rapeseed_oil": {"name": "菜油", "price": 10191.0, "change_pct": -0.88},
+            "soybean_oil": {
+                "name": "豆油", "price": 8609.0, "change_pct": -0.13,
+                "score": {"stance": "观望"},
+                "strategy_recommendation": {"lower_watch": 8500.0, "upper_watch": 8700.0},
+            },
+            "palm_oil": {
+                "name": "棕榈油", "price": 9515.0, "change_pct": -0.57,
+                "score": {"stance": "偏多"},
+                "strategy_recommendation": {"lower_watch": 9480.0, "upper_watch": 9650.0},
+            },
+            "rapeseed_oil": {
+                "name": "菜油", "price": 10191.0, "change_pct": -0.88,
+                "score": {"stance": "观望"},
+                "strategy_recommendation": {"lower_watch": 10000.0, "upper_watch": 10300.0},
+            },
         },
         "external": {
             "bmd_palm_oil": {"name": "BMD 棕油", "price": 4723.0, "change_pct": 0.04},
@@ -121,6 +133,16 @@ def valid_report() -> str:
 
 主驱动一：截至2026-07-24 17:59，FCPO 4723点保持相对韧性，进口成本→国内盘面支撑→P确认后偏强。它说明产地报价尚未跟随内盘转弱，进口成本对P构成下方约束，但不能直接推出国内需求改善；市场已交易外盘韧性，尚未定价的是开盘后国内买盘是否承接，这需要成交和持仓共同核验。主驱动二：截至2026-07-27 08:22的内盘分化限制单边追价。P、Y、OI没有形成同步确认，意味着资金更可能交易品种相对强弱，而不是油脂板块一致趋势。市场预期供应收紧，现实是内盘尚未确认，当前定价并不充分。只有P触发后Y与OI同步走强，成本支撑才会从预期转化为现实，否则继续按区间而非趋势处理。最强反证是原油急跌并引发外盘油脂回落；原油下行会沿生柴估值链压低植物油需求溢价，若同时出现P跌破关键支撑与Y/OI转弱，该情景会推翻偏多判断。
 
+## 【盘前市场全景】
+
+| 维度 | 已验证事实 | 对P/Y/OI影响 | 盘中验证信号 |
+|---|---|---|---|
+| 合约结构 | P/Y/OI真实主次交割月均纳入 | 观察换月与品种分化 | 主次合约涨跌与持仓是否同向 |
+| 外盘与能源 | FCPO保持韧性、原油回落 | P获成本支撑，Y/OI看共振 | FCPO与原油是否同向 |
+| 供需库存与价差 | 豆棕与菜豆价差仍分化 | P相对强，OI溢价待验证 | 价差是否延续 |
+| 天气政策与事件 | BMD事件仅作已验证交叉证据 | 先影响预期，再看内盘兑现 | P/Y/OI是否同步 |
+| 资金与技术 | 内盘尚无同步确认 | 不支持板块单边追价 | 成交持仓是否放大 |
+
 ## 【关键数据与价格】
 
 | 指标 | 数值 | 时点 | 含义 |
@@ -134,6 +156,16 @@ def valid_report() -> str:
 | 菜豆价差 | 1582元/吨 | 2026-07-27 08:22 | OI相对溢价 |
 | P止损关键位 | 9480元/吨 | 2026-07-27日内 | 失守则放弃偏多 |
 | P目标关键位 | 9600-9650元/吨 | 2026-07-27日内 | 触及后不追价 |
+
+## 【价格预测与验证】
+
+| 品种 | 参考价 | 基准判断 | 下沿观察 | 上沿观察 | 上修触发 | 下修/失效 | 置信度 |
+|---|---:|---|---:|---:|---|---|---|
+| P | 9515元/吨 | 偏多 | 9480 | 9650 | 站稳上沿且Y/OI同步 | 跌破下沿且Y/OI转弱 | ★★☆☆☆ |
+| Y | 8609元/吨 | 观望 | 8500 | 8700 | 突破上沿并与P同步 | 跌破下沿或与P背离 | ★★☆☆☆ |
+| OI | 10191元/吨 | 观望 | 10000 | 10300 | 突破上沿并与P同步 | 跌破下沿或与P背离 | ★★☆☆☆ |
+
+以上价格预测由AI基于所列来源和既定模型生成，不代表任何来源方的官方立场，不构成投资建议，用户须自行核验。以上为盘前条件预测和观察边界，不承诺日内价格区间。
 
 ## 【开盘推演】
 
@@ -161,16 +193,62 @@ def valid_report() -> str:
 
 ## 【AI观点风险提示】
 
-本报告由AI基于公开信息、已调用数据源和既定研究框架生成，仅代表生成时点的研究判断，不构成投资建议或交易指令。期货价格波动较大，客户应结合自身风险承受能力独立决策。
+本报告由AI基于所列公开信息、已调用数据源和既定研究框架生成，其中AI观点、总结、解释、推论、标题与结论仅代表生成时点的研究判断，不代表任何来源方的官方立场，不构成投资建议或交易指令。期货价格波动较大，用户须自行核验，并结合自身风险承受能力独立决策。
 """
     count = audit.visible_body_chars(report)
-    if count < 1050:
+    if count < 1550:
         filler = "研究补充说明资金与价差需要共同确认否则不改变基准判断"
-        report = report.replace("市场预期", filler * ((1050 - count) // len(filler) + 1) + "。市场预期")
+        report = report.replace("市场预期", filler * ((1550 - count) // len(filler) + 1) + "。市场预期")
     return report
 
 
 class AuditReportTest(unittest.TestCase):
+    def test_panorama_requires_real_rank_two_contract_when_available(self) -> None:
+        source = source_payload()
+        source["contract_structure"] = {
+            "P": [
+                {"contract_rank": 1, "contract": "P2609", "price": 9515.0},
+                {"contract_rank": 2, "contract": "P2701", "price": 9608.0},
+            ],
+            "Y": [],
+            "OI": [],
+        }
+        failures: list[str] = []
+        audit._require_panorama_table(
+            """| 维度 | 已验证事实 | 对P/Y/OI影响 | 盘中验证信号 |
+|---|---|---|---|
+| 合约结构 | P2609报9515，P2701报9608 | P观察换月 | 主次同向 |
+| 外盘能源 | FCPO偏稳 | P获支撑 | 外盘同向 |
+| 供需库存价差 | 库存偏高 | 上方受限 | 价差延续 |
+| 资金技术 | 持仓待确认 | 三油分化 | 成交放大 |""",
+            source,
+            failures,
+        )
+        self.assertEqual(failures, [])
+
+        failures = []
+        audit._require_panorama_table(
+            """| 维度 | 已验证事实 | 对P/Y/OI影响 | 盘中验证信号 |
+|---|---|---|---|
+| 合约结构 | P2609报9515 | P观察换月 | 主次同向 |
+| 外盘能源 | FCPO偏稳 | P获支撑 | 外盘同向 |
+| 供需库存价差 | 库存偏高 | 上方受限 | 价差延续 |
+| 资金技术 | 持仓待确认 | 三油分化 | 成交放大 |""",
+            source,
+            failures,
+        )
+        self.assertTrue(any("P rank=2" in item for item in failures))
+
+    def test_forecast_table_rejects_invented_watch_boundary(self) -> None:
+        section = """| 品种 | 参考价 | 基准判断 | 下沿观察 | 上沿观察 | 上修触发 | 下修/失效 | 置信度 |
+|---|---:|---|---:|---:|---|---|---|
+| P | 9515 | 偏多 | 9480 | 9999 | 站稳上沿 | 跌破下沿 | ★★☆☆☆ |
+| Y | 8609 | 观望 | 8500 | 8700 | 站稳上沿 | 跌破下沿 | ★★☆☆☆ |
+| OI | 10191 | 观望 | 10000 | 10300 | 站稳上沿 | 跌破下沿 | ★★☆☆☆ |"""
+        failures: list[str] = []
+        audit._require_forecast_table(section, source_payload(), outline_payload(), failures)
+        self.assertTrue(any("P 与结构化数据不一致：上沿观察" in item for item in failures))
+
     def test_fresh_event_display_alias_is_auditable_but_empty_value_is_not(self) -> None:
         item = {
             "source": "机构资讯·油脂油料快讯",
@@ -461,7 +539,7 @@ class AuditReportTest(unittest.TestCase):
         _, report, outline, source, feedback = self.run_audit()
         report.write_text(
             report.read_text(encoding="utf-8").replace(
-                "期货价格波动较大，客户应结合自身风险承受能力独立决策。", ""
+                "期货价格波动较大，用户须自行核验，并结合自身风险承受能力独立决策。", ""
             ),
             encoding="utf-8",
         )

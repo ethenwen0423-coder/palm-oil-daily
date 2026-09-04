@@ -283,6 +283,51 @@ def market_record(item: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def contract_structure(payload: dict[str, Any], report_date: str) -> dict[str, list[dict[str, Any]]]:
+    """Expose auditable rank-1/rank-2 curves without weakening rank-1 gates."""
+    result: dict[str, list[dict[str, Any]]] = {}
+    expected = datetime.fromisoformat(report_date).date()
+    for product in PRODUCT_KEYS:
+        rows: list[dict[str, Any]] = []
+        for item in payload.get("contracts", []):
+            if not isinstance(item, dict) or str(item.get("product") or "").upper() != product:
+                continue
+            try:
+                rank = int(item.get("contract_rank"))
+            except (TypeError, ValueError):
+                continue
+            if rank not in {1, 2}:
+                continue
+            trade_date = str(item.get("trade_date") or "").strip()
+            try:
+                observed = datetime.fromisoformat(trade_date).date()
+            except ValueError as exc:
+                raise ReportInputError(
+                    f"invalid contract-structure trade date: {product} rank={rank}"
+                ) from exc
+            if observed > expected:
+                raise ReportInputError(
+                    f"future-dated contract structure: {product} rank={rank} {trade_date}"
+                )
+            price = as_number(item.get("price"))
+            if price is None:
+                continue
+            rows.append(
+                {
+                    "contract_rank": rank,
+                    "contract": item.get("contract") or item.get("symbol"),
+                    "price": price,
+                    "change_pct": as_number(item.get("change")),
+                    "trade_date": trade_date,
+                    "volume": as_number(item.get("volume")),
+                    "open_interest": as_number(item.get("open_interest")),
+                    "source": item.get("source") or "需进一步核验",
+                }
+            )
+        result[product] = sorted(rows, key=lambda row: int(row["contract_rank"]))
+    return result
+
+
 def first_contract(payload: dict[str, Any], product: str) -> dict[str, Any] | None:
     for item in payload.get("contracts", []):
         if isinstance(item, dict) and str(item.get("product") or "").upper() == product:
@@ -458,6 +503,7 @@ def build_snapshot(
         "market_status": "服务器自动采集",
         "source_mode": "server_live_data",
         "domestic": domestic,
+        "contract_structure": contract_structure(oil, report_date),
         "external": external,
         "fundamental": {
             "official_supply_demand": {

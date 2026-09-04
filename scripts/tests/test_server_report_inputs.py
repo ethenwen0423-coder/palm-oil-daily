@@ -21,13 +21,13 @@ def write_json(root: Path, relative: str, payload: object) -> None:
     target.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
 
 
-def contract(product: str, price: str, change: str) -> dict[str, object]:
+def contract(product: str, price: str, change: str, rank: int = 1) -> dict[str, object]:
     return {
         "product": product,
         "product_name": product,
         "symbol": f"{product}2609",
         "contract": f"{product}2609",
-        "contract_rank": 1,
+        "contract_rank": rank,
         "price": price,
         "change": change,
         "preclose": "9000",
@@ -66,8 +66,11 @@ class ServerReportInputsTest(unittest.TestCase):
                 "updated_at": "2026-08-07 23:10",
                 "contracts": [
                     contract("P", "9200", "+1.00%"),
+                    {**contract("P", "9250", "+0.80%", 2), "symbol": "P2701", "contract": "P2701"},
                     contract("Y", "8300", "-0.50%"),
+                    {**contract("Y", "8350", "-0.30%", 2), "symbol": "Y2701", "contract": "Y2701"},
                     contract("OI", "9900", "+0.20%"),
+                    {**contract("OI", "9950", "+0.10%", 2), "symbol": "OI2701", "contract": "OI2701"},
                     {
                         **contract("FCPO", "4400", "-0.10%"),
                         "contract_rank": None,
@@ -190,6 +193,11 @@ class ServerReportInputsTest(unittest.TestCase):
             self.assertEqual(snapshot["domestic"]["palm_oil"]["price"], 9200.0)
             self.assertEqual(snapshot["domestic"]["soybean_oil"]["change_pct"], -0.5)
             self.assertEqual(snapshot["domestic"]["palm_oil"]["technical_detail"], ["收盘位于短期均线上方"])
+            self.assertEqual(
+                [row["contract"] for row in snapshot["contract_structure"]["P"]],
+                ["P2609", "P2701"],
+            )
+            self.assertEqual(snapshot["contract_structure"]["Y"][1]["price"], 8350.0)
             self.assertEqual(snapshot["fundamental"]["official_supply_demand"]["latest_metrics"]["production"]["change_pct"], 10.0)
             self.assertEqual(snapshot["fundamental"]["spread"]["soybean_palm_spread"]["price"], -900.0)
             self.assertEqual(snapshot["research_history"]["previous_report"]["date"], "2026-08-02-weekend")

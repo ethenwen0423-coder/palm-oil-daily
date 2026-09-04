@@ -164,7 +164,7 @@ fi
 
 echo "[\$(TZ=Asia/Shanghai date '+%F %T')] missing or invalid, start codex backfill" >> "\$LOG"
 
-PROMPT='这是棕榈油每日晨报的 macOS 系统级调度任务，工作日06:00生成、06:20补检。你只有15分钟完成任务。先核验当天是否为中国期货市场交易日，并检查 reports/当前上海日期.md、data/reports.js、downloads/当前上海日期.md；非交易日或三项均合格时按规范停止。需要生成或补跑时，必须先完整读取并严格执行 references/daily_automation_prompt.md 及其列出的 skills；该文件和 skills/report_writer_skill/SKILL.md 是正文结构的唯一权威。正文严格按新版九栏顺序生成：【今日观点】【今日交易信号】【核心驱动与预期差】【关键数据与价格】【开盘推演】【风险提示】【信息来源与核验说明】【消息来源链接】【AI观点风险提示】。必须覆盖P/Y/OI，交易方向与价位只取自既有数据和策略结果；先完成数据门禁、预测generation feedback、freshness治理、结构化提纲、正文、标题和92分报告审计，再运行 bash scripts/deploy_report.sh。generation feedback只能读取此前已评估结果并下调约束，必须逐字写入required_report_disclosures；晨间任务不得调用或修改收盘复盘入口、actual snapshot、预测评估、滚动指标构建及其调度，也不得改变永久权重、参数或策略。失败时停止发布，不得绕过门禁。'
+PROMPT='这是棕榈油每日晨报的 macOS 系统级调度任务，工作日06:00生成、06:20补检。你只有15分钟完成任务。先核验当天是否为中国期货市场交易日，并检查 reports/当前上海日期.md、data/reports.js、downloads/当前上海日期.md；非交易日或三项均合格时按规范停止。需要生成或补跑时，必须先完整读取并严格执行 references/daily_automation_prompt.md 及其列出的 skills；该文件和 skills/report_writer_skill/SKILL.md 是正文结构的唯一权威。正文严格按新版十一栏顺序生成：【今日观点】【今日交易信号】【核心驱动与预期差】【盘前市场全景】【关键数据与价格】【价格预测与验证】【开盘推演】【风险提示】【信息来源与核验说明】【消息来源链接】【AI观点风险提示】。必须覆盖P/Y/OI，盘前全景使用真实主次交割月合约，价格预测只取自结构化行情、既有策略结果和预测反馈；先完成数据门禁、预测generation feedback、freshness治理、结构化提纲、正文、标题和92分报告审计，再运行 bash scripts/deploy_report.sh。generation feedback只能读取此前已评估结果并下调约束，必须逐字写入required_report_disclosures；晨间任务不得调用或修改收盘复盘入口、actual snapshot、预测评估、滚动指标构建及其调度，也不得改变永久权重、参数或策略。失败时停止发布，不得绕过门禁。'
 
 if ! printf '%s\n' "\$PROMPT" | python3 "\$ROOT/scripts/run_codex_bounded.py" \\
   --timeout-seconds 900 \\

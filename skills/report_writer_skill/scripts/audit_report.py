@@ -20,7 +20,9 @@ DAILY_SECTIONS = (
     "今日观点",
     "今日交易信号",
     "核心驱动与预期差",
+    "盘前市场全景",
     "关键数据与价格",
+    "价格预测与验证",
     "开盘推演",
     "风险提示",
     "信息来源与核验说明",
@@ -39,11 +41,16 @@ WEEKEND_SECTIONS = (
     "消息来源链接",
     "AI观点风险提示",
 )
-BODY_LIMITS = {"daily": (1000, 1400), "weekend": (1600, 2000)}
+BODY_LIMITS = {"daily": (1500, 1900), "weekend": (1600, 2000)}
 QUALITY_RELEASE_SCORE = 92
 AI_DISCLAIMER = (
-    "本报告由AI基于公开信息、已调用数据源和既定研究框架生成，仅代表生成时点的研究判断，"
-    "不构成投资建议或交易指令。期货价格波动较大，客户应结合自身风险承受能力独立决策。"
+    "本报告由AI基于所列公开信息、已调用数据源和既定研究框架生成，其中AI观点、总结、解释、"
+    "推论、标题与结论仅代表生成时点的研究判断，不代表任何来源方的官方立场，不构成投资建议或交易指令。"
+    "期货价格波动较大，用户须自行核验，并结合自身风险承受能力独立决策。"
+)
+FORECAST_AI_DISCLAIMER = (
+    "以上价格预测由AI基于所列来源和既定模型生成，不代表任何来源方的官方立场，"
+    "不构成投资建议，用户须自行核验。"
 )
 CRITICAL_KEYS = ("domestic.soybean_oil", "domestic.palm_oil", "domestic.rapeseed_oil")
 TRADE_FIELDS = (
@@ -561,6 +568,134 @@ def _require_key_data_table(
     hard_failures.append("关键数据与价格必须使用包含指标、数值、时点和含义的 Markdown 表格")
 
 
+def _require_panorama_table(
+    section: str,
+    source: dict[str, Any],
+    hard_failures: list[str],
+) -> None:
+    required_columns = {
+        "维度": ("维度",),
+        "已验证事实": ("已验证事实", "事实"),
+        "品种影响": ("对P/Y/OI影响", "品种影响", "影响"),
+        "验证信号": ("盘中验证信号", "验证信号", "验证"),
+    }
+    for headers, rows in _markdown_tables(section):
+        indexes = {name: _column_index(headers, aliases) for name, aliases in required_columns.items()}
+        if any(index is None for index in indexes.values()):
+            continue
+        complete = [
+            row
+            for row in rows
+            if all(index is not None and re.sub(r"[-—/\s]", "", row[index]) for index in indexes.values())
+        ]
+        if len(complete) < 4:
+            hard_failures.append("盘前市场全景少于四个完整维度")
+            return
+        text = "\n".join("|".join(row) for row in complete)
+        groups = (
+            ("合约结构", ("合约", "主次", "rank")),
+            ("外盘或能源", ("外盘", "FCPO", "BMD", "CBOT", "原油", "能源")),
+            ("供需库存或价差", ("供需", "供应", "需求", "库存", "出口", "产量", "价差", "基差")),
+            ("事件或资金技术", ("天气", "政策", "事件", "资金", "持仓", "技术")),
+        )
+        missing = [name for name, markers in groups if not any(marker in text for marker in markers)]
+        if missing:
+            hard_failures.append(f"盘前市场全景缺少维度：{'/'.join(missing)}")
+        if re.search(r"(?<![A-Z])(P0|Y0|OI0)(?!\d)", text, re.I):
+            hard_failures.append("盘前市场全景不得使用连续合约代替真实交割月")
+        structure = source.get("contract_structure")
+        if isinstance(structure, dict):
+            for product in ("P", "Y", "OI"):
+                for item in structure.get(product, []):
+                    if not isinstance(item, dict) or item.get("contract_rank") not in {1, 2}:
+                        continue
+                    contract = str(item.get("contract") or "")
+                    price = item.get("price")
+                    if (
+                        not contract
+                        or contract not in text
+                        or not isinstance(price, (int, float))
+                        or _number_pattern(float(price)).search(text) is None
+                    ):
+                        hard_failures.append(f"盘前市场全景缺少真实主次合约：{product} rank={item.get('contract_rank')}")
+        return
+    hard_failures.append("盘前市场全景必须使用包含维度、已验证事实、对P/Y/OI影响和盘中验证信号的 Markdown 表格")
+
+
+def _require_forecast_table(
+    section: str,
+    source: dict[str, Any],
+    outline: dict[str, Any],
+    hard_failures: list[str],
+) -> None:
+    required_columns = {
+        "品种": ("品种", "合约"),
+        "参考价": ("参考价",),
+        "基准判断": ("基准判断", "方向"),
+        "下沿观察": ("下沿观察", "下沿"),
+        "上沿观察": ("上沿观察", "上沿"),
+        "上修触发": ("上修触发", "上修"),
+        "下修失效": ("下修/失效", "下修失效", "失效"),
+        "置信度": ("置信度",),
+    }
+    products = {
+        "P": "palm_oil",
+        "Y": "soybean_oil",
+        "OI": "rapeseed_oil",
+    }
+    for headers, rows in _markdown_tables(section):
+        indexes = {name: _column_index(headers, aliases) for name, aliases in required_columns.items()}
+        if any(index is None for index in indexes.values()):
+            continue
+        product_index = indexes["品种"]
+        assert product_index is not None
+        confidence_cap = str(outline.get("research_confidence") or "")
+        cap_stars = confidence_cap.count("★")
+        for symbol, key in products.items():
+            row = next(
+                (
+                    cells
+                    for cells in rows
+                    if re.search(rf"(?:^|[^A-Z]){symbol}(?:\d{{4}})?(?:[^A-Z]|$)", cells[product_index], re.I)
+                ),
+                None,
+            )
+            if row is None or any(
+                index is not None and not re.sub(r"[-—/\s]", "", row[index])
+                for index in indexes.values()
+            ):
+                hard_failures.append(f"价格预测表缺少完整品种行：{symbol}")
+                continue
+            record = ((source.get("domestic") or {}).get(key) or {})
+            strategy = record.get("strategy_recommendation") if isinstance(record, dict) else {}
+            strategy = strategy if isinstance(strategy, dict) else {}
+            score = record.get("score") if isinstance(record, dict) else {}
+            score = score if isinstance(score, dict) else {}
+            expected = {
+                "参考价": (record.get("price"), indexes["参考价"]),
+                "下沿观察": (strategy.get("lower_watch"), indexes["下沿观察"]),
+                "上沿观察": (strategy.get("upper_watch"), indexes["上沿观察"]),
+            }
+            mismatched = [
+                name
+                for name, (value, index) in expected.items()
+                if value is None
+                or index is None
+                or _number_pattern(float(value)).search(row[index]) is None
+            ]
+            if mismatched:
+                hard_failures.append(f"价格预测表 {symbol} 与结构化数据不一致：{'/'.join(mismatched)}")
+            stance_index = indexes["基准判断"]
+            if stance_index is not None and str(score.get("stance") or "") not in row[stance_index]:
+                hard_failures.append(f"价格预测表 {symbol} 基准判断与结构化方向不一致")
+            confidence_index = indexes["置信度"]
+            confidence = row[confidence_index].strip() if confidence_index is not None else ""
+            if not re.fullmatch(r"[★☆]{5}", confidence) or confidence.count("★") > cap_stars:
+                hard_failures.append(f"价格预测表 {symbol} 置信度格式无效或超过上限")
+        return
+    hard_failures.append("价格预测与验证必须使用包含品种、参考价、基准判断、上下沿、上修触发、下修/失效和置信度的 Markdown 表格")
+
+
 def _require_weekly_data_table(section: str, hard_failures: list[str]) -> None:
     for headers, rows in _markdown_tables(section):
         indexes = {
@@ -943,7 +1078,12 @@ def audit_report(
     else:
         trade_signal = _section(text, "今日交易信号")
         _require_execution_table(trade_signal, "日报交易信号", hard_failures)
+        _require_panorama_table(_section(text, "盘前市场全景"), source, hard_failures)
         _require_key_data_table(_section(text, "关键数据与价格"), outline, hard_failures)
+        forecast_section = _section(text, "价格预测与验证")
+        _require_forecast_table(forecast_section, source, outline, hard_failures)
+        if FORECAST_AI_DISCLAIMER not in forecast_section:
+            hard_failures.append("价格预测与验证缺少紧邻的 AI 风险提示")
         _require_scenario_table(_section(text, "开盘推演"), kind, hard_failures)
     _require_source_audit(_section(text, "信息来源与核验说明"), kind, hard_failures)
     if not any(marker in driver_text for marker in ("→", "传导", "因此", "使得")):

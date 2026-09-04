@@ -60,19 +60,21 @@ For weekly reports, reason internally in the order `供给 → 需求 → 价格
 
 ### Stage 2: bounded draft
 
-Daily body budget: **1,000–1,400 Chinese characters**.
+Daily body budget: **1,500–1,900 Chinese characters**.
 
 Daily headings, in order:
 
 1. `今日观点`
 2. `今日交易信号`
 3. `核心驱动与预期差`
-4. `关键数据与价格`
-5. `开盘推演`
-6. `风险提示`
-7. `信息来源与核验说明`
-8. `消息来源链接`
-9. `AI观点风险提示`
+4. `盘前市场全景`
+5. `关键数据与价格`
+6. `价格预测与验证`
+7. `开盘推演`
+8. `风险提示`
+9. `信息来源与核验说明`
+10. `消息来源链接`
+11. `AI观点风险提示`
 
 Weekly body budget: **1,600–2,000 Chinese characters**.
 
@@ -104,6 +106,9 @@ Common rules:
 - P/Y/OI coverage is mandatory. Weekly reports also state relative strength and the role of Y/OI in the P thesis.
 - Daily and weekly P/Y/OI execution plans use one Markdown table with the exact contract columns `品种 | 方向 | 触发 | 确认 | 止损 | 目标 | 仓位上限 | 信号有效期`; every product row must be complete. When a deterministic input omits a value, write the governed no-trade fallback instead of leaving a cell blank or inventing a number.
 - Daily key data use a Markdown table with `指标 | 数值 | 时点 | 含义`; include P/Y/OI, one key external or crude-oil value, at least one spread, and a P stop or target level from the outline.
+- Daily pre-market panorama uses `维度 | 已验证事实 | 对P/Y/OI影响 | 盘中验证信号`; cover at least four of contract structure, external/crude oil, supply-demand/inventory/spreads, weather/policy/events, and money-flow/technical validation. Use real rank-1/rank-2 delivery contracts when present; never substitute a continuous contract.
+- Daily price forecast uses `品种 | 参考价 | 基准判断 | 下沿观察 | 上沿观察 | 上修触发 | 下修/失效 | 置信度` with complete P/Y/OI rows. Every numeric boundary and direction must come from the structured market record or existing `strategy_recommendation`; confidence cannot exceed generation feedback. Treat the table as a conditional pre-market forecast, not a promised intraday range.
+- Immediately below the daily price forecast, state that the AI-generated forecast is based on the listed sources and fixed model, does not represent any source's official position, is not investment advice, and must be independently verified.
 - Daily opening scenarios use a Markdown table with `情景 | 触发 | 确认 | 动作 | 放弃条件` and complete high/flat/low rows. Weekly scenarios add `概率` and complete high-open-rise/high-open-range/high-open-fall/low-open rows. Each scenario states how Y/OI confirmation or divergence changes the P action.
 - Weekly core data use `指标 | 数值 | 统计时间 | 变化 | 含义` and include P/Y/OI plus both soybean-palm and rapeseed-soybean-oil spreads. The event table uses `日期 | 事件 | 重要性 | 触发条件` and covers Monday through Friday without blank placeholders.
 - `信息来源与核验说明` explicitly labels actual skills, data sources, cutoff time, failed items, and replacement sources. Write `无` when a field is empty; do not omit the field.
@@ -161,6 +166,7 @@ Regardless of total score, publication is blocked by:
 - a first-screen Top Call that omits the baseline stance, action, invalidation condition, or research confidence;
 - an unranked driver section, incomplete opening scenarios, or (for weekly reports) an event calendar that does not cover Monday through Friday.
 - an incomplete P/Y/OI execution table, unstructured key-data/scenario table, fewer than three auditable auxiliary numeric facts, or a missing source-audit field.
+- a missing or incomplete pre-market panorama, or a price-forecast row whose reference price/watch boundaries do not match the governed source data.
 
 `WARN` is appropriate for an explainable source-method difference. Do not turn a critical numeric error into a tolerance warning.
 
