@@ -80,7 +80,19 @@ class ContractAnalysisTests(unittest.TestCase):
         warrant.assert_called_once_with("P")
         self.assertEqual(result["contract"]["price"], 10200)
         self.assertEqual(result["contract"]["fundamental"]["evidence_status"], "observed")
-        self.assertIn(result["contract"]["judgement"]["stance"], {"偏强观察", "偏弱观察", "震荡等待"})
+        self.assertEqual(
+            result["contract"]["technical"]["skill"],
+            "all_futures_technical_analysis_skill",
+        )
+        self.assertEqual(
+            result["contract"]["fundamental"]["skill"],
+            "all_futures_fundamental_analysis_skill",
+        )
+        self.assertIn(
+            result["contract"]["judgement"]["stance"],
+            {"震荡偏强观察", "震荡偏弱观察", "震荡等待"},
+        )
+        self.assertIn("均已执行", result["contract"]["judgement"]["summary"])
         self.assertFalse(result["degraded"])
 
     @patch.object(ANALYSIS, "fetch_warrant")
@@ -98,7 +110,8 @@ class ContractAnalysisTests(unittest.TestCase):
         self.assertTrue(result["degraded"])
         self.assertEqual(result["contract"]["price"], 10100)
         self.assertIn("最近发布快照", result["contract"]["fundamental"]["summary"])
-        self.assertTrue(all(item["status"] == "unavailable" for item in result["sources"]))
+        self.assertEqual(result["contract"]["judgement"]["stance"], "基本面待核验，暂以观望")
+        self.assertTrue(all(item["status"] != "ready" for item in result["sources"]))
 
 
 if __name__ == "__main__":

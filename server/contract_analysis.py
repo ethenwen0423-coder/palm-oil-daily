@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import importlib.util
 import math
 import re
 from datetime import datetime
@@ -30,6 +31,16 @@ INDEX_VARIETIES = {
     "IM": ("000852", "中证1000"),
 }
 SYMBOL_RE = re.compile(r"^[A-Z]{1,8}\d{3,4}$")
+SKILL_FILES = {
+    "technical": (
+        "all_futures_technical_skill.py",
+        "all_futures_technical_analysis_skill/scripts/analyze.py",
+    ),
+    "fundamental": (
+        "all_futures_fundamental_skill.py",
+        "all_futures_fundamental_analysis_skill/scripts/analyze.py",
+    ),
+}
 
 
 class ContractAnalysisError(RuntimeError):
@@ -78,6 +89,23 @@ def _request_text(url: str, *, params: dict[str, str] | None = None, timeout: in
 
 def _source(name: str, status: str, observed_at: str | None, detail: str) -> dict[str, Any]:
     return {"name": name, "status": status, "observed_at": observed_at, "detail": detail}
+
+
+def _load_skill(kind: str):
+    deployed_name, repository_path = SKILL_FILES[kind]
+    candidates = (
+        Path(__file__).with_name(deployed_name),
+        Path(__file__).resolve().parents[1] / "skills" / repository_path,
+    )
+    path = next((candidate for candidate in candidates if candidate.is_file()), candidates[0])
+    spec = importlib.util.spec_from_file_location(f"palm_oil_{kind}_skill", path)
+    if spec is None or spec.loader is None or not path.is_file():
+        raise ContractAnalysisError(f"{kind} analysis skill runtime unavailable: {deployed_name}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    if not callable(getattr(module, "analyze", None)):
+        raise ContractAnalysisError(f"{kind} analysis skill has no analyze entrypoint")
+    return module
 
 
 def _load_contract(data_root: Path, symbol: str) -> tuple[dict[str, Any], dict[str, Any]]:
@@ -162,65 +190,6 @@ def fetch_history(symbol: str) -> tuple[list[dict[str, float]], dict[str, Any]]:
         return [], _source("新浪财经期货日线", "unavailable", None, type(exc).__name__)
 
 
-def _sma(values: list[float], window: int) -> float | None:
-    return sum(values[-window:]) / window if len(values) >= window else None
-
-
-def _ema_series(values: list[float], span: int) -> list[float]:
-    if not values:
-        return []
-    alpha = 2 / (span + 1)
-    output = [values[0]]
-    for value in values[1:]:
-        output.append(alpha * value + (1 - alpha) * output[-1])
-    return output
-
-
-def _rsi(values: list[float], window: int = 14) -> float | None:
-    if len(values) <= window:
-        return None
-    changes = [values[index] - values[index - 1] for index in range(1, len(values))]
-    gains = [max(change, 0) for change in changes[-window:]]
-    losses = [max(-change, 0) for change in changes[-window:]]
-    average_gain = sum(gains) / window
-    average_loss = sum(losses) / window
-    if average_loss == 0:
-        return 100.0
-    return 100 - 100 / (1 + average_gain / average_loss)
-
-
-def build_technical(history: list[dict[str, float]], price: float | None) -> dict[str, Any]:
-    if len(history) < 60 or price is None:
-        return {"status": "需进一步核验", "trend": "样本不足", "summary": "即时日线样本不足，暂不输出方向判断。", "indicators": {}, "levels": {}}
-    closes = [row["close"] for row in history]
-    closes[-1] = price
-    ma20, ma60 = _sma(closes, 20), _sma(closes, 60)
-    rsi14 = _rsi(closes)
-    ema12, ema26 = _ema_series(closes, 12), _ema_series(closes, 26)
-    dif = ema12[-1] - ema26[-1]
-    macd_series = [a - b for a, b in zip(ema12[-len(ema26):], ema26)]
-    dea = _ema_series(macd_series, 9)[-1]
-    if ma20 is not None and ma60 is not None and price > ma20 > ma60:
-        trend, status = "偏强", "bullish"
-    elif ma20 is not None and ma60 is not None and price < ma20 < ma60:
-        trend, status = "偏弱", "bearish"
-    else:
-        trend, status = "震荡", "neutral"
-    summary = f"最新价相对 MA20/MA60 呈{trend}结构；RSI14 为 {rsi14:.1f}，MACD DIF-DEA 为 {dif-dea:+.2f}。"
-    recent = history[-20:]
-    return {
-        "status": status,
-        "trend": trend,
-        "summary": summary,
-        "indicators": {"MA20": _rounded(ma20), "MA60": _rounded(ma60), "RSI14": _rounded(rsi14), "MACD": _rounded(dif - dea)},
-        "levels": {"20日支撑": _rounded(min(row["low"] for row in recent)), "20日压力": _rounded(max(row["high"] for row in recent))},
-        "details": [
-            {"title": "价格结构", "text": f"最新价 {price:g}，MA20 {_rounded(ma20)}，MA60 {_rounded(ma60)}。"},
-            {"title": "动量", "text": "RSI 与 MACD 仅描述当前技术状态，不替代基本面确认。"},
-        ],
-    }
-
-
 def fetch_index_spot(variety: str, futures_price: float | None) -> tuple[dict[str, Any] | None, dict[str, Any]]:
     meta = INDEX_VARIETIES.get(variety)
     if not meta:
@@ -282,10 +251,13 @@ def _variety(symbol: str) -> str:
 def _build_judgement(contract: dict[str, Any], technical: dict[str, Any], fundamental: dict[str, Any]) -> dict[str, Any]:
     status = technical.get("status")
     evidence_count = int(fundamental.get("evidence_count") or 0)
-    if status == "bullish":
-        stance = "偏强观察"
+    fundamental_bias = fundamental.get("bias")
+    if evidence_count <= 0 or fundamental_bias == "unverified":
+        stance = "基本面待核验，暂以观望"
+    elif status == "bullish":
+        stance = "震荡偏强观察"
     elif status == "bearish":
-        stance = "偏弱观察"
+        stance = "震荡偏弱观察"
     elif status == "neutral":
         stance = "震荡等待"
     else:
@@ -299,7 +271,7 @@ def _build_judgement(contract: dict[str, Any], technical: dict[str, Any], fundam
     return {
         "stance": stance,
         "confidence": confidence,
-        "summary": f"{contract.get('product', symbol)}当前为{stance}；技术结构已即时重算，基本面有 {evidence_count} 项可验证证据。" if (symbol := str(contract.get("symbol") or "")) else stance,
+        "summary": f"{contract.get('product', symbol)}当前为{stance}；技术分析与基本面分析 skill 均已执行，基本面有 {evidence_count} 项可验证证据。" if (symbol := str(contract.get("symbol") or "")) else stance,
         "key_evidence": evidence[:3],
         "risk": "本判断是行情与结构化证据的条件判断；休市报价、低频基本面或来源降级时不可视为实时交易指令。",
     }
@@ -319,30 +291,35 @@ def analyze_contract(data_root: Path, raw_symbol: str) -> dict[str, Any]:
 
     history, history_source = fetch_history(symbol)
     sources.append(history_source)
-    contract["technical"] = build_technical(history, _number(contract.get("price")))
+    technical_skill = _load_skill("technical")
+    contract["technical"] = technical_skill.analyze(symbol, history, _number(contract.get("price")))
+    sources.append(_source(
+        str(contract["technical"].get("skill") or "技术分析 skill"),
+        "ready" if contract["technical"].get("status") != "insufficient" else "insufficient",
+        history_source.get("observed_at"),
+        f"已按所选合约 {symbol} 执行",
+    ))
 
-    fundamental = dict(contract.get("fundamental") or {})
-    factors = list(fundamental.get("factors") or [])
     variety = _variety(symbol)
     if variety in INDEX_VARIETIES:
         evidence, fundamental_source = fetch_index_spot(variety, _number(contract.get("price")))
     else:
         evidence, fundamental_source = fetch_warrant(variety)
     sources.append(fundamental_source)
-    if evidence:
-        factors = [evidence] + [item for item in factors if item.get("title") != evidence.get("title")]
-        fundamental["evidence_count"] = max(1, int(fundamental.get("evidence_count") or 0))
-        fundamental["evidence_status"] = "observed"
-        fundamental["summary"] = f"已按 {symbol} 即时检查相关基本面源；最新可验证证据置于首位，低频数据保留原日期。"
-    else:
-        fundamental["summary"] = f"已按 {symbol} 检查相关基本面源，但本次未取得新增可验证数值；以下为最近发布快照与跟踪框架。"
-    fundamental["factors"] = factors
+    fundamental_skill = _load_skill("fundamental")
+    fundamental = fundamental_skill.analyze(symbol, contract.get("fundamental"), evidence)
+    sources.append(_source(
+        str(fundamental.get("skill") or "基本面分析 skill"),
+        "ready" if fundamental.get("status") == "observed" else "unavailable",
+        fundamental_source.get("observed_at"),
+        f"已按所选品种 {variety} 执行",
+    ))
     contract["fundamental"] = fundamental
     contract["judgement"] = _build_judgement(contract, contract["technical"], fundamental)
 
     degraded = any(item["status"] in {"unavailable", "insufficient"} for item in sources)
     contract["data_quality"] = (
-        "本次按所选合约请求后台；行情与日线独立即时查询，基本面按品种调用相关源。"
+        "本次按所选合约请求后台；技术分析与基本面分析 skill 均按该合约执行。"
         "来源失败时保留最近发布快照，并在来源状态中明确标注。"
     )
     return {

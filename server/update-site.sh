@@ -62,9 +62,14 @@ python3 server/sync_live_data.py \
   --target "$LIVE_DATA_ROOT"
 
 api_changed=false
-for api_source in server/api.py server/contract_analysis.py
+for api_mapping in \
+  "server/api.py:api.py" \
+  "server/contract_analysis.py:contract_analysis.py" \
+  "skills/all_futures_technical_analysis_skill/scripts/analyze.py:all_futures_technical_skill.py" \
+  "skills/all_futures_fundamental_analysis_skill/scripts/analyze.py:all_futures_fundamental_skill.py"
 do
-  api_name="$(basename "$api_source")"
+  api_source="${api_mapping%%:*}"
+  api_name="${api_mapping#*:}"
   if ! cmp -s "$api_source" "$DEPLOY_ROOT/$api_name"; then
     cp "$api_source" "$DEPLOY_ROOT/$api_name"
     api_changed=true
