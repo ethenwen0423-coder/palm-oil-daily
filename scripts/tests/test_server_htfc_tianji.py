@@ -19,6 +19,7 @@ SHANGHAI = ZoneInfo("Asia/Shanghai")
 
 class ServerHtfcTianjiTests(unittest.TestCase):
     def test_supplemental_refresh_slots_are_bounded_to_four_daily_batches(self):
+        self.assertEqual(MODULE.PUBLIC_SEARCH_SIZE, 100)
         self.assertIsNone(MODULE.supplemental_refresh_slot(datetime(2026, 8, 31, 6, 59, tzinfo=SHANGHAI)))
         self.assertEqual(MODULE.supplemental_refresh_slot(datetime(2026, 8, 31, 7, 0, tzinfo=SHANGHAI)), "2026-08-31T07")
         self.assertEqual(MODULE.supplemental_refresh_slot(datetime(2026, 8, 31, 10, 37, tzinfo=SHANGHAI)), "2026-08-31T10")

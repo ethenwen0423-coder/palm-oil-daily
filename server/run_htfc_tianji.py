@@ -19,6 +19,7 @@ from zoneinfo import ZoneInfo
 DEFAULT_SITE_ROOT = Path("/srv/palm-oil-daily/site")
 DEFAULT_LIVE_DATA_ROOT = Path("/srv/palm-oil-daily/live-data")
 SUPPLEMENTAL_REFRESH_HOURS = (7, 10, 14, 18)
+PUBLIC_SEARCH_SIZE = 100
 PUBLIC_CACHE_PATHS = {
     "oil": Path("research_cache/report_search_oil.json"),
     "cross": Path("research_cache/report_search_cross.json"),
@@ -207,6 +208,8 @@ def main() -> int:
                                 str(public_output),
                                 "--timeout",
                                 str(args.timeout),
+                                "--size",
+                                str(PUBLIC_SEARCH_SIZE),
                             ],
                             cwd=site_root,
                             env={**os.environ, "PYTHONUNBUFFERED": "1"},
