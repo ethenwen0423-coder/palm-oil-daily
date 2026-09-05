@@ -18,6 +18,14 @@ PRODUCT_KEYS = {
     "Y": "soybean_oil",
     "OI": "rapeseed_oil",
 }
+EXCHANGE_RESEARCH_PRODUCTS = {
+    "棕榈": "palm_oil",
+    "豆油": "soybean_oil",
+    "菜油": "rapeseed_oil",
+    "豆粕": "soybean_meal",
+    "菜粕": "rapeseed_meal",
+    "原油": "domestic_crude_oil",
+}
 
 
 class ReportInputError(RuntimeError):
@@ -365,6 +373,176 @@ def latest_official_metric(country: dict[str, Any], key: str) -> dict[str, Any] 
     }
 
 
+def official_country_matrix(payload: dict[str, Any]) -> dict[str, Any]:
+    """Expose the latest comparable origin data instead of only Malaysia."""
+
+    countries = payload.get("countries") if isinstance(payload.get("countries"), dict) else {}
+    result: dict[str, Any] = {}
+    for country_key in ("malaysia", "indonesia"):
+        country = countries.get(country_key) if isinstance(countries, dict) else None
+        if not isinstance(country, dict):
+            continue
+        metrics = {
+            key: metric
+            for key in ("production", "exports", "stocks")
+            if (metric := latest_official_metric(country, key)) is not None
+        }
+        source = country.get("source") if isinstance(country.get("source"), dict) else {}
+        if metrics:
+            result[country_key] = {
+                "name": "马来西亚" if country_key == "malaysia" else "印度尼西亚",
+                "source": source.get("name"),
+                "source_url": source.get("url"),
+                "latest_metrics": metrics,
+            }
+    return result
+
+
+def _bounded_series(series: Any, limit: int = 2) -> list[dict[str, Any]]:
+    rows = [item for item in series if isinstance(item, dict)] if isinstance(series, list) else []
+    return rows[-limit:]
+
+
+def supplemental_balance(payload: dict[str, Any]) -> dict[str, Any]:
+    """Bound the USDA balance sheet and major-importer context for report use."""
+
+    supplemental = payload.get("supplemental") if isinstance(payload.get("supplemental"), dict) else {}
+    global_balance = supplemental.get("global_balance") if isinstance(supplemental, dict) else None
+    imports = supplemental.get("import_demand") if isinstance(supplemental, dict) else None
+    result: dict[str, Any] = {
+        "status": supplemental.get("status") if isinstance(supplemental, dict) else None,
+        "release_period": supplemental.get("release_period") if isinstance(supplemental, dict) else None,
+        "source": supplemental.get("source") if isinstance(supplemental, dict) else None,
+    }
+    if isinstance(global_balance, dict):
+        result["global_palm_oil_balance"] = {
+            "title": global_balance.get("title"),
+            "definition": global_balance.get("definition"),
+            "series": _bounded_series(global_balance.get("series")),
+        }
+    if isinstance(imports, dict):
+        selected: list[dict[str, Any]] = []
+        for market in imports.get("markets", []):
+            if not isinstance(market, dict) or market.get("key") not in {"india", "china", "eu"}:
+                continue
+            selected.append(
+                {
+                    "key": market.get("key"),
+                    "name": market.get("name"),
+                    "latest": (_bounded_series(market.get("series"), 1) or [None])[0],
+                }
+            )
+        result["major_import_markets"] = {
+            "title": imports.get("title"),
+            "definition": imports.get("definition"),
+            "markets": selected,
+        }
+    return result
+
+
+def exchange_research_context(payload: dict[str, Any]) -> dict[str, Any]:
+    """Return the oilseed/energy rows and their physical-market evidence."""
+
+    result: dict[str, Any] = {}
+    for item in payload.get("contracts", []):
+        if not isinstance(item, dict):
+            continue
+        key = EXCHANGE_RESEARCH_PRODUCTS.get(str(item.get("product") or ""))
+        if not key:
+            continue
+        technical = item.get("technical") if isinstance(item.get("technical"), dict) else {}
+        fundamental = item.get("fundamental") if isinstance(item.get("fundamental"), dict) else {}
+        factors = [
+            factor for factor in (fundamental.get("factors") or []) if isinstance(factor, dict)
+        ][:6]
+        physical_metrics: dict[str, Any] = {}
+        symbol = str(item.get("symbol") or "").strip()
+        for factor in factors:
+            title = str(factor.get("title") or "")
+            fact_text = str(factor.get("text") or "")
+            date_match = re.search(r"20\d{2}-\d{2}-\d{2}", title + " " + fact_text)
+            as_of = date_match.group(0) if date_match else None
+            if "仓单库存" in title:
+                value_match = re.search(r"注册仓单为\s*([+-]?[\d,]+(?:\.\d+)?)", fact_text)
+                value = as_number(value_match.group(1)) if value_match else None
+                if value is not None:
+                    physical_metrics["warehouse_receipts"] = {
+                        "name": f"{symbol}国内注册仓单",
+                        "price": value,
+                        "unit": "张",
+                        "as_of": as_of,
+                        "definition": "交易所注册仓单口径，不等于社会总库存",
+                    }
+            if "期现基差" in title:
+                value_match = re.search(r"计算为\s*([+-]?[\d,]+(?:\.\d+)?)", fact_text)
+                value = as_number(value_match.group(1)) if value_match else None
+                if value is not None:
+                    physical_metrics["basis"] = {
+                        "name": f"{symbol}国内期现基差",
+                        "price": value,
+                        "unit": "元/吨",
+                        "as_of": as_of,
+                        "definition": "主力结算价减现货价",
+                    }
+        result[key] = {
+            "name": item.get("product"),
+            "contract": item.get("symbol"),
+            "price": as_number(item.get("price")),
+            "change_pct": as_number(item.get("change_pct")),
+            "volume": as_number(item.get("volume")),
+            "open_interest": as_number(item.get("open_interest")),
+            "trade_date": item.get("trade_date"),
+            "source": item.get("source") or payload.get("source") or "server exchange collector",
+            "technical": {
+                "status": technical.get("status"),
+                "snapshot_date": technical.get("snapshot_date"),
+                "trend": technical.get("trend"),
+                "summary": technical.get("summary"),
+                "indicators": technical.get("indicators") or {},
+            },
+            "physical_market": {
+                "summary": fundamental.get("summary"),
+                "factors": factors,
+                "metrics": physical_metrics,
+                "evidence_dates": fundamental.get("evidence_dates") or [],
+                "evidence_sources": fundamental.get("evidence_sources") or [],
+            },
+        }
+    return result
+
+
+def external_market_references(payload: dict[str, Any]) -> dict[str, Any]:
+    """Preserve any collector-provided international references as numbers."""
+
+    references = payload.get("market_references") if isinstance(payload.get("market_references"), dict) else {}
+    mapping = {
+        "malaysia_fcpo": "bmd_palm_oil",
+        "indonesia_cpotr": "indonesia_cpo_spot",
+        "india_cpo_spot": "india_cpo_spot",
+        "cbot_bean_oil": "cbot_bean_oil",
+        "cbot_soybean": "cbot_soybean",
+        "cbot_soybean_meal": "cbot_soybean_meal",
+        "crude_oil": "crude_oil",
+        "ice_canola": "ice_canola",
+    }
+    result: dict[str, Any] = {}
+    for source_key, target_key in mapping.items():
+        item = references.get(source_key) if isinstance(references, dict) else None
+        if not isinstance(item, dict):
+            continue
+        price = as_number(item.get("price"))
+        result[target_key] = {
+            "name": item.get("label") or item.get("name") or source_key,
+            "status": "ok" if price is not None else "missing",
+            "price": price,
+            "change_pct": as_number(item.get("change") or item.get("change_pct")),
+            "unit": item.get("unit"),
+            "fetched_at": item.get("updated_at") or item.get("fetched_at"),
+            "source": item.get("source"),
+        }
+    return result
+
+
 def previous_report(
     data_root: Path,
     report_date: str,
@@ -478,7 +656,7 @@ def build_snapshot(
     watch_evidence = market_watch_evidence(market_watch, now)
     selected = rank_one_contracts(oil, report_date=report_date)
 
-    external: dict[str, Any] = {}
+    external: dict[str, Any] = external_market_references(oil)
     for product, key in (("FCPO", "bmd_palm_oil"), ("CPOTR", "indonesia_cpo_spot")):
         item = first_contract(oil, product)
         if item:
@@ -491,12 +669,10 @@ def build_snapshot(
     p_price = as_number(domestic["palm_oil"].get("price"))
     y_price = as_number(domestic["soybean_oil"].get("price"))
     oi_price = as_number(domestic["rapeseed_oil"].get("price"))
-    malaysia = ((supply.get("countries") or {}).get("malaysia") or {})
-    official_metrics = {
-        key: value
-        for key in ("production", "exports", "stocks")
-        if (value := latest_official_metric(malaysia, key)) is not None
-    }
+    country_matrix = official_country_matrix(supply)
+    malaysia = country_matrix.get("malaysia") if isinstance(country_matrix.get("malaysia"), dict) else {}
+    official_metrics = malaysia.get("latest_metrics") if isinstance(malaysia, dict) else {}
+    exchange_context = exchange_research_context(exchange)
     snapshot = {
         "date": report_date,
         "timestamp": now.isoformat(timespec="seconds"),
@@ -512,6 +688,8 @@ def build_snapshot(
                 "fetched_at": supply.get("checked_at") or supply.get("generated_at"),
                 "summary": supply.get("update_message") or "需进一步核验",
                 "latest_metrics": official_metrics,
+                "origin_matrix": country_matrix,
+                "global_balance": supplemental_balance(supply),
             },
             "spread": {
                 "soybean_palm_spread": {
@@ -536,7 +714,24 @@ def build_snapshot(
                 "source": "server exchange collector",
                 "fetched_at": exchange.get("updated_at"),
                 "summary": f"core contracts={len(exchange.get('contracts') or [])}",
+                "oilseed_and_energy": exchange_context,
             },
+        },
+        "research_coverage": {
+            "required_dimensions": [
+                "海外盘面",
+                "美豆与豆油",
+                "棕榈油产地",
+                "菜籽链",
+                "能源与生柴",
+                "国内现货与库存",
+                "合约结构与资金",
+                "天气物流与政策",
+            ],
+            "policy": (
+                "有结构化证据就写数值、时点、传导和验证信号；没有证据则明确写证据缺口，"
+                "并标注不计入方向，禁止用空泛判断补位。"
+            ),
         },
         "institutional_evidence": htfc_report_evidence(htfc),
         "news_and_research_evidence": watch_evidence,

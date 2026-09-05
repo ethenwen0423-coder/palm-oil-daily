@@ -60,7 +60,7 @@ For weekly reports, reason internally in the order `供给 → 需求 → 价格
 
 ### Stage 2: bounded draft
 
-Daily body budget: **1,500–1,900 Chinese characters**.
+Daily body budget: **2,400–3,200 Chinese characters**. Broad coverage establishes the research context; only the two governed Level 1 drivers may determine the core view.
 
 Daily headings, in order:
 
@@ -105,8 +105,8 @@ Common rules:
 - Preserve the complete trade plan: direction, trigger, confirmation, stop, target, position limit, and signal expiry.
 - P/Y/OI coverage is mandatory. Weekly reports also state relative strength and the role of Y/OI in the P thesis.
 - Daily and weekly P/Y/OI execution plans use one Markdown table with the exact contract columns `品种 | 方向 | 触发 | 确认 | 止损 | 目标 | 仓位上限 | 信号有效期`; every product row must be complete. When a deterministic input omits a value, write the governed no-trade fallback instead of leaving a cell blank or inventing a number.
-- Daily key data use a Markdown table with `指标 | 数值 | 时点 | 含义`; include P/Y/OI, one key external or crude-oil value, at least one spread, and a P stop or target level from the outline.
-- Daily pre-market panorama uses `维度 | 已验证事实 | 对P/Y/OI影响 | 盘中验证信号`; cover at least four of contract structure, external/crude oil, supply-demand/inventory/spreads, weather/policy/events, and money-flow/technical validation. Use real rank-1/rank-2 delivery contracts when present; never substitute a continuous contract.
+- Daily key data use a Markdown table with `指标 | 数值 | 时点 | 含义`; include 10–14 rows covering P/Y/OI, available rank-2 contracts, an external or crude-oil value, both soybean-palm and rapeseed-soybean-oil spreads, at least two origin/official supply-demand metrics, at least one domestic warehouse-receipt/inventory/basis/margin observation, and a P stop or target level from the outline.
+- Daily pre-market panorama uses `维度 | 已验证事实 | 对P/Y/OI影响 | 盘中验证信号`; include exactly one row for each of 海外盘面、美豆与豆油、棕榈油产地、菜籽链、能源与生柴、国内现货与库存、合约结构与资金、天气物流与政策. At least five rows must contain both an exact number and a date/snapshot time. When evidence is unavailable, say `证据缺口`, write `不计入方向` in the impact cell, and state the evidence needed; never fill the gap with generic prose. Use real rank-1/rank-2 delivery contracts when present; never substitute a continuous contract. Follow the table with one 120–180-character synthesis naming `当前定价主线`, `最大预期差`, and `盘中验证优先级` without repeating the rows.
 - Daily price forecast uses `品种 | 参考价 | 基准判断 | 下沿观察 | 上沿观察 | 上修触发 | 下修/失效 | 置信度` with complete P/Y/OI rows. Every numeric boundary and direction must come from the structured market record or existing `strategy_recommendation`; confidence cannot exceed generation feedback. Treat the table as a conditional pre-market forecast, not a promised intraday range.
 - Immediately below the daily price forecast, state that the AI-generated forecast is based on the listed sources and fixed model, does not represent any source's official position, is not investment advice, and must be independently verified.
 - Daily opening scenarios use a Markdown table with `情景 | 触发 | 确认 | 动作 | 放弃条件` and complete high/flat/low rows. Weekly scenarios add `概率` and complete high-open-rise/high-open-range/high-open-fall/low-open rows. Each scenario states how Y/OI confirmation or divergence changes the P action.
@@ -165,8 +165,8 @@ Regardless of total score, publication is blocked by:
 - a missing required report section or invalid outline;
 - a first-screen Top Call that omits the baseline stance, action, invalidation condition, or research confidence;
 - an unranked driver section, incomplete opening scenarios, or (for weekly reports) an event calendar that does not cover Monday through Friday.
-- an incomplete P/Y/OI execution table, unstructured key-data/scenario table, fewer than three auditable auxiliary numeric facts, or a missing source-audit field.
-- a missing or incomplete pre-market panorama, or a price-forecast row whose reference price/watch boundaries do not match the governed source data.
+- an incomplete P/Y/OI execution table, unstructured key-data/scenario table, fewer than seven auditable auxiliary numeric facts, or a missing source-audit field.
+- a missing eight-dimension pre-market panorama, fewer than five quantitative/time-bounded panorama rows, an evidence gap used directionally, a key-data table with fewer than ten rows or without origin-supply/domestic-physical evidence, or a price-forecast row whose reference price/watch boundaries do not match the governed source data.
 
 `WARN` is appropriate for an explainable source-method difference. Do not turn a critical numeric error into a tolerance warning.
 

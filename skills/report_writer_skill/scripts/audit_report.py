@@ -41,7 +41,7 @@ WEEKEND_SECTIONS = (
     "消息来源链接",
     "AI观点风险提示",
 )
-BODY_LIMITS = {"daily": (1500, 1900), "weekend": (1600, 2000)}
+BODY_LIMITS = {"daily": (2400, 3200), "weekend": (1600, 2000)}
 QUALITY_RELEASE_SCORE = 92
 AI_DISCLAIMER = (
     "本报告由AI基于所列公开信息、已调用数据源和既定研究框架生成，其中AI观点、总结、解释、"
@@ -199,9 +199,14 @@ def _require_top_call(text: str, outline: dict[str, Any], kind: str, errors: lis
         missing.append("失效条件")
     if not any(marker in section for marker in ("执行", "观望", "空仓", "不开仓", "不新开仓", "不追")):
         missing.append("行动含义")
+    if kind == "daily":
+        if not all(symbol in section for symbol in ("P", "Y", "OI")) or not any(
+            marker in section for marker in ("强于", "弱于", "分化", "同步", "相对强弱", ">")
+        ):
+            missing.append("P/Y/OI相对强弱")
     if missing:
         errors.append(f"{name} 未形成可执行 Top Call：缺少{'、'.join(missing)}")
-        components["view_trade_consistency"] = max(0, components["view_trade_consistency"] - 6)
+        components["view_trade_consistency"] = max(0, components["view_trade_consistency"] - 10)
 
 
 def _require_decision_sections(text: str, kind: str, errors: list[str], components: dict[str, int]) -> None:
@@ -543,6 +548,9 @@ def _require_key_data_table(
         if shallow_meanings:
             hard_failures.append(f"关键数据表含义过度压缩：{'/'.join(shallow_meanings)}")
             return
+        if not 10 <= len(complete) <= 14:
+            hard_failures.append(f"关键数据表必须为10-14行，当前为{len(complete)}行")
+            return
         item_text = "\n".join(row[item_index] for row in complete)
         all_text = "\n".join("|".join(row) for row in complete)
         missing = [symbol for symbol in ("P", "Y", "OI") if re.search(rf"(?:^|[^A-Z]){symbol}(?:\d{{4}})?(?:[^A-Z]|$)", item_text, re.I) is None]
@@ -555,8 +563,21 @@ def _require_key_data_table(
         ):
             hard_failures.append("关键数据表缺少可核验的关键外盘或原油数据")
             return
-        if not any(marker in all_text for marker in ("价差", "基差")):
-            hard_failures.append("关键数据表缺少至少一个价差或基差")
+        if "豆棕价差" not in all_text or not any(marker in all_text for marker in ("菜豆油价差", "菜豆价差")):
+            hard_failures.append("关键数据表必须同时包含豆棕价差与菜豆油价差")
+            return
+        official_rows = [
+            row for row in complete
+            if any(marker in "|".join(row) for marker in ("MPOB", "GAPKI", "USDA", "产量", "出口", "期末库存"))
+        ]
+        if len(official_rows) < 2:
+            hard_failures.append("关键数据表缺少至少两项产地或官方供需数据")
+            return
+        has_domestic_inventory = "国内" in all_text and "库存" in all_text
+        if not has_domestic_inventory and not any(
+            marker in all_text for marker in ("仓单", "基差", "进口利润", "压榨利润")
+        ):
+            hard_failures.append("关键数据表缺少国内仓单、库存、基差或利润证据")
             return
         key_tokens = _trade_numbers(str(outline.get("stop_loss") or "")) + _trade_numbers(
             str(outline.get("target_range") or "")
@@ -588,19 +609,46 @@ def _require_panorama_table(
             for row in rows
             if all(index is not None and re.sub(r"[-—/\s]", "", row[index]) for index in indexes.values())
         ]
-        if len(complete) < 4:
-            hard_failures.append("盘前市场全景少于四个完整维度")
+        if len(complete) < 8:
+            hard_failures.append("盘前市场全景少于八个完整维度")
             return
         text = "\n".join("|".join(row) for row in complete)
         groups = (
-            ("合约结构", ("合约", "主次", "rank")),
-            ("外盘或能源", ("外盘", "FCPO", "BMD", "CBOT", "原油", "能源")),
-            ("供需库存或价差", ("供需", "供应", "需求", "库存", "出口", "产量", "价差", "基差")),
-            ("事件或资金技术", ("天气", "政策", "事件", "资金", "持仓", "技术")),
+            ("海外盘面", ("海外盘面", "外盘", "FCPO", "BMD", "CBOT", "ICE")),
+            ("美豆与豆油", ("美豆与豆油", "美豆", "豆油", "CBOT")),
+            ("棕榈油产地", ("棕榈油产地", "产地", "马来", "印尼", "MPOB", "GAPKI")),
+            ("菜籽链", ("菜籽链", "菜籽", "菜油", "菜粕", "ICE")),
+            ("能源与生柴", ("能源与生柴", "原油", "能源", "生柴", "POGO")),
+            ("国内现货与库存", ("国内现货与库存", "现货", "库存", "仓单", "基差", "进口利润", "压榨利润")),
+            ("合约结构与资金", ("合约结构与资金", "合约", "主次", "rank", "持仓", "成交")),
+            ("天气物流与政策", ("天气物流与政策", "天气", "降雨", "物流", "政策", "事件")),
         )
         missing = [name for name, markers in groups if not any(marker in text for marker in markers)]
         if missing:
             hard_failures.append(f"盘前市场全景缺少维度：{'/'.join(missing)}")
+        time_pattern = re.compile(
+            r"(?:20\d{2}[-/.年]\d{1,2}(?:[-/.月]\d{1,2}日?)?|\d{1,2}月\d{1,2}日|\d{1,2}:\d{2}|截至|统计期|快照|收盘|发布)"
+        )
+        fact_index = indexes["已验证事实"]
+        impact_index = indexes["品种影响"]
+        assert fact_index is not None and impact_index is not None
+        quantitative_rows = 0
+        for row in complete:
+            fact = row[fact_index]
+            impact = row[impact_index]
+            is_gap = any(marker in fact for marker in ("证据缺口", "未获得", "暂无可核验"))
+            if is_gap and "不计入方向" not in impact:
+                hard_failures.append("盘前市场全景证据缺口行必须明确“不计入方向”")
+            if not is_gap and re.search(r"\d", fact) and time_pattern.search(fact):
+                quantitative_rows += 1
+        if quantitative_rows < 5:
+            hard_failures.append(f"盘前市场全景仅{quantitative_rows}行同时包含精确数字与日期/时点，至少需要5行")
+        summary = re.sub(r"\|.*\|", "", section)
+        missing_summary = [
+            marker for marker in ("当前定价主线", "最大预期差", "盘中验证优先级") if marker not in summary
+        ]
+        if missing_summary:
+            hard_failures.append(f"盘前市场全景表后归纳缺少：{'/'.join(missing_summary)}")
         if re.search(r"(?<![A-Z])(P0|Y0|OI0)(?!\d)", text, re.I):
             hard_failures.append("盘前市场全景不得使用连续合约代替真实交割月")
         structure = source.get("contract_structure")
@@ -942,15 +990,22 @@ def audit_report(
             if not is_spread:
                 numeric_checks.append(check)
             hard_failures.append(f"涨跌幅不一致：{record.name} 应为 {record.change_pct:.2f}%")
-    sampled = _deterministic_sample(mentioned_noncritical, f"{outline.get('report_date')}|{kind}", 3)
+    sample_size = 7 if kind == "daily" else 3
+    sampled = _deterministic_sample(
+        mentioned_noncritical,
+        f"{outline.get('report_date')}|{kind}",
+        sample_size,
+    )
     for record in sampled:
         check = noncritical_checks[record.key]
         if not any(row["key"] == check["key"] for row in numeric_checks):
             numeric_checks.append(check)
         if not check["price_ok"]:
             hard_failures.append(f"抽样数字不一致：{record.name} 应为 {record.price:g}")
-    if len(sampled) < 3:
-        hard_failures.append(f"可复核的非关键数字仅 {len(sampled)} 项，未达到固定抽样 3 项")
+    if len(sampled) < sample_size:
+        hard_failures.append(
+            f"可复核的非关键数字仅 {len(sampled)} 项，未达到固定抽样 {sample_size} 项"
+        )
         components["data_accuracy"] = 0
 
     report_date = str(outline.get("report_date") or source.get("date") or "")
@@ -1029,8 +1084,8 @@ def audit_report(
                 hard_failures.append(f"预测 feedback 不可用：{exc}")
 
     driver_text = _section(text, "核心驱动与预期差") if kind == "daily" else _section(text, "本周验证与预期差")
-    if kind == "daily" and len(re.sub(r"\s+", "", driver_text)) < 350:
-        hard_failures.append("核心驱动与预期差分析不足350字，未达到完整版研究深度")
+    if kind == "daily" and len(re.sub(r"\s+", "", driver_text)) < 520:
+        hard_failures.append("核心驱动与预期差分析不足520字，未达到专业研究深度")
         components["causal_chain_expectation_gap"] = 0
     driver_names = " ".join(
         str((outline.get(field) or {}).get("name") or "")

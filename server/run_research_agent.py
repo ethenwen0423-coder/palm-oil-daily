@@ -219,6 +219,9 @@ def load_report_contract(site_root: Path, kind: str) -> str:
         site_root / "skills" / "report_writer_skill" / "SKILL.md",
         site_root / "skills" / "vinson-research-writing" / "SKILL.md",
         site_root / "skills" / "vinson-research-writing" / "checklist.md",
+        site_root / "skills" / "vinson-research-writing" / "terminology.md",
+        site_root / "skills" / "vinson-research-writing" / "examples.md",
+        site_root / "skills" / "vinson-research-writing" / "anti_patterns.md",
     )
     parts: list[str] = []
     for path in paths:
@@ -269,8 +272,8 @@ def build_prompt(
             "AI观点风险提示",
         ]
     )
-    budget = "1500-1900" if kind == "daily" else "1600-2000"
-    draft_target = "1600-1740" if kind == "daily" else "1600-1800"
+    budget = "2400-3200" if kind == "daily" else "1600-2000"
+    draft_target = "2500-2860" if kind == "daily" else "1600-1800"
     title = datetime.fromisoformat(report_date).strftime("%m月%d日") + (
         "晨报" if kind == "daily" else "周报"
     )
@@ -291,17 +294,17 @@ def build_prompt(
 - 两个主驱动至少一个必须来自基本面事实（供给、需求、库存、出口、产量、基差或价差）；技术面只能说明触发与确认，不能替代基本面解释。
 - 必须读取 news_and_research_evidence.today_new_drivers；至少使用一条与油脂直接相关的 Level 1 快讯或研报作为交叉验证，并写清事件时间、来源、市场已经交易了什么、尚未定价什么。资讯约占30%，你的机制、品种传导、预期差和反证分析约占70%。
 - “信息来源与核验说明”必须逐项列出 news_and_research_evidence.source_status 中的来源名称与真实状态；失败、不可用或降级不得省略。
-- “今日观点”不能只有口号；Headline 后至少用一段解释为什么、P/Y/OI如何分化、什么证据会改变判断。两个主驱动合计不得少于350个中文可见字符。
+- “今日观点”不能只有口号；Headline 后用80-120字解释为什么、P/Y/OI相对强弱如何分化、什么证据会改变判断。两个主驱动合计不得少于520个中文可见字符。
 - “缺少数据”“暂无新增驱动”“来源失败”是证据边界，不是基本面驱动；不得用数据缺口支撑方向判断。
 - `## 【今日交易信号】`必须使用 Markdown 表格并分别列出 P、Y、OI 三行，逐品种完整写方向、触发、确认、止损、目标、仓位上限与信号有效期。
-- `## 【盘前市场全景】`必须使用 Markdown 表格，列名至少包含维度、已验证事实、对P/Y/OI影响、盘中验证信号；至少四行，并覆盖合约结构、外盘/能源、供需库存/价差，以及天气/政策/事件或资金/技术。合约结构必须优先使用 contract_structure 中真实 rank=1/rank=2 交割月合约；缺失时披露边界，不得用连续合约代替。
-- `## 【关键数据与价格】`必须使用 Markdown 表格，列名至少包含指标、数值、时点、含义；必须包含 P/Y/OI、关键外盘或原油、至少一个价差，以及提纲中的 P 止损或目标关键位。
+- `## 【盘前市场全景】`必须使用 Markdown 表格，列名至少包含维度、已验证事实、对P/Y/OI影响、盘中验证信号；逐行覆盖海外盘面、美豆与豆油、棕榈油产地、菜籽链、能源与生柴、国内现货与库存、合约结构与资金、天气物流与政策八个维度。至少五行事实同时含精确数字和日期/时点。某维度无可靠数据时写“证据缺口”，影响栏必须写“不计入方向”，不得拿缺口凑观点。合约结构必须优先使用 contract_structure 中真实 rank=1/rank=2 交割月合约；缺失时披露边界，不得用连续合约代替。表后用120-180字明确“当前定价主线”“最大预期差”“盘中验证优先级”。
+- `## 【关键数据与价格】`必须使用 10-14 行 Markdown 表格，列名至少包含指标、数值、时点、含义；必须包含 P/Y/OI、可用的真实次主力合约、关键外盘或原油、豆棕价差、菜豆油价差、至少两项产地/官方供需数据、至少一项国内仓单/库存/基差/进口利润/压榨利润，以及提纲中的 P 止损或目标关键位。
 - `## 【价格预测与验证】`必须使用 Markdown 表格并分别列出 P、Y、OI 三行，列名精确包含品种、参考价、基准判断、下沿观察、上沿观察、上修触发、下修/失效、置信度。参考价、基准判断、上下沿与失效条件分别取自 domestic 中的 price、score.stance 和 strategy_recommendation；不得创造点位或概率。置信度不得高于 generation feedback 上限。表后紧邻逐字写“以上价格预测由AI基于所列来源和既定模型生成，不代表任何来源方的官方立场，不构成投资建议，用户须自行核验。”，并说明这是条件预测，不承诺日内价格区间。
 - `## 【开盘推演】`必须使用 Markdown 表格，三行分别为高开、平开、低开，列名至少包含情景、触发、确认、动作、放弃条件；每行都要写明 Y/OI 同步或背离时对 P 的处理。
 - score、driver/fundamental/technical 分数、数据条数、采集状态均是内部元数据，不得写成市场驱动或正文结论。
 - `source_error`、抓取失败、官方检查失败只允许出现在“信息来源与核验说明”，不得进入观点、驱动、策略或优先级判断。
-- 日报初稿按仓库中已通过门禁的紧凑版式分配篇幅：今日观点约30-50字，今日交易信号不超过190字，核心驱动与预期差350-380字，盘前市场全景约260字，关键数据与价格约260字，价格预测与验证约260字，开盘推演不超过140字，风险提示不超过50字，信息来源与核验说明约270字。表格分隔线不计入这些栏目预算。
-- 交易表中相同确认/失效条件不得逐行长篇复述；每行仍须完整，但应使用 SOURCE_JSON 已有的最短完整短语。关键数据表只保留满足合同所需的6-8行，不得在表后复述。
+- 日报初稿按专业研究版式分配篇幅：今日观点80-120字，今日交易信号不超过260字，核心驱动与预期差520-700字，盘前市场全景表后另写120-180字归纳，关键数据与价格保留10-14行，价格预测与验证约300-380字，开盘推演不超过220字，风险提示不超过100字，信息来源与核验说明约300-420字。表格分隔线不计入这些栏目预算。
+- 交易表中相同确认/失效条件不得逐行长篇复述；每行仍须完整，但应使用 SOURCE_JSON 已有的最短完整短语。关键数据表不得少于10行或超过14行，不得在表后复述。
 - 信息来源与核验说明使用单段紧凑审计句：五个审计字段、来源状态及 REQUIRED_DISCLOSURES 各出现一次；不得解释 skill 名称，不得复述正文观点。
 """
         if kind == "daily"
@@ -331,7 +334,7 @@ def build_prompt(
 3a. 模型初稿必须控制在 {draft_target} 个可见字符，为服务器按同一提纲补齐审计句预留空间；表格单元格使用最短且完整的短语，表格后不得复述同一事实。超出目标时必须删去重复修饰和重复解释，不能删去必需栏目、证据、P/Y/OI 行或执行字段。
 3b. `## 【今日观点】`（周报为 `## 【一句话核心观点】`）标题后的第一句是页面 Headline：日报去除空白后不得超过 50 个字符，周报不得超过 100 个字符；只写一句明确观点，不得使用价格、数字或交易执行词。该句必须短于其后的解释段落。
 4. 只能复制 SOURCE_JSON 中的数字、价格、涨跌、时间、合约、score 与 strategy_recommendation；禁止自行计算或创造任何价格、概率、止损、目标、仓位与来源。
-4a. 数据栏目除 P/Y/OI 三个 rank=1 合约外，必须再列出至少三项 SOURCE_JSON 中有精确数字的辅助证据（优先官方供需、FCPO、CBOT、WTI、库存或价差）；每项均写名称、精确数字与该字段的时点。若源中没有三项，停止输出而不要编造。
+4a. 数据栏目除 P/Y/OI 三个 rank=1 合约外，必须再列出至少七项 SOURCE_JSON 中有精确数字的辅助证据（覆盖官方供需、外盘或原油、豆棕与菜豆油两个价差、国内仓单/库存/基差/利润；可用时加入真实次主力合约）；每项均写名称、精确数字与该字段的时点。若源中不足七项，缺少的维度写“证据缺口”，停止方向推断，绝不编造数字。
 4b. institutional_evidence 中的华泰天玑快讯、研报和智能K线可用于交叉验证与风险提示，但属于机构资讯与研究判断，不得冒充官方统计，不得覆盖交易所行情或官方供需数据；权限受限模块只能在“信息来源与核验说明”中披露。
 5. P/Y/OI 三个 rank=1 合约及其 exact price 必须在关键数据中各出现一次；每个数字同时写明 SOURCE_JSON 中的时点口径。
 6. 今日/下周交易计划必须来自 strategy_recommendation。若源中没有止损、目标或仓位，明确写“源数据未给出，不新开仓”，不得补造数字。
@@ -380,11 +383,11 @@ report_markdown 是压缩后的完整 Markdown；outline 必须逐字段保持�
 
 编辑边界：
 1. 报告日期仍为 {report_date}，类型仍为 {kind}。不得新增或更改任何数字、日期、时间、合约、方向、来源状态、策略参数或事实；只能删除重复内容、合并同义句并缩短已有短语。
-2. 正文可见字符必须为 1500-1840，为服务器的确定性审计补句预留空间。栏目顺序和标题保持不变；消息来源链接与固定 AI 免责声明不计入预算。
-3. 今日观点30-50字；今日交易信号不超过190字；核心驱动与预期差350-380字；盘前市场全景不超过280字；关键数据与价格不超过270字；价格预测与验证不超过280字；开盘推演不超过130字；风险提示不超过45字；信息来源与核验说明不超过270字。
+2. 正文可见字符必须为 2400-3040，为服务器的确定性审计补句预留空间。栏目顺序和标题保持不变；消息来源链接与固定 AI 免责声明不计入预算。
+3. 今日观点80-120字；今日交易信号不超过260字；核心驱动与预期差520-700字；盘前市场全景保留八行并在表后用120-180字归纳；关键数据与价格保留10-14行；价格预测与验证约300-380字；开盘推演不超过220字；风险提示不超过100字；信息来源与核验说明约300-420字。
 4. 完整保留八列 P/Y/OI 交易表、四列盘前全景表、四列关键数据表、八列 P/Y/OI 价格预测表、五列高开/平开/低开推演表。相同确认或失效条件用已有最短短语，不逐行长篇复述；各单元格仍不得为空。
-5. 核心驱动仍须明确“主驱动一/主驱动二”，合计不少于350字，并保留事实→机制→P/Y/OI→预期与现实/定价→结论、最强反证和可检验失效条件。
-6. 盘前市场全景保留合约结构、外盘/能源、供需库存/价差和天气/政策/事件或资金/技术四类证据；关键数据保留 P/Y/OI、一个外盘、一个价差、一个 P 关键位，并确保至少三项可复核辅助数字；只保留满足合同所需的6-8行。价格预测完整保留 P/Y/OI 的参考价、上下沿、触发、失效与置信度。
+5. 核心驱动仍须明确“主驱动一/主驱动二”，合计不少于520字，并保留事实→机制→P/Y/OI→预期与现实/定价→结论、最强反证和可检验失效条件。
+6. 盘前市场全景完整保留海外盘面、美豆与豆油、棕榈油产地、菜籽链、能源与生柴、国内现货与库存、合约结构与资金、天气物流与政策八个维度，至少五行保留精确数字及日期/时点；缺口行保留“不计入方向”。表后保留“当前定价主线”“最大预期差”“盘中验证优先级”。关键数据保留 P/Y/OI、两个价差、外盘或原油、至少两项官方产地指标、一项国内实物证据、一个 P 关键位，并确保至少七项可复核辅助数字；总行数保持10-14行。价格预测完整保留 P/Y/OI 的参考价、上下沿、触发、失效与置信度。
 7. 信息来源与核验说明必须保留“实际 skill、数据源、截止时间、失败项、替代来源”五字段和每个来源的真实状态。相同状态可合并为“甲、乙均ready”，但不得遗漏失败/不可用/降级来源。
 8. REQUIRED_DISCLOSURES 中每句必须逐字保留。Headline、置信度、价格预测表后紧邻的 AI 风险提示和末尾固定 AI 风险提示必须保留。不得用省略号、“同上”或空单元格压缩。
 
@@ -817,7 +820,7 @@ def ensure_daily_official_key_data(
     source_snapshot: dict[str, Any],
     kind: str,
 ) -> str:
-    """Copy one exact official metric into the daily table for the third audit fact."""
+    """Copy enough exact official metrics to preserve origin supply-and-demand depth."""
     if kind != "daily":
         return markdown
     pattern = re.compile(
@@ -828,7 +831,10 @@ def ensure_daily_official_key_data(
     if not match:
         return markdown
     body = match.group(2).strip()
-    if any(marker in body for marker in ("MPOB产量", "MPOB出口", "MPOB期末库存")):
+    existing = sum(
+        marker in body for marker in ("MPOB产量", "MPOB出口", "MPOB期末库存")
+    )
+    if existing >= 2:
         return markdown
     fundamental = source_snapshot.get("fundamental")
     official = fundamental.get("official_supply_demand") if isinstance(fundamental, dict) else None
@@ -840,8 +846,10 @@ def ensure_daily_official_key_data(
         ("exports", "MPOB出口"),
         ("production", "MPOB产量"),
     )
-    selected: tuple[str, str, str] | None = None
+    selected: list[tuple[str, str, str]] = []
     for key, name in choices:
+        if name in body:
+            continue
         record = metrics.get(key)
         if not isinstance(record, dict):
             continue
@@ -855,9 +863,10 @@ def ensure_daily_official_key_data(
         number = str(int(value)) if float(value).is_integer() else format(float(value), ".15g")
         unit = "吨" if str(record.get("unit") or "") == "tonnes" else str(record.get("unit") or "")
         as_of = "，".join(part for part in (period, f"{published}发布" if published else "") if part)
-        selected = (name, f"{number}{unit}", as_of)
-        break
-    if selected is None:
+        selected.append((name, f"{number}{unit}", as_of))
+        if existing + len(selected) >= 2:
+            break
+    if not selected:
         return markdown
 
     lines = body.splitlines()
@@ -892,7 +901,7 @@ def ensure_daily_official_key_data(
         while end < len(lines) and lines[end].strip().startswith("|") and lines[end].strip().endswith("|"):
             end += 1
         data_indexes = list(range(index + 2, end))
-        while len(data_indexes) >= 7:
+        while len(data_indexes) + len(selected) > 14:
             external_markers = (
                 "FCPO", "BMD", "CBOT", "WTI", "原油", "美豆", "CPOTR", "ICDX", "印尼CPO"
             )
@@ -913,12 +922,106 @@ def ensure_daily_official_key_data(
             if not removed:
                 break
             data_indexes = list(range(index + 2, end))
-        row = [""] * len(headers)
+        for name, value, as_of in selected:
+            row = [""] * len(headers)
+            row[columns["item"]] = name
+            row[columns["value"]] = value
+            row[columns["time"]] = as_of
+            row[columns["meaning"]] = "官方供需背景"
+            lines.insert(end, "|" + "|".join(row) + "|")
+            end += 1
+        updated_body = "\n".join(lines)
+        updated = f"{match.group(1)}{updated_body}\n"
+        return markdown[: match.start()] + updated + markdown[match.end() :]
+    return markdown
+
+
+def ensure_daily_physical_key_data(
+    markdown: str,
+    source_snapshot: dict[str, Any],
+    kind: str,
+) -> str:
+    """Insert one structured domestic warehouse-receipt or basis metric when omitted."""
+    if kind != "daily":
+        return markdown
+    pattern = re.compile(
+        r"(## 【关键数据与价格】\s*\n)(.*?)(?=\n## 【|\Z)",
+        re.DOTALL,
+    )
+    match = pattern.search(markdown)
+    if not match:
+        return markdown
+    body = match.group(2).strip()
+    if any(marker in body for marker in ("注册仓单", "国内库存", "期现基差", "进口利润", "压榨利润")):
+        return markdown
+    fundamental = source_snapshot.get("fundamental")
+    exchange = fundamental.get("exchange_context") if isinstance(fundamental, dict) else None
+    products = exchange.get("oilseed_and_energy") if isinstance(exchange, dict) else None
+    if not isinstance(products, dict):
+        return markdown
+    selected: tuple[str, str, str] | None = None
+    for product_key in ("palm_oil", "soybean_oil", "rapeseed_oil"):
+        product = products.get(product_key)
+        physical = product.get("physical_market") if isinstance(product, dict) else None
+        metrics = physical.get("metrics") if isinstance(physical, dict) else None
+        if not isinstance(metrics, dict):
+            continue
+        for metric_key in ("warehouse_receipts", "basis"):
+            record = metrics.get(metric_key)
+            if not isinstance(record, dict):
+                continue
+            value = record.get("price")
+            if not isinstance(value, (int, float)) or isinstance(value, bool):
+                continue
+            as_of = str(record.get("as_of") or source_snapshot.get("timestamp") or "").strip()
+            if not as_of:
+                continue
+            number = str(int(value)) if float(value).is_integer() else format(float(value), ".15g")
+            unit = str(record.get("unit") or "")
+            selected = (str(record.get("name") or metric_key), f"{number}{unit}", as_of)
+            break
+        if selected:
+            break
+    if selected is None:
+        return markdown
+
+    lines = body.splitlines()
+    for index in range(len(lines) - 1):
+        if not (
+            lines[index].strip().startswith("|")
+            and lines[index].strip().endswith("|")
+            and re.fullmatch(r"\|[\s:|-]+\|", lines[index + 1].strip())
+        ):
+            continue
+        headers = [cell.strip() for cell in lines[index].strip("|").split("|")]
+        aliases = {
+            "item": ("品种", "指标", "合约"),
+            "value": ("数值", "价格", "关键位"),
+            "time": ("时点", "时间", "日期", "口径"),
+            "meaning": ("含义", "意义", "判断"),
+        }
+        columns: dict[str, int] = {}
+        for field, names in aliases.items():
+            found = next(
+                (position for position, value in enumerate(headers) if any(name in value for name in names)),
+                None,
+            )
+            if found is None:
+                break
+            columns[field] = found
+        if len(columns) != len(aliases):
+            continue
+        end = index + 2
+        while end < len(lines) and lines[end].strip().startswith("|") and lines[end].strip().endswith("|"):
+            end += 1
+        if end - (index + 2) >= 14:
+            return markdown
         name, value, as_of = selected
-        row[columns["item"]] = name
+        row = [""] * len(headers)
+        row[columns["item"]] = name.replace("|", "/")
         row[columns["value"]] = value
         row[columns["time"]] = as_of
-        row[columns["meaning"]] = "官方供需背景"
+        row[columns["meaning"]] = "国内实物证据"
         lines.insert(end, "|" + "|".join(row) + "|")
         updated_body = "\n".join(lines)
         updated = f"{match.group(1)}{updated_body}\n"
@@ -1214,11 +1317,19 @@ def compact_daily_top_call(markdown: str, outline: dict[str, Any], kind: str) ->
         audit += f"；失效：{invalidation}"
     if re.fullmatch(r"[★☆]{5}", rating):
         audit += f"；置信度：{rating}"
+    relative_line = next(
+        (
+            line for line in lines[1:]
+            if all(symbol in line for symbol in ("P", "Y", "OI"))
+            and any(marker in line for marker in ("强于", "弱于", "分化", "同步", "相对强弱", ">"))
+        ),
+        "相对强弱：P/Y/OI以开盘同步或分化确认",
+    ).rstrip("。.")
     # ``check_title_quality.py`` deliberately treats the first non-empty row in
     # this section as the page Headline.  Keep execution, invalidation and
     # confidence on the following row so those required audit fields cannot
     # accidentally turn the full action sentence into an overlong Headline.
-    updated = f"{match.group(1)}{headline}。\n\n{audit}。\n"
+    updated = f"{match.group(1)}{headline}。\n\n{relative_line}；{audit}。\n"
     return markdown[: match.start()] + updated + markdown[match.end() :]
 
 
@@ -1263,7 +1374,7 @@ def compact_daily_driver_repetition(markdown: str, outline: dict[str, Any], kind
         counter_case in body or (counter_terms and all(term in body for term in counter_terms))
     )
     visible = len(re.sub(r"\s+", "", body))
-    if visible > 380 or (counter_case and not counter_grounded):
+    if visible > 700 or (counter_case and not counter_grounded):
         secondary_at = body.find("主驱动二")
         if secondary_at >= 0:
             primary_text = body[:secondary_at].strip()
@@ -1293,7 +1404,7 @@ def compact_daily_driver_repetition(markdown: str, outline: dict[str, Any], kind
             conclusion = "；".join(part for part in conclusion_parts if part) + "。"
             candidate = "\n\n".join(part for part in (primary, secondary, conclusion) if part)
             candidate_visible = len(re.sub(r"\s+", "", candidate))
-            if candidate_visible < 350:
+            if candidate_visible < 520:
                 selected = {primary, secondary}
                 extras = [
                     sentence.strip()
@@ -1307,15 +1418,15 @@ def compact_daily_driver_repetition(markdown: str, outline: dict[str, Any], kind
                 extra_selected: list[str] = []
                 for extra in extras:
                     trial = "\n\n".join((primary, secondary, *extra_selected, extra, conclusion))
-                    if len(re.sub(r"\s+", "", trial)) <= 380:
+                    if len(re.sub(r"\s+", "", trial)) <= 700:
                         candidate = trial
                         extra_selected.append(extra)
                         candidate_visible = len(re.sub(r"\s+", "", candidate))
-                    if candidate_visible >= 350:
+                    if candidate_visible >= 520:
                         break
             body = candidate
     visible = len(re.sub(r"\s+", "", body))
-    if visible < 350:
+    if visible < 520:
         extension_values = (
             ("传导", str(outline.get("transmission_chain") or "").strip().rstrip("。.")),
             ("预期/现实", str(outline.get("expectation_vs_reality") or "").strip().rstrip("。.")),
@@ -1344,16 +1455,16 @@ def compact_daily_driver_repetition(markdown: str, outline: dict[str, Any], kind
                         )
                     ):
                         extensions.append(f"{label}：{clean}")
-        while visible < 350 and extensions:
+        while visible < 520 and extensions:
             candidates = []
             for extension in extensions:
                 trial = f"{body.rstrip()}\n\n{extension}。"
                 trial_visible = len(re.sub(r"\s+", "", trial))
-                if trial_visible <= 380:
+                if trial_visible <= 700:
                     candidates.append((trial_visible, extension, trial))
             if not candidates:
                 break
-            crossing = [item for item in candidates if item[0] >= 350]
+            crossing = [item for item in candidates if item[0] >= 520]
             chosen = (
                 min(crossing, key=lambda item: item[0])
                 if crossing
@@ -1495,7 +1606,7 @@ def preserve_daily_driver_depth(
     previous_markdown: str,
     kind: str,
 ) -> str:
-    """Restore the prior grounded driver section if an editor cuts it below 350."""
+    """Restore the prior grounded driver section if an editor cuts it below 520."""
     if kind != "daily" or not previous_markdown:
         return markdown
     pattern = re.compile(
@@ -1508,7 +1619,7 @@ def preserve_daily_driver_depth(
         return markdown
     current_chars = len(re.sub(r"\s+", "", current.group(2)))
     previous_chars = len(re.sub(r"\s+", "", previous.group(2)))
-    if current_chars >= 350 or previous_chars < 350:
+    if current_chars >= 520 or previous_chars < 520:
         return markdown
     restored = f"{current.group(1)}{previous.group(2).strip()}\n"
     return markdown[: current.start()] + restored + markdown[current.end() :]
@@ -1957,6 +2068,7 @@ def main() -> int:
             markdown = ensure_daily_audit_contracts(markdown, outline, kind)
             markdown = ensure_daily_external_key_data(markdown, source_snapshot, kind)
             markdown = ensure_daily_official_key_data(markdown, source_snapshot, kind)
+            markdown = ensure_daily_physical_key_data(markdown, source_snapshot, kind)
             markdown = preserve_daily_driver_depth(markdown, previous_markdown, kind)
             markdown = compact_daily_driver_repetition(markdown, outline, kind)
             markdown = compact_daily_execution_table(markdown, kind)

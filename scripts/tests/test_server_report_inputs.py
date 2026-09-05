@@ -77,12 +77,47 @@ class ServerReportInputsTest(unittest.TestCase):
                         "symbol": "FCPO",
                     },
                 ],
+                "market_references": {
+                    "cbot_bean_oil": {
+                        "label": "CBOT豆油", "price": "70.25", "change": "+0.35%",
+                        "updated_at": "2026-08-07 23:10", "source": "CME",
+                    },
+                    "crude_oil": {
+                        "label": "WTI原油", "price": "84.51", "change": "-1.20%",
+                        "updated_at": "2026-08-07 23:10", "source": "NYMEX",
+                    },
+                },
             },
         )
         write_json(
             root,
             "exchange_futures.json",
-            {"updated_at": "2026-08-07 23:10", "contracts": [{"symbol": "CU2609"}]},
+            {
+                "updated_at": "2026-08-07 23:10",
+                "contracts": [
+                    {
+                        "product": "棕榈", "symbol": "P2609", "price": 9200,
+                        "change_pct": 1.0, "volume": 1000, "open_interest": 2000,
+                        "trade_date": "2026-08-07", "source": "DCE",
+                        "technical": {"status": "ok", "snapshot_date": "2026-08-07", "trend": "震荡"},
+                        "fundamental": {
+                            "summary": "两项国内证据",
+                            "factors": [
+                                {
+                                    "title": "仓单库存｜2026-08-07",
+                                    "text": "注册仓单为 430，当日变化 +0.00。该口径不等于社会总库存。",
+                                },
+                                {
+                                    "title": "期现基差｜2026-08-07",
+                                    "text": "现货价 9,100，主力结算价 9,200；按“主力－现货”计算为 +100.00（+1.10%）。",
+                                },
+                            ],
+                            "evidence_dates": ["2026-08-07"],
+                            "evidence_sources": ["DCE", "现货源"],
+                        },
+                    }
+                ],
+            },
         )
         write_json(
             root,
@@ -119,7 +154,37 @@ class ServerReportInputsTest(unittest.TestCase):
                                 "series": [{"period": "2026-06", "value": 120, "published_at": "2026-07-10"}],
                             },
                         },
-                    }
+                    },
+                    "indonesia": {
+                        "source": {"name": "GAPKI", "url": "https://example.test/gapki"},
+                        "metrics": {
+                            "production": {
+                                "label": "CPO产量", "unit": "tonnes",
+                                "series": [{"period": "2026-05", "value": 210, "published_at": "2026-07-20"}],
+                            },
+                            "exports": {
+                                "label": "棕榈油出口", "unit": "tonnes",
+                                "series": [{"period": "2026-05", "value": 180, "published_at": "2026-07-20"}],
+                            },
+                        },
+                    },
+                },
+                "supplemental": {
+                    "status": "ready", "release_period": "2026-07", "source": "USDA PSD",
+                    "global_balance": {
+                        "title": "全球棕榈油平衡表", "definition": "百万吨",
+                        "series": [
+                            {"period": "2025/26", "production": 80.0},
+                            {"period": "2026/27", "production": 82.0},
+                        ],
+                    },
+                    "import_demand": {
+                        "title": "主要进口市场", "definition": "百万吨",
+                        "markets": [
+                            {"key": "india", "name": "印度", "series": [{"period": "2026/27", "imports": 9.0}]},
+                            {"key": "china", "name": "中国", "series": [{"period": "2026/27", "imports": 6.0}]},
+                        ],
+                    },
                 },
             },
         )
@@ -199,6 +264,20 @@ class ServerReportInputsTest(unittest.TestCase):
             )
             self.assertEqual(snapshot["contract_structure"]["Y"][1]["price"], 8350.0)
             self.assertEqual(snapshot["fundamental"]["official_supply_demand"]["latest_metrics"]["production"]["change_pct"], 10.0)
+            self.assertEqual(
+                snapshot["fundamental"]["official_supply_demand"]["origin_matrix"]["indonesia"]["latest_metrics"]["exports"]["value"],
+                180.0,
+            )
+            self.assertEqual(
+                snapshot["fundamental"]["official_supply_demand"]["global_balance"]["global_palm_oil_balance"]["series"][-1]["production"],
+                82.0,
+            )
+            self.assertEqual(snapshot["external"]["cbot_bean_oil"]["price"], 70.25)
+            self.assertEqual(
+                snapshot["fundamental"]["exchange_context"]["oilseed_and_energy"]["palm_oil"]["physical_market"]["metrics"]["warehouse_receipts"]["price"],
+                430.0,
+            )
+            self.assertEqual(len(snapshot["research_coverage"]["required_dimensions"]), 8)
             self.assertEqual(snapshot["fundamental"]["spread"]["soybean_palm_spread"]["price"], -900.0)
             self.assertEqual(snapshot["research_history"]["previous_report"]["date"], "2026-08-02-weekend")
             self.assertEqual(snapshot["server_evidence"]["fixed_logic"], [

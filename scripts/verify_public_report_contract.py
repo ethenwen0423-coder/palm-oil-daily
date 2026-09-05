@@ -172,14 +172,24 @@ def validate_report_record(record: dict[str, Any], download_markdown: str) -> di
             ("维度", "已验证事实", "对P/Y/OI影响", "盘中验证信号"),
             errors,
         )
-        if len(panorama_rows) < 4:
-            errors.append("盘前市场全景少于四个完整维度")
+        if len(panorama_rows) < 8:
+            errors.append("盘前市场全景少于八个完整维度")
+        panorama_text = "\n".join("|".join(row) for row in panorama_rows)
+        panorama_dimensions = (
+            "海外盘面", "美豆与豆油", "棕榈油产地", "菜籽链",
+            "能源与生柴", "国内现货与库存", "合约结构与资金", "天气物流与政策",
+        )
+        missing_dimensions = [name for name in panorama_dimensions if name not in panorama_text]
+        if missing_dimensions:
+            errors.append(f"盘前市场全景缺少维度：{'/'.join(missing_dimensions)}")
         data_rows = require_table(
             markdown,
             "关键数据与价格",
             ("指标", "数值", "时点", "含义"),
             errors,
         )
+        if not 10 <= len(data_rows) <= 14:
+            errors.append(f"关键数据必须为10-14行，当前为{len(data_rows)}行")
         shallow = [
             row[0]
             for row in data_rows

@@ -159,7 +159,7 @@ class ServerResearchAgentTests(unittest.TestCase):
         self.assertIn("页面 Headline", prompt)
         self.assertIn("不得超过 50 个字符", prompt)
         self.assertIn("不得使用价格、数字或交易执行词", prompt)
-        self.assertIn("至少三项 SOURCE_JSON 中有精确数字的辅助证据", prompt)
+        self.assertIn("至少七项 SOURCE_JSON 中有精确数字的辅助证据", prompt)
         self.assertIn("不得在“信息来源与核验说明”之前使用“需进一步核验”", prompt)
         self.assertIn("今日观点”第一段必须包含可机器读取的 `置信度：", prompt)
         self.assertIn("内部元数据，不得写成市场驱动", prompt)
@@ -171,9 +171,11 @@ class ServerResearchAgentTests(unittest.TestCase):
         self.assertIn("价格预测与验证", prompt)
         self.assertIn("不得创造点位或概率", prompt)
         self.assertIn("news_and_research_evidence.today_new_drivers", prompt)
-        self.assertIn("两个主驱动合计不得少于350个中文可见字符", prompt)
-        self.assertIn("模型初稿必须控制在 1600-1740 个可见字符", prompt)
-        self.assertIn("今日交易信号不超过190字", prompt)
+        self.assertIn("两个主驱动合计不得少于520个中文可见字符", prompt)
+        self.assertIn("模型初稿必须控制在 2500-2860 个可见字符", prompt)
+        self.assertIn("今日交易信号不超过260字", prompt)
+        self.assertIn("海外盘面、美豆与豆油、棕榈油产地、菜籽链", prompt)
+        self.assertIn("关键数据表不得少于10行或超过14行", prompt)
         self.assertIn("重写整份 report_markdown", prompt)
         self.assertIn("REPOSITORY CONTRACT SENTINEL", prompt)
         self.assertIn("指标、数值、时点、含义", prompt)
@@ -188,9 +190,9 @@ class ServerResearchAgentTests(unittest.TestCase):
             feedback={"required_report_disclosures": ["预测披露原句。"]},
             gate_feedback="正文篇幅 1855 字，不在 1000-1400 字预算内",
         )
-        self.assertIn("1500-1840", prompt)
-        self.assertIn("核心驱动与预期差350-380字", prompt)
-        self.assertIn("至少三项可复核辅助数字", prompt)
+        self.assertIn("2400-3040", prompt)
+        self.assertIn("核心驱动与预期差520-700字", prompt)
+        self.assertIn("至少七项可复核辅助数字", prompt)
         self.assertIn("预测披露原句。", prompt)
         self.assertIn('"market_stance": "震荡"', prompt)
 
@@ -434,7 +436,7 @@ class ServerResearchAgentTests(unittest.TestCase):
         )
         self.assertEqual(updated, markdown)
 
-    def test_daily_key_data_adds_official_fact_without_exceeding_eight_rows(self) -> None:
+    def test_daily_key_data_adds_official_fact_without_exceeding_fourteen_rows(self) -> None:
         markdown = """# 09月03日晨报
 
 ## 【关键数据与价格】
@@ -469,9 +471,9 @@ class ServerResearchAgentTests(unittest.TestCase):
         updated = MODULE.ensure_daily_official_key_data(markdown, source, "daily")
         section = updated.split("## 【关键数据与价格】", 1)[1].split("## 【开盘推演】", 1)[0]
         self.assertIn("|MPOB期末库存|2628326吨|2026-07，2026-08-10发布|官方供需背景|", section)
-        self.assertEqual(sum(1 for line in section.splitlines() if line.startswith("|")) - 2, 7)
-        self.assertNotIn("SPPOMA马棕产量", section)
-        self.assertNotIn("印度棕榈油进口", section)
+        self.assertEqual(sum(1 for line in section.splitlines() if line.startswith("|")) - 2, 9)
+        self.assertIn("SPPOMA马棕产量", section)
+        self.assertIn("印度棕榈油进口", section)
 
     def test_daily_execution_compactor_keeps_full_p_outline_fields(self) -> None:
         markdown = """# 09月03日晨报
@@ -684,7 +686,8 @@ P/Y/OI未共振，油脂震荡，若价格突破区间且驱动/资金同向，�
         updated = MODULE.compact_daily_driver_repetition(updated, outline, "daily")
         self.assertIn(
             "油脂供需线索偏多，但盘面仍以震荡应对。\n\n"
-            "行动：按信号表执行；失效：突破区间且驱动/资金同向；置信度：★★☆☆☆。",
+            "相对强弱：P/Y/OI以开盘同步或分化确认；行动：按信号表执行；"
+            "失效：突破区间且驱动/资金同向；置信度：★★☆☆☆。",
             updated,
         )
         top_call = updated.split("## 【今日观点】", 1)[1].split("## 【核心驱动与预期差】", 1)[0]
@@ -762,8 +765,8 @@ P/Y/OI未共振，油脂震荡，若价格突破区间且驱动/资金同向，�
         updated = MODULE.compact_daily_driver_repetition(markdown, outline, "daily")
         section = updated.split("## 【核心驱动与预期差】", 1)[1].split("## 【关键数据与价格】", 1)[0]
         visible = len("".join(section.split()))
-        self.assertGreaterEqual(visible, 350)
-        self.assertLessEqual(visible, 380)
+        self.assertGreaterEqual(visible, 520)
+        self.assertLessEqual(visible, 700)
         self.assertIn("机构资讯·油脂油料快讯", section)
         self.assertNotIn("11:03", section)
         self.assertNotIn("15:28", section)
@@ -775,7 +778,7 @@ P/Y/OI未共振，油脂震荡，若价格突破区间且驱动/资金同向，�
         short_driver = (
             "主驱动一：天气变化影响美豆单产预期并传导Y。"
             "主驱动二：产区供应稳定限制P上行，OI跟随替代关系。"
-            + "已核验事实与市场现实仍有分化，需等待盘面共同确认。" * 11
+            + "已核验事实与市场现实仍有分化，需等待盘面共同确认。" * 16
         )
         markdown = (
             f"# 报告\n\n## 【核心驱动与预期差】\n\n{short_driver}"
@@ -792,8 +795,8 @@ P/Y/OI未共振，油脂震荡，若价格突破区间且驱动/资金同向，�
             "## 【关键数据与价格】", 1
         )[0]
         visible = len("".join(section.split()))
-        self.assertGreaterEqual(visible, 350)
-        self.assertLessEqual(visible, 380)
+        self.assertGreaterEqual(visible, 520)
+        self.assertLessEqual(visible, 700)
         self.assertTrue(any(value in section for value in outline.values()))
 
     def test_daily_driver_uses_safe_evidence_boundary_when_core_fields_are_present(self) -> None:
@@ -815,7 +818,7 @@ P/Y/OI未共振，油脂震荡，若价格突破区间且驱动/资金同向，�
             f"失效：{outline['invalidation_condition']}。"
         )
         filler = "盘面分化说明预期尚未转化为一致定价。"
-        while len("".join(body.split())) < 330:
+        while len("".join(body.split())) < 500:
             body += filler
         markdown = f"# 报告\n\n## 【核心驱动与预期差】\n\n{body}\n\n## 【关键数据与价格】\n"
         updated = MODULE.compact_daily_driver_repetition(markdown, outline, "daily")
@@ -823,13 +826,13 @@ P/Y/OI未共振，油脂震荡，若价格突破区间且驱动/资金同向，�
             "## 【关键数据与价格】", 1
         )[0]
         visible = len("".join(section.split()))
-        self.assertGreaterEqual(visible, 350)
-        self.assertLessEqual(visible, 380)
+        self.assertGreaterEqual(visible, 520)
+        self.assertLessEqual(visible, 700)
         self.assertIn("待核验：", section)
         self.assertNotIn("source_error", section)
 
     def test_daily_driver_depth_restores_previous_grounded_section(self) -> None:
-        previous_driver = "主驱动一：" + "供给收缩→P支撑，预期与现实待验证。" * 20 + "主驱动二：需求恢复。最强反证：供应回升。"
+        previous_driver = "主驱动一：" + "供给收缩→P支撑，预期与现实待验证。" * 30 + "主驱动二：需求恢复。最强反证：供应回升。"
         current = "# 报告\n\n## 【核心驱动与预期差】\n\n主驱动一：过短。主驱动二：过短。\n\n## 【关键数据与价格】\n"
         previous = f"# 报告\n\n## 【核心驱动与预期差】\n\n{previous_driver}\n\n## 【关键数据与价格】\n"
         restored = MODULE.preserve_daily_driver_depth(current, previous, "daily")
