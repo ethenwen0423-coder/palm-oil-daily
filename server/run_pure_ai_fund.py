@@ -25,7 +25,7 @@ from typing import Any
 
 SCRIPT_ROOT = Path(__file__).resolve().parent
 MODEL_VERSION = "pure-ai-adaptive-strategy-unbounded-v2"
-DECISION_MODEL = "gpt-5.6-sol"
+DECISION_MODEL = "gpt-6-astra"
 INITIAL_CAPITAL = 1_000_000.0
 FUND_FILE = "ai_daredevil_pure_ai.json"
 READY_MARKER = ".server-pure-ai-fund-ready.json"

@@ -284,11 +284,11 @@ class PureAiFundTests(unittest.TestCase):
                 "priority": "决策引擎", "name": "stale-engine", "state": "ready", "note": "stale",
             }], "test", [], audit, [], now)
 
-        self.assertEqual(payload["model"]["decision_model"], "gpt-5.6-sol")
-        self.assertEqual(payload["model"]["latest_decision_model"], "gpt-5.6-sol")
+        self.assertEqual(payload["model"]["decision_model"], "gpt-6-astra")
+        self.assertEqual(payload["model"]["latest_decision_model"], "gpt-6-astra")
         self.assertTrue(payload["governance"]["decision_model_fixed"])
-        self.assertEqual(payload["governance"]["decision_model"], "gpt-5.6-sol")
-        self.assertIn("固定模型 gpt-5.6-sol", payload["sources"][-1]["note"])
+        self.assertEqual(payload["governance"]["decision_model"], "gpt-6-astra")
+        self.assertIn("固定模型 gpt-6-astra", payload["sources"][-1]["note"])
         self.assertEqual(sum(row["priority"] == "决策引擎" for row in payload["sources"]), 1)
 
     def test_missing_batch_decision_is_a_validation_issue(self):
